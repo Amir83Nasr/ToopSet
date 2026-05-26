@@ -21,7 +21,7 @@ class WalletRepo:
 
     async def add_balance(self, wallet: Wallet, amount: float, description: str | None = None) -> Wallet:
         wallet.balance += amount
-        tx = WalletTransaction(wallet_id=wallet.id, amount=amount, type="refund", description=description)
+        tx = WalletTransaction(wallet_id=wallet.id, amount=amount, type="deposit", description=description)
         self.db.add(tx)
         await self.db.commit()
         await self.db.refresh(wallet)

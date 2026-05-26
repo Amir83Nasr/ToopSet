@@ -21,3 +21,13 @@ class WalletTransactionResponse(BaseModel):
 
 class WalletBalanceResponse(BaseModel):
     balance: float
+
+
+class WalletDepositRequest(BaseModel):
+    amount: float
+    description: str | None = None
+
+
+class WalletWithdrawRequest(BaseModel):
+    amount: float
+    description: str | None = None

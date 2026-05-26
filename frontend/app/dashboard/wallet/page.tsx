@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import {
   Card,
@@ -19,7 +19,17 @@ import {
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { Wallet, RefreshCw, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Wallet, RefreshCw, ArrowDownLeft, ArrowUpRight, Plus, Minus } from "lucide-react"
+import { toast } from "sonner"
 
 interface WalletTransaction {
   id: number
@@ -94,6 +104,71 @@ function LoadingSkeleton() {
   )
 }
 
+function TransactionForm({
+  type,
+  onSuccess,
+}: {
+  type: "deposit" | "withdrawal"
+  onSuccess: () => void
+}) {
+  const [amount, setAmount] = useState("")
+  const [description, setDescription] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await api(`/api/v1/wallet/${type}`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          description: description || undefined,
+        }),
+      })
+      toast.success(type === "deposit" ? "واریز موفقیت‌آمیز بود" : "برداشت موفقیت‌آمیز بود")
+      setAmount("")
+      setDescription("")
+      onSuccess()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : `خطا در ${type === "deposit" ? "واریز" : "برداشت"}`
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="amount">مبلغ (تومان)</Label>
+        <Input
+          id="amount"
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="مثلاً 50000"
+          required
+          min="1000"
+          step="1000"
+        />
+      </div>
+      <div>
+        <Label htmlFor="description">توضیح (اختیاری)</Label>
+        <Input
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="توضیح تراکنش"
+        />
+      </div>
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? "در حال پردازش..." : type === "deposit" ? "واریز" : "برداشت"}
+      </Button>
+    </form>
+  )
+}
+
 export default function WalletPage() {
   const [balance, setBalance] = useState<number | null>(null)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
@@ -164,9 +239,39 @@ export default function WalletPage() {
         <CardHeader>
           <CardTitle>موجودی</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex items-center justify-between">
           <div className="text-3xl font-bold">
             {balance !== null ? formatAmount(balance) : "-"}
+          </div>
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Plus className="ml-1 size-4" />
+                  واریز
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>واریز به کیف پول</DialogTitle>
+                </DialogHeader>
+                <TransactionForm type="deposit" onSuccess={fetchData} />
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Minus className="ml-1 size-4" />
+                  برداشت
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>برداشت از کیف پول</DialogTitle>
+                </DialogHeader>
+                <TransactionForm type="withdrawal" onSuccess={fetchData} />
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
