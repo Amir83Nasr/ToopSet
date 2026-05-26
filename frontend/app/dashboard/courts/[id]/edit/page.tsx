@@ -66,8 +66,9 @@ export default function EditCourtPage() {
           longitude: data.longitude,
           capacity: data.capacity,
           amenities: (data as any).amenities || {},
-      })
-      .catch((err) => {
+      });
+    })
+    .catch((err) => {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
         } else {
@@ -192,7 +193,7 @@ export default function EditCourtPage() {
               name="amenities"
               control={control}
               render={({ field }) => (
-                <AmenityCheckboxes value={field.value || {}} onChange={field.onChange} />
+                <AmenityCheckboxes value={(field.value || {}) as Record<string, boolean>} onChange={field.onChange} />
               )}
             />
             <div className="space-y-2">

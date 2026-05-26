@@ -8,7 +8,16 @@ import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CourtsMap } from "@/components/map/courts-map"
+import dynamic from "next/dynamic"
+
+const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) => m.CourtsMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center rounded-xl border bg-muted" style={{ height: "400px" }}>
+      <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
+    </div>
+  ),
+})
 import {
   Volleyball,
   Building2,

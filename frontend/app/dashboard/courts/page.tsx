@@ -29,7 +29,16 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight, Map, Star } from "lucide-react"
-import { CourtsMap } from "@/components/map/courts-map"
+import dynamic from "next/dynamic"
+
+const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) => m.CourtsMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center rounded-xl border bg-muted" style={{ height: "400px" }}>
+      <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
+    </div>
+  ),
+})
 
 interface Court {
   id: number
