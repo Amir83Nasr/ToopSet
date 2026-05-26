@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +11,9 @@ from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.repositories.booking_repo import BookingRepo
 from app.repositories.payment_repo import PaymentRepo
+from app.repositories.penalty_repo import PenaltyRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
+from app.repositories.wallet_repo import WalletRepo
 from app.schemas.booking import (
     BookingCreate,
     BookingDetailResponse,
@@ -61,6 +65,7 @@ class BookingService:
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
+            expires_at=booking.expires_at,
             court_name=court.name if court else "",
             court_address=court.address if court else "",
             slot_start_time=slot.start_time if slot else None,
@@ -98,6 +103,7 @@ class BookingService:
             "status": BookingStatus.PENDING_PAYMENT,
             "price_paid": float(slot.base_price),
             "participants_count": data.participants_count,
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
         })
 
         court = slot.court if slot else None
@@ -111,6 +117,7 @@ class BookingService:
             penalty_amount=None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
+            expires_at=booking.expires_at,
             court_name=court.name if court else "",
             court_address=court.address if court else "",
             slot_start_time=slot.start_time if slot else None,
@@ -158,6 +165,7 @@ class BookingService:
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
+            expires_at=booking.expires_at,
             court_name=court.name if court else "",
             court_address=court.address if court else "",
             slot_start_time=slot.start_time if slot else None,
@@ -175,13 +183,51 @@ class BookingService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking already cancelled")
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+
         was_confirmed = booking.status == BookingStatus.CONFIRMED
 
-        booking = await self.booking_repo.update(booking, {"status": BookingStatus.CANCELLED})
+        now = datetime.now(timezone.utc)
+        hours_until_slot = (slot.start_time - now).total_seconds() / 3600
+
+        if hours_until_slot < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot cancel within 2 hours of the session start time",
+            )
+
+        penalty_repo = PenaltyRepo(self.booking_repo.db)
+        wallet_repo = WalletRepo(self.booking_repo.db)
+
+        if hours_until_slot <= 24:
+            penalty_amount = float(booking.price_paid) * 0.5
+            refund_amount = float(booking.price_paid) * 0.5
+            update_data: dict = {
+                "status": BookingStatus.CANCELLED,
+                "penalty_amount": penalty_amount,
+            }
+            await penalty_repo.create(
+                user_id=self.current_user.id,
+                booking_id=booking_id,
+                amount=penalty_amount,
+                reason="Cancellation within 2-24 hours of session start",
+            )
+        else:
+            refund_amount = float(booking.price_paid)
+            update_data = {
+                "status": BookingStatus.CANCELLED,
+                "penalty_amount": None,
+            }
+
+        booking = await self.booking_repo.update(booking, update_data)
 
         # Free the slot if it was confirmed
-        if slot and was_confirmed:
+        if was_confirmed:
             await self.slot_repo.update(slot, {"is_reserved": False})
+
+        wallet = await wallet_repo.get_or_create(self.current_user.id)
+        await wallet_repo.add_balance(wallet, refund_amount, f"Refund for cancelled booking #{booking_id}")
 
         court = slot.court if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)
@@ -194,6 +240,7 @@ class BookingService:
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
+            expires_at=booking.expires_at,
             court_name=court.name if court else "",
             court_address=court.address if court else "",
             slot_start_time=slot.start_time if slot else None,

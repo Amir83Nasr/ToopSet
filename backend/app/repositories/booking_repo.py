@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingStatus
 
 
 class BookingRepo:
@@ -51,3 +53,12 @@ class BookingRepo:
         await self.db.commit()
         await self.db.refresh(booking)
         return booking
+
+    async def list_expired_pending(self, now: datetime) -> list[Booking]:
+        stmt = select(Booking).where(
+            Booking.status == BookingStatus.PENDING_PAYMENT,
+            Booking.expires_at.isnot(None),
+            Booking.expires_at < now,
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())

@@ -128,6 +128,30 @@ def upgrade() -> None:
     )
 
     op.create_table(
+        "wallets",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("balance", sa.Numeric(10, 2), nullable=False, server_default="0"),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
+        sa.UniqueConstraint("user_id"),
+    )
+
+    op.create_table(
+        "wallet_transactions",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("wallet_id", sa.Integer(), nullable=False),
+        sa.Column("amount", sa.Numeric(10, 2), nullable=False),
+        sa.Column("type", sa.String(20), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["wallet_id"], ["wallets.id"]),
+    )
+
+    op.create_table(
         "logs",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=True),
@@ -141,6 +165,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("logs")
+    op.drop_table("wallet_transactions")
+    op.drop_table("wallets")
     op.drop_table("penalties")
     op.drop_table("reviews")
     op.drop_table("bookings")

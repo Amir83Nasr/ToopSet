@@ -30,6 +30,7 @@ class Booking(Base):
     participants_count: Mapped[int] = mapped_column(SmallInteger, default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="bookings")
     slot: Mapped["TimeSlot"] = relationship(back_populates="booking")

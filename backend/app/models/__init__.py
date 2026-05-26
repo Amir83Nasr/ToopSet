@@ -6,6 +6,8 @@ from app.models.payment import Payment
 from app.models.review import Review
 from app.models.penalty import Penalty
 from app.models.log import Log
+from app.models.wallet import Wallet
+from app.models.wallet_transaction import WalletTransaction
 
 __all__ = [
     "User",
@@ -16,4 +18,6 @@ __all__ = [
     "Review",
     "Penalty",
     "Log",
+    "Wallet",
+    "WalletTransaction",
 ]

@@ -64,6 +64,15 @@ class CourtService:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
         await self.repo.delete(court)
 
+    async def toggle_court_status(self, court_id: int, is_active: bool) -> CourtResponse:
+        court = await self.repo.get_by_id(court_id)
+        if not court:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+        if court.manager_id != self.current_user.id and self.current_user.role != "admin":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't manage this court")
+        updated = await self.repo.update(court, {"is_active": is_active})
+        return CourtResponse.model_validate(updated)
+
 
 async def get_court_service(
     db: AsyncSession = Depends(get_db),
