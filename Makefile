@@ -69,7 +69,7 @@ install: front-install back-deps ## Install all dependencies
 # ── Docker ────────────────────────────────────────────────
 
 .PHONY: docker-up
-docker-up: ## Start all Docker services (Postgres, Redis, Backend)
+docker-up: ## Start all Docker services (Postgres, Redis, Backend, Frontend)
 	docker compose up -d
 
 .PHONY: docker-down
@@ -81,8 +81,16 @@ docker-logs: ## Tail logs from all Docker services
 	docker compose logs -f
 
 .PHONY: docker-build
-docker-build: ## Rebuild backend Docker image
+docker-build: ## Rebuild all Docker images
+	docker compose build
+
+.PHONY: docker-build-backend
+docker-build-backend: ## Rebuild backend image only
 	docker compose build backend
+
+.PHONY: docker-build-frontend
+docker-build-frontend: ## Rebuild frontend image only
+	docker compose build frontend
 
 .PHONY: docker-reset
 docker-reset: ## Stop and remove all containers + volumes (destroys data)

@@ -19,6 +19,7 @@ out/
 .idea/
 *.swp
 *.swo
+.omo
 
 # OS
 .DS_Store
