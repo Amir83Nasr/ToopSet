@@ -51,14 +51,11 @@ interface AdminUserListResponse {
   total: number
 }
 
-const roleLabels: Record<
-  string,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
-> = {
-  admin: { label: "مدیر سیستم", variant: "destructive" },
-  manager: { label: "مدیر زمین", variant: "default" },
-  user: { label: "کاربر", variant: "outline" },
-}
+const statusOptions = [
+  { value: "all", label: "همه وضعیت‌ها" },
+  { value: "true", label: "فعال" },
+  { value: "false", label: "غیرفعال" },
+]
 
 const roleOptions = [
   { value: "user", label: "کاربر" },
@@ -78,6 +75,7 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const limit = 20
@@ -99,6 +97,7 @@ export default function UsersPage() {
       params.set("limit", String(limit))
       if (search) params.set("search", search)
       if (roleFilter && roleFilter !== "all") params.set("role", roleFilter)
+      if (statusFilter && statusFilter !== "all") params.set("is_active", statusFilter)
 
       const res = await api<AdminUserListResponse>(`/api/v1/users?${params}`)
       setUsers(res.users)
@@ -109,7 +108,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, roleFilter])
+  }, [page, search, roleFilter, statusFilter])
 
   useEffect(() => {
     fetchUsers()
@@ -178,23 +177,45 @@ export default function UsersPage() {
               className="pr-10"
             />
           </div>
-          <Select
-            value={roleFilter}
-            onValueChange={(val) => {
-              setRoleFilter(val)
-              setPage(0)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">همه نقش‌ها</SelectItem>
-              <SelectItem value="user">کاربر</SelectItem>
-              <SelectItem value="manager">مدیر زمین</SelectItem>
-              <SelectItem value="admin">مدیر سیستم</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select
+              value={roleFilter}
+              onValueChange={(val) => {
+                setRoleFilter(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه نقش‌ها</SelectItem>
+                {roleOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
@@ -229,10 +250,6 @@ export default function UsersPage() {
             </TableHeader>
             <TableBody>
               {users.map((u, idx) => {
-                const rl = roleLabels[u.role] || {
-                  label: u.role,
-                  variant: "outline",
-                }
                 return (
                   <TableRow key={u.id}>
                     <TableCell className="text-muted-foreground">
