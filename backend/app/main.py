@@ -1,4 +1,6 @@
+import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -15,12 +17,36 @@ from app.api.v1.reviews import router as reviews_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.wallet import router as wallet_router
 from app.api.v1.users import router as users_router
-from app.core.database import engine
+from app.core.database import async_session_factory, engine
+
+
+async def _cancel_expired_pending():
+    """Background task: cancel pending bookings whose 10-min payment window expired."""
+    while True:
+        try:
+            async with async_session_factory() as db:
+                from app.repositories.booking_repo import BookingRepo
+                from app.repositories.time_slot_repo import TimeSlotRepo
+                from app.models.booking import BookingStatus
+                repo = BookingRepo(db)
+                slot_repo = TimeSlotRepo(db)
+                now = datetime.now(timezone.utc)
+                expired = await repo.list_expired_pending(now)
+                for b in expired:
+                    slot = await slot_repo.get_by_id(b.slot_id)
+                    if slot:
+                        await slot_repo.update(slot, {'is_reserved': False})
+                    await repo.update(b, {'status': BookingStatus.CANCELLED})
+        except Exception:
+            pass
+        await asyncio.sleep(60)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_cancel_expired_pending())
     yield
+    task.cancel()
     await engine.dispose()
 
 
