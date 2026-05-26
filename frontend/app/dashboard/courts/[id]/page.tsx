@@ -109,6 +109,10 @@ export default function CourtDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
+  const [bookingParticipants, setBookingParticipants] = useState(1)
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
+  const [bookingSubmitting, setBookingSubmitting] = useState(false)
 
   const canManage = user?.role === "manager" || user?.role === "admin"
 
@@ -408,19 +412,10 @@ export default function CourtDetailPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={async () => {
-                            try {
-                              await api("/api/v1/bookings", {
-                                method: "POST",
-                                body: JSON.stringify({ slot_id: slot.id }),
-                              })
-                              toast.success("رزرو با موفقیت انجام شد")
-                              fetchData()
-                              router.push("/dashboard/bookings")
-                            } catch (err) {
-                              const msg = err instanceof ApiError ? err.message : "خطا در رزرو"
-                              toast.error(msg)
-                            }
+                          onClick={() => {
+                            setBookingSlot(slot)
+                            setBookingParticipants(1)
+                            setBookingDialogOpen(true)
                           }}
                         >
                           رزرو
@@ -434,6 +429,75 @@ export default function CourtDetailPage() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>رزرو زمان</DialogTitle>
+            <DialogDescription>
+              {bookingSlot
+                ? `${formatDate(bookingSlot.start_time)} - ${formatTime(bookingSlot.start_time)} تا ${formatTime(bookingSlot.end_time)}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!bookingSlot) return
+              setBookingSubmitting(true)
+              try {
+                await api("/api/v1/bookings", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    slot_id: bookingSlot.id,
+                    participants_count: bookingParticipants,
+                    version: bookingSlot.version,
+                  }),
+                })
+                toast.success("رزرو با موفقیت انجام شد")
+                setBookingDialogOpen(false)
+                fetchData()
+                router.push("/dashboard/bookings")
+              } catch (err) {
+                if (err instanceof ApiError && err.status === 409) {
+                  toast.error("این زمان تغییر کرده است. لطفاً صفحه را بازنشانی کنید.")
+                  setBookingDialogOpen(false)
+                  fetchData()
+                } else {
+                  const msg = err instanceof ApiError ? err.message : "خطا در رزرو"
+                  toast.error(msg)
+                }
+              } finally {
+                setBookingSubmitting(false)
+              }
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="participants_count">تعداد شرکت‌کنندگان</Label>
+              <Input
+                id="participants_count"
+                name="participants_count"
+                type="number"
+                min={1}
+                max={court?.capacity ?? 50}
+                value={bookingParticipants}
+                onChange={(e) => setBookingParticipants(Math.max(1, parseInt(e.target.value) || 1))}
+                required
+              />
+              {court && (
+                <p className="text-xs text-muted-foreground">
+                  حداکثر ظرفیت: {toPersianDigits(court.capacity)} نفر
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={bookingSubmitting}>
+                {bookingSubmitting ? "در حال رزرو..." : "تایید رزرو"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
