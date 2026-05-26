@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+import enum
+from datetime import datetime
+
+from sqlalchemy import Enum, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+
+_values_callable = lambda x: [e.value for e in x]  # noqa: E731
+
+
+class UserRole(str, enum.Enum):
+    USER = "user"
+    MANAGER = "manager"
+    ADMIN = "admin"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    full_name: Mapped[str] = mapped_column(String(128))
+    phone: Mapped[str] = mapped_column(String(16), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole, values_callable=_values_callable), default=UserRole.USER, server_default="user")
+    is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    courts: Mapped[list["Court"]] = relationship(back_populates="manager")
+    bookings: Mapped[list["Booking"]] = relationship(back_populates="user")
+    reviews: Mapped[list["Review"]] = relationship(back_populates="user")
+    penalties: Mapped[list["Penalty"]] = relationship(back_populates="user")
+    logs: Mapped[list["Log"]] = relationship(back_populates="user")
