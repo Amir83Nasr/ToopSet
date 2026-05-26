@@ -1,9 +1,21 @@
 "use client"
 
+import { Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginForm } from "@/components/auth/login-form"
 
-export default function LoginPage() {
+function LoginPageContent() {
   const { login } = useAuth()
-  return <LoginForm login={login} />
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get("redirect") || undefined
+  return <LoginForm login={login} redirect={redirect} />
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  )
 }

@@ -14,9 +14,10 @@ import type { UseAuthReturn } from "@/hooks/use-auth"
 
 interface Props {
   login: UseAuthReturn["login"]
+  redirect?: string
 }
 
-export function LoginForm({ login }: Props) {
+export function LoginForm({ login, redirect }: Props) {
   const {
     register,
     handleSubmit,
@@ -27,7 +28,7 @@ export function LoginForm({ login }: Props) {
 
   async function onSubmit(data: LoginInput) {
     try {
-      await login(data)
+      await login(data, redirect)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "خطا در ورود"
       toast.error(message)
