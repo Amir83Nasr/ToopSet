@@ -175,11 +175,12 @@ class BookingService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking already cancelled")
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
+        was_confirmed = booking.status == BookingStatus.CONFIRMED
 
         booking = await self.booking_repo.update(booking, {"status": BookingStatus.CANCELLED})
 
         # Free the slot if it was confirmed
-        if slot and booking.status == BookingStatus.CONFIRMED:
+        if slot and was_confirmed:
             await self.slot_repo.update(slot, {"is_reserved": False})
 
         court = slot.court if slot else None
