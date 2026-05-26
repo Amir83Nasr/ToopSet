@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.deps import get_current_manager
 from app.models.user import User
 from app.schemas.time_slot import TimeSlotCreate, TimeSlotListResponse, TimeSlotResponse, TimeSlotUpdate
-from app.services.time_slot_service import TimeSlotService, get_time_slot_service
+from app.services.time_slot_service import TimeSlotService, get_time_slot_service, get_time_slot_service_public
 
 router = APIRouter(prefix="/courts/{court_id}/slots", tags=["time-slots"])
 
@@ -15,7 +15,7 @@ async def list_slots(
     court_id: int,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    service: TimeSlotService = Depends(get_time_slot_service),
+    service: TimeSlotService = Depends(get_time_slot_service_public),
 ):
     return await service.list_slots(court_id, skip=skip, limit=limit)
 

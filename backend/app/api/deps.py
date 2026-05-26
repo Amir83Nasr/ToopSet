@@ -11,6 +11,27 @@ from app.repositories.user_repo import UserRepository
 security = HTTPBearer(auto_error=False)
 
 
+async def get_current_user_optional(
+    token: str | None = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    if token is None:
+        return None
+    try:
+        payload = jwt.decode(token.credentials, settings.secret_key, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+
+    repo = UserRepository(db)
+    user = await repo.get_by_id(int(user_id))
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
 async def get_current_user(
     token: str | None = Depends(security),
     db: AsyncSession = Depends(get_db),

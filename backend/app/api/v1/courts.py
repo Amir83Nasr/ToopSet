@@ -10,7 +10,7 @@ from app.models.court import SportType
 from app.schemas.court import CourtCreate, CourtListResponse, CourtResponse, CourtUpdate
 from app.core.database import get_db
 from app.schemas.review import ReviewListResponse
-from app.services.court_service import CourtService, get_court_service
+from app.services.court_service import CourtService, get_court_service, get_court_service_public
 from app.services.review_service import ReviewService
 
 router = APIRouter(prefix="/courts", tags=["courts"])
@@ -30,7 +30,7 @@ async def list_courts(
     ref_lat: float | None = None,
     ref_lon: float | None = None,
     max_distance_km: float | None = None,
-    service: CourtService = Depends(get_court_service),
+    service: CourtService = Depends(get_court_service_public),
 ):
     return await service.list_courts(
         skip=skip, limit=limit, sport_type=sport_type, search=search, is_active=is_active,
@@ -53,7 +53,7 @@ async def list_court_reviews(
 @router.get("/{court_id}", response_model=CourtResponse)
 async def get_court(
     court_id: int,
-    service: CourtService = Depends(get_court_service),
+    service: CourtService = Depends(get_court_service_public),
 ):
     return await service.get_court(court_id)
 

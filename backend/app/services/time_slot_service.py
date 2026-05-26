@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
@@ -12,7 +12,7 @@ from app.schemas.time_slot import TimeSlotCreate, TimeSlotListResponse, TimeSlot
 
 
 class TimeSlotService:
-    def __init__(self, db: AsyncSession, current_user: User) -> None:
+    def __init__(self, db: AsyncSession, current_user: User | None) -> None:
         self.repo = TimeSlotRepo(db)
         self.court_repo = CourtRepo(db)
         self.current_user = current_user
@@ -63,5 +63,12 @@ class TimeSlotService:
 async def get_time_slot_service(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+) -> TimeSlotService:
+    return TimeSlotService(db=db, current_user=current_user)
+
+
+async def get_time_slot_service_public(
+    db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
 ) -> TimeSlotService:
     return TimeSlotService(db=db, current_user=current_user)
