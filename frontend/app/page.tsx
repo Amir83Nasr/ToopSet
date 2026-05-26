@@ -181,9 +181,10 @@ export default function HomePage() {
             <h2 className="mb-8 text-2xl font-bold">زمین‌های ویژه</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {featuredCourts.map((court) => (
-                <div
+                <Link
                   key={court.id}
-                  className="rounded-xl border bg-card p-5 shadow-sm"
+                  href={`/courts/${court.id}`}
+                  className="block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -206,7 +207,7 @@ export default function HomePage() {
                       <span>{court.average_rating.toFixed(1)}</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
