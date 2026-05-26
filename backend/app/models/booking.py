@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, func, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,6 +27,7 @@ class Booking(Base):
     status: Mapped[BookingStatus] = mapped_column(Enum(BookingStatus, values_callable=_values_callable), default=BookingStatus.PENDING_PAYMENT, server_default="pending_payment", index=True)
     price_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     penalty_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
+    participants_count: Mapped[int] = mapped_column(SmallInteger, default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

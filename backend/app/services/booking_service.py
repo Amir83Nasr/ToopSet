@@ -75,6 +75,19 @@ class BookingService:
         if slot.is_reserved:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already reserved")
 
+        if slot.version != data.version:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Slot has been modified. Please refresh and try again.",
+            )
+
+        court = slot.court
+        if data.participants_count > court.capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Participants count exceeds court capacity",
+            )
+
         existing = await self.booking_repo.get_by_slot(data.slot_id)
         if existing:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already has a booking")
@@ -84,9 +97,9 @@ class BookingService:
             "slot_id": data.slot_id,
             "status": BookingStatus.PENDING_PAYMENT,
             "price_paid": float(slot.base_price),
+            "participants_count": data.participants_count,
         })
 
-        slot = await self.slot_repo.get_by_id(data.slot_id)
         court = slot.court if slot else None
 
         return BookingDetailResponse(

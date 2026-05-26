@@ -11,6 +11,8 @@ from app.models.payment import PaymentStatus
 
 class BookingCreate(BaseModel):
     slot_id: int
+    version: int
+    participants_count: int = Field(default=1, ge=1)
 
 
 class BookingResponse(BaseModel):
@@ -20,6 +22,7 @@ class BookingResponse(BaseModel):
     status: BookingStatus
     price_paid: float
     penalty_amount: float | None = None
+    participants_count: int = 1
     created_at: datetime
     updated_at: datetime
 
