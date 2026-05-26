@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar"
 import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
-import { Volleyball } from "lucide-react"
+import Image from "next/image"
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -21,8 +21,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             href="/dashboard"
             className="flex items-center gap-2 font-heading text-lg font-bold"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Volleyball className="size-5" />
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary overflow-hidden">
+              <Image src="/favicon.svg" alt="توپ سِت" width={32} height={32} className="size-8" />
             </div>
             <span className="truncate group-data-[collapsible=icon]:hidden">
               توپ سِت
