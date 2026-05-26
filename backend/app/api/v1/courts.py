@@ -20,9 +20,13 @@ async def list_courts(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     sport_type: SportType | None = None,
+    search: str | None = None,
+    is_active: bool | None = None,
     service: CourtService = Depends(get_court_service),
 ):
-    return await service.list_courts(skip=skip, limit=limit, sport_type=sport_type)
+    return await service.list_courts(
+        skip=skip, limit=limit, sport_type=sport_type, search=search, is_active=is_active
+    )
 
 
 @router.get("/{court_id}/reviews", response_model=ReviewListResponse)

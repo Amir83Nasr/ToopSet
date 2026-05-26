@@ -22,10 +22,13 @@ class CourtService:
         skip: int = 0,
         limit: int = 20,
         sport_type: SportType | None = None,
+        search: str | None = None,
+        is_active: bool | None = None,
     ) -> CourtListResponse:
-        is_active = None if self.current_user.role in ("admin", "manager") else True
+        if self.current_user.role not in ("admin", "manager"):
+            is_active = True
         courts, total = await self.repo.list(
-            skip=skip, limit=limit, sport_type=sport_type, is_active=is_active
+            skip=skip, limit=limit, sport_type=sport_type, is_active=is_active, search=search
         )
         return CourtListResponse(
             courts=[CourtResponse.model_validate(c) for c in courts],

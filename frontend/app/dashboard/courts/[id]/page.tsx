@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -53,6 +55,7 @@ interface Court {
   is_active: boolean
   average_rating: number
   created_at: string
+  images?: string[]
 }
 
 interface TimeSlot {
@@ -170,8 +173,57 @@ export default function CourtDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        در حال بارگذاری...
+      <div className="flex flex-1 flex-col gap-6">
+        {/* Back button skeleton */}
+        <Skeleton className="h-9 w-32 rounded-md" />
+
+        {/* Court info card skeleton */}
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-7 w-56" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            {canManage && <Skeleton className="h-8 w-20 rounded-md" />}
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Skeleton className="size-4 rounded-full" />
+                  <Skeleton className="h-4 flex-1" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Time slots card skeleton */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-6 w-28" />
+              <Skeleton className="h-4 w-36" />
+            </div>
+            {canManage && <Skeleton className="h-8 w-28 rounded-md" />}
+          </CardHeader>
+          <CardContent>
+            {/* Table header skeleton */}
+            <div className="flex gap-4 border-b pb-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-4 flex-1" />
+              ))}
+            </div>
+            {/* Table rows skeleton */}
+            {[1, 2, 3, 4].map((row) => (
+              <div key={row} className="flex gap-4 border-b py-3">
+                {[1, 2, 3, 4, 5].map((col) => (
+                  <Skeleton key={col} className="h-4 flex-1" />
+                ))}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -225,11 +277,11 @@ export default function CourtDetailPage() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Users className="size-4 text-muted-foreground" />
-              <span>ظرفیت: {court.capacity} نفر</span>
+              <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Star className="size-4 text-muted-foreground" />
-              <span>امتیاز: {court.average_rating.toFixed(1)}</span>
+              <span>امتیاز: {toPersianDigits(court.average_rating.toFixed(1))}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Badge variant={court.is_active ? "default" : "secondary"}>
@@ -240,13 +292,35 @@ export default function CourtDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Image gallery */}
+      {court.images && court.images.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>تصاویر زمین</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {court.images.map((img: string, i: number) => (
+                <div key={i} className="relative aspect-video rounded-lg overflow-hidden border">
+                  <img
+                    src={img}
+                    alt={`${court.name} - ${i + 1}`}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Time slots section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>زمان‌بندی</CardTitle>
             <CardDescription>
-              {slotsTotal} زمان ثبت شده
+              {toPersianDigits(slotsTotal)} زمان ثبت شده
             </CardDescription>
           </div>
           {canManage && (

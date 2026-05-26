@@ -1,39 +1,36 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { ApiError } from "@/lib/api"
+import { registerSchema, type RegisterInput } from "@/lib/validations"
 import type { UseAuthReturn } from "@/hooks/use-auth"
 
 interface Props {
   register: UseAuthReturn["register"]
 }
 
-export function RegisterForm({ register }: Props) {
-  const [fullName, setFullName] = useState("")
-  const [phone, setPhone] = useState("")
-  const [password, setPassword] = useState("")
-  const [submitting, setSubmitting] = useState(false)
+export function RegisterForm({ register: registerFn }: Props) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+  })
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (password.length < 4) {
-      toast.error("رمز عبور باید حداقل ۴ کاراکتر باشد")
-      return
-    }
-    setSubmitting(true)
+  async function onSubmit(data: RegisterInput) {
     try {
-      await register({ phone, password, full_name: fullName })
+      await registerFn(data)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "خطا در ثبت‌نام"
       toast.error(message)
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -44,16 +41,17 @@ export function RegisterForm({ register }: Props) {
         <CardDescription>با شماره موبایل ثبت‌نام کنید</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fullName">نام و نام خانوادگی</Label>
             <Input
               id="fullName"
               placeholder="مثلاً علی محمدی"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
+              {...register("full_name")}
             />
+            {errors.full_name && (
+              <p className="text-sm text-destructive">{errors.full_name.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">شماره موبایل</Label>
@@ -62,10 +60,11 @@ export function RegisterForm({ register }: Props) {
               type="tel"
               dir="ltr"
               placeholder="09120000000"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
+              {...register("phone")}
             />
+            {errors.phone && (
+              <p className="text-sm text-destructive">{errors.phone.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">رمز عبور</Label>
@@ -74,14 +73,14 @@ export function RegisterForm({ register }: Props) {
               type="password"
               dir="ltr"
               placeholder="حداقل ۴ کاراکتر"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={4}
+              {...register("password")}
             />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "در حال ثبت‌نام..." : "ثبت‌نام"}
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "در حال ثبت‌نام..." : "ثبت‌نام"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             قبلاً ثبت‌نام کرده‌اید؟{" "}

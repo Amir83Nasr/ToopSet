@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { courtUpdateSchema, type CourtUpdateInput } from "@/lib/validations"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,24 +28,24 @@ const sportTypes = [
   { value: "handball", label: "هندبال" },
 ]
 
-interface CourtFormData {
-  name: string
-  sport_type: string
-  address: string
-  latitude: string
-  longitude: string
-  capacity: string
-}
-
 export default function EditCourtPage() {
   const params = useParams()
   const router = useRouter()
   const courtId = Number(params.id)
 
-  const [formData, setFormData] = useState<CourtFormData | null>(null)
+  const [courtData, setCourtData] = useState<CourtUpdateInput | undefined>(undefined)
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
   const [notFound, setNotFound] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<CourtUpdateInput>({
+    resolver: zodResolver(courtUpdateSchema as any),
+    values: courtData,
+  })
 
   useEffect(() => {
     api<{
@@ -54,13 +57,13 @@ export default function EditCourtPage() {
       capacity: number
     }>(`/api/v1/courts/${courtId}`)
       .then((data) => {
-        setFormData({
+        setCourtData({
           name: data.name,
-          sport_type: data.sport_type,
+          sport_type: data.sport_type as CourtUpdateInput["sport_type"],
           address: data.address,
-          latitude: String(data.latitude),
-          longitude: String(data.longitude),
-          capacity: String(data.capacity),
+          latitude: data.latitude,
+          longitude: data.longitude,
+          capacity: data.capacity,
         })
       })
       .catch((err) => {
@@ -73,20 +76,7 @@ export default function EditCourtPage() {
       .finally(() => setLoading(false))
   }, [courtId])
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSubmitting(true)
-
-    const form = new FormData(e.currentTarget)
-    const data = {
-      name: form.get("name") as string,
-      sport_type: form.get("sport_type") as string,
-      address: form.get("address") as string,
-      latitude: parseFloat(form.get("latitude") as string),
-      longitude: parseFloat(form.get("longitude") as string),
-      capacity: parseInt(form.get("capacity") as string, 10),
-    }
-
+  async function onSubmit(data: CourtUpdateInput) {
     try {
       await api(`/api/v1/courts/${courtId}`, {
         method: "PATCH",
@@ -97,8 +87,6 @@ export default function EditCourtPage() {
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در ویرایش زمین"
       toast.error(msg)
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -111,7 +99,7 @@ export default function EditCourtPage() {
     )
   }
 
-  if (notFound || !formData) {
+  if (notFound || !courtData) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <p className="text-xl text-muted-foreground">زمین مورد نظر یافت نشد</p>
@@ -134,77 +122,85 @@ export default function EditCourtPage() {
           <CardTitle>ویرایش زمین</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">نام زمین</Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={formData.name}
-                required
-              />
+              <Input id="name" {...register("name")} />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="sport_type">نوع ورزش</Label>
-              <Select name="sport_type" defaultValue={formData.sport_type} required>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sportTypes.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="sport_type"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sportTypes.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.sport_type && (
+                <p className="text-sm text-destructive">{errors.sport_type.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">آدرس</Label>
-              <Textarea
-                id="address"
-                name="address"
-                defaultValue={formData.address}
-                required
-              />
+              <Textarea id="address" {...register("address")} />
+              {errors.address && (
+                <p className="text-sm text-destructive">{errors.address.message}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="latitude">عرض جغرافیایی</Label>
                 <Input
                   id="latitude"
-                  name="latitude"
                   type="number"
                   step="any"
-                  defaultValue={formData.latitude}
-                  required
+                  {...register("latitude")}
                 />
+                {errors.latitude && (
+                  <p className="text-sm text-destructive">{errors.latitude.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="longitude">طول جغرافیایی</Label>
                 <Input
                   id="longitude"
-                  name="longitude"
                   type="number"
                   step="any"
-                  defaultValue={formData.longitude}
-                  required
+                  {...register("longitude")}
                 />
+                {errors.longitude && (
+                  <p className="text-sm text-destructive">{errors.longitude.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
               <Input
                 id="capacity"
-                name="capacity"
                 type="number"
                 min="1"
-                defaultValue={formData.capacity}
-                required
+                {...register("capacity")}
               />
+              {errors.capacity && (
+                <p className="text-sm text-destructive">{errors.capacity.message}</p>
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "در حال ذخیره..." : "ذخیره تغییرات"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "در حال ذخیره..." : "ذخیره تغییرات"}
             </Button>
           </form>
         </CardContent>

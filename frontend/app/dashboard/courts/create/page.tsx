@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { courtCreateSchema } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -27,22 +29,16 @@ const sportTypes = [
 
 export default function CreateCourtPage() {
   const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } = useForm({ resolver: zodResolver(courtCreateSchema) as any })
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSubmitting(true)
-
-    const form = new FormData(e.currentTarget)
-    const data = {
-      name: form.get("name") as string,
-      sport_type: form.get("sport_type") as string,
-      address: form.get("address") as string,
-      latitude: parseFloat(form.get("latitude") as string),
-      longitude: parseFloat(form.get("longitude") as string),
-      capacity: parseInt(form.get("capacity") as string, 10),
-    }
-
+  async function onSubmit(data: Record<string, unknown>) {
     try {
       await api("/api/v1/courts", {
         method: "POST",
@@ -53,10 +49,10 @@ export default function CreateCourtPage() {
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "خطا در ایجاد زمین"
       toast.error(message)
-    } finally {
-      setSubmitting(false)
     }
   }
+
+  const sportTypeValue = watch("sport_type")
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -69,14 +65,22 @@ export default function CreateCourtPage() {
           <CardTitle>ثبت زمین جدید</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">نام زمین</Label>
-              <Input id="name" name="name" placeholder="مثلاً سالن ۱" required />
+              <Input id="name" placeholder="مثلاً سالن ۱" {...register("name")} />
+              {errors.name?.message && (
+                <p className="text-sm text-destructive">{String(errors.name.message)}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="sport_type">نوع ورزش</Label>
-              <Select name="sport_type" required>
+              <Select
+                value={sportTypeValue || ""}
+                onValueChange={(v) => {
+                  setValue("sport_type", v, { shouldValidate: true, shouldDirty: true })
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="انتخاب ورزش" />
                 </SelectTrigger>
@@ -88,27 +92,59 @@ export default function CreateCourtPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.sport_type?.message && (
+                <p className="text-sm text-destructive">{String(errors.sport_type.message)}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">آدرس</Label>
-              <Textarea id="address" name="address" placeholder="آدرس کامل زمین" required />
+              <Textarea id="address" placeholder="آدرس کامل زمین" {...register("address")} />
+              {errors.address?.message && (
+                <p className="text-sm text-destructive">{String(errors.address.message)}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="latitude">عرض جغرافیایی</Label>
-                <Input id="latitude" name="latitude" type="number" step="any" placeholder="35.6892" required />
+                <Input
+                  id="latitude"
+                  type="number"
+                  step="any"
+                  placeholder="35.6892"
+                  {...register("latitude", { valueAsNumber: true })}
+                />
+                {errors.latitude?.message && (
+                  <p className="text-sm text-destructive">{String(errors.latitude.message)}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="longitude">طول جغرافیایی</Label>
-                <Input id="longitude" name="longitude" type="number" step="any" placeholder="51.3890" required />
+                <Input
+                  id="longitude"
+                  type="number"
+                  step="any"
+                  placeholder="51.3890"
+                  {...register("longitude", { valueAsNumber: true })}
+                />
+                {errors.longitude?.message && (
+                  <p className="text-sm text-destructive">{String(errors.longitude.message)}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
-              <Input id="capacity" name="capacity" type="number" min="1" placeholder="۲۰" required />
+              <Input
+                id="capacity"
+                type="number"
+                placeholder="۲۰"
+                {...register("capacity", { valueAsNumber: true })}
+              />
+              {errors.capacity?.message && (
+                <p className="text-sm text-destructive">{String(errors.capacity.message)}</p>
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "در حال ثبت..." : "ثبت زمین"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "در حال ثبت..." : "ثبت زمین"}
             </Button>
           </form>
         </CardContent>

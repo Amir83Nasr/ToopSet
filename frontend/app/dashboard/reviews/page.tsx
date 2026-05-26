@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -179,10 +181,32 @@ export default function ReviewsPage() {
   function renderMyReviews() {
     if (loading) {
       return (
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="ml-2 size-5 animate-spin" />
-          در حال بارگذاری...
-        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>زمین</TableHead>
+                <TableHead>امتیاز</TableHead>
+                <TableHead>نظر</TableHead>
+                <TableHead>تاریخ</TableHead>
+                <TableHead>وضعیت</TableHead>
+                {isAdmin && <TableHead className="text-left">عملیات</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-[110px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[90px]" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-[60px] rounded-full" /></TableCell>
+                  {isAdmin && <TableCell><Skeleton className="h-8 w-[60px] rounded-md" /></TableCell>}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )
     }
 
@@ -263,7 +287,7 @@ export default function ReviewsPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t px-4 py-3">
             <p className="text-sm text-muted-foreground">
-              صفحه {page + 1} از {totalPages}
+              صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
             </p>
             <div className="flex gap-2">
               <Button

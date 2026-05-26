@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { loginSchema, type LoginInput } from "@/lib/validations"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,20 +17,20 @@ interface Props {
 }
 
 export function LoginForm({ login }: Props) {
-  const [phone, setPhone] = useState("")
-  const [password, setPassword] = useState("")
-  const [submitting, setSubmitting] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+  })
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
+  async function onSubmit(data: LoginInput) {
     try {
-      await login({ phone, password })
+      await login(data)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "خطا در ورود"
       toast.error(message)
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -39,7 +41,7 @@ export function LoginForm({ login }: Props) {
         <CardDescription>با شماره موبایل و رمز عبور وارد شوید</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="phone">شماره موبایل</Label>
             <Input
@@ -47,10 +49,11 @@ export function LoginForm({ login }: Props) {
               type="tel"
               dir="ltr"
               placeholder="09120000000"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
+              {...register("phone")}
             />
+            {errors.phone && (
+              <p className="text-sm text-destructive">{errors.phone.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">رمز عبور</Label>
@@ -59,13 +62,14 @@ export function LoginForm({ login }: Props) {
               type="password"
               dir="ltr"
               placeholder="......"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              {...register("password")}
             />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "در حال ورود..." : "ورود"}
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "در حال ورود..." : "ورود"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             حساب کاربری ندارید؟{" "}

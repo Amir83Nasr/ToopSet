@@ -14,7 +14,7 @@ import { Volleyball } from "lucide-react"
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" side="right" {...props}>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
           <Link

@@ -1,0 +1,54 @@
+import { z } from "zod"
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export const loginSchema = z.object({
+  phone: z.string().min(10, "شماره تلفن باید حداقل ۱۰ رقم باشد").max(16, "شماره تلفن معتبر نیست"),
+  password: z.string().min(4, "رمز عبور باید حداقل ۴ کاراکتر باشد"),
+})
+
+export const registerSchema = z.object({
+  phone: z.string().min(10, "شماره تلفن باید حداقل ۱۰ رقم باشد").max(16, "شماره تلفن معتبر نیست"),
+  password: z.string().min(4, "رمز عبور باید حداقل ۴ کاراکتر باشد"),
+  full_name: z.string().min(1, "نام الزامی است").max(128, "نام حداکثر ۱۲۸ کاراکتر می‌تواند باشد"),
+})
+
+// ---------------------------------------------------------------------------
+// Court
+// ---------------------------------------------------------------------------
+
+export const sportTypes = ["volleyball", "basketball", "futsal", "handball"] as const
+
+export const courtCreateSchema = z.object({
+  name: z.string().min(1, "نام زمین الزامی است").max(256, "نام حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
+  sport_type: z.enum(sportTypes, {
+    error: "نوع ورزش را انتخاب کنید",
+  }),
+  address: z.string().min(1, "آدرس الزامی است").max(256, "آدرس حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
+  latitude: z.coerce
+    .number({ error: "عرض جغرافیایی را وارد کنید" })
+    .gte(-90, "عرض جغرافیایی معتبر نیست")
+    .lte(90, "عرض جغرافیایی معتبر نیست"),
+  longitude: z.coerce
+    .number({ error: "طول جغرافیایی را وارد کنید" })
+    .gte(-180, "طول جغرافیایی معتبر نیست")
+    .lte(180, "طول جغرافیایی معتبر نیست"),
+  capacity: z.coerce
+    .number({ error: "ظرفیت را وارد کنید" })
+    .int("ظرفیت باید عدد صحیح باشد")
+    .positive("ظرفیت باید عدد مثبت باشد"),
+  amenities: z.record(z.string(), z.unknown()).optional(),
+})
+
+export const courtUpdateSchema = courtCreateSchema.partial()
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type LoginInput = z.infer<typeof loginSchema>
+export type RegisterInput = z.infer<typeof registerSchema>
+export type CourtCreateInput = z.infer<typeof courtCreateSchema>
+export type CourtUpdateInput = z.infer<typeof courtUpdateSchema>

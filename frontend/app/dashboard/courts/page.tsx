@@ -4,8 +4,18 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -14,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Eye, Pencil, Building2, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Court {
   id: number
@@ -46,14 +56,34 @@ export default function CourtsPage() {
   const [courts, setCourts] = useState<Court[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [sportType, setSportType] = useState("all")
+  const [isActive, setIsActive] = useState("all")
   const [loading, setLoading] = useState(true)
   const limit = 20
+
+  // Debounce search input — 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const fetchCourts = useCallback(async () => {
     setLoading(true)
     try {
+      const params = new URLSearchParams()
+      params.set("skip", String(page * limit))
+      params.set("limit", String(limit))
+      if (debouncedSearch) params.set("search", debouncedSearch)
+      if (sportType && sportType !== "all") params.set("sport_type", sportType)
+      if (isActive && isActive !== "all") params.set("is_active", isActive)
+
       const res = await api<{ courts: Court[]; total: number }>(
-        `/api/v1/courts?skip=${page * limit}&limit=${limit}`
+        `/api/v1/courts?${params}`
       )
       setCourts(res.courts)
       setTotal(res.total)
@@ -62,7 +92,7 @@ export default function CourtsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, debouncedSearch, sportType, isActive])
 
   useEffect(() => {
     fetchCourts()
@@ -85,6 +115,53 @@ export default function CourtsPage() {
         </Button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="جستجوی زمین..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+        <Select
+          value={sportType}
+          onValueChange={(val) => {
+            setSportType(val)
+            setPage(0)
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">همه ورزش‌ها</SelectItem>
+            <SelectItem value="volleyball">والیبال</SelectItem>
+            <SelectItem value="basketball">بسکتبال</SelectItem>
+            <SelectItem value="futsal">فوتسال</SelectItem>
+            <SelectItem value="handball">هندبال</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={isActive}
+          onValueChange={(val) => {
+            setIsActive(val)
+            setPage(0)
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">همه</SelectItem>
+            <SelectItem value="true">فعال</SelectItem>
+            <SelectItem value="false">غیرفعال</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
@@ -99,11 +176,16 @@ export default function CourtsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  در حال بارگذاری...
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                </TableRow>
+              ))
             ) : courts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
@@ -130,7 +212,7 @@ export default function CourtsPage() {
                       <span className="truncate">{court.address}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{court.capacity} نفر</TableCell>
+                  <TableCell>{toPersianDigits(court.capacity)} نفر</TableCell>
                   <TableCell>
                     <Badge variant={court.is_active ? "default" : "secondary"}>
                       {court.is_active ? "فعال" : "غیرفعال"}
@@ -159,7 +241,7 @@ export default function CourtsPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t px-4 py-3">
             <p className="text-sm text-muted-foreground">
-              صفحه {page + 1} از {totalPages} — {total} زمین
+              صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)} — {toPersianDigits(total)} زمین
             </p>
             <div className="flex gap-2">
               <Button

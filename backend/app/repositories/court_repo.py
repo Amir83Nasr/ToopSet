@@ -17,6 +17,7 @@ class CourtRepo:
         limit: int = 20,
         sport_type: SportType | None = None,
         is_active: bool | None = True,
+        search: str | None = None,
     ) -> tuple[list[Court], int]:
         query = select(Court)
         count_query = select(Court.id)
@@ -27,6 +28,10 @@ class CourtRepo:
         if is_active is not None:
             query = query.where(Court.is_active == is_active)
             count_query = count_query.where(Court.is_active == is_active)
+        if search:
+            pattern = f"%{search}%"
+            query = query.where(Court.name.ilike(pattern))
+            count_query = count_query.where(Court.name.ilike(pattern))
 
         total = len((await self.db.execute(count_query)).scalars().all())
 
