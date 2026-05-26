@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -241,7 +242,7 @@ export default function UsersPage() {
                       {u.full_name}
                     </TableCell>
                     <TableCell dir="ltr" className="text-left">
-                      {u.phone}
+                      {toPersianDigits(u.phone)}
                     </TableCell>
                     {/* Role change select */}
                     <TableCell>

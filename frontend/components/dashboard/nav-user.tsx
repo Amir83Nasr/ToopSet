@@ -18,6 +18,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { toPersianDigits } from "@/lib/utils"
 import { User, Settings, LogOut, ChevronUp } from "lucide-react"
 
 export function NavUser() {
@@ -54,8 +55,8 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-right">
                 <span className="truncate font-medium">{user.full_name}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {user.phone}
+                <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                  {toPersianDigits(user.phone)}
                 </span>
               </div>
               <ChevronUp className="ml-auto size-4" />
@@ -77,7 +78,7 @@ export function NavUser() {
                 <div className="grid flex-1">
                   <span className="truncate font-medium">{user.full_name}</span>
                   <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                    {user.phone}
+                    {toPersianDigits(user.phone)}
                     <Badge variant="outline" className="text-[10px] px-1 py-0">
                       {roleLabel[user.role] || user.role}
                     </Badge>
