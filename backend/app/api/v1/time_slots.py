@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.deps import get_current_manager
 from app.models.user import User
 from app.schemas.time_slot import TimeSlotCreate, TimeSlotListResponse, TimeSlotResponse, TimeSlotUpdate
+from app.schemas.time_slot import TimeSlotDetailResponse
 from app.services.time_slot_service import TimeSlotService, get_time_slot_service, get_time_slot_service_public
 
 router = APIRouter(prefix="/courts/{court_id}/slots", tags=["time-slots"])
@@ -13,11 +14,12 @@ router = APIRouter(prefix="/courts/{court_id}/slots", tags=["time-slots"])
 @router.get("", response_model=TimeSlotListResponse)
 async def list_slots(
     court_id: int,
+    date: str | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     service: TimeSlotService = Depends(get_time_slot_service_public),
 ):
-    return await service.list_slots(court_id, skip=skip, limit=limit)
+    return await service.list_slots(court_id, date=date, skip=skip, limit=limit)
 
 
 @router.post("", response_model=TimeSlotResponse, status_code=status.HTTP_201_CREATED)
@@ -49,3 +51,15 @@ async def delete_slot(
     _: User = Depends(get_current_manager),
 ):
     await service.delete_slot(slot_id)
+
+
+# Dedicated slot detail router — used by the booking flow
+slot_detail_router = APIRouter(prefix="/slots", tags=["slots"])
+
+
+@slot_detail_router.get("/{slot_id}", response_model=TimeSlotDetailResponse)
+async def get_slot_by_id(
+    slot_id: int,
+    service: TimeSlotService = Depends(get_time_slot_service_public),
+):
+    return await service.get_slot(slot_id)

@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.courts import router as courts_router
-from app.api.v1.time_slots import router as time_slots_router
+from app.api.v1.time_slots import router as time_slots_router, slot_detail_router
 from app.api.v1.bookings import router as bookings_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.payments import router as payments_router
@@ -68,6 +68,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(courts_router, prefix="/api/v1")
 app.include_router(time_slots_router, prefix="/api/v1")
+app.include_router(slot_detail_router, prefix="/api/v1")
 app.include_router(bookings_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(reviews_router, prefix="/api/v1")

@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   XCircle,
   Calendar,
+  Loader2,
 } from "lucide-react"
 
 interface Court {
@@ -98,6 +99,7 @@ export default function PublicCourtDetailPage() {
   const [court, setCourt] = useState<Court | null>(null)
   const [slots, setSlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(true)
+  const [slotsLoading, setSlotsLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const [recentReviews, setRecentReviews] = useState<any[]>([])
   const [selectedDate, setSelectedDate] = useState<string>("")
@@ -112,50 +114,66 @@ export default function PublicCourtDetailPage() {
     return dates
   }, [])
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [courtRes, slotsRes] = await Promise.all([
-        api<Court>(`/api/v1/courts/${courtId}`),
-        api<{ slots: TimeSlot[]; total: number }>(
-          `/api/v1/courts/${courtId}/slots?limit=100`
-        ),
-      ])
-      setCourt(courtRes)
-      setSlots(slotsRes.slots)
-      // Set default date to today
-      setSelectedDate(new Date().toISOString().split("T")[0])
-      // Fetch recent reviews
+  const today = new Date().toISOString().split("T")[0]
+  const dates = getDates()
+
+  // Fetch court + reviews once on mount
+  useEffect(() => {
+    async function init() {
       try {
-        const revRes = await api<{ reviews: any[]; total: number }>(
-          `/api/v1/courts/${courtId}/reviews?limit=5`
-        )
-        setRecentReviews(revRes.reviews || [])
-      } catch {
-        // reviews may not be available
+        const courtRes = await api<Court>(`/api/v1/courts/${courtId}`)
+        setCourt(courtRes)
+        setSelectedDate(today)
+        // Fetch recent reviews
+        try {
+          const revRes = await api<{ reviews: any[]; total: number }>(
+            `/api/v1/courts/${courtId}/reviews?limit=5`
+          )
+          setRecentReviews(revRes.reviews || [])
+        } catch {
+          // reviews may not be available
+        }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          setNotFound(true)
+        }
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setNotFound(true)
-      }
+    }
+    init()
+  }, [courtId, today])
+
+  // Fetch slots per selected date
+  const fetchSlots = useCallback(async (date: string) => {
+    setSlotsLoading(true)
+    try {
+      const res = await api<{ slots: TimeSlot[]; total: number }>(
+        `/api/v1/courts/${courtId}/slots?date=${date}&limit=50`
+      )
+      setSlots(res.slots)
+    } catch {
+      setSlots([])
     } finally {
-      setLoading(false)
+      setSlotsLoading(false)
     }
   }, [courtId])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (selectedDate) {
+      fetchSlots(selectedDate)
+    }
+  }, [selectedDate, fetchSlots])
 
-  function getSlotsForDate(date: string): TimeSlot[] {
-    return slots.filter((s) => s.start_time.startsWith(date))
+  function handleSelectDate(date: string) {
+    setSelectedDate(date)
   }
 
   function handleBookSlot(slot: TimeSlot) {
     if (!isAuthenticated) {
-      router.push(`/login?redirect=/courts/${courtId}`)
+      router.push(`/login?redirect=${encodeURIComponent(`/book?slot_id=${slot.id}&court_id=${courtId}`)}`)
       return
     }
-    // Navigate to booking flow or open modal
     router.push(`/book?slot_id=${slot.id}&court_id=${courtId}`)
   }
 
@@ -186,9 +204,6 @@ export default function PublicCourtDetailPage() {
       </div>
     )
   }
-
-  const dates = getDates()
-  const filteredSlots = getSlotsForDate(selectedDate)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -347,27 +362,23 @@ export default function PublicCourtDetailPage() {
               const d = new Date(date + "T12:00:00")
               const dayName = d.toLocaleDateString("fa-IR", { weekday: "short" })
               const dayNum = d.toLocaleDateString("fa-IR", { day: "numeric" })
-              const isToday = date === new Date().toISOString().split("T")[0]
-              const hasSlots = getSlotsForDate(date).length > 0
-              const freeSlots = getSlotsForDate(date).filter((s) => !s.is_reserved).length
+              const isToday = date === today
 
               return (
                 <button
                   key={date}
-                  onClick={() => setSelectedDate(date)}
+                  onClick={() => handleSelectDate(date)}
                   className={`flex min-w-[80px] flex-col items-center gap-1 rounded-lg border p-3 text-sm transition-all ${
                     selectedDate === date
                       ? "border-primary bg-primary/5 text-primary"
                       : "hover:border-muted-foreground/30"
-                  } ${!hasSlots ? "opacity-50" : ""}`}
+                  }`}
                 >
                   <span className="text-xs text-muted-foreground">{dayName}</span>
                   <span className="text-base font-semibold">{dayNum}</span>
                   {isToday && <Badge variant="outline" className="text-[10px] px-1">امروز</Badge>}
-                  {hasSlots && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {toPersianDigits(freeSlots)} سانس آزاد
-                    </span>
+                  {selectedDate === date && slotsLoading && (
+                    <Loader2 className="size-3 animate-spin text-muted-foreground" />
                   )}
                 </button>
               )
@@ -375,7 +386,13 @@ export default function PublicCourtDetailPage() {
           </div>
 
           {/* Slots grid */}
-          {filteredSlots.length === 0 ? (
+          {slotsLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-28 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : slots.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
               <Calendar className="size-8" />
               <p>برای این تاریخ سانسی موجود نیست</p>
@@ -383,7 +400,7 @@ export default function PublicCourtDetailPage() {
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredSlots.map((slot) => (
+              {slots.map((slot) => (
                 <div
                   key={slot.id}
                   className={`rounded-lg border p-4 transition-all ${

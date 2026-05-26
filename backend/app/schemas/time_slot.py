@@ -31,6 +31,14 @@ class TimeSlotResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TimeSlotDetailResponse(TimeSlotResponse):
+    court_name: str = ""
+    court_address: str = ""
+    court_sport_type: str = ""
+
+    model_config = {"from_attributes": True}
+
+
 class TimeSlotListResponse(BaseModel):
     slots: list[TimeSlotResponse]
     total: int

@@ -22,7 +22,7 @@ from app.schemas.booking import (
     BookingResponse,
     PaymentResponse,
 )
-from app.services.payment_service import PaymentService
+from app.services.payment_service import PaymentError, PaymentService
 
 
 class BookingService:
@@ -157,11 +157,31 @@ class BookingService:
 
         # Process mock payment
         payment_service = PaymentService()
-        gateway_id = await payment_service.process_payment(booking.price_paid)
+        try:
+            gateway_id = await payment_service.process_payment(float(booking.price_paid))
+        except PaymentError:
+            # Payment failed — create failed record, keep booking pending
+            await self.payment_repo.create({
+                "booking_id": booking_id,
+                "amount": float(booking.price_paid),
+                "gateway_transaction_id": None,
+                "status": "failed",
+            })
+            # Notify user about failed payment
+            notify_repo = NotificationRepo(self.booking_repo.db)
+            await notify_repo.create(
+                user_id=self.current_user.id,
+                type_="booking_failed",
+                message="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
+            )
 
         payment = await self.payment_repo.create({
             "booking_id": booking_id,
-            "amount": booking.price_paid,
+            "amount": float(booking.price_paid),
             "gateway_transaction_id": gateway_id,
             "status": "success",
         })

@@ -17,11 +17,18 @@ class TimeSlotRepo:
         self,
         court_id: int,
         *,
+        date: str | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> tuple[list[TimeSlot], int]:
-        query = select(TimeSlot).where(TimeSlot.court_id == court_id).order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
+        base = select(TimeSlot).where(TimeSlot.court_id == court_id)
         count_q = select(func.count(TimeSlot.id)).where(TimeSlot.court_id == court_id)
+
+        if date:
+            base = base.where(TimeSlot.start_time >= date).where(TimeSlot.start_time < date + "T23:59:59")
+            count_q = count_q.where(TimeSlot.start_time >= date).where(TimeSlot.start_time < date + "T23:59:59")
+
+        query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
 
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))

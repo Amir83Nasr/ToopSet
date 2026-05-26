@@ -21,8 +21,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import {
+  AlertTriangle,
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
@@ -71,6 +82,8 @@ export default function BookingsPage() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<number | null>(null)
+  const [cancellingBooking, setCancellingBooking] = useState<BookingDetail | null>(null)
+  const [cancellingLoading, setCancellingLoading] = useState(false)
   const limit = 20
 
   const fetchBookings = useCallback(async () => {
@@ -106,14 +119,69 @@ export default function BookingsPage() {
     }
   }
 
-  async function handleCancel(bookingId: number) {
+  function getCancelPreview(b: BookingDetail): {
+    canCancel: boolean
+    refundPercent: number
+    penaltyPercent: number
+    refundAmount: number
+    penaltyAmount: number
+    reason: string
+  } {
+    if (!b.slot_start_time) {
+      return { canCancel: true, refundPercent: 100, penaltyPercent: 0, refundAmount: b.price_paid, penaltyAmount: 0, reason: "" }
+    }
+    const now = Date.now()
+    const slotTime = new Date(b.slot_start_time).getTime()
+    const hoursUntil = (slotTime - now) / (1000 * 60 * 60)
+
+    if (hoursUntil < 2) {
+      return {
+        canCancel: false,
+        refundPercent: 0,
+        penaltyPercent: 0,
+        refundAmount: 0,
+        penaltyAmount: 0,
+        reason: "امکان لغو کمتر از ۲ ساعت مانده به شروع سانس وجود ندارد",
+      }
+    }
+    if (hoursUntil <= 24) {
+      const penalty = b.price_paid * 0.5
+      return {
+        canCancel: true,
+        refundPercent: 50,
+        penaltyPercent: 50,
+        refundAmount: b.price_paid * 0.5,
+        penaltyAmount: penalty,
+        reason: "لغو بین ۲ تا ۲۴ ساعت قبل: ۵۰٪ جریمه",
+      }
+    }
+    return {
+      canCancel: true,
+      refundPercent: 100,
+      penaltyPercent: 0,
+      refundAmount: b.price_paid,
+      penaltyAmount: 0,
+      reason: "لغو بیش از ۲۴ ساعت قبل: بازگشت کامل وجه",
+    }
+  }
+
+  function handleCancelClick(b: BookingDetail) {
+    setCancellingBooking(b)
+  }
+
+  async function handleConfirmCancel() {
+    if (!cancellingBooking) return
+    setCancellingLoading(true)
     try {
-      await api(`/api/v1/bookings/${bookingId}/cancel`, { method: "POST" })
+      await api(`/api/v1/bookings/${cancellingBooking.id}/cancel`, { method: "POST" })
       toast.success("رزرو لغو شد")
+      setCancellingBooking(null)
       fetchBookings()
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
       toast.error(msg)
+    } finally {
+      setCancellingLoading(false)
     }
   }
 
@@ -225,7 +293,7 @@ export default function BookingsPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleCancel(b.id)}
+                              onClick={() => handleCancelClick(b)}
                             >
                               <XCircle className="ml-1 size-4" />
                               لغو
@@ -236,7 +304,7 @@ export default function BookingsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleCancel(b.id)}
+                            onClick={() => handleCancelClick(b)}
                           >
                             <XCircle className="ml-1 size-4" />
                             لغو
@@ -269,6 +337,76 @@ export default function BookingsPage() {
           )}
         </Card>
       )}
+
+      {/* Cancel dialog with penalty preview */}
+      <AlertDialog open={!!cancellingBooking} onOpenChange={(o) => { if (!o) setCancellingBooking(null) }}>
+        <AlertDialogContent>
+          {cancellingBooking && (() => {
+            const preview = getCancelPreview(cancellingBooking)
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    آیا از لغو رزرو {cancellingBooking.court_name} مطمئن هستید؟
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-3 rounded-lg border p-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">مبلغ پرداختی</span>
+                    <span>{new Intl.NumberFormat("fa-IR").format(cancellingBooking.price_paid)} تومان</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">درصد بازگشت</span>
+                    <span className={preview.refundPercent >= 100 ? "text-green-600" : "text-amber-600"}>
+                      {toPersianDigits(preview.refundPercent)}٪
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">مبلغ بازگشتی</span>
+                    <span className="font-medium text-green-600">
+                      {new Intl.NumberFormat("fa-IR").format(preview.refundAmount)} تومان
+                    </span>
+                  </div>
+                  {preview.penaltyAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">جریمه</span>
+                      <span className="font-medium text-destructive">
+                        {new Intl.NumberFormat("fa-IR").format(preview.penaltyAmount)} تومان
+                      </span>
+                    </div>
+                  )}
+                  {!preview.canCancel && (
+                    <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                      <AlertTriangle className="size-4 shrink-0" />
+                      <span>{preview.reason}</span>
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel>انصراف</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={!preview.canCancel || cancellingLoading}
+                    onClick={handleConfirmCancel}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {cancellingLoading ? (
+                      <>
+                        <Loader2 className="ml-1 size-4 animate-spin" />
+                        در حال لغو...
+                      </>
+                    ) : (
+                      "تأیید لغو"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            )
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

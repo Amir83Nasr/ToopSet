@@ -38,17 +38,13 @@ interface SlotDetail {
   base_price: number
   is_reserved: boolean
   version: number
-}
-
-interface CourtBrief {
-  id: number
-  name: string
-  sport_type: string
-  address: string
+  court_name: string
+  court_address: string
+  court_sport_type: string
 }
 
 type BookingStatus = "pending_payment" | "confirmed" | "cancelled"
-type PageStep = "loading" | "confirm" | "processing" | "created" | "paid" | "error"
+type PageStep = "loading" | "confirm" | "processing" | "created" | "paid" | "error" | "conflict"
 
 interface BookingResult {
   id: number
@@ -94,7 +90,7 @@ function BookPageContent() {
 
   const [step, setStep] = useState<PageStep>("loading")
   const [slot, setSlot] = useState<SlotDetail | null>(null)
-  const [court, setCourt] = useState<CourtBrief | null>(null)
+  const [court, setCourt] = useState<{ id: number; name: string; sport_type: string; address: string } | null>(null)
   const [booking, setBooking] = useState<BookingResult | null>(null)
   const [errorMsg, setErrorMsg] = useState<string>("")
   const [participants, setParticipants] = useState(1)
@@ -104,7 +100,7 @@ function BookPageContent() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push(`/login?redirect=/book?slot_id=${slotId}&court_id=${courtId}`)
+      router.push(`/login?redirect=${encodeURIComponent(`/book?slot_id=${slotId}&court_id=${courtId}`)}`)
     }
   }, [authLoading, isAuthenticated, router, slotId, courtId])
 
@@ -114,20 +110,15 @@ function BookPageContent() {
 
     async function fetchDetails() {
       try {
-        const [slotRes, courtRes] = await Promise.all([
-          api<{ id: number; court_id: number; start_time: string; end_time: string; base_price: number; is_reserved: boolean; version: number }>(
-            `/api/v1/courts/${courtId}/slots?limit=100`
-          ).then((res: any) => {
-            // Find our specific slot
-            const found = (res.slots || []).find((s: any) => s.id === slotId)
-            if (!found) throw new ApiError(404, "سانس مورد نظر یافت نشد")
-            if (found.is_reserved) throw new ApiError(409, "این سانس قبلاً رزرو شده است")
-            return found as SlotDetail
-          }),
-          api<CourtBrief>(`/api/v1/courts/${courtId}`),
-        ])
+        const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
+        if (slotRes.is_reserved) throw new ApiError(409, "این سانس قبلاً رزرو شده است")
         setSlot(slotRes)
-        setCourt(courtRes)
+        setCourt({
+          id: slotRes.court_id,
+          name: slotRes.court_name,
+          sport_type: slotRes.court_sport_type,
+          address: slotRes.court_address,
+        })
         setStep("confirm")
       } catch (err) {
         if (err instanceof ApiError) {
@@ -183,13 +174,16 @@ function BookPageContent() {
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message)
+        if (err.status === 409) {
+          setStep("conflict")
+          return
+        }
       } else {
         setErrorMsg("خطا در ایجاد رزرو")
       }
       setStep("confirm")
-      toast.error(errorMsg || "خطا در ایجاد رزرو")
     }
-  }, [slot, participants, errorMsg])
+  }, [slot, participants])
 
   const handlePay = useCallback(async () => {
     if (!booking) return
@@ -457,6 +451,25 @@ function BookPageContent() {
             مشاهده رزروهای من
           </Button>
         </div>
+      )}
+
+      {/* --- CONFLICT STEP (409 — slot already booked) --- */}
+      {step === "conflict" && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-12">
+            <XCircle className="size-12 text-destructive" />
+            <CardTitle className="text-xl">متأسفیم</CardTitle>
+            <CardDescription className="text-center">
+              این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید.
+            </CardDescription>
+            <Button asChild>
+              <Link href={`/courts/${courtId}`}>
+                <ArrowRight className="ml-2 size-4" />
+                انتخاب سانس دیگر
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* --- ERROR STEP --- */}

@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
-from app.schemas.time_slot import TimeSlotCreate, TimeSlotListResponse, TimeSlotResponse, TimeSlotUpdate
+from app.schemas.time_slot import TimeSlotCreate, TimeSlotDetailResponse, TimeSlotListResponse, TimeSlotResponse, TimeSlotUpdate
 
 
 class TimeSlotService:
@@ -21,16 +21,35 @@ class TimeSlotService:
         self,
         court_id: int,
         *,
+        date: str | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> TimeSlotListResponse:
         court = await self.court_repo.get_by_id(court_id)
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
-        slots, total = await self.repo.list_by_court(court_id, skip=skip, limit=limit)
+        slots, total = await self.repo.list_by_court(court_id, date=date, skip=skip, limit=limit)
         return TimeSlotListResponse(
             slots=[TimeSlotResponse.model_validate(s) for s in slots],
             total=total,
+        )
+
+    async def get_slot(self, slot_id: int) -> TimeSlotDetailResponse:
+        slot = await self.repo.get_by_id(slot_id)
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+        court = slot.court
+        return TimeSlotDetailResponse(
+            id=slot.id,
+            court_id=slot.court_id,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            base_price=float(slot.base_price),
+            is_reserved=slot.is_reserved,
+            version=slot.version,
+            court_name=court.name if court else "",
+            court_address=court.address if court else "",
+            court_sport_type=court.sport_type.value if court else "",
         )
 
     async def create_slot(self, data: TimeSlotCreate) -> TimeSlotResponse:
