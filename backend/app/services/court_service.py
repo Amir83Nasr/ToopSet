@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,11 +25,16 @@ class CourtService:
         sport_type: SportType | None = None,
         search: str | None = None,
         is_active: bool | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        price_min: float | None = None,
+        price_max: float | None = None,
     ) -> CourtListResponse:
         if self.current_user.role not in ("admin", "manager"):
             is_active = True
         courts, total = await self.repo.list(
-            skip=skip, limit=limit, sport_type=sport_type, is_active=is_active, search=search
+            skip=skip, limit=limit, sport_type=sport_type, is_active=is_active, search=search,
+            date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max
         )
         return CourtListResponse(
             courts=[CourtResponse.model_validate(c) for c in courts],

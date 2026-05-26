@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { api, ApiError } from "@/lib/api"
+import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ArrowRight } from "lucide-react"
 
 const sportTypes = [
@@ -42,7 +43,7 @@ export default function CreateCourtPage() {
     try {
       await api("/api/v1/courts", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, amenities: data.amenities || {} }),
       })
       toast.success("زمین با موفقیت ایجاد شد")
       router.push("/dashboard/courts")
@@ -53,6 +54,7 @@ export default function CreateCourtPage() {
   }
 
   const sportTypeValue = watch("sport_type")
+  const amenitiesValue = watch("amenities") || {}
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -131,6 +133,10 @@ export default function CreateCourtPage() {
                 )}
               </div>
             </div>
+            <AmenityCheckboxes
+              value={amenitiesValue}
+              onChange={(v) => setValue("amenities", v)}
+            />
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
               <Input

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,10 +23,15 @@ async def list_courts(
     sport_type: SportType | None = None,
     search: str | None = None,
     is_active: bool | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    price_min: float | None = None,
+    price_max: float | None = None,
     service: CourtService = Depends(get_court_service),
 ):
     return await service.list_courts(
-        skip=skip, limit=limit, sport_type=sport_type, search=search, is_active=is_active
+        skip=skip, limit=limit, sport_type=sport_type, search=search, is_active=is_active,
+        date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max
     )
 
 

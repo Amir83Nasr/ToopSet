@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
@@ -28,13 +27,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight, Map, Star } from "lucide-react"
+import { CourtsMap } from "@/components/map/courts-map"
 
 interface Court {
   id: number
   name: string
   sport_type: string
   address: string
+  latitude: number
+  longitude: number
   capacity: number
   is_active: boolean
   average_rating: number
@@ -56,7 +59,6 @@ const sportColors: Record<string, string> = {
 }
 
 export default function CourtsPage() {
-  const router = useRouter()
   const [courts, setCourts] = useState<Court[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
@@ -65,6 +67,11 @@ export default function CourtsPage() {
   const [sportType, setSportType] = useState("all")
   const [isActive, setIsActive] = useState("all")
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("table")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  const [priceMin, setPriceMin] = useState("")
+  const [priceMax, setPriceMax] = useState("")
   const limit = 20
 
   // Debounce search input — 300ms
@@ -85,6 +92,10 @@ export default function CourtsPage() {
       if (debouncedSearch) params.set("search", debouncedSearch)
       if (sportType && sportType !== "all") params.set("sport_type", sportType)
       if (isActive && isActive !== "all") params.set("is_active", isActive)
+      if (dateFrom) params.set("date_from", new Date(dateFrom).toISOString())
+      if (dateTo) params.set("date_to", new Date(dateTo).toISOString())
+      if (priceMin) params.set("price_min", priceMin)
+      if (priceMax) params.set("price_max", priceMax)
 
       const res = await api<{ courts: Court[]; total: number }>(
         `/api/v1/courts?${params}`
@@ -96,7 +107,7 @@ export default function CourtsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, debouncedSearch, sportType, isActive])
+  }, [page, debouncedSearch, sportType, isActive, dateFrom, dateTo, priceMin, priceMax])
 
   useEffect(() => {
     fetchCourts()
@@ -164,140 +175,192 @@ export default function CourtsPage() {
             <SelectItem value="false">غیرفعال</SelectItem>
           </SelectContent>
         </Select>
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+          className="w-full sm:w-40"
+          placeholder="از تاریخ"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+          className="w-full sm:w-40"
+          placeholder="تا تاریخ"
+        />
+        <Input
+          type="number"
+          value={priceMin}
+          onChange={(e) => { setPriceMin(e.target.value); setPage(0); }}
+          className="w-full sm:w-28"
+          placeholder="حداقل قیمت"
+        />
+        <Input
+          type="number"
+          value={priceMax}
+          onChange={(e) => { setPriceMax(e.target.value); setPage(0); }}
+          className="w-full sm:w-28"
+          placeholder="حداکثر قیمت"
+        />
       </div>
 
-      {loading ? (
-        <div className="rounded-xl border bg-card shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>نام</TableHead>
-                <TableHead>ورزش</TableHead>
-                <TableHead>آدرس</TableHead>
-                <TableHead>ظرفیت</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : courts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Building2 className="size-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-1">هنوز زمینی ثبت نشده</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-              اولین زمین ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز کنید.
-            </p>
-            <Button asChild>
-              <Link href="/dashboard/courts/create">
-                <Plus className="ml-2 size-4" />
-                ایجاد زمین جدید
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="rounded-xl border bg-card shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>نام</TableHead>
-                <TableHead>ورزش</TableHead>
-                <TableHead>آدرس</TableHead>
-                <TableHead>ظرفیت</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {courts.map((court) => (
-                <TableRow key={court.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-muted-foreground" />
-                      {court.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
-                      {sportLabels[court.sport_type] || court.sport_type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="size-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{court.address}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{toPersianDigits(court.capacity)} نفر</TableCell>
-                  <TableCell>
-                    <Badge variant={court.is_active ? "default" : "secondary"}>
-                      {court.is_active ? "فعال" : "غیرفعال"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/dashboard/courts/${court.id}`}>
-                          <Eye className="size-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/dashboard/courts/${court.id}/edit`}>
-                          <Pencil className="size-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsTrigger value="table">جدول</TabsTrigger>
+          <TabsTrigger value="map">
+            <Map className="ml-1 size-4" />
+            نقشه
+          </TabsTrigger>
+        </TabsList>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)} — {toPersianDigits(total)} زمین
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronRight className="ml-1 size-4" />
-                  قبلی
+        <TabsContent value="table" className="mt-4">
+          {loading ? (
+            <div className="rounded-xl border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>نام</TableHead>
+                    <TableHead>ورزش</TableHead>
+                    <TableHead>آدرس</TableHead>
+                    <TableHead>ظرفیت</TableHead>
+                    <TableHead>امتیاز</TableHead>
+                    <TableHead>وضعیت</TableHead>
+                    <TableHead className="text-left">عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : courts.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="rounded-full bg-muted p-4 mb-4">
+                  <Building2 className="size-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-1">هنوز زمینی ثبت نشده</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+                  اولین زمین ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز کنید.
+                </p>
+                <Button asChild>
+                  <Link href="/dashboard/courts/create">
+                    <Plus className="ml-2 size-4" />
+                    ایجاد زمین جدید
+                  </Link>
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  بعدی
-                  <ChevronLeft className="mr-1 size-4" />
-                </Button>
-              </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="rounded-xl border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>نام</TableHead>
+                    <TableHead>ورزش</TableHead>
+                    <TableHead>آدرس</TableHead>
+                    <TableHead>ظرفیت</TableHead>
+                    <TableHead>امتیاز</TableHead>
+                    <TableHead>وضعیت</TableHead>
+                    <TableHead className="text-left">عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {courts.map((court) => (
+                    <TableRow key={court.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="size-4 text-muted-foreground" />
+                          {court.name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
+                          {sportLabels[court.sport_type] || court.sport_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="size-3 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{court.address}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{toPersianDigits(court.capacity)} نفر</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Star className="size-3.5 text-amber-400 fill-amber-400" />
+                          <span>{toPersianDigits(court.average_rating?.toFixed(1) || "0.0")}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={court.is_active ? "default" : "secondary"}>
+                          {court.is_active ? "فعال" : "غیرفعال"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/dashboard/courts/${court.id}`}>
+                              <Eye className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/dashboard/courts/${court.id}/edit`}>
+                              <Pencil className="size-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)} — {toPersianDigits(total)} زمین
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      <ChevronRight className="ml-1 size-4" />
+                      قبلی
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPages - 1}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      بعدی
+                      <ChevronLeft className="mr-1 size-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="map" className="mt-4">
+          <CourtsMap courts={courts} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

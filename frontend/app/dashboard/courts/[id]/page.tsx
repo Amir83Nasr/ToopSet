@@ -55,6 +55,7 @@ interface Court {
   is_active: boolean
   average_rating: number
   created_at: string
+  amenities?: Record<string, boolean>
   images?: string[]
 }
 
@@ -80,6 +81,16 @@ const sportColors: Record<string, string> = {
   basketball: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   handball: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+}
+
+const amenityLabels: Record<string, string> = {
+  toilet: "سرویس بهداشتی",
+  water_cooler: "آبسردکن",
+  standard_flooring: "کفپوش استاندارد",
+  spectator_seating: "جایگاه تماشاگر",
+  air_conditioning: "تهویه مطبوع",
+  parking: "پارکینگ",
+  locker_room: "رختکن",
 }
 
 function formatDate(iso: string): string {
@@ -293,27 +304,46 @@ export default function CourtDetailPage() {
               </Badge>
             </div>
           </div>
+          {court.amenities && Object.keys(court.amenities).length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {Object.entries(court.amenities).filter(([, v]) => v).map(([key]) => (
+                <Badge key={key} variant="outline" className="text-xs">
+                  {amenityLabels[key] || key}
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Image gallery */}
+      {/* Image gallery with carousel */}
       {court.images && court.images.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>تصاویر زمین</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {court.images.map((img: string, i: number) => (
-                <div key={i} className="relative aspect-video rounded-lg overflow-hidden border">
-                  <img
-                    src={img}
-                    alt={`${court.name} - ${i + 1}`}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              ))}
-            </div>
+            <Carousel className="mx-auto max-w-xl">
+              <CarouselContent>
+                {court.images.map((img: string, i: number) => (
+                  <CarouselItem key={i}>
+                    <div className="relative aspect-video rounded-lg overflow-hidden border">
+                      <img
+                        src={img}
+                        alt={`${court.name} - ${i + 1}`}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {court.images.length > 1 && (
+                <>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </>
+              )}
+            </Carousel>
           </CardContent>
         </Card>
       )}

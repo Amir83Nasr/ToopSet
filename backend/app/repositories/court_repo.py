@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +19,12 @@ class CourtRepo:
         sport_type: SportType | None = None,
         is_active: bool | None = True,
         search: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        price_min: float | None = None,
+        price_max: float | None = None,
     ) -> tuple[list[Court], int]:
+        from app.models.time_slot import TimeSlot
         query = select(Court)
         count_query = select(Court.id)
 
@@ -32,6 +38,26 @@ class CourtRepo:
             pattern = f"%{search}%"
             query = query.where(Court.name.ilike(pattern))
             count_query = count_query.where(Court.name.ilike(pattern))
+
+        # Date/price filters: join with time_slots to find courts with available slots
+        if date_from or date_to or price_min is not None or price_max is not None:
+            query = query.join(Court.time_slots).where(TimeSlot.is_reserved == False)
+            count_query = count_query.join(Court.time_slots).where(TimeSlot.is_reserved == False)
+
+            if date_from:
+                query = query.where(TimeSlot.start_time >= date_from)
+                count_query = count_query.where(TimeSlot.start_time >= date_from)
+            if date_to:
+                query = query.where(TimeSlot.end_time <= date_to)
+                count_query = count_query.where(TimeSlot.end_time <= date_to)
+            if price_min is not None:
+                query = query.where(TimeSlot.base_price >= price_min)
+                count_query = count_query.where(TimeSlot.base_price >= price_min)
+            if price_max is not None:
+                query = query.where(TimeSlot.base_price <= price_max)
+                count_query = count_query.where(TimeSlot.base_price <= price_max)
+
+            query = query.distinct()
 
         total = len((await self.db.execute(count_query)).scalars().all())
 

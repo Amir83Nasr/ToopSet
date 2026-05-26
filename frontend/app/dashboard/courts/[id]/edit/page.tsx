@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
+import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ArrowRight, Loader2 } from "lucide-react"
 
 const sportTypes = [
@@ -64,7 +65,7 @@ export default function EditCourtPage() {
           latitude: data.latitude,
           longitude: data.longitude,
           capacity: data.capacity,
-        })
+          amenities: (data as any).amenities || {},
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 404) {
@@ -187,6 +188,13 @@ export default function EditCourtPage() {
                 )}
               </div>
             </div>
+            <Controller
+              name="amenities"
+              control={control}
+              render={({ field }) => (
+                <AmenityCheckboxes value={field.value || {}} onChange={field.onChange} />
+              )}
+            />
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
               <Input
