@@ -4,8 +4,8 @@ from alembic import op
 import sqlalchemy as sa
 from datetime import datetime, timezone
 
-revision = "0002_add_review_response_and_notifications"
-down_revision = "0001_create_all_tables"
+revision = "0002"
+down_revision = "0001"
 branch_labels = None
 depends_on = None
 
