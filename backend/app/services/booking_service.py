@@ -54,17 +54,16 @@ class BookingService:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your booking")
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
+        court = slot.court if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)
         # Notify manager about new booking
-        if slot and slot.court:
+        if court:
             notify_repo = NotificationRepo(self.booking_repo.db)
             await notify_repo.create(
-                user_id=slot.court.manager_id,
+                user_id=court.manager_id,
                 type_="booking_created",
-                message=f"رزرو جدید برای {slot.court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
+                message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
             )
-
-        court = slot.court if slot else None
 
         return BookingDetailResponse(
             id=booking.id,
@@ -117,15 +116,13 @@ class BookingService:
         })
 
         # Notify manager about new booking
-        if slot and slot.court:
+        if court:
             notify_repo = NotificationRepo(self.booking_repo.db)
             await notify_repo.create(
-                user_id=slot.court.manager_id,
+                user_id=court.manager_id,
                 type_="booking_created",
-                message=f"رزرو جدید برای {slot.court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
+                message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
             )
-
-        court = slot.court if slot else None
 
         return BookingDetailResponse(
             id=booking.id,
@@ -156,6 +153,7 @@ class BookingService:
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+        court = slot.court
 
         # Process mock payment
         payment_service = PaymentService()
@@ -182,7 +180,6 @@ class BookingService:
             message=f"رزرو شما برای {court.name if court else 'زمین'} تایید شد",
         )
 
-        court = slot.court if slot else None
         return BookingDetailResponse(
             id=booking.id,
             user_id=booking.user_id,
@@ -212,6 +209,7 @@ class BookingService:
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+        court = slot.court
 
         was_confirmed = booking.status == BookingStatus.CONFIRMED
 
@@ -257,15 +255,13 @@ class BookingService:
         await wallet_repo.add_balance(wallet, refund_amount, f"Refund for cancelled booking #{booking_id}")
 
         # Notify manager about cancellation
-        if slot and slot.court:
+        if court:
             notify_repo = NotificationRepo(self.booking_repo.db)
             await notify_repo.create(
-                user_id=slot.court.manager_id,
+                user_id=court.manager_id,
                 type_="booking_cancelled",
-                message=f"رزرو {slot.court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
+                message=f"رزرو {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
             )
-
-        court = slot.court if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)
         return BookingDetailResponse(
             id=booking.id,

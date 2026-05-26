@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.time_slot import TimeSlot
 
@@ -19,7 +20,7 @@ class TimeSlotRepo:
         skip: int = 0,
         limit: int = 50,
     ) -> tuple[list[TimeSlot], int]:
-        query = select(TimeSlot).where(TimeSlot.court_id == court_id).order_by(TimeSlot.start_time)
+        query = select(TimeSlot).where(TimeSlot.court_id == court_id).order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
         count_q = select(func.count(TimeSlot.id)).where(TimeSlot.court_id == court_id)
 
         total = (await self.db.execute(count_q)).scalar_one()
@@ -28,7 +29,9 @@ class TimeSlotRepo:
         return slots, total
 
     async def get_by_id(self, slot_id: int) -> TimeSlot | None:
-        result = await self.db.execute(select(TimeSlot).where(TimeSlot.id == slot_id))
+        result = await self.db.execute(
+            select(TimeSlot).where(TimeSlot.id == slot_id).options(selectinload(TimeSlot.court))
+        )
         return result.scalar_one_or_none()
 
     async def list_upcoming_by_court(self, court_id: int) -> list[TimeSlot]:
@@ -37,6 +40,7 @@ class TimeSlotRepo:
             select(TimeSlot)
             .where(TimeSlot.court_id == court_id, TimeSlot.start_time > now)
             .order_by(TimeSlot.start_time)
+            .options(selectinload(TimeSlot.court))
         )
         return list(result.scalars().all())
 

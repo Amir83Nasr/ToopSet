@@ -2,8 +2,8 @@
 
 ## Format
 
-```
-<type>(<scope>): <Persian summary>
+```txt
+<type>(<scope>): <English summary>
 
 <English description of what and why (optional)>
 ```
@@ -14,7 +14,7 @@
 | -------- | ---------------------------------- |
 | `feat`   | New feature                        |
 | `fix`    | Bug fix                            |
-| `refactor` | Code rewrite, no behavior change |
+|`refactor`| Code rewrite, no behavior change   |
 | `style`  | CSS, font, theme changes           |
 | `perf`   | Performance optimization           |
 | `test`   | Adding or fixing tests             |
@@ -48,28 +48,28 @@
 
 ## Examples
 
-```
+```txt
 feat(auth): اضافه کردن ثبت‌نام با شماره موبایل
 
 Implement phone registration with OTP mock. Users can sign up
 with phone + password, verification code logged to console.
 ```
 
-```
+```txt
 fix(booking): رفع مشکل optimistic lock در رزرو همزمان
 
 Added version column check to prevent race conditions when
 two users book the same slot simultaneously.
 ```
 
-```
+```txt
 db(backend): اضافه کردن ستون penalty_amount به bookings
 
 New column to track cancellation penalties per booking.
 Migration: 0002_add_penalty_to_bookings
 ```
 
-```
+```txt
 infra(root): اضافه کردن Redis به docker-compose
 
 Added redis:7-alpine service with named volume and healthcheck.

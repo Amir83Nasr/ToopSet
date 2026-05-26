@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.wallet import Wallet
@@ -20,7 +22,7 @@ class WalletRepo:
         return wallet
 
     async def add_balance(self, wallet: Wallet, amount: float, description: str | None = None) -> Wallet:
-        wallet.balance += amount
+        wallet.balance += Decimal(str(amount))
         tx = WalletTransaction(wallet_id=wallet.id, amount=amount, type="deposit", description=description)
         self.db.add(tx)
         await self.db.commit()
@@ -28,7 +30,7 @@ class WalletRepo:
         return wallet
 
     async def deduct_balance(self, wallet: Wallet, amount: float, description: str | None = None) -> Wallet:
-        wallet.balance -= amount
+        wallet.balance -= Decimal(str(amount))
         tx = WalletTransaction(wallet_id=wallet.id, amount=-amount, type="withdrawal", description=description)
         self.db.add(tx)
         await self.db.commit()
