@@ -16,6 +16,7 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.reviews import router as reviews_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.wallet import router as wallet_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.users import router as users_router
 from app.core.database import async_session_factory, engine
 
@@ -74,6 +75,7 @@ app.include_router(uploads_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(payments_router, prefix="/api/v1")
 app.include_router(wallet_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
 
 
 @app.get("/")

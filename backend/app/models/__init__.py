@@ -8,6 +8,7 @@ from app.models.penalty import Penalty
 from app.models.log import Log
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
+from app.models.notification import Notification
 
 __all__ = [
     "User",
@@ -20,4 +21,5 @@ __all__ = [
     "Log",
     "Wallet",
     "WalletTransaction",
+    "Notification",
 ]

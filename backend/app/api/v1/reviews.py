@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.review import ReviewCreate, ReviewDetailResponse, ReviewListResponse
+from app.schemas.review import ReviewCreate, ReviewDetailResponse, ReviewListResponse, ReviewRespondRequest
 from app.services.review_service import ReviewService
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,3 +42,20 @@ async def report_review(
     service: ReviewService = Depends(get_review_service),
 ):
     return await service.report(review_id)
+
+
+@router.post("/{review_id}/respond", response_model=ReviewDetailResponse)
+async def respond_to_review(
+    review_id: int,
+    data: ReviewRespondRequest,
+    service: ReviewService = Depends(get_review_service),
+):
+    return await service.respond(review_id, data.response)
+
+
+@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_review(
+    review_id: int,
+    service: ReviewService = Depends(get_review_service),
+):
+    await service.delete_review(review_id)

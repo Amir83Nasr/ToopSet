@@ -13,6 +13,7 @@ from app.repositories.booking_repo import BookingRepo
 from app.repositories.payment_repo import PaymentRepo
 from app.repositories.penalty_repo import PenaltyRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
+from app.repositories.notification_repo import NotificationRepo
 from app.repositories.wallet_repo import WalletRepo
 from app.schemas.booking import (
     BookingCreate,
@@ -54,6 +55,15 @@ class BookingService:
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         payment = await self.payment_repo.get_by_booking(booking_id)
+        # Notify manager about new booking
+        if slot and slot.court:
+            notify_repo = NotificationRepo(self.booking_repo.db)
+            await notify_repo.create(
+                user_id=slot.court.manager_id,
+                type_="booking_created",
+                message=f"رزرو جدید برای {slot.court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
+            )
+
         court = slot.court if slot else None
 
         return BookingDetailResponse(
@@ -106,6 +116,15 @@ class BookingService:
             "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
         })
 
+        # Notify manager about new booking
+        if slot and slot.court:
+            notify_repo = NotificationRepo(self.booking_repo.db)
+            await notify_repo.create(
+                user_id=slot.court.manager_id,
+                type_="booking_created",
+                message=f"رزرو جدید برای {slot.court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
+            )
+
         court = slot.court if slot else None
 
         return BookingDetailResponse(
@@ -154,6 +173,14 @@ class BookingService:
 
         # Update booking status
         booking = await self.booking_repo.update(booking, {"status": BookingStatus.CONFIRMED})
+
+        # Notify user about confirmed booking
+        notify_repo = NotificationRepo(self.booking_repo.db)
+        await notify_repo.create(
+            user_id=self.current_user.id,
+            type_="booking_confirmed",
+            message=f"رزرو شما برای {court.name if court else 'زمین'} تایید شد",
+        )
 
         court = slot.court if slot else None
         return BookingDetailResponse(
@@ -228,6 +255,15 @@ class BookingService:
 
         wallet = await wallet_repo.get_or_create(self.current_user.id)
         await wallet_repo.add_balance(wallet, refund_amount, f"Refund for cancelled booking #{booking_id}")
+
+        # Notify manager about cancellation
+        if slot and slot.court:
+            notify_repo = NotificationRepo(self.booking_repo.db)
+            await notify_repo.create(
+                user_id=slot.court.manager_id,
+                type_="booking_cancelled",
+                message=f"رزرو {slot.court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
+            )
 
         court = slot.court if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)

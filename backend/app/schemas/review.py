@@ -18,6 +18,7 @@ class ReviewResponse(BaseModel):
     booking_id: int
     rating: int
     comment: str | None
+    response: str | None = None
     is_reported: bool
     created_at: datetime
 
@@ -27,6 +28,10 @@ class ReviewResponse(BaseModel):
 class ReviewListResponse(BaseModel):
     reviews: list[ReviewResponse]
     total: int
+
+
+class ReviewRespondRequest(BaseModel):
+    response: str = Field(..., min_length=1, max_length=2000)
 
 
 class ReviewDetailResponse(ReviewResponse):

@@ -3,13 +3,15 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import Booking, BookingStatus
 from app.models.court import Court
 from app.models.time_slot import TimeSlot
-from app.models.user import User
+from app.models.user import User, UserRole
+from app.models.payment import Payment, PaymentStatus
+from app.models.wallet import Wallet
 
 
 class DashboardStats(BaseModel):
@@ -22,9 +24,68 @@ class DashboardStats(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AdminStats(BaseModel):
+    total_courts: int
+    total_users: int
+    total_bookings: int
+    total_revenue: float
+    active_managers: int
+    pending_bookings: int
+
+
+class ManagerStats(BaseModel):
+    my_courts: int
+    upcoming_bookings: int
+    today_earnings: int
+    wallet_balance: int
+    recent_bookings: list[dict]
+
+
+class UserStats(BaseModel):
+    upcoming_bookings: int
+    completed_bookings: int
+    wallet_balance: int
+    favorite_sport: str
+    recent_bookings: list[dict]
+
+
 class DashboardService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    async def get_revenue_report(self, user_id: int, date_from: datetime | None = None, date_to: datetime | None = None) -> list[dict]:
+        query = (
+            select(
+                func.date(TimeSlot.start_time).label("date"),
+                func.count(Booking.id).label("bookings_count"),
+                func.coalesce(func.sum(Booking.price_paid), 0).label("revenue"),
+                func.coalesce(func.sum(Booking.penalty_amount), 0).label("penalties"),
+            )
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Court, TimeSlot.court_id == Court.id)
+            .where(Court.manager_id == user_id)
+            .where(Booking.status == BookingStatus.CONFIRMED)
+        )
+
+        if date_from:
+            query = query.where(Booking.created_at >= date_from)
+        if date_to:
+            query = query.where(Booking.created_at <= date_to)
+
+        query = query.group_by(func.date(TimeSlot.start_time)).order_by(func.date(TimeSlot.start_time).desc())
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        return [
+            {
+                "date": str(row.date),
+                "bookings_count": row.bookings_count,
+                "revenue": float(row.revenue),
+                "penalties": float(row.penalties),
+            }
+            for row in rows
+        ]
 
     async def get_stats(self) -> DashboardStats:
         today_start = datetime.now(timezone.utc).replace(

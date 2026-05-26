@@ -115,6 +115,54 @@ class ReviewService:
         item.user_name = user_name
         return item
 
+    async def respond(self, review_id: int, response: str) -> ReviewDetailResponse:
+        if self.current_user.role not in ("manager", "admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only manager or admin can respond to reviews",
+            )
+
+        review = await self.review_repo.get_by_id(review_id)
+        if not review:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Review not found",
+            )
+
+        # Verify manager owns the court
+        if self.current_user.role == "manager":
+            court = review.court
+            if not court or court.manager_id != self.current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't manage this court",
+                )
+
+        review.response = response
+        await self.review_repo.db.commit()
+        await self.review_repo.db.refresh(review)
+
+        item = ReviewDetailResponse.model_validate(review)
+        item.court_name = review.court.name if review.court else ""
+        item.user_name = review.user.full_name if review.user else ""
+        return item
+
+    async def delete_review(self, review_id: int) -> None:
+        if self.current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admin can delete reviews",
+            )
+
+        review = await self.review_repo.get_by_id(review_id)
+        if not review:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Review not found",
+            )
+
+        await self.review_repo.delete(review)
+
     async def report(self, review_id: int) -> dict:
         if self.current_user.role != UserRole.ADMIN:
             raise HTTPException(

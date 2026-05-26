@@ -40,6 +40,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Trash2,
 } from "lucide-react"
 
 // --- Types ---
@@ -109,6 +110,14 @@ export default function ReviewsPage() {
 
   // Report state
   const [reportingId, setReportingId] = useState<number | null>(null)
+  // Respond & Delete state
+  const [respondDialogOpen, setRespondDialogOpen] = useState(false)
+  const [respondReviewId, setRespondReviewId] = useState<number | null>(null)
+  const [respondText, setRespondText] = useState("")
+  const [responding, setResponding] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteReviewId, setDeleteReviewId] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchReviews = useCallback(async () => {
     setLoading(true)
@@ -158,6 +167,47 @@ export default function ReviewsPage() {
       toast.error(msg)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleRespond() {
+    if (!respondReviewId || !respondText.trim()) {
+      toast.error("لطفاً متن پاسخ را وارد کنید")
+      return
+    }
+    setResponding(true)
+    try {
+      await api(`/api/v1/reviews/${respondReviewId}/respond`, {
+        method: "POST",
+        body: JSON.stringify({ response: respondText }),
+      })
+      toast.success("پاسخ با موفقیت ثبت شد")
+      setRespondDialogOpen(false)
+      setRespondText("")
+      setRespondReviewId(null)
+      fetchReviews()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ثبت پاسخ"
+      toast.error(msg)
+    } finally {
+      setResponding(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteReviewId) return
+    setDeleting(true)
+    try {
+      await api(`/api/v1/reviews/${deleteReviewId}`, { method: "DELETE" })
+      toast.success("نظر با موفقیت حذف شد")
+      setDeleteDialogOpen(false)
+      setDeleteReviewId(null)
+      fetchReviews()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در حذف نظر"
+      toast.error(msg)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -457,6 +507,50 @@ export default function ReviewsPage() {
 
       {/* Tab content */}
       {activeTab === "my" ? renderMyReviews() : renderAllReviews()}
+
+      {/* Respond dialog */}
+      <Dialog open={respondDialogOpen} onOpenChange={setRespondDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>پاسخ به نظر</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="respond-text">متن پاسخ</Label>
+              <Textarea
+                id="respond-text"
+                placeholder="پاسخ خود را بنویسید..."
+                value={respondText}
+                onChange={(e) => setRespondText(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <DialogFooter>
+              <Button onClick={handleRespond} disabled={responding}>
+                {responding ? "در حال ثبت..." : "ثبت پاسخ"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>حذف نظر</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">آیا از حذف این نظر اطمینان دارید؟ این عمل قابل بازگشت نیست.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              انصراف
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "در حال حذف..." : "حذف"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
