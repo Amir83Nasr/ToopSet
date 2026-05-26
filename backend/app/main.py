@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.courts import router as courts_router
+from app.api.v1.time_slots import router as time_slots_router
 from app.core.database import engine
 
 
@@ -26,6 +27,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(courts_router, prefix="/api/v1")
+app.include_router(time_slots_router, prefix="/api/v1")
 
 
 @app.get("/")

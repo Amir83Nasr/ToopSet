@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user
+from app.core.database import get_db
+from app.models.user import User
+from app.repositories.court_repo import CourtRepo
+from app.repositories.time_slot_repo import TimeSlotRepo
+from app.schemas.time_slot import TimeSlotCreate, TimeSlotListResponse, TimeSlotResponse, TimeSlotUpdate
+
+
+class TimeSlotService:
+    def __init__(self, db: AsyncSession, current_user: User) -> None:
+        self.repo = TimeSlotRepo(db)
+        self.court_repo = CourtRepo(db)
+        self.current_user = current_user
+
+    async def list_slots(
+        self,
+        court_id: int,
+        *,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> TimeSlotListResponse:
+        court = await self.court_repo.get_by_id(court_id)
+        if not court:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+        slots, total = await self.repo.list_by_court(court_id, skip=skip, limit=limit)
+        return TimeSlotListResponse(
+            slots=[TimeSlotResponse.model_validate(s) for s in slots],
+            total=total,
+        )
+
+    async def create_slot(self, data: TimeSlotCreate) -> TimeSlotResponse:
+        court = await self.court_repo.get_by_id(data.court_id)
+        if not court:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+        if data.start_time >= data.end_time:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
+        slot = await self.repo.create(data.model_dump())
+        return TimeSlotResponse.model_validate(slot)
+
+    async def update_slot(self, slot_id: int, data: TimeSlotUpdate) -> TimeSlotResponse:
+        slot = await self.repo.get_by_id(slot_id)
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+        if slot.is_reserved:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify a reserved slot")
+        updated = await self.repo.update(slot, data.model_dump(exclude_none=True))
+        return TimeSlotResponse.model_validate(updated)
+
+    async def delete_slot(self, slot_id: int) -> None:
+        slot = await self.repo.get_by_id(slot_id)
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+        if slot.is_reserved:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a reserved slot")
+        await self.repo.delete(slot)
+
+
+async def get_time_slot_service(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TimeSlotService:
+    return TimeSlotService(db=db, current_user=current_user)
