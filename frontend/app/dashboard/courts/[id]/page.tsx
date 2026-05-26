@@ -314,6 +314,7 @@ export default function CourtDetailPage() {
                   <TableHead>ساعت پایان</TableHead>
                   <TableHead>قیمت</TableHead>
                   <TableHead>وضعیت</TableHead>
+                  <TableHead className="text-left">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -327,6 +328,30 @@ export default function CourtDetailPage() {
                       <Badge variant={slot.is_reserved ? "secondary" : "outline"}>
                         {slot.is_reserved ? "رزرو شده" : "آزاد"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {!slot.is_reserved && !canManage && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              await api("/api/v1/bookings", {
+                                method: "POST",
+                                body: JSON.stringify({ slot_id: slot.id }),
+                              })
+                              toast.success("رزرو با موفقیت انجام شد")
+                              fetchData()
+                              router.push("/dashboard/bookings")
+                            } catch (err) {
+                              const msg = err instanceof ApiError ? err.message : "خطا در رزرو"
+                              toast.error(msg)
+                            }
+                          }}
+                        >
+                          رزرو
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
