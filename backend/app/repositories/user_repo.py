@@ -76,6 +76,16 @@ class UserRepository:
         await self.db.flush()
         return user
 
+    async def update_user(self, user_id: int, data: dict) -> User | None:
+        user = await self.get_by_id(user_id)
+        if user is None:
+            return None
+        for key, value in data.items():
+            if value is not None:
+                setattr(user, key, value)
+        await self.db.flush()
+        return user
+
     async def count_by_role(self, role: str) -> int:
         from sqlalchemy import func
 

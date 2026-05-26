@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user
+from app.core.database import get_db
+from app.models.user import User
+from app.repositories.payment_repo import PaymentRepo
+from app.schemas.payment import PaymentDetailResponse, PaymentListResponse
+
+router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+@router.get("/my", response_model=PaymentListResponse)
+async def list_my_payments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    repo = PaymentRepo(db)
+    payments, total = await repo.list_by_user(
+        current_user.id, skip=skip, limit=limit
+    )
+    return PaymentListResponse(
+        payments=[
+            PaymentDetailResponse(
+                id=p.id,
+                booking_id=p.booking_id,
+                amount=float(p.amount),
+                status=p.status,
+                gateway_transaction_id=p.gateway_transaction_id,
+                created_at=p.created_at,
+                court_name=p.booking.slot.court.name
+                if p.booking and p.booking.slot and p.booking.slot.court
+                else "",
+                court_address=p.booking.slot.court.address
+                if p.booking and p.booking.slot and p.booking.slot.court
+                else "",
+                slot_start_time=p.booking.slot.start_time
+                if p.booking and p.booking.slot
+                else None,
+                slot_end_time=p.booking.slot.end_time
+                if p.booking and p.booking.slot
+                else None,
+            )
+            for p in payments
+        ],
+        total=total,
+    )

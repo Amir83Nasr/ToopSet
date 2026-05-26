@@ -9,6 +9,7 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
+from app.schemas.auth import UpdateProfileRequest
 
 
 class AuthService:
@@ -60,3 +61,30 @@ class AuthService:
         new_refresh = create_refresh_token({"sub": user_id, "role": role})
 
         return new_access, new_refresh
+
+    async def update_profile(self, current_user: User, data: UpdateProfileRequest) -> User:
+        update_data: dict[str, str] = {}
+
+        if data.full_name is not None:
+            update_data["full_name"] = data.full_name
+
+        if data.new_password is not None:
+            if data.current_password is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="current_password is required to set a new password",
+                )
+            if not verify_password(data.current_password, current_user.password_hash):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Current password is incorrect",
+                )
+            update_data["password_hash"] = hash_password(data.new_password)
+
+        updated_user = await self.repo.update_user(current_user.id, update_data)
+        if updated_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        return updated_user

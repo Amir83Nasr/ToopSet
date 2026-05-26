@@ -8,6 +8,7 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateProfileRequest,
     UserResponse,
 )
 from app.services.auth_service import AuthService
@@ -60,3 +61,13 @@ async def refresh(body: RefreshRequest, service: AuthService = Depends(_auth_ser
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)
+
+
+@router.patch("/profile", response_model=UserResponse)
+async def update_profile(
+    body: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    service: AuthService = Depends(_auth_service),
+):
+    updated_user = await service.update_profile(current_user, body)
+    return UserResponse.model_validate(updated_user)

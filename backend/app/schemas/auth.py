@@ -29,6 +29,12 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UpdateProfileRequest(BaseModel):
+    full_name: str | None = Field(None, min_length=1, max_length=128)
+    current_password: str | None = Field(None, min_length=4, max_length=128)
+    new_password: str | None = Field(None, min_length=4, max_length=128)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
