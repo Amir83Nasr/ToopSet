@@ -1,0 +1,101 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ToopSet - Application Metrics",
+    "tags": ["toopset", "sports"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Total Users",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "toopset_db_users_total",
+            "instant": true
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Active Courts",
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "toopset_active_courts_total",
+            "instant": true
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Today Bookings",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "toopset_today_bookings_total",
+            "instant": true
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Today Revenue",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "toopset_today_revenue_toman",
+            "instant": true
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "API Response Time",
+        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket[5m])) by (path)",
+            "legendFormat": "p50"
+          },
+          {
+            "refId": "B",
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (path)",
+            "legendFormat": "p95"
+          },
+          {
+            "refId": "C",
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (path)",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "type": "graph",
+        "title": "Request Rate",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(rate(http_requests_total[5m])) by (method, path)",
+            "legendFormat": "{{method}} {{path}}"
+          }
+        ]
+      }
+    ]
+  }
+}

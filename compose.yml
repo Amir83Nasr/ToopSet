@@ -70,9 +70,93 @@ services:
     command: >
       sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
+  # Monitoring Stack
+  elasticsearch:
+    image: elasticsearch:8.15.0
+    container_name: toopset-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # logstash:
+  #   image: logstash:8.15.0
+  #   container_name: toopset-logstash
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5044:5044"
+  #   environment:
+  #     LS_JAVA_OPTS: -Xms256m -Xmx256m
+  #   volumes:
+  #     - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+  #     - ./logs:/app/logs:rw
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
+  #   command: ["-f", "/usr/share/logstash/pipeline/logstash.conf"]
+
+  # kibana:
+  #   image: kibana:8.15.0
+  #   container_name: toopset-kibana
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5601:5601"
+  #   environment:
+  #     ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
+
+  # grafana:
+  #       image: grafana/grafana-enterprise:11.0.0
+  #   container_name: toopset-grafana
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+  #     - GF_USERS_ALLOW_SIGN_UP=false
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+  #   depends_on:
+  #     - prometheus
+  #   user: "1044"
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: toopset-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/consoles"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+
 volumes:
   postgres_data:
   redis_data:
+  elasticsearch_data:
+  grafana_data:
+  prometheus_data:
 
 networks:
   default:
