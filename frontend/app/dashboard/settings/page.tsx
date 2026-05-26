@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
+import { Loader2, Wallet, ArrowDownLeft, ArrowUpRight } from "lucide-react"
 import { toast } from "sonner"
 
 interface UserProfile {
@@ -20,6 +20,14 @@ interface UserProfile {
   full_name: string
   role: string
   is_active: boolean
+}
+
+interface WalletTransaction {
+  id: number
+  amount: number
+  type: "deposit" | "withdrawal" | "refund"
+  description: string | null
+  created_at: string
 }
 
 export default function SettingsPage() {
@@ -35,6 +43,27 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
+
+  async function fetchWallet() {
+    setWalletLoading(true)
+    try {
+      const [balanceRes, txns] = await Promise.all([
+        api<{ balance: number }>("/api/v1/wallet/balance"),
+        api<WalletTransaction[]>("/api/v1/wallet/transactions"),
+      ])
+      setWalletBalance(balanceRes.balance)
+      setWalletTransactions(txns)
+    } catch {
+      // wallet may not be set up yet
+    } finally {
+      setWalletLoading(false)
+    }
+  }
+
+  // Wallet state
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([])
+  const [walletLoading, setWalletLoading] = useState(false)
 
   /* ---------- fetch fresh user data on mount ---------- */
   const fetchUser = useCallback(async () => {
@@ -52,7 +81,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchUser()
-  }, [fetchUser])
+    fetchWallet()
+  }, [])
 
   /* ---------- save full name ---------- */
   const handleSaveName = useCallback(async () => {
@@ -275,9 +305,59 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* ---- Section 3: Wallet ---- */}
+      <Card>
+        <CardHeader>
+          <CardTitle>کیف پول</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {walletLoading ? (
+            <Skeleton className="h-8 w-32" />
+          ) : walletBalance !== null ? (
+            <>
+              <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+                <Wallet className="size-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">موجودی</p>
+                  <p className="text-2xl font-bold">{toPersianDigits(new Intl.NumberFormat("fa-IR").format(walletBalance))} تومان</p>
+                </div>
+              </div>
+
+              {walletTransactions.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">تراکنش‌های اخیر</h4>
+                  <div className="divide-y rounded-lg border">
+                    {walletTransactions.slice(0, 5).map((tx) => {
+                      const isPositive = tx.type === "deposit" || tx.type === "refund"
+                      return (
+                        <div key={tx.id} className="flex items-center justify-between p-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            {isPositive ? (
+                              <ArrowDownLeft className="size-4 text-green-500" />
+                            ) : (
+                              <ArrowUpRight className="size-4 text-red-500" />
+                            )}
+                            <span>{tx.description || "تراکنش"}</span>
+                          </div>
+                          <span className={isPositive ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                            {isPositive ? "+" : "-"}{toPersianDigits(new Intl.NumberFormat("fa-IR").format(Math.abs(tx.amount)))}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">کیف پول در دسترس نیست</p>
+          )}
+        </CardContent>
+      </Card>
+
       <Separator />
 
-      {/* ---- Section 3: Appearance / Theme Toggle ---- */}
+      {/* ---- Section 4: Appearance / Theme Toggle ---- */}
       <Card>
         <CardHeader>
           <CardTitle>تنظیمات ظاهری</CardTitle>

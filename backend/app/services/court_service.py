@@ -29,12 +29,16 @@ class CourtService:
         date_to: datetime | None = None,
         price_min: float | None = None,
         price_max: float | None = None,
+        ref_lat: float | None = None,
+        ref_lon: float | None = None,
+        max_distance_km: float | None = None,
     ) -> CourtListResponse:
         if self.current_user.role not in ("admin", "manager"):
             is_active = True
         courts, total = await self.repo.list(
             skip=skip, limit=limit, sport_type=sport_type, is_active=is_active, search=search,
-            date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max
+            date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max,
+            ref_lat=ref_lat, ref_lon=ref_lon, max_distance_km=max_distance_km
         )
         return CourtListResponse(
             courts=[CourtResponse.model_validate(c) for c in courts],

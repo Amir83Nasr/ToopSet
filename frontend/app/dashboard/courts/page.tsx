@@ -72,6 +72,9 @@ export default function CourtsPage() {
   const [dateTo, setDateTo] = useState("")
   const [priceMin, setPriceMin] = useState("")
   const [priceMax, setPriceMax] = useState("")
+  const [refLat, setRefLat] = useState("")
+  const [refLon, setRefLon] = useState("")
+  const [maxDistance, setMaxDistance] = useState("")
   const limit = 20
 
   // Debounce search input — 300ms
@@ -96,6 +99,9 @@ export default function CourtsPage() {
       if (dateTo) params.set("date_to", new Date(dateTo).toISOString())
       if (priceMin) params.set("price_min", priceMin)
       if (priceMax) params.set("price_max", priceMax)
+      if (refLat) params.set("ref_lat", refLat)
+      if (refLon) params.set("ref_lon", refLon)
+      if (maxDistance) params.set("max_distance_km", maxDistance)
 
       const res = await api<{ courts: Court[]; total: number }>(
         `/api/v1/courts?${params}`
@@ -107,7 +113,7 @@ export default function CourtsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, debouncedSearch, sportType, isActive, dateFrom, dateTo, priceMin, priceMax])
+  }, [page, debouncedSearch, sportType, isActive, dateFrom, dateTo, priceMin, priceMax, refLat, refLon, maxDistance])
 
   useEffect(() => {
     fetchCourts()
@@ -202,6 +208,29 @@ export default function CourtsPage() {
           onChange={(e) => { setPriceMax(e.target.value); setPage(0); }}
           className="w-full sm:w-28"
           placeholder="حداکثر قیمت"
+        />
+        <Input
+          type="number"
+          step="any"
+          value={refLat}
+          onChange={(e) => { setRefLat(e.target.value); setPage(0); }}
+          className="w-full sm:w-24"
+          placeholder="عرض موقعیت"
+        />
+        <Input
+          type="number"
+          step="any"
+          value={refLon}
+          onChange={(e) => { setRefLon(e.target.value); setPage(0); }}
+          className="w-full sm:w-24"
+          placeholder="طول موقعیت"
+        />
+        <Input
+          type="number"
+          value={maxDistance}
+          onChange={(e) => { setMaxDistance(e.target.value); setPage(0); }}
+          className="w-full sm:w-28"
+          placeholder="حداکثر فاصله (km)"
         />
       </div>
 

@@ -123,6 +123,7 @@ export default function CourtDetailPage() {
   const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
   const [bookingParticipants, setBookingParticipants] = useState(1)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
+  const [recentReviews, setRecentReviews] = useState<any[]>([])
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
 
   const canManage = user?.role === "manager" || user?.role === "admin"
@@ -138,6 +139,15 @@ export default function CourtDetailPage() {
       setCourt(courtRes)
       setSlots(slotsRes.slots)
       setSlotsTotal(slotsRes.total)
+      // Fetch recent reviews
+      try {
+        const revRes = await api<{ reviews: any[]; total: number }>(
+          `/api/v1/courts/${courtId}/reviews?limit=3`
+        )
+        setRecentReviews(revRes.reviews || [])
+      } catch {
+        // reviews may not be available
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         setNotFound(true)
@@ -295,8 +305,22 @@ export default function CourtDetailPage() {
               <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Star className="size-4 text-muted-foreground" />
-              <span>امتیاز: {toPersianDigits(court.average_rating.toFixed(1))}</span>
+              <div className="flex items-center gap-0.5" dir="ltr">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={14}
+                    className={
+                      star <= Math.round(court.average_rating)
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-muted-foreground/30"
+                    }
+                  />
+                ))}
+              </div>
+              <span className="text-muted-foreground">
+                ({toPersianDigits(court.average_rating.toFixed(1))})
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Badge variant={court.is_active ? "default" : "secondary"}>
@@ -344,6 +368,42 @@ export default function CourtDetailPage() {
                 </>
               )}
             </Carousel>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent reviews */}
+      {recentReviews.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>نظرات اخیر</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {recentReviews.map((rev: any) => (
+              <div key={rev.id} className="border-b last:border-0 pb-3 last:pb-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium">{rev.user_name || "کاربر"}</span>
+                  <div className="flex items-center gap-0.5" dir="ltr">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={12}
+                        className={star <= rev.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {rev.comment && (
+                  <p className="text-sm text-muted-foreground">{rev.comment}</p>
+                )}
+                {rev.response && (
+                  <div className="mt-2 rounded-lg bg-muted p-2 text-sm">
+                    <span className="text-xs font-medium text-muted-foreground">پاسخ مدیر: </span>
+                    {rev.response}
+                  </div>
+                )}
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

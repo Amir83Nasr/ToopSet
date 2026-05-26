@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from math import asin, cos, radians, sin, sqrt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,15 @@ from app.models.court import Court, SportType
 class CourtRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    @staticmethod
+    def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        R = 6371.0
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+        c = 2 * asin(sqrt(a))
+        return R * c
 
     async def list(
         self,
@@ -23,6 +33,9 @@ class CourtRepo:
         date_to: datetime | None = None,
         price_min: float | None = None,
         price_max: float | None = None,
+        ref_lat: float | None = None,
+        ref_lon: float | None = None,
+        max_distance_km: float | None = None,
     ) -> tuple[list[Court], int]:
         from app.models.time_slot import TimeSlot
         query = select(Court)
@@ -63,6 +76,18 @@ class CourtRepo:
 
         result = await self.db.execute(query.offset(skip).limit(limit).order_by(Court.created_at.desc()))
         courts = list(result.scalars().all())
+
+        # Distance filter (in-memory Haversine)
+        if ref_lat is not None and ref_lon is not None and max_distance_km is not None:
+            filtered = []
+            for c in courts:
+                if c.latitude is not None and c.longitude is not None:
+                    d = self._haversine_km(ref_lat, ref_lon, c.latitude, c.longitude)
+                    if d <= max_distance_km:
+                        filtered.append(c)
+            courts = filtered
+            total = len(filtered)
+
         return courts, total
 
     async def get_by_id(self, court_id: int) -> Court | None:
