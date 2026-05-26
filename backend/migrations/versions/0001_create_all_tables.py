@@ -87,6 +87,7 @@ def upgrade() -> None:
         sa.Column("price_paid", sa.Numeric(10, 2), nullable=False),
         sa.Column("penalty_amount", sa.Numeric(10, 2), nullable=True),
         sa.Column("participants_count", sa.SmallInteger(), nullable=False, server_default="1"),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
