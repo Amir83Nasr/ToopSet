@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -213,12 +214,19 @@ export default function ReviewsPage() {
     if (reviews.length === 0) {
       return (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-            <MessageSquare className="size-12 text-muted-foreground" />
-            <p className="text-lg text-muted-foreground">هنوز نظری ثبت نشده است</p>
-            <Button variant="outline" onClick={() => setDialogOpen(true)}>
-              <Plus className="ml-2 size-4" />
-              ثبت اولین نظر
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <Star className="size-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1">هنوز نظری ثبت نشده</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+              پس از رزرو و استفاده از زمین‌ها می‌توانید نظر خود را ثبت کنید.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/bookings">
+                <MessageSquare className="ml-2 size-4" />
+                مشاهده رزروها
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -318,9 +326,14 @@ export default function ReviewsPage() {
   function renderAllReviews() {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-          <MessageSquare className="size-12 text-muted-foreground" />
-          <p className="text-lg text-muted-foreground">بخش نظرات زمین‌ها به زودی اضافه می‌شود</p>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <MessageSquare className="size-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">به زودی</h3>
+          <p className="text-sm text-muted-foreground text-center max-w-sm">
+            بخش نظرات زمین‌ها به زودی اضافه می‌شود
+          </p>
         </CardContent>
       </Card>
     )

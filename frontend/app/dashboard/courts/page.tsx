@@ -17,6 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Card,
+  CardContent,
+} from "@/components/ui/card"
+import {
   Table,
   TableBody,
   TableCell,
@@ -162,21 +166,21 @@ export default function CourtsPage() {
         </Select>
       </div>
 
-      <div className="rounded-xl border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>نام</TableHead>
-              <TableHead>ورزش</TableHead>
-              <TableHead>آدرس</TableHead>
-              <TableHead>ظرفیت</TableHead>
-              <TableHead>وضعیت</TableHead>
-              <TableHead className="text-left">عملیات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
+      {loading ? (
+        <div className="rounded-xl border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>نام</TableHead>
+                <TableHead>ورزش</TableHead>
+                <TableHead>آدرس</TableHead>
+                <TableHead>ظرفیت</TableHead>
+                <TableHead>وضعیت</TableHead>
+                <TableHead className="text-left">عملیات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -185,15 +189,43 @@ export default function CourtsPage() {
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                 </TableRow>
-              ))
-            ) : courts.length === 0 ? (
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : courts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <Building2 className="size-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1">هنوز زمینی ثبت نشده</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+              اولین زمین ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز کنید.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/courts/create">
+                <Plus className="ml-2 size-4" />
+                ایجاد زمین جدید
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="rounded-xl border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  هنوز زمینی ثبت نشده است
-                </TableCell>
+                <TableHead>نام</TableHead>
+                <TableHead>ورزش</TableHead>
+                <TableHead>آدرس</TableHead>
+                <TableHead>ظرفیت</TableHead>
+                <TableHead>وضعیت</TableHead>
+                <TableHead className="text-left">عملیات</TableHead>
               </TableRow>
-            ) : (
-              courts.map((court) => (
+            </TableHeader>
+            <TableBody>
+              {courts.map((court) => (
                 <TableRow key={court.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -233,39 +265,39 @@ export default function CourtsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-sm text-muted-foreground">
-              صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)} — {toPersianDigits(total)} زمین
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronRight className="ml-1 size-4" />
-                قبلی
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                بعدی
-                <ChevronLeft className="mr-1 size-4" />
-              </Button>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)} — {toPersianDigits(total)} زمین
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <ChevronRight className="ml-1 size-4" />
+                  قبلی
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  بعدی
+                  <ChevronLeft className="mr-1 size-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ interface Booking {
   status: "pending_payment" | "confirmed" | "cancelled"
   price_paid: number
   penalty_amount: number | null
+  participants_count: number
   created_at: string
   updated_at: string
 }
@@ -133,6 +135,7 @@ export default function BookingsPage() {
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>
+                <TableHead>تعداد</TableHead>
                 <TableHead>وضعیت</TableHead>
                 <TableHead className="text-left">عملیات</TableHead>
               </TableRow>
@@ -144,6 +147,7 @@ export default function BookingsPage() {
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
@@ -153,11 +157,19 @@ export default function BookingsPage() {
         </Card>
       ) : bookings.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-            <CalendarCheck className="size-12 text-muted-foreground" />
-            <p className="text-lg text-muted-foreground">هنوز رزروی ندارید</p>
-            <Button asChild variant="outline">
-              <a href="/dashboard/courts">مشاهده زمین‌ها</a>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <CalendarCheck className="size-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1">هنوز رزروی ندارید</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+              زمین مورد علاقه خود را انتخاب کنید و رزرو نمایید.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/courts">
+                <CalendarCheck className="ml-2 size-4" />
+                مشاهده زمین‌ها
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -170,6 +182,7 @@ export default function BookingsPage() {
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>
+                <TableHead>تعداد</TableHead>
                 <TableHead>وضعیت</TableHead>
                 <TableHead className="text-left">عملیات</TableHead>
               </TableRow>
@@ -189,6 +202,7 @@ export default function BookingsPage() {
                     <TableCell>
                       {new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان
                     </TableCell>
+                    <TableCell>{toPersianDigits(b.participants_count)}</TableCell>
                     <TableCell>
                       <Badge variant={st.variant}>{st.label}</Badge>
                     </TableCell>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -159,11 +160,19 @@ export default function PaymentsPage() {
   function renderEmpty() {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-          <CreditCard className="size-12 text-muted-foreground" />
-          <p className="text-lg text-muted-foreground">هنوز پرداختی انجام نداده‌اید</p>
-          <Button asChild variant="outline">
-            <a href="/dashboard/courts">رزرو زمین</a>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <CreditCard className="size-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">هنوز پرداختی انجام نداده‌اید</h3>
+          <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+            پس از رزرو زمین و تکمیل فرآیند رزرو، تاریخچه پرداخت‌های شما در این بخش نمایش داده می‌شود.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/courts">
+              <CreditCard className="ml-2 size-4" />
+              رزرو زمین
+            </Link>
           </Button>
         </CardContent>
       </Card>
