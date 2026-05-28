@@ -270,18 +270,34 @@ function HomePageContent() {
       {/* Site Header */}
       <SiteHeader />
 
-      <main>
+      <main className="relative">
+        {/* Vertical hash side columns — like tailwindcss.com */}
+        <div className="bg-fixed bg-[image:repeating-linear-gradient(315deg,hsl(var(--border)/.05)_0,hsl(var(--border)/.05)_1px,transparent_0,transparent_50%)] bg-[size:10px_10px] max-lg:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-l border-border/20 z-10" />
+        <div className="bg-fixed bg-[image:repeating-linear-gradient(315deg,hsl(var(--border)/.05)_0,hsl(var(--border)/.05)_1px,transparent_0,transparent_50%)] bg-[size:10px_10px] max-lg:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-r border-border/20 z-10" />
+
         {/* Hero Section */}
         <HeroSection />
+
+        {/* Horizontal separator */}
+        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
 
         {/* About Section */}
         <AboutSection />
 
+        {/* Horizontal separator */}
+        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+
         {/* How It Works */}
         <HowItWorks />
 
+        {/* Horizontal separator */}
+        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+
         {/* Roles Section */}
         <RolesSection />
+
+        {/* Horizontal separator */}
+        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
 
         {/* Search & Filters */}
         <section
@@ -417,6 +433,9 @@ function HomePageContent() {
           </div>
         </section>
 
+        {/* Horizontal separator */}
+        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+
         {/* Map */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
           <div className="bg-grid pointer-events-none absolute inset-0" />
@@ -466,6 +485,9 @@ function HomePageContent() {
             </div>
           </ScrollReveal>
         </section>
+
+        {/* Horizontal separator */}
+        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
