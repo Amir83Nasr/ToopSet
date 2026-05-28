@@ -53,14 +53,14 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [markingAll, setMarkingAll] = useState(false)
+  const [unreadOnly, setUnreadOnly] = useState(false)
   const limit = 20
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api<{ notifications: Notification[]; total: number }>(
-        `/api/v1/notifications?skip=${page * limit}&limit=${limit}`
-      )
+      const url = `/api/v1/notifications?skip=${page * limit}&limit=${limit}${unreadOnly ? "&unread_only=true" : ""}`
+      const res = await api<{ notifications: Notification[]; total: number }>(url)
       setNotifications(res.notifications)
       setTotal(res.total)
     } catch {
@@ -68,7 +68,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, unreadOnly])
 
   useEffect(() => {
     fetchNotifications()
@@ -110,16 +110,25 @@ export default function NotificationsPage() {
             {toPersianDigits(total)} اعلان — {toPersianDigits(unreadCount)} خوانده نشده
           </p>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
-            {markingAll ? (
-              <Loader2 className="ml-2 size-4 animate-spin" />
-            ) : (
-              <CheckCheck className="ml-2 size-4" />
-            )}
-            علامت همه به عنوان خوانده شده
+        <div className="flex gap-2">
+          <Button
+            variant={unreadOnly ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setPage(0); setUnreadOnly((v) => !v) }}
+          >
+            {unreadOnly ? "همه" : "خوانده نشده"}
           </Button>
-        )}
+          {unreadCount > 0 && (
+            <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
+              {markingAll ? (
+                <Loader2 className="ml-2 size-4 animate-spin" />
+              ) : (
+                <CheckCheck className="ml-2 size-4" />
+              )}
+              علامت همه
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
