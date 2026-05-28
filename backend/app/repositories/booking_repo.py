@@ -4,8 +4,10 @@ from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking, BookingStatus
+from app.models.time_slot import TimeSlot
 
 
 class BookingRepo:
@@ -20,7 +22,10 @@ class BookingRepo:
         limit: int = 20,
     ) -> tuple[list[Booking], int]:
         query = (
-            select(Booking).where(Booking.user_id == user_id).order_by(Booking.created_at.desc())
+            select(Booking)
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
+            .where(Booking.user_id == user_id)
+            .order_by(Booking.created_at.desc())
         )
         count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
 
@@ -59,7 +64,10 @@ class BookingRepo:
         limit: int = 20,
         status_filter: str | None = None,
     ) -> tuple[list[Booking], int]:
-        query = select(Booking)
+        query = select(Booking).options(
+            selectinload(Booking.slot).selectinload(TimeSlot.court),
+            selectinload(Booking.user),
+        )
         count_q = select(func.count(Booking.id))
         if status_filter:
             query = query.where(Booking.status == status_filter)

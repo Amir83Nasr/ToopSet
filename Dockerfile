@@ -4,8 +4,12 @@
 # Run:    docker run -p 3000:3000 -p 8000:8000 --env-file .env toopset
 # ────────────────────────────────────────────────────────────
 
+# ── Multi-arch support ──────────────────────────────────
+ARG BUILDPLATFORM=linux/amd64
+ARG TARGETPLATFORM=linux/amd64
+
 # ── Stage 1: Frontend build ──────────────────────────────
-FROM --platform=linux/amd64 node:20-bookworm-slim AS frontend-builder
+FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install --ignore-scripts
@@ -13,10 +17,10 @@ COPY frontend/ .
 RUN npm run build
 
 # ── Stage 2: Backend Python deps ─────────────────────────
-FROM --platform=linux/amd64 python:3.12-slim AS backend-deps
+FROM python:3.12-slim AS backend-deps
 WORKDIR /build
 COPY backend/requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --timeout 60 -r requirements.txt
 
 # ── Stage 3: Final image ─────────────────────────────────
 FROM python:3.12-slim
