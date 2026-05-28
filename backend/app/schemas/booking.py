@@ -52,3 +52,27 @@ class BookingDetailResponse(BookingResponse):
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
     payment: PaymentResponse | None = None
+
+
+class AdminBookingResponse(BaseModel):
+    id: int
+    user_id: int
+    slot_id: int
+    status: str
+    price_paid: float
+    penalty_amount: float | None = None
+    participants_count: int = 1
+    created_at: datetime
+    updated_at: datetime
+    expires_at: datetime | None = None
+    court_name: str = ""
+    court_address: str = ""
+    user_name: str = ""
+    slot_start_time: datetime | None = None
+    slot_end_time: datetime | None = None
+    model_config = {"from_attributes": True}
+
+
+class AdminBookingListResponse(BaseModel):
+    bookings: list[AdminBookingResponse]
+    total: int

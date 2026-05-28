@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.booking import BookingCreate, BookingDetailResponse, BookingListResponse
+from app.api.deps import get_current_admin
+from app.core.database import get_db
+from app.models.user import User
+from app.schemas.booking import (
+    AdminBookingListResponse,
+    BookingCreate,
+    BookingDetailResponse,
+    BookingListResponse,
+)
 from app.services.booking_service import BookingService, get_booking_service
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -48,3 +57,21 @@ async def cancel_booking(
     service: BookingService = Depends(get_booking_service),
 ):
     return await service.cancel_booking(booking_id)
+
+
+@router.get("/all", response_model=AdminBookingListResponse)
+async def list_all_bookings_admin(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    status: str | None = None,
+    service: BookingService = Depends(get_booking_service_admin),
+    _: User = Depends(get_current_admin),
+):
+    return await service.list_all_bookings(skip=skip, limit=limit, status_filter=status)
+
+
+async def get_booking_service_admin(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+) -> BookingService:
+    return BookingService(db=db, current_user=current_user)

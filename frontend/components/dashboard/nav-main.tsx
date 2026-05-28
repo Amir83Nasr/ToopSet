@@ -32,6 +32,7 @@ import {
   Gavel,
   ChevronDown,
   Heart,
+  History,
   MessageSquare,
 } from "lucide-react"
 
@@ -118,6 +119,18 @@ const allNavItems: NavItem[] = [
     title: "کاربران",
     url: "/dashboard/users",
     icon: Users,
+    roles: ["admin"],
+  },
+  {
+    title: "مدیریت رزروها",
+    url: "/dashboard/admin/bookings",
+    icon: CalendarCheck,
+    roles: ["admin"],
+  },
+  {
+    title: "لاگ سیستم",
+    url: "/dashboard/admin/logs",
+    icon: History,
     roles: ["admin"],
   },
   {

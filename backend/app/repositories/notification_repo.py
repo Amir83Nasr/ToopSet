@@ -34,6 +34,17 @@ class NotificationRepo:
         notifications = list(result.scalars().all())
         return notifications, total
 
+    async def create_for_all_users(self, type_: str, message: str) -> int:
+        from sqlalchemy import select
+        from app.models.user import User
+        result = await self.db.execute(select(User.id))
+        user_ids = [row[0] for row in result.all()]
+        for uid in user_ids:
+            n = Notification(user_id=uid, type=type_, message=message)
+            self.db.add(n)
+        await self.db.commit()
+        return len(user_ids)
+
     async def create(self, user_id: int, type_: str, message: str) -> Notification:
         n = Notification(user_id=user_id, type=type_, message=message)
         self.db.add(n)

@@ -160,6 +160,7 @@ function HomePageContent() {
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
+    if (sortBy === "distance") params.set("sort", "distance")
     // Nearby courts: pass user location if granted
     if (userLocation && maxDistance) {
       params.set("ref_lat", String(userLocation.latitude))
@@ -273,18 +274,21 @@ function HomePageContent() {
         <RolesSection />
 
         {/* Search & Filters */}
-        <section className="relative overflow-hidden px-4 py-8" id="courts">
+        <section className="relative overflow-hidden px-4 py-16 md:py-20" id="courts">
           <div className="neon-orb neon-orb-3" />
+          <div className="neon-orb neon-orb-purple !right-auto left-1/3 top-1/4" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <div className="relative z-10 mx-auto max-w-5xl">
-            <div className="mb-6 text-center">
-              <h2 className="text-2xl font-bold">جستجوی سالن‌ها</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+            <div className="mb-10 text-center">
+              <h2 className="text-3xl font-bold md:text-4xl">
+                جستجوی <span className="text-gradient-primary">سالن‌ها</span>
+              </h2>
+              <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
                 زمین ورزشی مورد نظر خود را پیدا کنید
               </p>
             </div>
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="glass-card rounded-2xl p-5 md:p-6 flex flex-wrap items-end gap-3">
               <div className="min-w-[200px] flex-1">
                 <Label
                   htmlFor="search"
@@ -348,6 +352,7 @@ function HomePageContent() {
                     <SelectItem value="price_asc">قیمت: کم به زیاد</SelectItem>
                     <SelectItem value="price_desc">قیمت: زیاد به کم</SelectItem>
                     <SelectItem value="rating">امتیاز</SelectItem>
+                    <SelectItem value="distance">نزدیک‌ترین به من</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -403,21 +408,30 @@ function HomePageContent() {
         </section>
 
         {/* Map */}
-        <section className="relative overflow-hidden px-4 py-8">
+        <section className="relative overflow-hidden px-4 py-16 md:py-20">
           <div className="neon-orb neon-orb-pink" />
           <div className="neon-orb neon-orb-cyan top-[20%] !right-auto !left-[60%]" />
+          <div className="neon-orb neon-orb-orange !bottom-[-80px] !right-[-60px]" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
+            <div className="mb-8 text-center">
+              <h2 className="text-3xl font-bold md:text-4xl">
+                موقعیت <span className="text-gradient-primary">سالن‌ها</span>
+              </h2>
+              <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+                نزدیک‌ترین زمین‌های ورزشی به خود را پیدا کنید
+              </p>
+            </div>
             {/* Location status */}
             {geo.loading && (
-              <div className="mb-2 flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 px-4 py-2 text-sm text-blue-700 dark:text-blue-300">
+              <div className="mb-3 flex items-center gap-2 rounded-xl glass-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
                 <div className="size-2 animate-pulse rounded-full bg-blue-500" />
                 در حال دریافت موقعیت شما...
               </div>
             )}
             {geo.error && (
-              <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-50 dark:bg-amber-950/30 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+              <div className="mb-3 flex items-center justify-between rounded-xl glass-card px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
                 <div className="flex items-center gap-2">
                   <MapPin className="size-4 shrink-0" />
                   <span>موقعیت‌یابی غیرفعال است — زمین‌های نزدیک نمایش داده نمی‌شوند</span>
@@ -428,29 +442,36 @@ function HomePageContent() {
               </div>
             )}
             {userLocation && (
-              <div className="mb-2 flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 px-4 py-2 text-sm text-green-700 dark:text-green-300">
+              <div className="mb-3 flex items-center gap-2 rounded-xl glass-card px-4 py-3 text-sm text-green-700 dark:text-green-300">
                 <MapPin className="size-4 shrink-0" />
                 <span>نمایش زمین‌های نزدیک به موقعیت شما</span>
               </div>
             )}
-            <CourtsMap courts={featuredCourts} height="350px" userLocation={userLocation} />
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <CourtsMap courts={featuredCourts} height="400px" userLocation={userLocation} />
+            </div>
           </ScrollReveal>
         </section>
 
         {/* Courts Grid */}
-        <section className="relative overflow-hidden bg-muted/30 px-4 py-8">
+        <section className="relative overflow-hidden px-4 py-16 md:py-20">
+          <div className="neon-orb neon-orb-3 !top-auto !bottom-[-120px] !left-[-100px]" />
+          <div className="neon-orb neon-orb-green !bottom-[-80px] !right-[-80px]" />
+          <div className="neon-orb neon-orb-cyan !top-[-150px] !right-[-120px]" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-10 flex items-end justify-between">
               <div>
-                <h2 className="text-2xl font-bold">زمین‌ها</h2>
-                <p className="text-sm text-muted-foreground">
+                <h2 className="text-3xl font-bold md:text-4xl">
+                  <span className="text-gradient-primary">سالن‌های</span> موجود
+                </h2>
+                <p className="mt-2 text-muted-foreground">
                   {toPersianDigits(total)} زمین پیدا شد
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
-                      className="mr-2 text-xs text-primary underline underline-offset-2"
+                      className="mr-2 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
                     >
                       پاک کردن فیلتر
                     </button>
@@ -460,9 +481,9 @@ function HomePageContent() {
             </div>
 
             {courtsLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="rounded-xl border bg-card p-5">
+                  <div key={i} className="glass-card rounded-2xl p-5">
                     <Skeleton className="mb-3 h-5 w-32" />
                     <Skeleton className="mb-2 h-4 w-full" />
                     <Skeleton className="h-4 w-24" />
@@ -470,23 +491,25 @@ function HomePageContent() {
                 ))}
               </div>
             ) : featuredCourts.length === 0 ? (
-              <div className="flex flex-col items-center gap-4 py-16 text-center">
-                <Building2 className="size-12 text-muted-foreground" />
+              <div className="glass-card rounded-2xl flex flex-col items-center gap-4 py-20 text-center">
+                <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+                  <Building2 className="size-8 text-muted-foreground" />
+                </div>
                 <p className="text-lg text-muted-foreground">
                   هیچ زمینی با فیلترهای انتخاب شده یافت نشد
                 </p>
-                <Button variant="outline" onClick={clearFilters}>
+                <Button variant="outline" onClick={clearFilters} className="neon-border-hover">
                   پاک کردن فیلترها
                 </Button>
               </div>
             ) : (
               <>
-                <div className="stagger-fade-in grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="stagger-fade-in grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {featuredCourts.map((court) => (
                     <Link
                       key={court.id}
                       href={`/courts/${court.id}`}
-                      className="group block rounded-xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
+                      className="group block glass-card neon-border-hover tilt-card rounded-2xl p-5 transition-all hover:-translate-y-1.5"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -496,7 +519,7 @@ function HomePageContent() {
                             </h3>
                             <FavoriteButton courtId={court.id} />
                           </div>
-                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                             <MapPin className="size-3 shrink-0" />
                             <span className="truncate">{court.address}</span>
                           </div>
@@ -522,7 +545,7 @@ function HomePageContent() {
                           <span>{court.average_rating.toFixed(1)}</span>
                         </div>
                       </div>
-                      <div className="mt-2 text-sm font-medium text-primary">
+                      <div className="mt-3 text-sm font-medium text-gradient-primary">
                         {formatPrice(court.base_price)}
                       </div>
                     </Link>

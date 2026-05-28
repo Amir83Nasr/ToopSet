@@ -54,6 +54,24 @@ class BookingRepo:
         await self.db.refresh(booking)
         return booking
 
+    async def list_all(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+        status_filter: str | None = None,
+    ) -> tuple[list[Booking], int]:
+        query = select(Booking)
+        count_q = select(func.count(Booking.id))
+        if status_filter:
+            query = query.where(Booking.status == status_filter)
+            count_q = count_q.where(Booking.status == status_filter)
+        query = query.order_by(Booking.created_at.desc())
+        total = (await self.db.execute(count_q)).scalar_one()
+        result = await self.db.execute(query.offset(skip).limit(limit))
+        bookings = list(result.scalars().all())
+        return bookings, total
+
     async def list_expired_pending(self, now: datetime) -> list[Booking]:
         stmt = select(Booking).where(
             Booking.status == BookingStatus.PENDING_PAYMENT,

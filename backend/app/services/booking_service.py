@@ -16,6 +16,8 @@ from app.repositories.time_slot_repo import TimeSlotRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.wallet_repo import WalletRepo
 from app.schemas.booking import (
+    AdminBookingListResponse,
+    AdminBookingResponse,
     BookingCreate,
     BookingDetailResponse,
     BookingListResponse,
@@ -300,6 +302,40 @@ class BookingService:
             payment=PaymentResponse.model_validate(payment) if payment else None,
         )
 
+
+    async def list_all_bookings(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+        status_filter: str | None = None,
+    ) -> AdminBookingListResponse:
+        bookings, total = await self.booking_repo.list_all(
+            skip=skip, limit=limit, status_filter=status_filter
+        )
+        result = []
+        for b in bookings:
+            slot = await self.slot_repo.get_by_id(b.slot_id)
+            court = slot.court if slot else None
+            user = b.user  # relationship loaded
+            result.append(AdminBookingResponse(
+                id=b.id,
+                user_id=b.user_id,
+                slot_id=b.slot_id,
+                status=b.status.value if hasattr(b.status, 'value') else b.status,
+                price_paid=float(b.price_paid),
+                penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
+                participants_count=b.participants_count,
+                created_at=b.created_at,
+                updated_at=b.updated_at,
+                expires_at=b.expires_at,
+                court_name=court.name if court else "",
+                court_address=court.address if court else "",
+                user_name=user.full_name if user else "",
+                slot_start_time=slot.start_time if slot else None,
+                slot_end_time=slot.end_time if slot else None,
+            ))
+        return AdminBookingListResponse(bookings=result, total=total)
 
 async def get_booking_service(
     db: AsyncSession = Depends(get_db),

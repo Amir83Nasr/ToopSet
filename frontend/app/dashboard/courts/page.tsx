@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight, Map, Star } from "lucide-react"
+import { toast } from "sonner"
+import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight, Map, Star, Trash2, ToggleLeft, ToggleRight } from "lucide-react"
 import dynamic from "next/dynamic"
 
 const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) => m.CourtsMap), {
@@ -68,6 +70,7 @@ const sportColors: Record<string, string> = {
 }
 
 export default function CourtsPage() {
+  const { user } = useAuth()
   const [courts, setCourts] = useState<Court[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
@@ -361,6 +364,44 @@ export default function CourtsPage() {
                               <Pencil className="size-4" />
                             </Link>
                           </Button>
+                          {user?.role === "admin" && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={async () => {
+                                  try {
+                                    await api(`/api/v1/courts/${court.id}/toggle`, {
+                                      method: "PATCH",
+                                      body: JSON.stringify({ is_active: !court.is_active }),
+                                    })
+                                    toast.success(court.is_active ? "زمین غیرفعال شد" : "زمین فعال شد")
+                                    fetchCourts()
+                                  } catch (err) {
+                                    toast.error(err instanceof ApiError ? err.message : "خطا")
+                                  }
+                                }}
+                              >
+                                {court.is_active ? <ToggleRight className="size-4 text-green-600" /> : <ToggleLeft className="size-4 text-muted-foreground" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={async () => {
+                                  if (!confirm(`آیا از حذف "${court.name}" مطمئن هستید؟`)) return
+                                  try {
+                                    await api(`/api/v1/courts/${court.id}`, { method: "DELETE" })
+                                    toast.success("زمین حذف شد")
+                                    fetchCourts()
+                                  } catch (err) {
+                                    toast.error(err instanceof ApiError ? err.message : "خطا در حذف")
+                                  }
+                                }}
+                              >
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Card,
   CardContent,
@@ -22,14 +23,19 @@ import {
 } from "@/components/ui/table"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { toast } from "sonner"
 import {
   AlertCircle,
   Building2,
   CalendarCheck,
   CreditCard,
+  FileText,
   Gavel,
+  History,
   MessageSquare,
   RefreshCw,
+  Send,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -89,6 +95,8 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [broadcastMessage, setBroadcastMessage] = useState("")
+  const [broadcasting, setBroadcasting] = useState(false)
 
   const fetchStats = useCallback(async () => {
     setLoading(true)
@@ -160,252 +168,293 @@ export default function AdminDashboardPage() {
   ]
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">داشبورد مدیریت سیستم</h1>
-          <p className="text-muted-foreground">نمای کلی و کنترل کامل سیستم</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchStats} disabled={loading}>
-          <RefreshCw className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`} />
-          بروزرسانی
-        </Button>
-      </div>
+    <div className="relative flex flex-1 flex-col gap-6 overflow-hidden px-4 py-6">
+      {/* Neon orbs + mesh background */}
+      <div className="neon-orb neon-orb-1 !top-[-150px] !right-[-100px]" />
+      <div className="neon-orb neon-orb-purple !bottom-[-120px] !left-[-80px]" />
+      <div className="neon-orb neon-orb-cyan !top-[40%] !left-[10%]" />
+      <div className="bg-mesh pointer-events-none absolute inset-0" />
+      <div className="bg-dots pointer-events-none absolute inset-0" />
 
-      {/* Stats grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="pt-6">
-                  <Skeleton className="size-10 rounded-lg" />
-                  <Skeleton className="mt-3 h-4 w-20" />
-                  <Skeleton className="mt-1 h-7 w-16" />
-                  <Skeleton className="mt-1 h-3 w-12" />
-                </CardContent>
-              </Card>
-            ))
-          : statCards.map((stat) => (
-              <Link key={stat.title} href={stat.href} className="block transition-colors hover:opacity-80">
-                <Card className="h-full">
-                  <CardContent className="pt-6">
-                    <div className={`inline-flex size-10 items-center justify-center rounded-lg ${stat.color}`}>
-                      <stat.icon className="size-5" />
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="mt-1 text-2xl font-bold">
-                      {stat.value != null ? formatPersianNumber(stat.value) : "-"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{stat.description}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-      </div>
-
-      {/* Error state */}
-      {error && (
-        <Card className="border-destructive/50 bg-destructive/10">
-          <CardContent className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="size-5" />
-              <span>{error}</span>
+      <div className="relative z-10">
+        {/* Header */}
+        <ScrollReveal>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                <span className="text-gradient-primary">داشبورد</span> مدیریت سیستم
+              </h1>
+              <p className="text-muted-foreground">نمای کلی و کنترل کامل سیستم</p>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchStats}>
-              تلاش مجدد
+            <Button variant="outline" size="sm" onClick={fetchStats} disabled={loading} className="neon-border-hover">
+              <RefreshCw className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`} />
+              بروزرسانی
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {!loading && !error && stats && (
-        <>
-          {/* Today's overview */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">درآمد امروز</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-primary">
-                  {formatPersianNumber(Math.round(stats.today_revenue))}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">تومان</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-amber/5 to-amber/10 border-amber/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">رزروهای امروز</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-                  {formatPersianNumber(stats.today_bookings)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">رزرو</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-rose/5 to-rose/10 border-rose/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">در انتظار پرداخت</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">
-                  {formatPersianNumber(stats.pending_bookings)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">رزرو نیازمند پیگیری</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-cyan/5 to-cyan/10 border-cyan/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">مدیران فعال</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
-                  {formatPersianNumber(stats.active_managers)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">از {formatPersianNumber(stats.total_managers)} مدیر</p>
-              </CardContent>
-            </Card>
           </div>
+        </ScrollReveal>
 
-          {/* Recent bookings + Quick actions */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            {/* Recent bookings table */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-lg">آخرین رزروها</CardTitle>
-                <CardDescription>۱۰ رزرو آخر سیستم</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {stats.recent_bookings.length === 0 ? (
-                  <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                    رزروی ثبت نشده است
+        {/* Stats grid */}
+        <ScrollReveal className="mt-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {loading
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="glass-card rounded-2xl p-5">
+                    <Skeleton className="size-10 rounded-lg" />
+                    <Skeleton className="mt-3 h-4 w-20" />
+                    <Skeleton className="mt-1 h-7 w-16" />
+                    <Skeleton className="mt-1 h-3 w-12" />
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>زمین</TableHead>
-                        <TableHead>کاربر</TableHead>
-                        <TableHead>تاریخ</TableHead>
-                        <TableHead>مبلغ</TableHead>
-                        <TableHead>وضعیت</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {stats.recent_bookings.map((b) => (
-                        <TableRow key={b.id}>
-                          <TableCell className="font-medium">{b.court_name}</TableCell>
-                          <TableCell>{b.user_name}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {b.start_time ? formatDate(b.start_time) : "-"}
-                          </TableCell>
-                          <TableCell>{formatPersianNumber(Math.round(b.price_paid))} تومان</TableCell>
-                          <TableCell>
-                            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[b.status] || ""}`}>
-                              {statusLabels[b.status] || b.status}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quick actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">دسترسی سریع</CardTitle>
-                <CardDescription>مدیریت بخش‌های مختلف</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/users">
-                    <Users className="ml-2 size-4" />
-                    مدیریت کاربران
+                ))
+              : statCards.map((stat) => (
+                  <Link key={stat.title} href={stat.href} className="block transition-all hover:-translate-y-0.5">
+                    <div className="glass-card neon-border-hover rounded-2xl p-5 h-full">
+                      <div className={`inline-flex size-10 items-center justify-center rounded-xl ${stat.color}`}>
+                        <stat.icon className="size-5" />
+                      </div>
+                      <p className="mt-3 text-sm text-muted-foreground">{stat.title}</p>
+                      <p className="mt-1 text-2xl font-bold">
+                        {stat.value != null ? formatPersianNumber(stat.value) : "-"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{stat.description}</p>
+                    </div>
                   </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/courts">
-                    <Building2 className="ml-2 size-4" />
-                    مدیریت زمین‌ها
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/bookings">
-                    <CalendarCheck className="ml-2 size-4" />
-                    مدیریت رزروها
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/payments">
-                    <CreditCard className="ml-2 size-4" />
-                    تراکنش‌ها
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/contact">
-                    <MessageSquare className="ml-2 size-4" />
-                    پیام‌های تماس
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/wallet">
-                    <Wallet className="ml-2 size-4" />
-                    کیف پول
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/penalties">
-                    <Gavel className="ml-2 size-4" />
-                    جریمه‌ها
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/reports">
-                    <TrendingUp className="ml-2 size-4" />
-                    گزارشات
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+                ))}
           </div>
+        </ScrollReveal>
 
-          {/* Popular courts */}
-          {stats.popular_courts.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">محبوب‌ترین زمین‌ها</CardTitle>
-                <CardDescription>زمین‌های با بیشترین رزرو</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                  {stats.popular_courts.map((court, idx) => (
-                    <Link
-                      key={court.court_id}
-                      href={`/dashboard/courts/${court.court_id}`}
-                      className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        {idx + 1}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{court.court_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatPersianNumber(court.booking_count)} رزرو
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
+        {/* Error state */}
+        {error && (
+          <ScrollReveal>
+            <div className="glass-card rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="size-5" />
+                  <span>{error}</span>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+                <Button variant="outline" size="sm" onClick={fetchStats} className="neon-border-hover">
+                  تلاش مجدد
+                </Button>
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {!loading && !error && stats && (
+          <>
+            {/* Today's overview */}
+            <ScrollReveal className="mt-6">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                  <p className="text-sm font-medium text-muted-foreground">درآمد امروز</p>
+                  <p className="mt-1 text-3xl font-bold text-primary">
+                    {formatPersianNumber(Math.round(stats.today_revenue))}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">تومان</p>
+                </div>
+                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-amber/5 to-amber/10 border-amber/20">
+                  <p className="text-sm font-medium text-muted-foreground">رزروهای امروز</p>
+                  <p className="mt-1 text-3xl font-bold text-amber-600 dark:text-amber-400">
+                    {formatPersianNumber(stats.today_bookings)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">رزرو</p>
+                </div>
+                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-rose/5 to-rose/10 border-rose/20">
+                  <p className="text-sm font-medium text-muted-foreground">در انتظار پرداخت</p>
+                  <p className="mt-1 text-3xl font-bold text-rose-600 dark:text-rose-400">
+                    {formatPersianNumber(stats.pending_bookings)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">رزرو نیازمند پیگیری</p>
+                </div>
+                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-cyan/5 to-cyan/10 border-cyan/20">
+                  <p className="text-sm font-medium text-muted-foreground">مدیران فعال</p>
+                  <p className="mt-1 text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                    {formatPersianNumber(stats.active_managers)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">از {formatPersianNumber(stats.total_managers)} مدیر</p>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Recent bookings + Quick actions */}
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              <ScrollReveal className="lg:col-span-2">
+                <div className="glass-card neon-border-hover rounded-2xl p-6">
+                  <h2 className="text-lg font-semibold">آخرین رزروها</h2>
+                  <p className="text-sm text-muted-foreground mt-1">۱۰ رزرو آخر سیستم</p>
+                  <div className="mt-4">
+                    {stats.recent_bookings.length === 0 ? (
+                      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                        رزروی ثبت نشده است
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>زمین</TableHead>
+                            <TableHead>کاربر</TableHead>
+                            <TableHead>تاریخ</TableHead>
+                            <TableHead>مبلغ</TableHead>
+                            <TableHead>وضعیت</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {stats.recent_bookings.map((b) => (
+                            <TableRow key={b.id}>
+                              <TableCell className="font-medium">{b.court_name}</TableCell>
+                              <TableCell>{b.user_name}</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {b.start_time ? formatDate(b.start_time) : "-"}
+                              </TableCell>
+                              <TableCell>{formatPersianNumber(Math.round(b.price_paid))} تومان</TableCell>
+                              <TableCell>
+                                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[b.status] || ""}`}>
+                                  {statusLabels[b.status] || b.status}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal>
+                <div className="glass-card neon-border-hover rounded-2xl p-6">
+                  <h2 className="text-lg font-semibold">دسترسی سریع</h2>
+                  <p className="text-sm text-muted-foreground mt-1">مدیریت بخش‌های مختلف</p>
+                  <div className="mt-4 space-y-2">
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/users">
+                        <Users className="ml-2 size-4" />
+                        مدیریت کاربران
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/courts">
+                        <Building2 className="ml-2 size-4" />
+                        مدیریت زمین‌ها
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/admin/bookings">
+                        <CalendarCheck className="ml-2 size-4" />
+                        رزروهای سیستم
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/payments">
+                        <CreditCard className="ml-2 size-4" />
+                        تراکنش‌ها
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/contact">
+                        <MessageSquare className="ml-2 size-4" />
+                        پیام‌های تماس
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/wallet">
+                        <Wallet className="ml-2 size-4" />
+                        کیف پول
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/penalties">
+                        <Gavel className="ml-2 size-4" />
+                        جریمه‌ها
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/reports">
+                        <TrendingUp className="ml-2 size-4" />
+                        گزارشات
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                      <Link href="/dashboard/admin/logs">
+                        <History className="ml-2 size-4" />
+                        لاگ سیستم
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </ScrollReveal>
+            </div>
+
+            {/* Popular courts */}
+            {stats.popular_courts.length > 0 && (
+              <ScrollReveal className="mt-6">
+                <div className="glass-card neon-border-hover rounded-2xl p-6">
+                  <h2 className="text-lg font-semibold">محبوب‌ترین زمین‌ها</h2>
+                  <p className="text-sm text-muted-foreground mt-1">زمین‌های با بیشترین رزرو</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    {stats.popular_courts.map((court, idx) => (
+                      <Link
+                        key={court.court_id}
+                        href={`/dashboard/courts/${court.court_id}`}
+                        className="flex items-center gap-3 rounded-xl border bg-background/40 p-3 transition-all hover:bg-background/60 hover:-translate-y-0.5"
+                      >
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                          {idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{court.court_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatPersianNumber(court.booking_count)} رزرو
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </ScrollReveal>
+            )}
+
+            {/* Broadcast Notification */}
+            <ScrollReveal className="mt-6">
+              <div className="glass-card neon-border-hover rounded-2xl p-6">
+                <h2 className="text-lg font-semibold">اعلان همگانی</h2>
+                <p className="text-sm text-muted-foreground mt-1">ارسال پیام به تمام کاربران</p>
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!broadcastMessage.trim()) return
+                  setBroadcasting(true)
+                  try {
+                    await api("/api/v1/admin/notifications/broadcast", {
+                      method: "POST",
+                      body: JSON.stringify({ message: broadcastMessage, type: "broadcast" }),
+                    })
+                    toast.success("اعلان برای تمام کاربران ارسال شد")
+                    setBroadcastMessage("")
+                  } catch (err) {
+                    toast.error(err instanceof ApiError ? err.message : "خطا در ارسال")
+                  } finally {
+                    setBroadcasting(false)
+                  }
+                }}>
+                  <div className="mt-4 flex gap-2">
+                    <Input
+                      name="message"
+                      placeholder="متن اعلان..."
+                      value={broadcastMessage}
+                      onChange={(e) => setBroadcastMessage(e.target.value)}
+                      required
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={broadcasting}>
+                      <Send className="ml-2 size-4" />
+                      {broadcasting ? "در حال ارسال..." : "ارسال"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </ScrollReveal>
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import confetti from "canvas-confetti"
 import {
   AlertTriangle,
   CalendarCheck,
@@ -110,6 +111,12 @@ export default function BookingsPage() {
     try {
       await api(`/api/v1/bookings/${bookingId}/pay`, { method: "POST" })
       toast.success("پرداخت با موفقیت انجام شد")
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#3b82f6", "#06b6d4", "#22c55e", "#eab308"],
+      })
       fetchBookings()
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در پرداخت"

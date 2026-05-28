@@ -402,6 +402,79 @@
 }
 
 /* ══════════════════════════════════════════════════
+   Glass Card / Frosted Glass
+   ══════════════════════════════════════════════════ */
+
+.glass-card {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(var(--border) / 0.4);
+}
+
+.dark .glass-card {
+  background: hsl(var(--card) / 0.35);
+  border: 1px solid hsl(var(--border) / 0.2);
+}
+
+/* Neon border on hover — like a light tube igniting */
+.neon-border-hover {
+  transition: box-shadow 0.5s ease, border-color 0.5s ease, transform 0.3s ease;
+}
+
+.neon-border-hover:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow:
+    0 0 20px hsl(var(--primary) / 0.1),
+    0 0 40px hsl(var(--primary) / 0.06),
+    0 0 80px hsl(var(--primary) / 0.03),
+    inset 0 0 20px hsl(var(--primary) / 0.04);
+}
+
+/* Gradient text */
+.text-gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-2)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, hsl(var(--chart-2)), hsl(var(--chart-4)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle 3D tilt on hover for cards */
+@keyframes tilt-card {
+  0% { transform: perspective(600px) rotateX(0deg) rotateY(0deg); }
+  25% { transform: perspective(600px) rotateX(1deg) rotateY(-1deg); }
+  75% { transform: perspective(600px) rotateX(-0.5deg) rotateY(0.5deg); }
+  100% { transform: perspective(600px) rotateX(0deg) rotateY(0deg); }
+}
+
+.tilt-card:hover {
+  animation: tilt-card 0.6s ease-in-out;
+}
+
+/* Scale shimmer for loading skeletons */
+@keyframes shimmer-loading {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer-loading {
+  background: linear-gradient(90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-loading 2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════════
    Keyframes — More Animations
    ══════════════════════════════════════════════════ */
 
