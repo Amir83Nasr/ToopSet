@@ -1,29 +1,32 @@
 "use client"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
-import {
-  Send,
-  CheckCircle2,
-  Loader2,
-  MapPin,
-  Phone,
-  Mail,
-  Clock,
-} from "lucide-react"
+import { Send, CheckCircle2, Loader2, MapPin, Phone, Mail, Clock } from "lucide-react"
+
+const contactInfo = [
+  { icon: MapPin, label: "آدرس", value: "تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت" },
+  { icon: Phone, label: "تلفن", value: "۰۲۱-۱۲۳۴۵۶۷۸", dir: "ltr" as const },
+  { icon: Mail, label: "ایمیل", value: "info@toopset.com" },
+  { icon: Clock, label: "ساعت کاری", value: "همه‌روزه ۸ صبح تا ۱۲ شب" },
+]
+
+const container = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0 },
+}
 
 export default function ContactPage() {
   const [form, setForm] = useState({
@@ -67,8 +70,13 @@ export default function ContactPage() {
           <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
           <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />
           <div className="bg-grid pointer-events-none absolute inset-0" />
-          <div className="bg-noise pointer-events-none absolute inset-0 z-[1]" />
-          <div className="page-entrance relative z-10 mx-auto max-w-5xl">
+
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative z-10 mx-auto max-w-5xl"
+          >
             <div className="mb-10 text-center">
               <h1 className="text-3xl font-bold md:text-4xl">ارتباط با ما</h1>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
@@ -76,168 +84,129 @@ export default function ContactPage() {
               </p>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-3">
-              {/* Contact Info Sidebar */}
-              <div className="space-y-6 md:col-span-1">
-                <Card className="glass-card rounded-2xl border-border/40">
-                  <CardContent className="space-y-5 pt-6">
-                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
-                      <MapPin className="mt-0.5 size-5 text-primary" />
+            <div className="grid gap-10 md:grid-cols-3">
+              {/* Contact Info */}
+              <motion.div
+                variants={container}
+                initial="hidden"
+                animate="visible"
+                className="space-y-6 md:col-span-1"
+              >
+                {contactInfo.map((info) => {
+                  const Icon = info.icon
+                  return (
+                    <motion.div key={info.label} variants={item} className="flex items-start gap-3">
+                      <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
                       <div>
-                        <h4 className="text-sm font-medium">آدرس</h4>
-                        <p className="text-sm text-muted-foreground">
-                          تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت
+                        <h4 className="text-sm font-medium">{info.label}</h4>
+                        <p
+                          className="text-sm text-muted-foreground"
+                          dir={info.dir}
+                        >
+                          {info.value}
                         </p>
                       </div>
-                    </div>
-                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
-                      <Phone className="mt-0.5 size-5 text-primary" />
-                      <div>
-                        <h4 className="text-sm font-medium">تلفن</h4>
-                        <p className="text-sm text-muted-foreground" dir="ltr">
-                          ۰۲۱-۱۲۳۴۵۶۷۸
-                        </p>
-                      </div>
-                    </div>
-                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
-                      <Mail className="mt-0.5 size-5 text-primary" />
-                      <div>
-                        <h4 className="text-sm font-medium">ایمیل</h4>
-                        <p className="text-sm text-muted-foreground">
-                          info@toopset.com
-                        </p>
-                      </div>
-                    </div>
-                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
-                      <Clock className="mt-0.5 size-5 text-primary" />
-                      <div>
-                        <h4 className="text-sm font-medium">ساعت کاری</h4>
-                        <p className="text-sm text-muted-foreground">
-                          همه‌روزه ۸ صبح تا ۱۲ شب
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
 
               {/* Contact Form */}
               <div className="md:col-span-2">
-                <Card className="glass-card rounded-2xl border-border/40">
-                  <CardHeader>
-                    <CardTitle>فرم تماس</CardTitle>
-                    <CardDescription>
-                      پیام خود را بنویسید، تیم پشتیبانی در اسرع وقت پاسخ خواهد
-                      داد
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {success ? (
-                      <div className="flex flex-col items-center gap-4 py-12 text-center">
-                        <CheckCircle2 className="size-16 text-primary" />
-                        <h3 className="text-xl font-semibold">
-                          پیام شما با موفقیت ارسال شد
-                        </h3>
-                        <p className="text-muted-foreground">
-                          از ارتباط شما سپاسگزاریم. در اسرع وقت با شما تماس
-                          خواهیم گرفت.
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => setSuccess(false)}
-                        >
-                          ارسال پیام جدید
-                        </Button>
+                {success ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center gap-4 py-16 text-center"
+                  >
+                    <CheckCircle2 className="size-16 text-primary" />
+                    <h3 className="text-xl font-semibold">
+                      پیام شما با موفقیت ارسال شد
+                    </h3>
+                    <p className="max-w-sm text-muted-foreground">
+                      از ارتباط شما سپاسگزاریم. در اسرع وقت با شما تماس خواهیم گرفت.
+                    </p>
+                    <Button variant="outline" onClick={() => setSuccess(false)}>
+                      ارسال پیام جدید
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    onSubmit={handleSubmit}
+                    className="space-y-5 rounded-xl border bg-card p-6 md:p-8"
+                  >
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">نام و نام خانوادگی *</Label>
+                        <Input
+                          id="name"
+                          required
+                          placeholder="نام خود را وارد کنید"
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        />
                       </div>
-                    ) : (
-                      <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="name">نام و نام خانوادگی *</Label>
-                            <Input
-                              id="name"
-                              required
-                              placeholder="نام خود را وارد کنید"
-                              value={form.name}
-                              onChange={(e) =>
-                                setForm({ ...form, name: e.target.value })
-                              }
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">ایمیل *</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              required
-                              placeholder="example@email.com"
-                              value={form.email}
-                              onChange={(e) =>
-                                setForm({ ...form, email: e.target.value })
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">تلفن تماس</Label>
-                            <Input
-                              id="phone"
-                              placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-                              value={form.phone}
-                              onChange={(e) =>
-                                setForm({ ...form, phone: e.target.value })
-                              }
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="subject">موضوع *</Label>
-                            <Input
-                              id="subject"
-                              required
-                              placeholder="موضوع پیام"
-                              value={form.subject}
-                              onChange={(e) =>
-                                setForm({ ...form, subject: e.target.value })
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="message">متن پیام *</Label>
-                          <Textarea
-                            id="message"
-                            required
-                            rows={6}
-                            placeholder="پیام خود را بنویسید..."
-                            value={form.message}
-                            onChange={(e) =>
-                              setForm({ ...form, message: e.target.value })
-                            }
-                          />
-                        </div>
-                        {error && (
-                          <p className="text-sm text-destructive">{error}</p>
-                        )}
-                        <Button
-                          type="submit"
-                          disabled={submitting}
-                          className="shimmer-border gap-2"
-                        >
-                          {submitting ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Send className="size-4" />
-                          )}
-                          {submitting ? "در حال ارسال..." : "ارسال پیام"}
-                        </Button>
-                      </form>
-                    )}
-                  </CardContent>
-                </Card>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">ایمیل *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          placeholder="example@email.com"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">تلفن تماس</Label>
+                        <Input
+                          id="phone"
+                          placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                          value={form.phone}
+                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">موضوع *</Label>
+                        <Input
+                          id="subject"
+                          required
+                          placeholder="موضوع پیام"
+                          value={form.subject}
+                          onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="message">متن پیام *</Label>
+                      <Textarea
+                        id="message"
+                        required
+                        rows={6}
+                        placeholder="پیام خود را بنویسید..."
+                        value={form.message}
+                        onChange={(e) => setForm({ ...form, message: e.target.value })}
+                      />
+                    </div>
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button type="submit" disabled={submitting} size="lg" className="gap-2">
+                      {submitting ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Send className="size-4" />
+                      )}
+                      {submitting ? "در حال ارسال..." : "ارسال پیام"}
+                    </Button>
+                  </motion.form>
+                )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </section>
       </main>
       <SiteFooter />

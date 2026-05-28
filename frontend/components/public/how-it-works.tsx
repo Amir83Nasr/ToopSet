@@ -1,12 +1,29 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { Search, CalendarCheck, CreditCard, Play } from "lucide-react"
 
 const steps = [
-  { title: "جستجو", description: "ورزش مورد نظر خود را انتخاب کنید" },
-  { title: "انتخاب", description: "سانس مورد نظر خود را در تاریخ دلخواه انتخاب کنید" },
-  { title: "رزرو", description: "به صورت آنلاین پرداخت کنید و رزرو را قطعی کنید" },
-  { title: "بازی", description: "در ساعت مقرر در زمین حاضر شوید و از ورزش لذت ببرید" },
+  {
+    icon: Search,
+    title: "جستجو",
+    description: "ورزش مورد نظر خود را انتخاب کنید و زمین‌های موجود را ببینید",
+  },
+  {
+    icon: CalendarCheck,
+    title: "انتخاب",
+    description: "سانس مورد نظر خود را در تاریخ و ساعت دلخواه انتخاب کنید",
+  },
+  {
+    icon: CreditCard,
+    title: "رزرو",
+    description: "به صورت آنلاین پرداخت کنید و رزرو خود را قطعی کنید",
+  },
+  {
+    icon: Play,
+    title: "بازی",
+    description: "در ساعت مقرر در زمین حاضر شوید و از ورزش لذت ببرید",
+  },
 ]
 
 const container = {
@@ -14,9 +31,13 @@ const container = {
   visible: { transition: { staggerChildren: 0.15 } },
 }
 
-const step = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+const card = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 200, damping: 20 },
+  },
 }
 
 export function HowItWorks() {
@@ -44,34 +65,33 @@ export function HowItWorks() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
-          className="grid gap-8 md:grid-cols-4"
+          className="grid gap-6 md:grid-cols-4"
         >
-          {steps.map((stepItem, index) => (
-            <motion.div
-              key={stepItem.title}
-              variants={step}
-              className="flex flex-col items-center text-center"
-            >
+          {steps.map((step, i) => {
+            const Icon = step.icon
+            return (
               <motion.div
-                initial={{ scale: 0 }}
-                whileInView={{ scale: 1 }}
-                viewport={{ once: true }}
-                transition={{
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 20,
-                  delay: index * 0.15,
-                }}
-                className="mb-3 flex size-8 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground"
+                key={step.title}
+                variants={card}
+                className="group relative rounded-xl border bg-card p-6 text-center transition-colors hover:bg-accent/50"
               >
-                {index + 1}
+                {/* Step number badge */}
+                <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground group-hover:border-primary/30 group-hover:text-primary transition-colors">
+                  {i + 1}
+                </div>
+
+                {/* Icon */}
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg text-primary">
+                  <Icon className="size-5" />
+                </div>
+
+                <h3 className="mb-1.5 font-semibold">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {step.description}
+                </p>
               </motion.div>
-              <h3 className="mb-1 font-semibold">{stepItem.title}</h3>
-              <p className="max-w-[180px] text-sm text-muted-foreground">
-                {stepItem.description}
-              </p>
-            </motion.div>
-          ))}
+            )
+          })}
         </motion.div>
       </div>
     </section>

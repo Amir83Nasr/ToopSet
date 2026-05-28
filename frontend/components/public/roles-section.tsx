@@ -25,6 +25,20 @@ const roles = [
   },
 ]
 
+const card = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.12,
+      type: "spring" as const,
+      stiffness: 200,
+      damping: 20,
+    },
+  }),
+}
+
 export function RolesSection() {
   return (
     <section className="relative overflow-hidden border-t px-4 py-16 md:py-20">
@@ -40,23 +54,29 @@ export function RolesSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {roles.map((role) => {
+          {roles.map((role, i) => {
             const Icon = role.icon
             return (
               <motion.div
                 key={role.title}
-                className="rounded-lg border bg-card p-6 text-center"
+                custom={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={card}
                 whileHover={{
-                  y: -4,
-                  scale: 1.02,
-                  transition: { type: "spring", stiffness: 300, damping: 15 },
+                  y: -6,
+                  scale: 1.03,
+                  transition: { type: "spring" as const, stiffness: 300, damping: 15 },
                 }}
+                className="rounded-lg border bg-card p-6 text-center"
               >
                 <motion.div
                   className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border text-muted-foreground"
                   whileHover={{
-                    rotate: 10,
-                    transition: { type: "spring", stiffness: 400 },
+                    rotate: 12,
+                    scale: 1.1,
+                    transition: { type: "spring" as const, stiffness: 400 },
                   }}
                 >
                   <Icon className="size-5" />

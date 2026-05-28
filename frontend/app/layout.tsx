@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
-      <body>
+      <body className="cursor-none">
         <CursorAmbient />
         <ThemeProvider>
           <Providers>{children}</Providers>

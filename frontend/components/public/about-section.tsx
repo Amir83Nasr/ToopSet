@@ -26,14 +26,18 @@ const features = [
   },
 ]
 
-const container = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.12 } },
-}
-
-const item = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+const card = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.1,
+      type: "spring" as const,
+      stiffness: 200,
+      damping: 20,
+    },
+  }),
 }
 
 export function AboutSection() {
@@ -56,17 +60,20 @@ export function AboutSection() {
           </p>
         </motion.div>
 
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          {features.map((feature) => {
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature, i) => {
             const Icon = feature.icon
             return (
-              <motion.div key={feature.title} variants={item} className="text-center">
+              <motion.div
+                key={feature.title}
+                custom={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={card}
+                whileHover={{ y: -6, transition: { type: "spring" as const, stiffness: 300 } }}
+                className="rounded-xl border bg-card p-6 text-center transition-colors hover:bg-accent/50"
+              >
                 <Icon className="mx-auto mb-3 size-6 text-primary" />
                 <h3 className="mb-1.5 font-semibold">{feature.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
@@ -75,7 +82,7 @@ export function AboutSection() {
               </motion.div>
             )
           })}
-        </motion.div>
+        </div>
       </div>
     </section>
   )

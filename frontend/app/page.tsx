@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SiteHeader } from "@/components/public/site-header"
@@ -548,53 +549,68 @@ function HomePageContent() {
               </div>
             ) : (
               <>
-                <div className="stagger-fade-in grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                <motion.div
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.1 }}
+                  variants={{
+                    visible: { transition: { staggerChildren: 0.08 } },
+                  }}
+                  className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+                >
                   {featuredCourts.map((court) => (
-                    <Link
+                    <motion.div
                       key={court.id}
-                      href={`/courts/${court.id}`}
-                      className="group block rounded-xl border bg-card p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
+                      variants={{
+                        hidden: { opacity: 0, y: 16 },
+                        visible: { opacity: 1, y: 0 },
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="truncate font-semibold transition-colors group-hover:text-primary">
-                              {court.name}
-                            </h3>
-                            <FavoriteButton courtId={court.id} />
+                      <Link
+                        href={`/courts/${court.id}`}
+                        className="group block rounded-xl border bg-card p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="truncate font-semibold transition-colors group-hover:text-primary">
+                                {court.name}
+                              </h3>
+                              <FavoriteButton courtId={court.id} />
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                              <MapPin className="size-3 shrink-0" />
+                              <span className="truncate">{court.address}</span>
+                            </div>
                           </div>
-                          <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="size-3 shrink-0" />
-                            <span className="truncate">{court.address}</span>
+                          <div className="flex flex-wrap gap-1">
+                            {court.sport_types?.map((st) => (
+                              <Badge
+                                key={st}
+                                className={`shrink-0 ${sportColors[st]}`}
+                                variant="secondary"
+                              >
+                                {sportLabels[st]}
+                              </Badge>
+                            ))}
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1">
-                          {court.sport_types?.map((st) => (
-                            <Badge
-                              key={st}
-                              className={`shrink-0 ${sportColors[st]}`}
-                              variant="secondary"
-                            >
-                              {sportLabels[st]}
-                            </Badge>
-                          ))}
+                        <div className="mt-4 flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            ظرفیت: {toPersianDigits(court.capacity)} نفر
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                            <span>{court.average_rating.toFixed(1)}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          ظرفیت: {toPersianDigits(court.capacity)} نفر
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                          <span>{court.average_rating.toFixed(1)}</span>
+                        <div className="mt-3 text-sm font-medium text-primary">
+                          {formatPrice(court.base_price)}
                         </div>
-                      </div>
-                      <div className="text-gradient-primary mt-3 text-sm font-medium">
-                        {formatPrice(court.base_price)}
-                      </div>
-                    </Link>
+                      </Link>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (

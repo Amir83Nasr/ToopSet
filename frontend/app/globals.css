@@ -466,29 +466,6 @@
    Realistic neon tube glow with multiple shadow layers
    ══════════════════════════════════════════════════ */
 
-@keyframes neon-sign-pulse {
-  0%, 100% {
-    text-shadow:
-      0 0 4px hsl(var(--primary) / 0.4),
-      0 0 10px hsl(var(--primary) / 0.3),
-      0 0 20px hsl(var(--primary) / 0.2),
-      0 0 40px hsl(var(--primary) / 0.15),
-      0 0 80px hsl(var(--primary) / 0.1);
-  }
-  50% {
-    text-shadow:
-      0 0 6px hsl(var(--primary) / 0.6),
-      0 0 15px hsl(var(--primary) / 0.5),
-      0 0 30px hsl(var(--primary) / 0.35),
-      0 0 60px hsl(var(--primary) / 0.2),
-      0 0 100px hsl(var(--primary) / 0.15);
-  }
-}
-
-.neon-sign {
-  animation: neon-sign-pulse 3s ease-in-out infinite;
-}
-
 /* ══════════════════════════════════════════════════
    Glass Card / Frosted Glass
    ══════════════════════════════════════════════════ */
@@ -527,86 +504,5 @@
   background-clip: text;
 }
 
-/* ── Page-level entrance ─────────────────────────── */
-@keyframes page-entrance {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
-.page-entrance {
-  animation: page-entrance 0.5s ease-out;
-}
 
-/* ── Hover lift effect ───────────────────────────── */
-.hover-lift {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px hsl(var(--primary) / 0.08);
-}
-
-/* ── Glow pulse for icons ────────────────────────── */
-@keyframes icon-glow {
-  0%, 100% { filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.2)); }
-  50% { filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.4)); }
-}
-
-.icon-glow {
-  animation: icon-glow 3s ease-in-out infinite;
-}
-
-/* ── Shimmer border ──────────────────────────────── */
-@keyframes shimmer-border {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.shimmer-border {
-  position: relative;
-  overflow: hidden;
-}
-
-.shimmer-border::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    hsl(var(--primary) / 0.3) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer-border 3s linear infinite;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Stagger children (used in page.tsx courts grid) */
-.stagger-fade-in > * {
-  animation: fade-in-up 0.5s ease-out both;
-}
-
-.stagger-fade-in > *:nth-child(1)  { animation-delay: 0s; }
-.stagger-fade-in > *:nth-child(2)  { animation-delay: 0.08s; }
-.stagger-fade-in > *:nth-child(3)  { animation-delay: 0.16s; }
-.stagger-fade-in > *:nth-child(4)  { animation-delay: 0.24s; }
-.stagger-fade-in > *:nth-child(5)  { animation-delay: 0.32s; }
-.stagger-fade-in > *:nth-child(6)  { animation-delay: 0.4s; }
-.stagger-fade-in > *:nth-child(7)  { animation-delay: 0.48s; }
-.stagger-fade-in > *:nth-child(8)  { animation-delay: 0.56s; }
-.stagger-fade-in > *:nth-child(9)  { animation-delay: 0.64s; }
-.stagger-fade-in > *:nth-child(10) { animation-delay: 0.72s; }
-.stagger-fade-in > *:nth-child(11) { animation-delay: 0.8s; }
-.stagger-fade-in > *:nth-child(12) { animation-delay: 0.88s; }
