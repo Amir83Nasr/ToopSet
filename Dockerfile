@@ -9,7 +9,7 @@ ARG BUILDPLATFORM=linux/amd64
 ARG TARGETPLATFORM=linux/amd64
 
 # ── Stage 1: Frontend build ──────────────────────────────
-FROM node:20-bookworm-slim AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:20-slim AS frontend-builder
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install --ignore-scripts

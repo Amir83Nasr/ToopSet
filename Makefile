@@ -297,6 +297,23 @@ monitor-stop: ## Stop monitoring stack
 	@echo "  $(GREEN)✓$(RESET)  Monitoring stopped"
 
 # ─────────────────────────────────────────────────────────────────────
+# --- Testing ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: test back-test front-test
+
+## Run all tests
+test: back-test front-test
+
+## Run backend tests
+back-test: ## Run Python tests with pytest
+	cd backend && pip install pytest pytest-asyncio httpx pytest-httpx asgi-lifespan -q 2>/dev/null; python3 -m pytest tests/ -v --tb=short
+
+## Run frontend tests
+front-test: ## Run Vitest tests
+	cd frontend && npx vitest run
+
+# ─────────────────────────────────────────────────────────────────────
 # --- Lint / Format / Typecheck (full project) ---
 # ─────────────────────────────────────────────────────────────────────
 
