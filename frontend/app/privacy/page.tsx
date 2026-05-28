@@ -71,7 +71,13 @@ export default function PrivacyPage() {
       <SiteHeader />
       <main className="flex-1">
         <div className="relative">
+          {/* Full-screen diagonal hash */}
           <div className="bg-grid pointer-events-none absolute inset-0" />
+
+          {/* Vertical hash side columns — like tailwindcss.com */}
+          <div className="bg-fixed bg-[image:repeating-linear-gradient(315deg,hsl(var(--border)/.05)_0,hsl(var(--border)/.05)_1px,transparent_0,transparent_50%)] bg-[size:10px_10px] max-md:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-l border-border/20" />
+          <div className="bg-fixed bg-[image:repeating-linear-gradient(315deg,hsl(var(--border)/.05)_0,hsl(var(--border)/.05)_1px,transparent_0,transparent_50%)] bg-[size:10px_10px] max-md:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-r border-border/20" />
+
           <div className="relative mx-auto max-w-3xl px-4 py-12 md:py-16">
             <div className="text-center">
               <div className="mb-6 inline-flex items-center justify-center rounded-2xl border bg-card p-3 shadow-xs">
