@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import ARRAY, Enum, Float, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import ARRAY, JSON, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -36,5 +36,9 @@ class Court(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     manager: Mapped["User"] = relationship(back_populates="courts")
-    time_slots: Mapped[list["TimeSlot"]] = relationship(back_populates="court", cascade="all, delete-orphan")
-    reviews: Mapped[list["Review"]] = relationship(back_populates="court", cascade="all, delete-orphan")
+    time_slots: Mapped[list["TimeSlot"]] = relationship(
+        back_populates="court", cascade="all, delete-orphan"
+    )
+    reviews: Mapped[list["Review"]] = relationship(
+        back_populates="court", cascade="all, delete-orphan"
+    )

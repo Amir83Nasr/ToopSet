@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
-from app.models.user import User
-from app.models.court import SportType
-from app.schemas.court import CourtCreate, CourtListResponse, CourtResponse, CourtUpdate
+from app.api.deps import get_current_admin
 from app.core.database import get_db
+from app.models.court import SportType
+from app.models.user import User
+from app.schemas.court import CourtCreate, CourtListResponse, CourtResponse, CourtUpdate
 from app.schemas.review import ReviewListResponse
 from app.services.court_service import CourtService, get_court_service, get_court_service_public
 from app.services.review_service import ReviewService
@@ -34,9 +35,19 @@ async def list_courts(
     service: CourtService = Depends(get_court_service_public),
 ):
     return await service.list_courts(
-        skip=skip, limit=limit, sport_type=sport_type, search=search, is_active=is_active,
-        date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max,
-        ref_lat=ref_lat, ref_lon=ref_lon, max_distance_km=max_distance_km, sort=sort
+        skip=skip,
+        limit=limit,
+        sport_type=sport_type,
+        search=search,
+        is_active=is_active,
+        date_from=date_from,
+        date_to=date_to,
+        price_min=price_min,
+        price_max=price_max,
+        ref_lat=ref_lat,
+        ref_lon=ref_lon,
+        max_distance_km=max_distance_km,
+        sort=sort,
     )
 
 

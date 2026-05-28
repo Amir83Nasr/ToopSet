@@ -20,9 +20,7 @@ async def list_my_payments(
     current_user: User = Depends(get_current_user),
 ):
     repo = PaymentRepo(db)
-    payments, total = await repo.list_by_user(
-        current_user.id, skip=skip, limit=limit
-    )
+    payments, total = await repo.list_by_user(current_user.id, skip=skip, limit=limit)
     return PaymentListResponse(
         payments=[
             PaymentDetailResponse(
@@ -38,12 +36,8 @@ async def list_my_payments(
                 court_address=p.booking.slot.court.address
                 if p.booking and p.booking.slot and p.booking.slot.court
                 else "",
-                slot_start_time=p.booking.slot.start_time
-                if p.booking and p.booking.slot
-                else None,
-                slot_end_time=p.booking.slot.end_time
-                if p.booking and p.booking.slot
-                else None,
+                slot_start_time=p.booking.slot.start_time if p.booking and p.booking.slot else None,
+                slot_end_time=p.booking.slot.end_time if p.booking and p.booking.slot else None,
             )
             for p in payments
         ],

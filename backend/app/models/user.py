@@ -24,7 +24,11 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(128))
     phone: Mapped[str] = mapped_column(String(16), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(256))
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole, values_callable=_values_callable), default=UserRole.USER, server_default="user")
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, values_callable=_values_callable),
+        default=UserRole.USER,
+        server_default="user",
+    )
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

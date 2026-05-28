@@ -7,13 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models.booking import Booking, BookingStatus
+from app.models.booking import BookingStatus
 from app.models.user import User
 from app.repositories.booking_repo import BookingRepo
+from app.repositories.notification_repo import NotificationRepo
 from app.repositories.payment_repo import PaymentRepo
 from app.repositories.penalty_repo import PenaltyRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
-from app.repositories.notification_repo import NotificationRepo
 from app.repositories.wallet_repo import WalletRepo
 from app.schemas.booking import (
     AdminBookingListResponse,
@@ -89,7 +89,9 @@ class BookingService:
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
         if slot.is_reserved:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already reserved")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already reserved"
+            )
 
         if slot.version != data.version:
             raise HTTPException(
@@ -106,16 +108,20 @@ class BookingService:
 
         existing = await self.booking_repo.get_by_slot(data.slot_id)
         if existing:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already has a booking")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already has a booking"
+            )
 
-        booking = await self.booking_repo.create({
-            "user_id": self.current_user.id,
-            "slot_id": data.slot_id,
-            "status": BookingStatus.PENDING_PAYMENT,
-            "price_paid": float(slot.base_price),
-            "participants_count": data.participants_count,
-            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
-        })
+        booking = await self.booking_repo.create(
+            {
+                "user_id": self.current_user.id,
+                "slot_id": data.slot_id,
+                "status": BookingStatus.PENDING_PAYMENT,
+                "price_paid": float(slot.base_price),
+                "participants_count": data.participants_count,
+                "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+            }
+        )
 
         # Notify manager about new booking
         if court:
@@ -150,7 +156,9 @@ class BookingService:
         if booking.user_id != self.current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your booking")
         if booking.status != BookingStatus.PENDING_PAYMENT:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking is not pending payment")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Booking is not pending payment"
+            )
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
@@ -163,12 +171,14 @@ class BookingService:
             gateway_id = await payment_service.process_payment(float(booking.price_paid))
         except PaymentError:
             # Payment failed — create failed record, keep booking pending
-            await self.payment_repo.create({
-                "booking_id": booking_id,
-                "amount": float(booking.price_paid),
-                "gateway_transaction_id": None,
-                "status": "failed",
-            })
+            await self.payment_repo.create(
+                {
+                    "booking_id": booking_id,
+                    "amount": float(booking.price_paid),
+                    "gateway_transaction_id": None,
+                    "status": "failed",
+                }
+            )
             # Notify user about failed payment
             notify_repo = NotificationRepo(self.booking_repo.db)
             await notify_repo.create(
@@ -181,12 +191,14 @@ class BookingService:
                 detail="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
             )
 
-        payment = await self.payment_repo.create({
-            "booking_id": booking_id,
-            "amount": float(booking.price_paid),
-            "gateway_transaction_id": gateway_id,
-            "status": "success",
-        })
+        payment = await self.payment_repo.create(
+            {
+                "booking_id": booking_id,
+                "amount": float(booking.price_paid),
+                "gateway_transaction_id": gateway_id,
+                "status": "success",
+            }
+        )
 
         # Mark slot as reserved using optimistic locking
         await self.slot_repo.update(slot, {"is_reserved": True})
@@ -226,7 +238,9 @@ class BookingService:
         if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your booking")
         if booking.status == BookingStatus.CANCELLED:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking already cancelled")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Booking already cancelled"
+            )
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
@@ -274,7 +288,9 @@ class BookingService:
             await self.slot_repo.update(slot, {"is_reserved": False})
 
         wallet = await wallet_repo.get_or_create(self.current_user.id)
-        await wallet_repo.add_balance(wallet, refund_amount, f"Refund for cancelled booking #{booking_id}")
+        await wallet_repo.add_balance(
+            wallet, refund_amount, f"Refund for cancelled booking #{booking_id}"
+        )
 
         # Notify manager about cancellation
         if court:
@@ -302,7 +318,6 @@ class BookingService:
             payment=PaymentResponse.model_validate(payment) if payment else None,
         )
 
-
     async def list_all_bookings(
         self,
         *,
@@ -318,24 +333,27 @@ class BookingService:
             slot = await self.slot_repo.get_by_id(b.slot_id)
             court = slot.court if slot else None
             user = b.user  # relationship loaded
-            result.append(AdminBookingResponse(
-                id=b.id,
-                user_id=b.user_id,
-                slot_id=b.slot_id,
-                status=b.status.value if hasattr(b.status, 'value') else b.status,
-                price_paid=float(b.price_paid),
-                penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
-                participants_count=b.participants_count,
-                created_at=b.created_at,
-                updated_at=b.updated_at,
-                expires_at=b.expires_at,
-                court_name=court.name if court else "",
-                court_address=court.address if court else "",
-                user_name=user.full_name if user else "",
-                slot_start_time=slot.start_time if slot else None,
-                slot_end_time=slot.end_time if slot else None,
-            ))
+            result.append(
+                AdminBookingResponse(
+                    id=b.id,
+                    user_id=b.user_id,
+                    slot_id=b.slot_id,
+                    status=b.status.value if hasattr(b.status, "value") else b.status,
+                    price_paid=float(b.price_paid),
+                    penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
+                    participants_count=b.participants_count,
+                    created_at=b.created_at,
+                    updated_at=b.updated_at,
+                    expires_at=b.expires_at,
+                    court_name=court.name if court else "",
+                    court_address=court.address if court else "",
+                    user_name=user.full_name if user else "",
+                    slot_start_time=slot.start_time if slot else None,
+                    slot_end_time=slot.end_time if slot else None,
+                )
+            )
         return AdminBookingListResponse(bookings=result, total=total)
+
 
 async def get_booking_service(
     db: AsyncSession = Depends(get_db),

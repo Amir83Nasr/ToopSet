@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime, date, timezone
+from collections import Counter
+from datetime import datetime, timezone
 
 from pydantic import BaseModel
-from collections import Counter
-from sqlalchemy import func, select, and_, case
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import Booking, BookingStatus
-from app.models.court import Court, SportType
+from app.models.court import Court
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
-from app.models.payment import Payment, PaymentStatus
 from app.models.wallet import Wallet
 
 
@@ -60,7 +59,9 @@ class DashboardService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def get_revenue_report(self, user_id: int, date_from: datetime | None = None, date_to: datetime | None = None) -> list[dict]:
+    async def get_revenue_report(
+        self, user_id: int, date_from: datetime | None = None, date_to: datetime | None = None
+    ) -> list[dict]:
         query = (
             select(
                 func.date(TimeSlot.start_time).label("date"),
@@ -79,7 +80,9 @@ class DashboardService:
         if date_to:
             query = query.where(Booking.created_at <= date_to)
 
-        query = query.group_by(func.date(TimeSlot.start_time)).order_by(func.date(TimeSlot.start_time).desc())
+        query = query.group_by(func.date(TimeSlot.start_time)).order_by(
+            func.date(TimeSlot.start_time).desc()
+        )
 
         result = await self.db.execute(query)
         rows = result.all()
@@ -95,9 +98,7 @@ class DashboardService:
         ]
 
     async def get_stats(self) -> DashboardStats:
-        today_start = datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
         # 1. Active courts count
         active_courts_result = await self.db.execute(
@@ -194,16 +195,17 @@ class DashboardService:
         total_users_result = await self.db.execute(select(func.count(User.id)))
         total_bookings_result = await self.db.execute(select(func.count(Booking.id)))
         total_revenue_result = await self.db.execute(
-            select(func.coalesce(func.sum(Booking.price_paid), 0))
-            .where(Booking.status == BookingStatus.CONFIRMED)
+            select(func.coalesce(func.sum(Booking.price_paid), 0)).where(
+                Booking.status == BookingStatus.CONFIRMED
+            )
         )
         active_managers_result = await self.db.execute(
-            select(func.count(User.id))
-            .where(User.role == UserRole.MANAGER, User.is_active.is_(True))
+            select(func.count(User.id)).where(
+                User.role == UserRole.MANAGER, User.is_active.is_(True)
+            )
         )
         pending_bookings_result = await self.db.execute(
-            select(func.count(Booking.id))
-            .where(Booking.status == BookingStatus.PENDING_PAYMENT)
+            select(func.count(Booking.id)).where(Booking.status == BookingStatus.PENDING_PAYMENT)
         )
         # Today stats
         today_bookings_result = await self.db.execute(

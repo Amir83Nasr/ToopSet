@@ -42,10 +42,7 @@ async def list_contact_messages(
     _: User = Depends(get_current_admin),
 ):
     result = await db.execute(
-        select(ContactMessage)
-        .order_by(ContactMessage.created_at.desc())
-        .offset(skip)
-        .limit(limit)
+        select(ContactMessage).order_by(ContactMessage.created_at.desc()).offset(skip).limit(limit)
     )
     return list(result.scalars().all())
 

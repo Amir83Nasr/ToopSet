@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +34,9 @@ class NotificationRepo:
 
     async def create_for_all_users(self, type_: str, message: str) -> int:
         from sqlalchemy import select
+
         from app.models.user import User
+
         result = await self.db.execute(select(User.id))
         user_ids = [row[0] for row in result.all()]
         for uid in user_ids:
@@ -65,6 +65,7 @@ class NotificationRepo:
 
     async def mark_all_read(self, user_id: int) -> None:
         from sqlalchemy import update
+
         stmt = (
             update(Notification)
             .where(Notification.user_id == user_id, Notification.is_read == False)

@@ -25,8 +25,12 @@ class TimeSlotRepo:
         count_q = select(func.count(TimeSlot.id)).where(TimeSlot.court_id == court_id)
 
         if date:
-            base = base.where(TimeSlot.start_time >= date).where(TimeSlot.start_time < date + "T23:59:59")
-            count_q = count_q.where(TimeSlot.start_time >= date).where(TimeSlot.start_time < date + "T23:59:59")
+            base = base.where(TimeSlot.start_time >= date).where(
+                TimeSlot.start_time < date + "T23:59:59"
+            )
+            count_q = count_q.where(TimeSlot.start_time >= date).where(
+                TimeSlot.start_time < date + "T23:59:59"
+            )
 
         query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
 

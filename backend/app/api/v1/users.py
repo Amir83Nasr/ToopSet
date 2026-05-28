@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin
 from app.models.user import User
-from app.schemas.user import UpdateUserRoleRequest, UserDetailResponse, UserListResponse, ToggleActiveResponse
+from app.schemas.user import (
+    ToggleActiveResponse,
+    UpdateUserRoleRequest,
+    UserDetailResponse,
+    UserListResponse,
+)
 from app.services.user_service import UserService, get_user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -20,7 +25,9 @@ async def list_users(
     service: UserService = Depends(get_user_service),
     _: User = Depends(get_current_admin),
 ):
-    return await service.list_users(skip=skip, limit=limit, search=search, role=role, is_active=is_active)
+    return await service.list_users(
+        skip=skip, limit=limit, search=search, role=role, is_active=is_active
+    )
 
 
 @router.get("/{user_id}", response_model=UserDetailResponse)

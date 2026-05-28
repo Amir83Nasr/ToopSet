@@ -42,7 +42,9 @@ class UserRepository:
         if search:
             pattern = f"%{search}%"
             query = query.where(or_(User.full_name.ilike(pattern), User.phone.ilike(pattern)))
-            count_query = count_query.where(or_(User.full_name.ilike(pattern), User.phone.ilike(pattern)))
+            count_query = count_query.where(
+                or_(User.full_name.ilike(pattern), User.phone.ilike(pattern))
+            )
         if role:
             query = query.where(User.role == role)
             count_query = count_query.where(User.role == role)

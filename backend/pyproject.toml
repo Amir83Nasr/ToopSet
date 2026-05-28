@@ -1,0 +1,48 @@
+[project]
+name = "toopset-backend"
+version = "0.1.0"
+description = "ToopSet — sports court booking platform backend"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501", "E712"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/models/*.py" = ["F821"]
+"app/core/metrics.py" = ["F401"]
+"scripts/seed.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+explicit_package_bases = true
+no_implicit_optional = true
+no_implicit_reexport = true
+
+# ── Pre-existing issues (use `from __future__ import annotations` + SQLAlchemy generics) ──
+[[tool.mypy.overrides]]
+module = [
+    "app.models.*",
+    "app.repositories.*",
+    "app.schemas.*",
+    "app.services.*",
+    "app.core.security",
+    "app.core.database",
+    "app.api.*",
+    "scripts.*",
+    "migrations.*",
+    "app.main",
+]
+ignore_errors = true
+
+

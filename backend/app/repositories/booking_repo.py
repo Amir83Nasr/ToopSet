@@ -20,9 +20,7 @@ class BookingRepo:
         limit: int = 20,
     ) -> tuple[list[Booking], int]:
         query = (
-            select(Booking)
-            .where(Booking.user_id == user_id)
-            .order_by(Booking.created_at.desc())
+            select(Booking).where(Booking.user_id == user_id).order_by(Booking.created_at.desc())
         )
         count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
 

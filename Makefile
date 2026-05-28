@@ -95,13 +95,13 @@ front-clean: ## Remove .next build cache and node_modules
 # --- Backend (local) ---
 # ─────────────────────────────────────────────────────────────────────
 
-.PHONY: back-dev back-deps back-migrate back-shell back-clean
+.PHONY: back-dev back-deps back-migrate back-shell back-clean back-lint back-format back-typecheck back-check
 
 back-dev: ## Start backend dev server (uvicorn, auto-reload on save)
 	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
 back-deps: ## Install / sync backend Python dependencies (pip install -r)
-	@pip install -r $(BACKEND_DIR)/requirements.txt
+	@pip3 install -r $(BACKEND_DIR)/requirements.txt
 	@echo "  $(GREEN)✓$(RESET) Backend deps installed"
 
 back-migrate: ## Run Alembic migrations (upgrade head)
@@ -109,7 +109,30 @@ back-migrate: ## Run Alembic migrations (upgrade head)
 	@echo "  $(GREEN)✓$(RESET) Migrations up to date"
 
 back-shell: ## Open a Python shell inside the backend directory
-	@cd $(BACKEND_DIR) && python -c "import code; code.interact(local={'app': 'toopset'})"
+	@cd $(BACKEND_DIR) && python3 -c "import code; code.interact(local={'app': 'toopset'})"
+
+back-lint: ## Lint Python code with ruff
+	@cd $(BACKEND_DIR) && ruff check .
+	@echo "  $(GREEN)✓$(RESET) Ruff checks passed"
+
+back-format: ## Format Python code with ruff
+	@cd $(BACKEND_DIR) && ruff check --fix .
+	@ruff format $(BACKEND_DIR)
+	@echo "  $(GREEN)✓$(RESET) Ruff format applied"
+
+back-format-check: ## Check formatting without changing files
+	@cd $(BACKEND_DIR) && ruff format --check .
+	@echo "  $(GREEN)✓$(RESET) Formatting looks good"
+
+back-typecheck: ## Type-check Python code with mypy
+	@cd $(BACKEND_DIR) && mypy app
+	@echo "  $(GREEN)✓$(RESET) mypy passed"
+
+back-check: ## Run all Python checks (lint + format-check + typecheck)
+	@$(MAKE) back-lint && \
+	 $(MAKE) back-format-check && \
+	 $(MAKE) back-typecheck && \
+	 echo "  $(GREEN)✓$(RESET) All checks passed"
 
 back-clean: ## Remove Python cache files (__pycache__, .pyc)
 	@find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null; \
@@ -272,6 +295,32 @@ monitor-stop: ## Stop monitoring stack
 		elasticsearch logstash kibana prometheus grafana \
 		postgres_exporter redis_exporter
 	@echo "  $(GREEN)✓$(RESET)  Monitoring stopped"
+
+# ─────────────────────────────────────────────────────────────────────
+# --- Lint / Format / Typecheck (full project) ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: lint format typecheck check
+
+lint: ## Run all linters (ruff + ESLint)
+	@$(MAKE) back-lint
+	@$(MAKE) front-lint
+
+format: ## Format all code (ruff format + Prettier)
+	@$(MAKE) back-format
+	@$(MAKE) front-format
+
+typecheck: ## Run all type checkers (mypy + TypeScript)
+	@$(MAKE) back-typecheck
+	@$(MAKE) front-typecheck
+
+check: ## Run ALL checks (lint + format-check + typecheck)
+	@echo "  $(CYAN)ℹ$(RESET)  Running all checks…"
+	@$(MAKE) lint
+	@$(MAKE) back-format-check
+	@$(MAKE) typecheck
+	@echo ""
+	@echo "  $(GREEN)✓$(RESET) All checks passed"
 
 # ─────────────────────────────────────────────────────────────────────
 # --- Maintenance ---

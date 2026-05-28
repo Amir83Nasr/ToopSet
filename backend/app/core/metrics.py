@@ -10,7 +10,6 @@ at the ``/metrics`` endpoint added in ``main.py``.
 """
 
 import time
-from typing import Callable
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 from prometheus_client.registry import REGISTRY

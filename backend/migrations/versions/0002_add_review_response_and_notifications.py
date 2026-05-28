@@ -1,8 +1,7 @@
-"""add review response and notifications table
-"""
-from alembic import op
+"""add review response and notifications table"""
+
 import sqlalchemy as sa
-from datetime import datetime, timezone
+from alembic import op
 
 revision = "0002"
 down_revision = "0001"
@@ -20,7 +19,9 @@ def upgrade() -> None:
         sa.Column("type", sa.String(64), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
         sa.Column("is_read", sa.Boolean(), server_default="false", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_notifications_user_id"), "notifications", ["user_id"])

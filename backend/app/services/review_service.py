@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.booking import Booking, BookingStatus
+from app.models.booking import BookingStatus
 from app.models.user import User, UserRole
 from app.repositories.booking_repo import BookingRepo
 from app.repositories.review_repo import ReviewRepo
@@ -44,9 +44,7 @@ class ReviewService:
         skip: int = 0,
         limit: int = 20,
     ) -> ReviewListResponse:
-        reviews, total = await self.review_repo.list_by_court(
-            court_id, skip=skip, limit=limit
-        )
+        reviews, total = await self.review_repo.list_by_court(court_id, skip=skip, limit=limit)
         items = []
         for review in reviews:
             court_name = review.court.name if review.court else ""
@@ -84,7 +82,8 @@ class ReviewService:
                 detail="Time slot not found",
             )
 
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
+
         if slot.end_time + timedelta(hours=2) > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -102,13 +101,15 @@ class ReviewService:
         court_id = slot.court.id if slot.court else None
 
         # Create review
-        review = await self.review_repo.create({
-            "user_id": self.current_user.id,
-            "booking_id": data.booking_id,
-            "rating": data.rating,
-            "comment": data.comment,
-            "court_id": court_id,
-        })
+        review = await self.review_repo.create(
+            {
+                "user_id": self.current_user.id,
+                "booking_id": data.booking_id,
+                "rating": data.rating,
+                "comment": data.comment,
+                "court_id": court_id,
+            }
+        )
 
         # Enrich with court_name and user_name
         court_name = slot.court.name if slot.court else ""

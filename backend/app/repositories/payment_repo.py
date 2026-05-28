@@ -43,9 +43,7 @@ class PaymentRepo:
         return payments, total
 
     async def get_by_booking(self, booking_id: int) -> Payment | None:
-        result = await self.db.execute(
-            select(Payment).where(Payment.booking_id == booking_id)
-        )
+        result = await self.db.execute(select(Payment).where(Payment.booking_id == booking_id))
         return result.scalar_one_or_none()
 
     async def create(self, data: dict) -> Payment:

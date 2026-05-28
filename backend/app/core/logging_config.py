@@ -12,7 +12,6 @@ from pathlib import Path
 
 from pythonjsonlogger import jsonlogger
 
-
 _LOG_DIR = Path("/app/logs")
 _LOG_FILE = _LOG_DIR / "app.log"
 _LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -30,7 +29,7 @@ class _ExcludeHealthFilter(logging.Filter):
 
 def _build_json_handler() -> logging.Handler:
     handler = logging.StreamHandler(sys.stdout)
-    fmt = jsonlogger.JsonFormatter(
+    fmt: logging.Formatter = jsonlogger.JsonFormatter(  # type: ignore[attr-defined]
         fmt="%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d",
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
@@ -46,7 +45,7 @@ def _build_file_handler() -> logging.Handler | None:
         handler = RotatingFileHandler(
             _LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
         )
-        fmt = jsonlogger.JsonFormatter(
+        fmt: logging.Formatter = jsonlogger.JsonFormatter(  # type: ignore[attr-defined]
             fmt="%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d",
             datefmt="%Y-%m-%dT%H:%M:%S%z",
         )

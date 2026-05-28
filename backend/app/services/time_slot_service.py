@@ -8,7 +8,13 @@ from app.core.database import get_db
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
-from app.schemas.time_slot import TimeSlotCreate, TimeSlotDetailResponse, TimeSlotListResponse, TimeSlotResponse, TimeSlotUpdate
+from app.schemas.time_slot import (
+    TimeSlotCreate,
+    TimeSlotDetailResponse,
+    TimeSlotListResponse,
+    TimeSlotResponse,
+    TimeSlotUpdate,
+)
 
 
 class TimeSlotService:
@@ -57,7 +63,9 @@ class TimeSlotService:
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
         if data.start_time >= data.end_time:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time"
+            )
         slot = await self.repo.create(data.model_dump())
         return TimeSlotResponse.model_validate(slot)
 
@@ -66,7 +74,9 @@ class TimeSlotService:
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
         if slot.is_reserved:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify a reserved slot")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify a reserved slot"
+            )
         updated = await self.repo.update(slot, data.model_dump(exclude_none=True))
         return TimeSlotResponse.model_validate(updated)
 
@@ -75,7 +85,9 @@ class TimeSlotService:
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
         if slot.is_reserved:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a reserved slot")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a reserved slot"
+            )
         await self.repo.delete(slot)
 
 

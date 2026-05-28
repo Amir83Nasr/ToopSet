@@ -12,7 +12,6 @@ from app.models.user import User
 from app.repositories.log_repo import LogRepo
 from app.repositories.notification_repo import NotificationRepo
 
-
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
@@ -57,4 +56,4 @@ async def list_logs(
 ):
     repo = LogRepo(db)
     logs, total = await repo.list(skip=skip, limit=limit, action=action, user_id=user_id)
-    return LogListResponse(logs=[LogResponse.model_validate(l) for l in logs], total=total)
+    return LogListResponse(logs=[LogResponse.model_validate(log) for log in logs], total=total)

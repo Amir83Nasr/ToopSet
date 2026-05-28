@@ -5,9 +5,9 @@ Revises: 0002
 Create Date: 2026-05-28
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import op
 
 revision = "0003"
 down_revision = "0002"
@@ -48,9 +48,7 @@ def downgrade() -> None:
     )
 
     # Migrate data back (take first element of the array)
-    op.execute(
-        "UPDATE courts SET sport_type = (sport_types[1])::text::sporttype"
-    )
+    op.execute("UPDATE courts SET sport_type = (sport_types[1])::text::sporttype")
 
     # Make the column non-nullable
     op.alter_column("courts", "sport_type", nullable=False)

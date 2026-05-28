@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from datetime import datetime
 
 from fastapi import Depends, HTTPException, status
@@ -6,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_manager, get_current_user_optional
 from app.core.database import get_db
+from app.models.court import SportType
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
-from app.schemas.court import CourtCreate, CourtResponse, CourtUpdate, CourtListResponse
-from app.models.court import SportType
+from app.schemas.court import CourtCreate, CourtListResponse, CourtResponse, CourtUpdate
 
 
 class CourtService:
@@ -37,9 +38,19 @@ class CourtService:
         if self.current_user is None or self.current_user.role not in ("admin", "manager"):
             is_active = True
         courts, total = await self.repo.list(
-            skip=skip, limit=limit, sport_type=sport_type, is_active=is_active, search=search,
-            date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max, sort=sort,
-            ref_lat=ref_lat, ref_lon=ref_lon, max_distance_km=max_distance_km
+            skip=skip,
+            limit=limit,
+            sport_type=sport_type,
+            is_active=is_active,
+            search=search,
+            date_from=date_from,
+            date_to=date_to,
+            price_min=price_min,
+            price_max=price_max,
+            sort=sort,
+            ref_lat=ref_lat,
+            ref_lon=ref_lon,
+            max_distance_km=max_distance_km,
         )
         return CourtListResponse(
             courts=[CourtResponse.model_validate(c) for c in courts],
@@ -50,7 +61,9 @@ class CourtService:
         court = await self.repo.get_by_id(court_id)
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
-        if not court.is_active and (self.current_user is None or self.current_user.role not in ("admin", "manager")):
+        if not court.is_active and (
+            self.current_user is None or self.current_user.role not in ("admin", "manager")
+        ):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
         return CourtResponse.model_validate(court)
 
@@ -80,7 +93,9 @@ class CourtService:
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't manage this court")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="You don't manage this court"
+            )
         updated = await self.repo.update(court, {"is_active": is_active})
         return CourtResponse.model_validate(updated)
 

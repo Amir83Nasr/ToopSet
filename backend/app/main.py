@@ -7,21 +7,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1.auth import router as auth_router
-from app.api.v1.courts import router as courts_router
-from app.api.v1.time_slots import router as time_slots_router, slot_detail_router
-from app.api.v1.bookings import router as bookings_router
-from app.api.v1.dashboard import router as dashboard_router
-from app.api.v1.payments import router as payments_router
-from app.api.v1.reviews import router as reviews_router
-from app.api.v1.uploads import router as uploads_router
-from app.api.v1.wallet import router as wallet_router
-from app.api.v1.notifications import router as notifications_router
-from app.api.v1.penalties import router as penalties_router
-from app.api.v1.users import router as users_router
-from app.api.v1.contact import router as contact_router
 from app.api.v1.admin import router as admin_router
+from app.api.v1.auth import router as auth_router
+from app.api.v1.bookings import router as bookings_router
+from app.api.v1.contact import router as contact_router
+from app.api.v1.courts import router as courts_router
+from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.favorites import router as favorites_router
+from app.api.v1.notifications import router as notifications_router
+from app.api.v1.payments import router as payments_router
+from app.api.v1.penalties import router as penalties_router
+from app.api.v1.reviews import router as reviews_router
+from app.api.v1.time_slots import router as time_slots_router
+from app.api.v1.time_slots import slot_detail_router
+from app.api.v1.uploads import router as uploads_router
+from app.api.v1.users import router as users_router
+from app.api.v1.wallet import router as wallet_router
 from app.core.database import async_session_factory, engine
 from app.core.logging_config import setup_logging
 from app.core.metrics import PrometheusMiddleware, metrics_response
@@ -32,9 +33,10 @@ async def _cancel_expired_pending():
     while True:
         try:
             async with async_session_factory() as db:
+                from app.models.booking import BookingStatus
                 from app.repositories.booking_repo import BookingRepo
                 from app.repositories.time_slot_repo import TimeSlotRepo
-                from app.models.booking import BookingStatus
+
                 repo = BookingRepo(db)
                 slot_repo = TimeSlotRepo(db)
                 now = datetime.now(timezone.utc)
@@ -42,8 +44,8 @@ async def _cancel_expired_pending():
                 for b in expired:
                     slot = await slot_repo.get_by_id(b.slot_id)
                     if slot:
-                        await slot_repo.update(slot, {'is_reserved': False})
-                    await repo.update(b, {'status': BookingStatus.CANCELLED})
+                        await slot_repo.update(slot, {"is_reserved": False})
+                    await repo.update(b, {"status": BookingStatus.CANCELLED})
         except Exception:
             pass
         await asyncio.sleep(60)

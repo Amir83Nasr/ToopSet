@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_db
 from app.models.user import User
-from app.services.dashboard_service import DashboardService, AdminStats, DashboardStats, ManagerStats, UserStats
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.dashboard_service import (
+    AdminStats,
+    DashboardService,
+    DashboardStats,
+    ManagerStats,
+    UserStats,
+)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -33,7 +40,10 @@ async def get_manager_revenue(
 ):
     if current_user.role not in ("manager", "admin"):
         from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Manager or admin role required")
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Manager or admin role required"
+        )
     return await service.get_revenue_report(current_user.id, date_from=date_from, date_to=date_to)
 
 
@@ -52,7 +62,10 @@ async def get_manager_stats(
 ):
     if current_user.role not in ("manager", "admin"):
         from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Manager or admin role required")
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Manager or admin role required"
+        )
     return await service.get_manager_stats(current_user.id)
 
 

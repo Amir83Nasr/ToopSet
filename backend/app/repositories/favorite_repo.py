@@ -43,7 +43,5 @@ class FavoriteRepo:
         return result.scalar_one_or_none() is not None
 
     async def count_by_user(self, user_id: int) -> int:
-        result = await self.db.execute(
-            select(Favorite).where(Favorite.user_id == user_id)
-        )
+        result = await self.db.execute(select(Favorite).where(Favorite.user_id == user_id))
         return len(result.scalars().all())
