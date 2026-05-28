@@ -52,3 +52,28 @@ export function clearTokens() {
   localStorage.removeItem("access_token")
   localStorage.removeItem("refresh_token")
 }
+
+export async function uploadFile(file: File): Promise<string> {
+  const token = getToken()
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const res = await fetch(`${API_BASE}/api/v1/uploads/court-image`, {
+    method: "POST",
+    headers,
+    body: formData,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: "Upload failed" }))
+    throw new ApiError(res.status, body.detail || "Upload failed")
+  }
+
+  const data = await res.json()
+  return data.url
+}

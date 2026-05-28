@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -19,6 +20,7 @@ import {
 import { toast } from "sonner"
 import { api, ApiError } from "@/lib/api"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
+import { ImageUpload } from "@/components/courts/image-upload"
 import { ArrowRight } from "lucide-react"
 
 const sportTypes = [
@@ -30,6 +32,7 @@ const sportTypes = [
 
 export default function CreateCourtPage() {
   const router = useRouter()
+  const [courtImages, setCourtImages] = useState<string[]>([])
   const {
     register,
     handleSubmit,
@@ -43,7 +46,7 @@ export default function CreateCourtPage() {
     try {
       await api("/api/v1/courts", {
         method: "POST",
-        body: JSON.stringify({ ...data, amenities: data.amenities || {} }),
+        body: JSON.stringify({ ...data, amenities: data.amenities || {}, images: courtImages }),
       })
       toast.success("زمین با موفقیت ایجاد شد")
       router.push("/dashboard/courts")
@@ -137,6 +140,10 @@ export default function CreateCourtPage() {
               value={amenitiesValue}
               onChange={(v) => setValue("amenities", v)}
             />
+            <div className="space-y-2">
+              <Label>تصاویر زمین</Label>
+              <ImageUpload images={courtImages} onChange={setCourtImages} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
               <Input

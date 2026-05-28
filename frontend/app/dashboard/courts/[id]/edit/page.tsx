@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
+import { ImageUpload } from "@/components/courts/image-upload"
 import { ArrowRight, Loader2 } from "lucide-react"
 
 const sportTypes = [
@@ -35,6 +36,7 @@ export default function EditCourtPage() {
   const courtId = Number(params.id)
 
   const [courtData, setCourtData] = useState<CourtUpdateInput | undefined>(undefined)
+  const [courtImages, setCourtImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -66,8 +68,9 @@ export default function EditCourtPage() {
           longitude: data.longitude,
           capacity: data.capacity,
           amenities: (data as any).amenities || {},
-      });
-    })
+        });
+        setCourtImages((data as any).images || []);
+      })
     .catch((err) => {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
@@ -82,7 +85,7 @@ export default function EditCourtPage() {
     try {
       await api(`/api/v1/courts/${courtId}`, {
         method: "PATCH",
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, images: courtImages }),
       })
       toast.success("زمین با موفقیت ویرایش شد")
       router.push(`/dashboard/courts/${courtId}`)
@@ -196,6 +199,10 @@ export default function EditCourtPage() {
                 <AmenityCheckboxes value={(field.value || {}) as Record<string, boolean>} onChange={field.onChange} />
               )}
             />
+            <div className="space-y-2">
+              <Label>تصاویر زمین</Label>
+              <ImageUpload images={courtImages} onChange={setCourtImages} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
               <Input
