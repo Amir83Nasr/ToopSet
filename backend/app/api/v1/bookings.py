@@ -59,6 +59,13 @@ async def cancel_booking(
     return await service.cancel_booking(booking_id)
 
 
+async def get_booking_service_admin(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+) -> BookingService:
+    return BookingService(db=db, current_user=current_user)
+
+
 @router.get("/all", response_model=AdminBookingListResponse)
 async def list_all_bookings_admin(
     skip: int = Query(0, ge=0),
@@ -68,10 +75,3 @@ async def list_all_bookings_admin(
     _: User = Depends(get_current_admin),
 ):
     return await service.list_all_bookings(skip=skip, limit=limit, status_filter=status)
-
-
-async def get_booking_service_admin(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
-) -> BookingService:
-    return BookingService(db=db, current_user=current_user)
