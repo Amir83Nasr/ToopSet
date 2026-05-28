@@ -59,7 +59,7 @@ export function RolesSection() {
     <section className="bg-muted/30 px-4 py-16 md:py-20">
       <div className="mx-auto max-w-5xl">
         {/* Section Header */}
-        <div className="mb-12 text-center">
+        <div className="mb-12 text-center animate-fade-in-up">
           <h2 className="text-3xl font-bold md:text-4xl">نقش‌های کاربری</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
             توپ سِت برای نیازهای مختلف کاربران طراحی شده است
@@ -67,7 +67,7 @@ export function RolesSection() {
         </div>
 
         {/* Role Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 stagger-fade-in">
           {roles.map((role) => {
             const Icon = role.icon
             return (

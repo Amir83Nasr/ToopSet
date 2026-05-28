@@ -28,7 +28,7 @@ export function HowItWorks() {
     <section className="px-4 py-16 md:py-20">
       <div className="mx-auto max-w-5xl">
         {/* Section Header */}
-        <div className="mb-12 text-center">
+        <div className="mb-12 text-center animate-fade-in-up">
           <h2 className="text-3xl font-bold md:text-4xl">چطور کار می‌کند</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
             تنها با ۴ قدم ساده، زمین ورزشی خود را رزرو کنید
@@ -36,7 +36,7 @@ export function HowItWorks() {
         </div>
 
         {/* Steps */}
-        <div className="relative grid gap-8 md:grid-cols-4">
+        <div className="relative grid gap-8 md:grid-cols-4 stagger-fade-in">
           {/* Connecting line (desktop) */}
           <div className="absolute top-8 left-[calc(12.5%+1rem)] right-[calc(12.5%+1rem)] hidden h-0.5 bg-gradient-to-r from-primary/30 via-primary to-primary/30 md:block" />
 

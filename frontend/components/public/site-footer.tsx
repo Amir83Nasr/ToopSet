@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { Volleyball, MapPin, Phone, Mail, Globe, Send, MessageCircle } from "lucide-react"
+import Image from "next/image"
+import { MapPin, Phone, Mail, Globe, Send, MessageCircle } from "lucide-react"
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -24,8 +25,8 @@ export function SiteFooter() {
           {/* Brand */}
           <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Volleyball className="size-5" />
+              <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
+                <Image src="/favicon.svg" alt="توپ سِت" width={36} height={36} className="size-9" />
               </div>
               <span>توپ سِت</span>
             </Link>

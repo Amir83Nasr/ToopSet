@@ -32,7 +32,7 @@ export function AboutSection() {
     <section id="about" className="px-4 py-16 md:py-20">
       <div className="mx-auto max-w-5xl">
         {/* Section Header */}
-        <div className="mb-12 text-center">
+        <div className="mb-12 text-center animate-fade-in-up">
           <h2 className="text-3xl font-bold md:text-4xl">چرا توپ سِت؟</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
             ساده‌ترین راه برای رزرو زمین ورزشی، با بهترین امکانات و قیمت
@@ -40,7 +40,7 @@ export function AboutSection() {
         </div>
 
         {/* Feature Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 stagger-fade-in">
           {features.map((feature) => {
             const Icon = feature.icon
             return (

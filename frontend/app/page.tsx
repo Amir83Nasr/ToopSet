@@ -229,8 +229,10 @@ function HomePageContent() {
         <RolesSection />
 
         {/* Search & Filters */}
-        <section className="px-4 py-8" id="courts">
-          <div className="mx-auto max-w-5xl">
+        <section className="relative overflow-hidden px-4 py-8" id="courts">
+          <div className="neon-orb neon-orb-3" />
+          <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+          <div className="mx-auto max-w-5xl relative z-10">
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-bold">جستجوی سالن‌ها</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -329,8 +331,9 @@ function HomePageContent() {
         </section>
 
         {/* Courts Grid */}
-        <section className="bg-muted/30 px-4 py-8">
-          <div className="mx-auto max-w-5xl">
+        <section className="relative overflow-hidden bg-muted/30 px-4 py-8">
+          <div className="absolute inset-0 bg-neon-grid pointer-events-none" />
+          <div className="mx-auto max-w-5xl relative z-10">
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold">زمین‌ها</h2>
@@ -363,7 +366,7 @@ function HomePageContent() {
               </div>
             ) : (
               <>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-fade-in">
                   {featuredCourts.map((court) => (
                     <Link
                       key={court.id}

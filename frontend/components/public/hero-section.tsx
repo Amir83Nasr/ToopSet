@@ -1,34 +1,35 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Volleyball, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden px-4 py-20 md:py-28">
-      {/* Decorative background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
+      {/* Neon background orbs */}
+      <div className="neon-orb neon-orb-1" />
+      <div className="neon-orb neon-orb-2" />
+      <div className="neon-orb neon-orb-3" />
 
-      {/* Floating shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -right-20 size-80 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 size-96 rounded-full bg-secondary/10 blur-3xl" />
-        <div className="absolute top-1/3 left-1/4 size-40 rounded-full bg-primary/5 blur-2xl animate-pulse" />
-        <div className="absolute top-1/2 right-1/3 size-24 rounded-full bg-secondary/10 blur-xl" />
-      </div>
+      {/* Grid overlay */}
+      <div className="absolute inset-0 bg-neon-grid pointer-events-none" />
+
+      {/* Decorative gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
 
       {/* Content */}
       <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-8 text-center">
-        {/* Icon */}
-        <div className="flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-2xl shadow-primary/20 ring-1 ring-white/10">
-          <Volleyball className="size-10" />
+        {/* Logo icon */}
+        <div className="flex size-20 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/70 shadow-2xl shadow-primary/20 ring-1 ring-white/10">
+          <Image src="/favicon.svg" alt="توپ سِت" width={72} height={72} className="size-16" />
         </div>
 
         {/* Title */}
         <div className="space-y-4">
-          <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl animate-fade-in-up">
             توپ <span className="text-primary">سِت</span>
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed animate-fade-in-up animate-fade-in-up-delay-1">
             سامانه هوشمند رزرو آنلاین زمین‌های ورزشی
             <br />
             والیبال، بسکتبال، فوتسال و هندبال
@@ -36,21 +37,21 @@ export function HeroSection() {
         </div>
 
         {/* Stats */}
-        <div className="flex flex-wrap justify-center gap-8 md:gap-12">
+        <div className="flex flex-wrap justify-center gap-8 md:gap-12 animate-fade-in-up animate-fade-in-up-delay-2">
           {[
             { value: "۱۵۰+", label: "زمین ورزشی" },
             { value: "۱۰,۰۰۰+", label: "کاربر فعال" },
             { value: "۹۸٪", label: "رضایت کاربران" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className="text-2xl font-bold text-primary">{stat.value}</div>
+              <div className="text-2xl font-bold text-primary neon-glow inline-block px-2 rounded-lg">{stat.value}</div>
               <div className="text-xs text-muted-foreground mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="flex flex-wrap justify-center gap-4 animate-fade-in-up animate-fade-in-up-delay-3">
           <Button asChild size="lg" className="h-12 px-8 text-base gap-2 shadow-lg shadow-primary/20">
             <Link href="/register">
               شروع کنید
