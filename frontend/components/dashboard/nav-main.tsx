@@ -29,6 +29,7 @@ import {
   Settings,
   Bell,
   BarChart3,
+  Gavel,
   ChevronDown,
 } from "lucide-react"
 
@@ -79,6 +80,12 @@ const allNavItems: NavItem[] = [
     title: "کیف پول",
     url: "/dashboard/wallet",
     icon: Wallet,
+    roles: ["admin", "manager", "user"],
+  },
+  {
+    title: "جریمه‌ها",
+    url: "/dashboard/penalties",
+    icon: Gavel,
     roles: ["admin", "manager", "user"],
   },
   {
