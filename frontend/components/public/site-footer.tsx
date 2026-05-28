@@ -19,11 +19,13 @@ const socialLinks = [
 
 export function SiteFooter() {
   return (
-    <footer id="contact" className="border-t bg-muted/40">
-      <div className="mx-auto max-w-5xl px-4 py-12">
+    <footer id="contact" className="relative overflow-hidden border-t bg-muted/40">
+      <div className="bg-grid pointer-events-none absolute inset-0" />
+      <div className="bg-noise pointer-events-none absolute inset-0 z-[1]" />
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
-          <div className="space-y-3">
+          <div className="glass-card rounded-2xl space-y-3 p-4">
             <Link
               href="/"
               className="flex items-center gap-2 text-lg font-bold"
@@ -46,7 +48,7 @@ export function SiteFooter() {
           </div>
 
           {/* Quick Links */}
-          <div className="space-y-3">
+          <div className="glass-card rounded-2xl space-y-3 p-4">
             <h4 className="text-sm font-semibold">لینک‌های سریع</h4>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
@@ -63,7 +65,7 @@ export function SiteFooter() {
           </div>
 
           {/* Contact */}
-          <div className="space-y-3">
+          <div className="glass-card rounded-2xl space-y-3 p-4">
             <h4 className="text-sm font-semibold">ارتباط با ما</h4>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -82,7 +84,7 @@ export function SiteFooter() {
           </div>
 
           {/* Social */}
-          <div className="space-y-3">
+          <div className="glass-card rounded-2xl space-y-3 p-4">
             <h4 className="text-sm font-semibold">ما را دنبال کنید</h4>
             <div className="flex gap-3">
               {socialLinks.map((link) => {
@@ -93,7 +95,7 @@ export function SiteFooter() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex size-10 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                    className="hover-lift flex size-10 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
                     aria-label={link.label}
                   >
                     <Icon className="size-5" />

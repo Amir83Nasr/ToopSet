@@ -1,73 +1,135 @@
 import type { Metadata } from "next"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
+import { ShieldCheck, Database, Share2, Lock, UserCheck, PhoneCall } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "حریم خصوصی | توپ‌سِت",
   description: "سیاست حفظ حریم خصوصی کاربران در سامانه توپ‌سِت",
 }
 
+const sections = [
+  {
+    icon: Database,
+    title: "۱. اطلاعاتی که جمع‌آوری می‌کنیم",
+    body: "ما اطلاعات زیر را برای ارائه خدمات بهتر جمع‌آوری می‌کنیم:",
+    list: [
+      "اطلاعات هویتی: نام و نام خانوادگی، شماره تلفن همراه، ایمیل",
+      "اطلاعات مربوط به رزرو: تاریخ، ساعت، نوع ورزش و مکان",
+      "اطلاعات مربوط به تراکنش‌های مالی",
+    ],
+  },
+  {
+    icon: Share2,
+    title: "۲. نحوه استفاده از اطلاعات",
+    body: "اطلاعات شما برای اهداف زیر استفاده می‌شود:",
+    list: [
+      "ایجاد و مدیریت حساب کاربری",
+      "پردازش رزروها و تراکنش‌ها",
+      "ارسال اعلان‌های مربوط به رزروها",
+      "بهبود خدمات و تجربه کاربری",
+      "پشتیبانی و پاسخگویی به سوالات",
+    ],
+  },
+  {
+    icon: Lock,
+    title: "۳. اشتراک‌گذاری اطلاعات",
+    body: "توپ‌سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر در موارد زیر:",
+    list: [
+      "با مدیران مجموعه‌های ورزشی برای انجام رزرو",
+      "با درخواست مراجع قانونی و قضایی",
+      "برای جلوگیری از تقلب یا سوءاستفاده",
+    ],
+  },
+  {
+    icon: ShieldCheck,
+    title: "۴. امنیت اطلاعات",
+    body: "ما از پروتکل‌های امنیتی استاندارد برای محافظت از اطلاعات شما استفاده می‌کنیم. تمام تراکنش‌های مالی از طریق درگاه‌های امن انجام می‌شود.",
+  },
+  {
+    icon: UserCheck,
+    title: "۵. حقوق شما",
+    body: "شما حق دارید:",
+    list: [
+      "در هر زمان اطلاعات خود را مشاهده و ویرایش کنید",
+      "درخواست حذف حساب کاربری خود را دهید",
+      "از دریافت اعلان‌ها انصراف دهید",
+      "به اطلاعات خود اعتراض کنید",
+    ],
+    ordered: true,
+  },
+  {
+    icon: PhoneCall,
+    title: "۶. تماس با ما",
+    body: "برای هرگونه سوال درباره حریم خصوصی، می‌توانید از طریق صفحه تماس با ما یا ایمیل privacy@toopset.com با ما در ارتباط باشید.",
+  },
+]
+
 export default function PrivacyPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="flex-1 px-4 py-12 md:py-16">
-        <div
-          className="prose prose-gray dark:prose-invert mx-auto max-w-3xl"
-          dir="rtl"
-        >
-          <h1>حریم خصوصی</h1>
-          <p className="lead">آخرین به‌روزرسانی: فروردین ۱۴۰۴</p>
+      <main className="flex-1">
+        <div className="relative isolate">
+          {/* Vertical hash decorative columns — like tailwindcss.com */}
+          <div className="bg-grid-vert pointer-events-none fixed inset-y-0 right-0 z-0 hidden w-16 lg:block" />
+          <div className="bg-grid-vert pointer-events-none fixed inset-y-0 left-0 z-0 hidden w-16 lg:block" />
+          <div className="bg-grid pointer-events-none absolute inset-0 z-0" />
 
-          <h2>۱. اطلاعاتی که جمع‌آوری می‌کنیم</h2>
-          <p>ما اطلاعات زیر را برای ارائه خدمات بهتر جمع‌آوری می‌کنیم:</p>
-          <ul>
-            <li>اطلاعات هویتی: نام و نام خانوادگی، شماره تلفن همراه، ایمیل</li>
-            <li>اطلاعات مربوط به رزرو: تاریخ، ساعت، نوع ورزش و مکان</li>
-            <li>اطلاعات مربوط به تراکنش‌های مالی</li>
-          </ul>
+          <div className="relative z-10 mx-auto max-w-3xl px-4 py-12 md:py-16">
+            <div className="text-center">
+              <div className="mb-6 inline-flex items-center justify-center rounded-2xl border bg-card p-3 shadow-xs">
+                <ShieldCheck className="size-8 text-primary" />
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+                حریم خصوصی
+              </h1>
+              <p className="mt-2 text-muted-foreground">
+                آخرین به‌روزرسانی: فروردین ۱۴۰۴
+              </p>
+            </div>
 
-          <h2>۲. نحوه استفاده از اطلاعات</h2>
-          <p>اطلاعات شما برای اهداف زیر استفاده می‌شود:</p>
-          <ul>
-            <li>ایجاد و مدیریت حساب کاربری</li>
-            <li>پردازش رزروها و تراکنش‌ها</li>
-            <li>ارسال اعلان‌های مربوط به رزروها</li>
-            <li>بهبود خدمات و تجربه کاربری</li>
-            <li>پشتیبانی و پاسخگویی به سوالات</li>
-          </ul>
-
-          <h2>۳. اشتراک‌گذاری اطلاعات</h2>
-          <p>
-            توپ‌سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر
-            در موارد زیر:
-          </p>
-          <ul>
-            <li>با مدیران مجموعه‌های ورزشی برای انجام رزرو</li>
-            <li>با درخواست مراجع قانونی و قضایی</li>
-            <li>برای جلوگیری از تقلب یا سوءاستفاده</li>
-          </ul>
-
-          <h2>۴. امنیت اطلاعات</h2>
-          <p>
-            ما از پروتکل‌های امنیتی استاندارد برای محافظت از اطلاعات شما استفاده
-            می‌کنیم. تمام تراکنش‌های مالی از طریق درگاه‌های امن انجام می‌شود.
-          </p>
-
-          <h2>۵. حقوق شما</h2>
-          <p>شما حق دارید:</p>
-          <ul>
-            <li>در هر زمان اطلاعات خود را مشاهده و ویرایش کنید</li>
-            <li>درخواست حذف حساب کاربری خود را دهید</li>
-            <li>از دریافت اعلان‌ها انصراف دهید</li>
-            <li>به اطلاعات خود اعتراض کنید</li>
-          </ul>
-
-          <h2>۶. تماس با ما</h2>
-          <p>
-            برای هرگونه سوال درباره حریم خصوصی، می‌توانید از طریق صفحه تماس با
-            ما یا ایمیل privacy@toopset.com با ما در ارتباط باشید.
-          </p>
+            <div className="mt-12 space-y-6">
+              {sections.map((section, index) => {
+                const Icon = section.icon
+                return (
+                  <div
+                    key={index}
+                    className="rounded-xl border bg-card p-6 shadow-xs transition-shadow hover:shadow-sm"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Icon className="size-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <h2 className="text-xl font-semibold">
+                          {section.title}
+                        </h2>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {section.body}
+                        </p>
+                        {section.list && (
+                          <ul className="space-y-2 pr-5">
+                            {section.list.map((item, i) => (
+                              <li
+                                key={i}
+                                className="text-muted-foreground leading-relaxed"
+                              >
+                                <span className="ml-2 text-primary/60">
+                                  {section.ordered ? `${i + 1}.` : "•"}
+                                </span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </main>
       <SiteFooter />

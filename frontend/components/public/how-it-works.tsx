@@ -26,24 +26,20 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="relative overflow-hidden px-4 py-16 md:py-20">
-      <div className="neon-orb neon-orb-purple !right-auto !left-[-120px]" />
-      <div className="neon-orb neon-orb-orange" />
-      <div className="bg-mesh pointer-events-none absolute inset-0" />
-      <div className="bg-dots pointer-events-none absolute inset-0" />
+    <section className="relative overflow-hidden border-t px-4 py-16 md:py-20">
+      <div className="bg-grid absolute inset-0 opacity-50" />
       <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
-        {/* Section Header */}
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">چطور کار می‌کند</h2>
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            چطور کار می‌کند
+          </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             تنها با ۴ قدم ساده، زمین ورزشی خود را رزرو کنید
           </p>
         </div>
 
-        {/* Steps */}
-        <div className="stagger-fade-in relative grid gap-8 md:grid-cols-4">
-          {/* Connecting line (desktop) */}
-          <div className="absolute top-8 right-[calc(12.5%+1rem)] left-[calc(12.5%+1rem)] hidden h-0.5 bg-gradient-to-r from-primary/30 via-primary to-primary/30 md:block" />
+        <div className="relative grid gap-8 md:grid-cols-4">
+          <div className="absolute top-5 right-[calc(12.5%+1rem)] left-[calc(12.5%+1rem)] hidden h-px bg-linear-to-r from-transparent via-border to-transparent md:block" />
 
           {steps.map((step, index) => {
             const Icon = step.icon
@@ -52,20 +48,10 @@ export function HowItWorks() {
                 key={step.title}
                 className="relative flex flex-col items-center text-center"
               >
-                {/* Step Number */}
-                <div
-                  className={`animate-float-slow relative z-10 mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20`}
-                  style={{ animationDelay: `${index * 0.3}s` }}
-                >
-                  <Icon className="size-7" />
+                <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                  {index + 1}
                 </div>
-
-                {/* Step Label */}
-                <div className="mb-1 inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
-                  گام {index + 1}
-                </div>
-
-                <h3 className="mb-1 text-base font-semibold">{step.title}</h3>
+                <h3 className="mb-1 font-semibold">{step.title}</h3>
                 <p className="max-w-[200px] text-sm text-muted-foreground">
                   {step.description}
                 </p>

@@ -200,8 +200,8 @@ export default function PublicCourtDetailPage() {
       <div className="relative mx-auto flex max-w-5xl flex-col gap-6 overflow-hidden px-4 py-8">
         <div className="neon-orb neon-orb-1 !top-[-100px] !right-[-80px]" />
         <div className="neon-orb neon-orb-cyan !bottom-[-80px] !left-[-60px]" />
-        <div className="bg-mesh pointer-events-none absolute inset-0" />
-        <div className="bg-dots pointer-events-none absolute inset-0" />
+        <div className="bg-grid pointer-events-none absolute inset-0" />
+        <div className="bg-noise pointer-events-none absolute inset-0 z-[1]" />
         <div className="relative z-10">
           <Skeleton className="h-5 w-32 rounded-md" />
           <Skeleton className="mt-4 h-9 w-32 rounded-md" />

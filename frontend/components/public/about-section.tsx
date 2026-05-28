@@ -30,38 +30,34 @@ const features = [
 
 export function AboutSection() {
   return (
-    <section
-      id="about"
-      className="relative overflow-hidden px-4 py-16 md:py-20"
-    >
-      <div className="neon-orb neon-orb-green" />
-      <div className="neon-orb neon-orb-cyan !top-auto !bottom-[-80px] !left-[-60px]" />
-      <div className="bg-mesh pointer-events-none absolute inset-0" />
-      <div className="bg-dots pointer-events-none absolute inset-0" />
+    <section id="about" className="relative overflow-hidden border-t px-4 py-16 md:py-20">
+      <div className="bg-grid absolute inset-0 opacity-50" />
       <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
-        {/* Section Header */}
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">چرا توپ‌سِت؟</h2>
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            چرا{" "}
+            <span className="bg-linear-to-r from-primary to-primary/50 bg-clip-text text-transparent">
+              توپ‌سِت
+            </span>
+            ؟
+          </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             ساده‌ترین راه برای رزرو زمین ورزشی، با بهترین امکانات و قیمت
           </p>
         </div>
 
-        {/* Feature Grid */}
-        <div className="stagger-fade-in grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => {
             const Icon = feature.icon
             return (
               <div
                 key={feature.title}
-                className="group relative rounded-xl border bg-card p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10"
+                className="rounded-xl border bg-card p-6 transition-colors hover:bg-accent"
               >
-                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <Icon className="size-7" />
+                <div className="mb-4 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="size-6" />
                 </div>
-                <h3 className="mb-2 text-base font-semibold">
-                  {feature.title}
-                </h3>
+                <h3 className="mb-2 font-semibold">{feature.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {feature.description}
                 </p>

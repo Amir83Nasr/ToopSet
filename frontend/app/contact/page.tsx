@@ -63,8 +63,12 @@ export default function ContactPage() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main className="flex-1">
-        <section className="px-4 py-12 md:py-20">
-          <div className="mx-auto max-w-5xl">
+        <section className="relative overflow-hidden px-4 py-12 md:py-20">
+          <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
+          <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />
+          <div className="bg-grid pointer-events-none absolute inset-0" />
+          <div className="bg-noise pointer-events-none absolute inset-0 z-[1]" />
+          <div className="page-entrance relative z-10 mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h1 className="text-3xl font-bold md:text-4xl">ارتباط با ما</h1>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
@@ -75,9 +79,9 @@ export default function ContactPage() {
             <div className="grid gap-8 md:grid-cols-3">
               {/* Contact Info Sidebar */}
               <div className="space-y-6 md:col-span-1">
-                <Card>
+                <Card className="glass-card rounded-2xl border-border/40">
                   <CardContent className="space-y-5 pt-6">
-                    <div className="flex items-start gap-3">
+                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
                       <MapPin className="mt-0.5 size-5 text-primary" />
                       <div>
                         <h4 className="text-sm font-medium">آدرس</h4>
@@ -86,7 +90,7 @@ export default function ContactPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
+                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
                       <Phone className="mt-0.5 size-5 text-primary" />
                       <div>
                         <h4 className="text-sm font-medium">تلفن</h4>
@@ -95,7 +99,7 @@ export default function ContactPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
+                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
                       <Mail className="mt-0.5 size-5 text-primary" />
                       <div>
                         <h4 className="text-sm font-medium">ایمیل</h4>
@@ -104,7 +108,7 @@ export default function ContactPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
+                    <div className="hover-lift flex items-start gap-3 rounded-xl p-2 transition-all">
                       <Clock className="mt-0.5 size-5 text-primary" />
                       <div>
                         <h4 className="text-sm font-medium">ساعت کاری</h4>
@@ -119,7 +123,7 @@ export default function ContactPage() {
 
               {/* Contact Form */}
               <div className="md:col-span-2">
-                <Card>
+                <Card className="glass-card rounded-2xl border-border/40">
                   <CardHeader>
                     <CardTitle>فرم تماس</CardTitle>
                     <CardDescription>
@@ -218,7 +222,7 @@ export default function ContactPage() {
                         <Button
                           type="submit"
                           disabled={submitting}
-                          className="gap-2"
+                          className="shimmer-border gap-2"
                         >
                           {submitting ? (
                             <Loader2 className="size-4 animate-spin" />
