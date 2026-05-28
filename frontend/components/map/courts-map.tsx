@@ -73,14 +73,22 @@ const renderStars = (rating: number) => {
   return starIcon.repeat(full)
 }
 
-function MapController({ courts, userLocation }: { courts: CourtsMapProps["courts"]; userLocation?: CourtsMapProps["userLocation"] }) {
+function MapController({
+  courts,
+  userLocation,
+}: {
+  courts: CourtsMapProps["courts"]
+  userLocation?: CourtsMapProps["userLocation"]
+}) {
   const map = useMap()
   const prevIdsRef = useRef("")
   const prevUserRef = useRef("")
 
   useEffect(() => {
     const ids = JSON.stringify(courts.map((c) => c.id))
-    const userKey = userLocation ? `${userLocation.latitude},${userLocation.longitude}` : ""
+    const userKey = userLocation
+      ? `${userLocation.latitude},${userLocation.longitude}`
+      : ""
 
     // Only re-fit if courts changed
     if (ids !== prevIdsRef.current) {
@@ -88,7 +96,9 @@ function MapController({ courts, userLocation }: { courts: CourtsMapProps["court
       if (courts.length > 0) {
         const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
         if (userLocation) {
-          markers.push(L.marker([userLocation.latitude, userLocation.longitude]))
+          markers.push(
+            L.marker([userLocation.latitude, userLocation.longitude])
+          )
         }
         const group = new L.FeatureGroup(markers)
         map.fitBounds(group.getBounds().pad(0.2))
@@ -98,7 +108,10 @@ function MapController({ courts, userLocation }: { courts: CourtsMapProps["court
     // Center on user if they just appeared
     if (userLocation && userKey !== prevUserRef.current) {
       prevUserRef.current = userKey
-      map.setView([userLocation.latitude, userLocation.longitude], map.getZoom() || 12)
+      map.setView(
+        [userLocation.latitude, userLocation.longitude],
+        map.getZoom() || 12
+      )
     }
   }, [courts, map, userLocation])
 
@@ -151,7 +164,11 @@ const createUserIcon = () => {
   })
 }
 
-function UserMarker({ location }: { location: { latitude: number; longitude: number } }) {
+function UserMarker({
+  location,
+}: {
+  location: { latitude: number; longitude: number }
+}) {
   const markerRef = useRef<L.Marker | null>(null)
   const map = useMap()
 
@@ -178,7 +195,11 @@ function UserMarker({ location }: { location: { latitude: number; longitude: num
   return null
 }
 
-export function CourtsMap({ courts, height = "400px", userLocation }: CourtsMapProps) {
+export function CourtsMap({
+  courts,
+  height = "400px",
+  userLocation,
+}: CourtsMapProps) {
   const defaultCenter = useMemo(() => [34.64, 50.88] as [number, number], [])
 
   const mapKey = useMemo(
@@ -192,13 +213,15 @@ export function CourtsMap({ courts, height = "400px", userLocation }: CourtsMapP
         className="flex items-center justify-center rounded-xl border bg-muted"
         style={{ height }}
       >
-        <p className="text-sm text-muted-foreground">هیچ زمینی برای نمایش وجود ندارد</p>
+        <p className="text-sm text-muted-foreground">
+          هیچ زمینی برای نمایش وجود ندارد
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ height }}>
+    <div className="overflow-hidden rounded-xl border" style={{ height }}>
       <MapContainer
         key={mapKey}
         center={defaultCenter}
@@ -220,23 +243,30 @@ export function CourtsMap({ courts, height = "400px", userLocation }: CourtsMapP
             icon={createSportIcon(court.sport_types?.[0] || "volleyball")}
           >
             <Popup>
-              <div className="text-right font-sans" dir="rtl" style={{ minWidth: 180 }}>
-                <h3 className="font-semibold text-sm mb-1">{court.name}</h3>
-                <p className="text-xs text-gray-500 mb-1.5">
-                  {court.sport_types?.map(st => sportLabels[st] || st).join('، ')}
+              <div
+                className="text-right font-sans"
+                dir="rtl"
+                style={{ minWidth: 180 }}
+              >
+                <h3 className="mb-1 text-sm font-semibold">{court.name}</h3>
+                <p className="mb-1.5 text-xs text-gray-500">
+                  {court.sport_types
+                    ?.map((st) => sportLabels[st] || st)
+                    .join("، ")}
                 </p>
-                <p className="text-xs text-gray-500 mb-1.5 truncate max-w-[200px]">
+                <p className="mb-1.5 max-w-[200px] truncate text-xs text-gray-500">
                   {court.address}
                 </p>
-                <div className="flex items-center gap-2 text-xs text-gray-500 mb-1.5">
+                <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
                   <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
                   <span className="inline-flex items-center gap-0.5" dir="ltr">
-                    {renderStars(court.average_rating)} {court.average_rating.toFixed(1)}
+                    {renderStars(court.average_rating)}{" "}
+                    {court.average_rating.toFixed(1)}
                   </span>
                 </div>
                 <a
                   href={`/courts/${court.id}`}
-                  className="inline-block mt-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                  className="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
                 >
                   مشاهده زمین
                 </a>

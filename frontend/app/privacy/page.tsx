@@ -12,7 +12,10 @@ export default function PrivacyPage() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main className="flex-1 px-4 py-12 md:py-16">
-        <div className="mx-auto max-w-3xl prose prose-gray dark:prose-invert" dir="rtl">
+        <div
+          className="prose prose-gray dark:prose-invert mx-auto max-w-3xl"
+          dir="rtl"
+        >
           <h1>حریم خصوصی</h1>
           <p className="lead">آخرین به‌روزرسانی: فروردین ۱۴۰۴</p>
 
@@ -36,7 +39,8 @@ export default function PrivacyPage() {
 
           <h2>۳. اشتراک‌گذاری اطلاعات</h2>
           <p>
-            توپ‌سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر در موارد زیر:
+            توپ‌سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر
+            در موارد زیر:
           </p>
           <ul>
             <li>با مدیران مجموعه‌های ورزشی برای انجام رزرو</li>
@@ -46,7 +50,8 @@ export default function PrivacyPage() {
 
           <h2>۴. امنیت اطلاعات</h2>
           <p>
-            ما از پروتکل‌های امنیتی استاندارد برای محافظت از اطلاعات شما استفاده می‌کنیم. تمام تراکنش‌های مالی از طریق درگاه‌های امن انجام می‌شود.
+            ما از پروتکل‌های امنیتی استاندارد برای محافظت از اطلاعات شما استفاده
+            می‌کنیم. تمام تراکنش‌های مالی از طریق درگاه‌های امن انجام می‌شود.
           </p>
 
           <h2>۵. حقوق شما</h2>
@@ -60,7 +65,8 @@ export default function PrivacyPage() {
 
           <h2>۶. تماس با ما</h2>
           <p>
-            برای هرگونه سوال درباره حریم خصوصی، می‌توانید از طریق صفحه تماس با ما یا ایمیل privacy@toopset.com با ما در ارتباط باشید.
+            برای هرگونه سوال درباره حریم خصوصی، می‌توانید از طریق صفحه تماس با
+            ما یا ایمیل privacy@toopset.com با ما در ارتباط باشید.
           </p>
         </div>
       </main>

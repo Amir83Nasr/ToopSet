@@ -24,14 +24,24 @@ export function SiteFooter() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="space-y-3">
-            <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-lg font-bold"
+            >
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
-                <Image src="/favicon.svg" alt="توپ‌سِت" width={36} height={36} className="size-9" />
+                <Image
+                  src="/favicon.svg"
+                  alt="توپ‌سِت"
+                  width={36}
+                  height={36}
+                  className="size-9"
+                />
               </div>
               <span>توپ‌سِت</span>
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              سامانه هوشمند رزرو آنلاین زمین‌های ورزشی. والیبال، بسکتبال، فوتسال و هندبال.
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              سامانه هوشمند رزرو آنلاین زمین‌های ورزشی. والیبال، بسکتبال، فوتسال
+              و هندبال.
             </p>
           </div>
 

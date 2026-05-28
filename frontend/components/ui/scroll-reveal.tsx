@@ -45,7 +45,7 @@ export function ScrollReveal({
   return (
     <div
       ref={ref}
-      className={`${className} ${visible ? animation : "opacity-0 translate-y-6"}`}
+      className={`${className} ${visible ? animation : "translate-y-6 opacity-0"}`}
       style={{ animationDelay: `${delay}ms` }}
     >
       {children}

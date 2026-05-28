@@ -5,26 +5,48 @@ import { z } from "zod"
 // ---------------------------------------------------------------------------
 
 export const loginSchema = z.object({
-  phone: z.string().min(10, "شماره تلفن باید حداقل ۱۰ رقم باشد").max(16, "شماره تلفن معتبر نیست"),
+  phone: z
+    .string()
+    .min(10, "شماره تلفن باید حداقل ۱۰ رقم باشد")
+    .max(16, "شماره تلفن معتبر نیست"),
   password: z.string().min(4, "رمز عبور باید حداقل ۴ کاراکتر باشد"),
 })
 
 export const registerSchema = z.object({
-  phone: z.string().min(10, "شماره تلفن باید حداقل ۱۰ رقم باشد").max(16, "شماره تلفن معتبر نیست"),
+  phone: z
+    .string()
+    .min(10, "شماره تلفن باید حداقل ۱۰ رقم باشد")
+    .max(16, "شماره تلفن معتبر نیست"),
   password: z.string().min(4, "رمز عبور باید حداقل ۴ کاراکتر باشد"),
-  full_name: z.string().min(1, "نام الزامی است").max(128, "نام حداکثر ۱۲۸ کاراکتر می‌تواند باشد"),
+  full_name: z
+    .string()
+    .min(1, "نام الزامی است")
+    .max(128, "نام حداکثر ۱۲۸ کاراکتر می‌تواند باشد"),
 })
 
 // ---------------------------------------------------------------------------
 // Court
 // ---------------------------------------------------------------------------
 
-export const sportTypes = ["volleyball", "basketball", "futsal", "handball"] as const
+export const sportTypes = [
+  "volleyball",
+  "basketball",
+  "futsal",
+  "handball",
+] as const
 
 export const courtCreateSchema = z.object({
-  name: z.string().min(1, "نام زمین الزامی است").max(256, "نام حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
-  sport_types: z.array(z.enum(sportTypes)).min(1, "حداقل یک نوع ورزش را انتخاب کنید"),
-  address: z.string().min(1, "آدرس الزامی است").max(256, "آدرس حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
+  name: z
+    .string()
+    .min(1, "نام زمین الزامی است")
+    .max(256, "نام حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
+  sport_types: z
+    .array(z.enum(sportTypes))
+    .min(1, "حداقل یک نوع ورزش را انتخاب کنید"),
+  address: z
+    .string()
+    .min(1, "آدرس الزامی است")
+    .max(256, "آدرس حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
   latitude: z.coerce
     .number({ error: "عرض جغرافیایی را وارد کنید" })
     .gte(-90, "عرض جغرافیایی معتبر نیست")

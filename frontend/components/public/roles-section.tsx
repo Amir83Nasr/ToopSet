@@ -59,27 +59,29 @@ export function RolesSection() {
   return (
     <section className="relative overflow-hidden bg-muted/30 px-4 py-16 md:py-20">
       <div className="neon-orb neon-orb-purple" />
-      <div className="neon-orb neon-orb-cyan !right-auto left-1/4 top-1/3" />
-      <div className="absolute inset-0 bg-mesh pointer-events-none" />
-      <div className="absolute inset-0 bg-dots pointer-events-none" />
-      <ScrollReveal className="mx-auto max-w-5xl relative z-10">
+      <div className="neon-orb neon-orb-cyan top-1/3 !right-auto left-1/4" />
+      <div className="bg-mesh pointer-events-none absolute inset-0" />
+      <div className="bg-dots pointer-events-none absolute inset-0" />
+      <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
         {/* Section Header */}
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold md:text-4xl">نقش‌های کاربری</h2>
-          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             توپ‌سِت برای نیازهای مختلف کاربران طراحی شده است
           </p>
         </div>
 
         {/* Role Cards */}
-        <div className="grid gap-6 md:grid-cols-3 stagger-fade-in">
+        <div className="stagger-fade-in grid gap-6 md:grid-cols-3">
           {roles.map((role) => {
             const Icon = role.icon
             return (
               <div
                 key={role.title}
                 className={`relative rounded-xl border bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10 ${
-                  role.featured ? "ring-2 ring-primary shadow-lg shadow-primary/20 scale-[1.02] md:scale-105 neon-border" : ""
+                  role.featured
+                    ? "neon-border scale-[1.02] shadow-lg ring-2 shadow-primary/20 ring-primary md:scale-105"
+                    : ""
                 }`}
               >
                 {role.featured && (
@@ -89,24 +91,37 @@ export function RolesSection() {
                 )}
 
                 {/* Icon */}
-                <div className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl ${role.bgLight}`}>
+                <div
+                  className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl ${role.bgLight}`}
+                >
                   <Icon className={`size-7 ${role.textColor}`} />
                 </div>
 
-                <h3 className="mb-4 text-center text-lg font-semibold">{role.title}</h3>
+                <h3 className="mb-4 text-center text-lg font-semibold">
+                  {role.title}
+                </h3>
 
                 {/* Features */}
                 <ul className="mb-6 space-y-2.5">
                   {role.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <Check className={`mt-0.5 size-4 shrink-0 ${role.textColor}`} />
+                    <li
+                      key={feature}
+                      className="flex items-start gap-2 text-sm text-muted-foreground"
+                    >
+                      <Check
+                        className={`mt-0.5 size-4 shrink-0 ${role.textColor}`}
+                      />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
 
                 {/* CTA */}
-                <Button asChild variant={role.featured ? "default" : "outline"} className="w-full">
+                <Button
+                  asChild
+                  variant={role.featured ? "default" : "outline"}
+                  className="w-full"
+                >
                   <Link href={role.cta.href}>{role.cta.label}</Link>
                 </Button>
               </div>

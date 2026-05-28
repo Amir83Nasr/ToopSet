@@ -29,28 +29,32 @@ export function HowItWorks() {
     <section className="relative overflow-hidden px-4 py-16 md:py-20">
       <div className="neon-orb neon-orb-purple !right-auto !left-[-120px]" />
       <div className="neon-orb neon-orb-orange" />
-      <div className="absolute inset-0 bg-mesh pointer-events-none" />
-      <div className="absolute inset-0 bg-dots pointer-events-none" />
-      <ScrollReveal className="mx-auto max-w-5xl relative z-10">
+      <div className="bg-mesh pointer-events-none absolute inset-0" />
+      <div className="bg-dots pointer-events-none absolute inset-0" />
+      <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
         {/* Section Header */}
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold md:text-4xl">چطور کار می‌کند</h2>
-          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             تنها با ۴ قدم ساده، زمین ورزشی خود را رزرو کنید
           </p>
         </div>
 
         {/* Steps */}
-        <div className="relative grid gap-8 md:grid-cols-4 stagger-fade-in">
+        <div className="stagger-fade-in relative grid gap-8 md:grid-cols-4">
           {/* Connecting line (desktop) */}
-          <div className="absolute top-8 left-[calc(12.5%+1rem)] right-[calc(12.5%+1rem)] hidden h-0.5 bg-gradient-to-r from-primary/30 via-primary to-primary/30 md:block" />
+          <div className="absolute top-8 right-[calc(12.5%+1rem)] left-[calc(12.5%+1rem)] hidden h-0.5 bg-gradient-to-r from-primary/30 via-primary to-primary/30 md:block" />
 
           {steps.map((step, index) => {
             const Icon = step.icon
             return (
-              <div key={step.title} className="relative flex flex-col items-center text-center">
+              <div
+                key={step.title}
+                className="relative flex flex-col items-center text-center"
+              >
                 {/* Step Number */}
-                <div className={`relative z-10 mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 animate-float-slow`}
+                <div
+                  className={`animate-float-slow relative z-10 mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20`}
                   style={{ animationDelay: `${index * 0.3}s` }}
                 >
                   <Icon className="size-7" />
@@ -62,12 +66,13 @@ export function HowItWorks() {
                 </div>
 
                 <h3 className="mb-1 text-base font-semibold">{step.title}</h3>
-                <p className="text-sm text-muted-foreground max-w-[200px]">{step.description}</p>
+                <p className="max-w-[200px] text-sm text-muted-foreground">
+                  {step.description}
+                </p>
               </div>
             )
           })}
         </div>
-
       </ScrollReveal>
     </section>
   )

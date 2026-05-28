@@ -5,7 +5,13 @@ import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Menu, ChevronDown, LayoutDashboard } from "lucide-react"
 import {
@@ -30,22 +36,32 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const initials = user?.full_name
-    ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)
+    ? user.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
     : "?"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+        <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
-            <Image src="/favicon.svg" alt="توپ‌سِت" width={36} height={36} className="size-9" />
+            <Image
+              src="/favicon.svg"
+              alt="توپ‌سِت"
+              width={36}
+              height={36}
+              className="size-9"
+            />
           </div>
           <span>توپ‌سِت</span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -58,7 +74,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Desktop Auth */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden items-center gap-1 md:flex">
           <ModeToggle />
           {loading ? (
             <div className="size-5 animate-spin rounded-full border-2 border-muted border-t-primary" />
@@ -67,7 +83,7 @@ export function SiteHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 px-2">
                   <Avatar className="size-7">
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-primary/10 text-xs text-primary">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -79,7 +95,9 @@ export function SiteHeader() {
                 <DropdownMenuLabel>
                   <div className="flex flex-col gap-0.5">
                     <span>{user.full_name}</span>
-                    <span className="text-xs font-normal text-muted-foreground">{user.phone}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {user.phone}
+                    </span>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -90,7 +108,10 @@ export function SiteHeader() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive">
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="cursor-pointer text-destructive"
+                >
                   خروج
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -108,7 +129,7 @@ export function SiteHeader() {
         </div>
 
         {/* Mobile Hamburger */}
-        <div className="flex md:hidden items-center gap-1">
+        <div className="flex items-center gap-1 md:hidden">
           <ModeToggle />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -120,7 +141,13 @@ export function SiteHeader() {
             <SheetContent side="right" className="w-[280px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Image src="/favicon.svg" alt="توپ‌سِت" width={24} height={24} className="size-6" />
+                  <Image
+                    src="/favicon.svg"
+                    alt="توپ‌سِت"
+                    width={24}
+                    height={24}
+                    className="size-6"
+                  />
                   توپ‌سِت
                 </SheetTitle>
               </SheetHeader>
@@ -141,11 +168,15 @@ export function SiteHeader() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 px-3">
                       <Avatar className="size-10">
-                        <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {initials}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="text-sm font-medium">{user.full_name}</p>
-                        <p className="text-xs text-muted-foreground">{user.phone}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.phone}
+                        </p>
                       </div>
                     </div>
                     <Link
@@ -157,7 +188,10 @@ export function SiteHeader() {
                       داشبورد
                     </Link>
                     <button
-                      onClick={() => { logout(); setMobileOpen(false) }}
+                      onClick={() => {
+                        logout()
+                        setMobileOpen(false)
+                      }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                     >
                       خروج
@@ -165,10 +199,19 @@ export function SiteHeader() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 px-3">
-                    <Button asChild className="w-full" onClick={() => setMobileOpen(false)}>
+                    <Button
+                      asChild
+                      className="w-full"
+                      onClick={() => setMobileOpen(false)}
+                    >
                       <Link href="/login">ورود</Link>
                     </Button>
-                    <Button asChild variant="outline" className="w-full" onClick={() => setMobileOpen(false)}>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setMobileOpen(false)}
+                    >
                       <Link href="/register">ثبت‌نام</Link>
                     </Button>
                   </div>

@@ -14,7 +14,11 @@ interface FavoriteButtonProps {
   size?: "sm" | "md"
 }
 
-export function FavoriteButton({ courtId, className = "", size = "sm" }: FavoriteButtonProps) {
+export function FavoriteButton({
+  courtId,
+  className = "",
+  size = "sm",
+}: FavoriteButtonProps) {
   const { isAuthenticated } = useAuth()
   const router = useRouter()
   const [favorited, setFavorited] = useState(false)
@@ -23,14 +27,18 @@ export function FavoriteButton({ courtId, className = "", size = "sm" }: Favorit
   // Check if favorited on mount
   useEffect(() => {
     if (!isAuthenticated) return
-    api<{ favorited_court_ids: number[] }>(`/api/v1/favorites/check?court_ids=${courtId}`)
+    api<{ favorited_court_ids: number[] }>(
+      `/api/v1/favorites/check?court_ids=${courtId}`
+    )
       .then((data) => setFavorited(data.favorited_court_ids.includes(courtId)))
       .catch(() => {})
   }, [courtId, isAuthenticated])
 
   const toggle = useCallback(async () => {
     if (!isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)
+      router.push(
+        `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+      )
       return
     }
 
@@ -58,7 +66,11 @@ export function FavoriteButton({ courtId, className = "", size = "sm" }: Favorit
       variant="ghost"
       size="icon"
       className={className}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle() }}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        toggle()
+      }}
       disabled={loading}
     >
       {loading ? (

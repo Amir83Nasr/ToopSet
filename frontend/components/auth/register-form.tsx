@@ -3,7 +3,13 @@
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -50,7 +56,9 @@ export function RegisterForm({ register: registerFn }: Props) {
               {...register("full_name")}
             />
             {errors.full_name && (
-              <p className="text-sm text-destructive">{errors.full_name.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.full_name.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -76,7 +84,9 @@ export function RegisterForm({ register: registerFn }: Props) {
               {...register("password")}
             />
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>

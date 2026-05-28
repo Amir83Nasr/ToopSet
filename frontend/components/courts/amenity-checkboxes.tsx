@@ -34,11 +34,13 @@ export function AmenityCheckboxes({ value, onChange }: AmenityCheckboxesProps) {
             <Checkbox
               id={`amenity-${amenity.key}`}
               checked={!!current[amenity.key]}
-              onCheckedChange={(checked) => handleToggle(amenity.key, checked === true)}
+              onCheckedChange={(checked) =>
+                handleToggle(amenity.key, checked === true)
+              }
             />
             <Label
               htmlFor={`amenity-${amenity.key}`}
-              className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm leading-none font-normal peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               {amenity.label}
             </Label>

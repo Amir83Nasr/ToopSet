@@ -145,7 +145,7 @@ export function NavMain() {
   const pathname = usePathname()
   const { user, loading } = useAuth()
 
-  const navItems = allNavItems.filter(item => {
+  const navItems = allNavItems.filter((item) => {
     if (!item.roles) return true
     return user && item.roles.includes(user.role)
   })
@@ -155,64 +155,69 @@ export function NavMain() {
       <SidebarGroupLabel>منو</SidebarGroupLabel>
       <SidebarMenu>
         {loading ? (
-          <div className="p-2 text-sm text-muted-foreground">در حال بارگذاری...</div>
-        ) : navItems.map((item) => {
-          const isActive = pathname === item.url || pathname.startsWith(item.url + "/")
+          <div className="p-2 text-sm text-muted-foreground">
+            در حال بارگذاری...
+          </div>
+        ) : (
+          navItems.map((item) => {
+            const isActive =
+              pathname === item.url || pathname.startsWith(item.url + "/")
 
-          if (item.items) {
+            if (item.items) {
+              return (
+                <Collapsible
+                  key={item.title}
+                  defaultOpen={isActive}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={isActive}
+                      >
+                        <item.icon />
+                        <span>{item.title}</span>
+                        <ChevronDown className="mr-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items.map((sub) => (
+                          <SidebarMenuSubItem key={sub.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={pathname === sub.url}
+                            >
+                              <Link href={sub.url}>
+                                <span>{sub.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )
+            }
+
             return (
-              <Collapsible
-                key={item.title}
-                defaultOpen={isActive}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      isActive={isActive}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                      <ChevronDown className="mr-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.items.map((sub) => (
-                        <SidebarMenuSubItem key={sub.title}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={pathname === sub.url}
-                          >
-                            <Link href={sub.url}>
-                              <span>{sub.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={isActive}
+                >
+                  <Link href={item.url}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             )
-          }
-
-          return (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                tooltip={item.title}
-                isActive={isActive}
-              >
-                <Link href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )
-        })}
+          })
+        )}
       </SidebarMenu>
     </SidebarGroup>
   )

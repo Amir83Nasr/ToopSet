@@ -55,7 +55,10 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-right">
                 <span className="truncate font-medium">{user.full_name}</span>
-                <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                <span
+                  className="truncate text-xs text-muted-foreground"
+                  dir="ltr"
+                >
                   {toPersianDigits(user.phone)}
                 </span>
               </div>
@@ -79,7 +82,7 @@ export function NavUser() {
                   <span className="truncate font-medium">{user.full_name}</span>
                   <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                     {toPersianDigits(user.phone)}
-                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                    <Badge variant="outline" className="px-1 py-0 text-[10px]">
                       {roleLabel[user.role] || user.role}
                     </Badge>
                   </span>

@@ -21,8 +21,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             href="/dashboard"
             className="flex items-center gap-2 font-heading text-lg font-bold"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary overflow-hidden">
-              <Image src="/favicon.svg" alt="توپ‌سِت" width={32} height={32} className="size-8" />
+            <div className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-primary">
+              <Image
+                src="/favicon.svg"
+                alt="توپ‌سِت"
+                width={32}
+                height={32}
+                className="size-8"
+              />
             </div>
             <span className="truncate group-data-[collapsible=icon]:hidden">
               توپ‌سِت
