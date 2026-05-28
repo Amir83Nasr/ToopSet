@@ -5,7 +5,9 @@ const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
   { href: "/#about", label: "معرفی" },
   { href: "/#courts", label: "جستجوی سالن‌ها" },
-  { href: "/#contact", label: "ارتباط با ما" },
+  { href: "/contact", label: "ارتباط با ما" },
+  { href: "/terms", label: "قوانین و مقررات" },
+  { href: "/privacy", label: "حریم خصوصی" },
 ]
 
 const socialLinks = [
