@@ -24,7 +24,7 @@ class Court(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     manager_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(String(256))
-    sport_type: Mapped[SportType] = mapped_column(Enum(SportType, values_callable=_values_callable))
+    sport_types: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, server_default="{}")
     address: Mapped[str] = mapped_column(Text)
     latitude: Mapped[float] = mapped_column(Float)
     longitude: Mapped[float] = mapped_column(Float)

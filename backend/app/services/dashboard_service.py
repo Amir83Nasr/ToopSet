@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, date, timezone
 
 from pydantic import BaseModel
+from collections import Counter
 from sqlalchemy import func, select, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +32,12 @@ class AdminStats(BaseModel):
     total_revenue: float
     active_managers: int
     pending_bookings: int
+    today_bookings: int = 0
+    today_revenue: float = 0
+    total_managers: int = 0
+    recent_bookings: list[dict] = []
+    popular_courts: list[dict] = []
+    user_growth: list[dict] = []
 
 
 class ManagerStats(BaseModel):
@@ -180,6 +187,9 @@ class DashboardService:
         )
 
     async def get_admin_stats(self) -> AdminStats:
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
         total_courts_result = await self.db.execute(select(func.count(Court.id)))
         total_users_result = await self.db.execute(select(func.count(User.id)))
         total_bookings_result = await self.db.execute(select(func.count(Booking.id)))
@@ -195,6 +205,72 @@ class DashboardService:
             select(func.count(Booking.id))
             .where(Booking.status == BookingStatus.PENDING_PAYMENT)
         )
+        # Today stats
+        today_bookings_result = await self.db.execute(
+            select(func.count(Booking.id)).where(
+                Booking.created_at >= today_start,
+                Booking.status.not_in([BookingStatus.CANCELLED]),
+            )
+        )
+        today_revenue_result = await self.db.execute(
+            select(func.coalesce(func.sum(Booking.price_paid), 0)).where(
+                Booking.created_at >= today_start,
+                Booking.status == BookingStatus.CONFIRMED,
+            )
+        )
+        total_managers_result = await self.db.execute(
+            select(func.count(User.id)).where(User.role == UserRole.MANAGER)
+        )
+
+        # Recent 10 bookings
+        recent_bookings_result = await self.db.execute(
+            select(
+                Booking.id,
+                Court.name.label("court_name"),
+                User.full_name.label("user_name"),
+                Booking.price_paid,
+                Booking.status,
+                TimeSlot.start_time,
+            )
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Court, TimeSlot.court_id == Court.id)
+            .join(User, Booking.user_id == User.id)
+            .order_by(Booking.created_at.desc())
+            .limit(10)
+        )
+        recent_bookings = [
+            {
+                "id": row.id,
+                "court_name": row.court_name,
+                "user_name": row.user_name,
+                "price_paid": float(row.price_paid),
+                "status": row.status.value if hasattr(row.status, "value") else row.status,
+                "start_time": row.start_time.isoformat() if row.start_time else None,
+            }
+            for row in recent_bookings_result
+        ]
+
+        # Top 5 courts by booking count
+        popular_courts_result = await self.db.execute(
+            select(
+                Court.id.label("court_id"),
+                Court.name.label("court_name"),
+                func.count(Booking.id).label("booking_count"),
+            )
+            .join(TimeSlot, Court.id == TimeSlot.court_id)
+            .join(Booking, TimeSlot.id == Booking.slot_id)
+            .group_by(Court.id, Court.name)
+            .order_by(func.count(Booking.id).desc())
+            .limit(5)
+        )
+        popular_courts = [
+            {
+                "court_id": row.court_id,
+                "court_name": row.court_name,
+                "booking_count": row.booking_count,
+            }
+            for row in popular_courts_result
+        ]
 
         return AdminStats(
             total_courts=total_courts_result.scalar() or 0,
@@ -203,6 +279,11 @@ class DashboardService:
             total_revenue=float(total_revenue_result.scalar() or 0),
             active_managers=active_managers_result.scalar() or 0,
             pending_bookings=pending_bookings_result.scalar() or 0,
+            today_bookings=today_bookings_result.scalar() or 0,
+            today_revenue=float(today_revenue_result.scalar() or 0),
+            total_managers=total_managers_result.scalar() or 0,
+            recent_bookings=recent_bookings,
+            popular_courts=popular_courts,
         )
 
     async def get_manager_stats(self, user_id: int) -> ManagerStats:
@@ -305,18 +386,19 @@ class DashboardService:
         wallet_row = wallet_result.scalar_one_or_none()
         wallet_balance = float(wallet_row) if wallet_row is not None else 0
 
-        # favorite_sport: most booked sport type
+        # favorite_sport: most booked sport type (from sport_types array)
         fav_sport_result = await self.db.execute(
-            select(Court.sport_type, func.count(Court.sport_type).label("cnt"))
+            select(Court.sport_types)
             .join(TimeSlot, Court.id == TimeSlot.court_id)
             .join(Booking, TimeSlot.id == Booking.slot_id)
             .where(Booking.user_id == user_id)
-            .group_by(Court.sport_type)
-            .order_by(func.count(Court.sport_type).desc())
-            .limit(1)
+            .limit(50)
         )
-        fav_row = fav_sport_result.first()
-        favorite_sport = fav_row.sport_type.value if fav_row else ""
+        counter: Counter[str] = Counter()
+        for row in fav_sport_result.all():
+            for st in row.sport_types or []:
+                counter[st] += 1
+        favorite_sport = counter.most_common(1)[0][0] if counter else ""
 
         # recent_bookings: last 5 for user
         recent_result = await self.db.execute(

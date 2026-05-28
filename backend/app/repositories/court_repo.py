@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from math import asin, cos, radians, sin, sqrt
-from sqlalchemy import func, select
+from sqlalchemy import any_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.court import Court, SportType
@@ -43,8 +43,8 @@ class CourtRepo:
         count_query = select(Court.id)
 
         if sport_type:
-            query = query.where(Court.sport_type == sport_type)
-            count_query = count_query.where(Court.sport_type == sport_type)
+            query = query.where(Court.sport_types.any(sport_type.value))
+            count_query = count_query.where(Court.sport_types.any(sport_type.value))
         if is_active is not None:
             query = query.where(Court.is_active == is_active)
             count_query = count_query.where(Court.is_active == is_active)

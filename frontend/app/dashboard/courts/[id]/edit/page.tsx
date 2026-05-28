@@ -11,16 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
+import dynamic from "next/dynamic"
+const LocationPicker = dynamic(() => import("@/components/courts/location-picker").then((m) => ({ default: m.LocationPicker })), { ssr: false })
 import { ArrowRight, Loader2 } from "lucide-react"
 
 const sportTypes = [
@@ -44,6 +40,8 @@ export default function EditCourtPage() {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CourtUpdateInput>({
     resolver: zodResolver(courtUpdateSchema as any),
@@ -53,7 +51,7 @@ export default function EditCourtPage() {
   useEffect(() => {
     api<{
       name: string
-      sport_type: string
+      sport_types: string[]
       address: string
       latitude: number
       longitude: number
@@ -62,7 +60,7 @@ export default function EditCourtPage() {
       .then((data) => {
         setCourtData({
           name: data.name,
-          sport_type: data.sport_type as CourtUpdateInput["sport_type"],
+          sport_types: data.sport_types as CourtUpdateInput["sport_types"],
           address: data.address,
           latitude: data.latitude,
           longitude: data.longitude,
@@ -136,27 +134,36 @@ export default function EditCourtPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sport_type">نوع ورزش</Label>
-              <Controller
-                name="sport_type"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sportTypes.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.sport_type && (
-                <p className="text-sm text-destructive">{errors.sport_type.message}</p>
+              <Label>نوع ورزش (حداقل یکی)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {sportTypes.map((sport) => {
+                  const selectedSports = (watch("sport_types") || []) as string[]
+                  const checked = selectedSports.includes(sport.value)
+                  return (
+                    <label
+                      key={sport.value}
+                      className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-all ${
+                        checked ? "border-primary bg-primary/5 shadow-sm" : ""
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => {
+                          const current: string[] = (watch("sport_types") || []) as string[]
+                          if (current.includes(sport.value)) {
+                            setValue("sport_types" as any, current.filter((s) => s !== sport.value), { shouldValidate: true })
+                          } else {
+                            setValue("sport_types" as any, [...current, sport.value], { shouldValidate: true })
+                          }
+                        }}
+                      />
+                      <span className="text-sm font-medium">{sport.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              {errors.sport_types?.message && (
+                <p className="text-sm text-destructive">{errors.sport_types.message as string}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -166,31 +173,25 @@ export default function EditCourtPage() {
                 <p className="text-sm text-destructive">{errors.address.message}</p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">عرض جغرافیایی</Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="any"
-                  {...register("latitude")}
-                />
-                {errors.latitude && (
-                  <p className="text-sm text-destructive">{errors.latitude.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">طول جغرافیایی</Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="any"
-                  {...register("longitude")}
-                />
-                {errors.longitude && (
-                  <p className="text-sm text-destructive">{errors.longitude.message}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label>موقعیت روی نقشه</Label>
+              <LocationPicker
+                latitude={watch("latitude") ?? null}
+                longitude={watch("longitude") ?? null}
+                onLocationChange={(lat, lng, address) => {
+                  setValue("latitude", lat, { shouldValidate: true })
+                  setValue("longitude", lng, { shouldValidate: true })
+                  if (address) {
+                    setValue("address", address, { shouldValidate: true })
+                  }
+                }}
+              />
+              {errors.latitude?.message && (
+                <p className="text-sm text-destructive">{errors.latitude.message as string}</p>
+              )}
+              {errors.longitude?.message && (
+                <p className="text-sm text-destructive">{errors.longitude.message as string}</p>
+              )}
             </div>
             <Controller
               name="amenities"

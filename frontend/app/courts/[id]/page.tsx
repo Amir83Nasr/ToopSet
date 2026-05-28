@@ -52,7 +52,7 @@ import {
 interface Court {
   id: number
   name: string
-  sport_type: string
+  sport_types: string[]
   address: string
   capacity: number
   is_active: boolean
@@ -287,9 +287,13 @@ export default function PublicCourtDetailPage() {
               <FavoriteButton courtId={court.id} size="md" />
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
-                {sportLabels[court.sport_type] || court.sport_type}
-              </Badge>
+              <div className="flex flex-wrap gap-1.5">
+                {court.sport_types?.map((st) => (
+                  <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                    {sportLabels[st] || st}
+                  </Badge>
+                ))}
+              </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="size-4" />
                 <span>{court.address}</span>

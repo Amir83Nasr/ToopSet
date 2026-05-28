@@ -32,6 +32,7 @@ import {
   Gavel,
   ChevronDown,
   Heart,
+  MessageSquare,
 } from "lucide-react"
 
 interface NavItem {
@@ -106,6 +107,12 @@ const allNavItems: NavItem[] = [
     url: "/dashboard/reviews",
     icon: Star,
     roles: ["admin", "manager"],
+  },
+  {
+    title: "پیام‌ها",
+    url: "/dashboard/contact",
+    icon: MessageSquare,
+    roles: ["admin"],
   },
   {
     title: "کاربران",

@@ -15,7 +15,7 @@ const sportLabels: Record<string, string> = {
 interface Court {
   id: number
   name: string
-  sport_type: string
+  sport_types: string[]
   address: string
   latitude: number
   longitude: number
@@ -28,6 +28,7 @@ interface Court {
 interface CourtsMapProps {
   courts: Court[]
   height?: string
+  userLocation?: { latitude: number; longitude: number } | null
 }
 
 const sportSvgPaths: Record<string, string> = {
@@ -72,20 +73,34 @@ const renderStars = (rating: number) => {
   return starIcon.repeat(full)
 }
 
-function MapController({ courts }: { courts: CourtsMapProps["courts"] }) {
+function MapController({ courts, userLocation }: { courts: CourtsMapProps["courts"]; userLocation?: CourtsMapProps["userLocation"] }) {
   const map = useMap()
   const prevIdsRef = useRef("")
+  const prevUserRef = useRef("")
 
   useEffect(() => {
     const ids = JSON.stringify(courts.map((c) => c.id))
-    if (ids === prevIdsRef.current) return
-    prevIdsRef.current = ids
+    const userKey = userLocation ? `${userLocation.latitude},${userLocation.longitude}` : ""
 
-    if (courts.length > 0) {
-      const group = new L.FeatureGroup(courts.map((c) => L.marker([c.latitude, c.longitude])))
-      map.fitBounds(group.getBounds().pad(0.2))
+    // Only re-fit if courts changed
+    if (ids !== prevIdsRef.current) {
+      prevIdsRef.current = ids
+      if (courts.length > 0) {
+        const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
+        if (userLocation) {
+          markers.push(L.marker([userLocation.latitude, userLocation.longitude]))
+        }
+        const group = new L.FeatureGroup(markers)
+        map.fitBounds(group.getBounds().pad(0.2))
+      }
     }
-  }, [courts, map])
+
+    // Center on user if they just appeared
+    if (userLocation && userKey !== prevUserRef.current) {
+      prevUserRef.current = userKey
+      map.setView([userLocation.latitude, userLocation.longitude], map.getZoom() || 12)
+    }
+  }, [courts, map, userLocation])
 
   return null
 }
@@ -123,7 +138,47 @@ function LocateButton() {
   return null
 }
 
-export function CourtsMap({ courts, height = "400px" }: CourtsMapProps) {
+const createUserIcon = () => {
+  return L.divIcon({
+    html: `<div class="relative flex items-center justify-center w-8 h-8">
+      <div class="absolute inset-0 rounded-full bg-blue-500 opacity-20 animate-ping"></div>
+      <div class="absolute inset-1 rounded-full bg-blue-500 opacity-40 animate-pulse"></div>
+      <div class="absolute inset-2 rounded-full bg-blue-600 border-2 border-white shadow-lg"></div>
+    </div>`,
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  })
+}
+
+function UserMarker({ location }: { location: { latitude: number; longitude: number } }) {
+  const markerRef = useRef<L.Marker | null>(null)
+  const map = useMap()
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng([location.latitude, location.longitude])
+    } else {
+      markerRef.current = L.marker([location.latitude, location.longitude], {
+        icon: createUserIcon(),
+        zIndexOffset: 1000,
+      }).addTo(map)
+      markerRef.current.bindPopup(
+        `<div class="text-right font-sans" dir="rtl"><strong>موقعیت شما</strong></div>`
+      )
+    }
+    return () => {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current)
+        markerRef.current = null
+      }
+    }
+  }, [location, map])
+
+  return null
+}
+
+export function CourtsMap({ courts, height = "400px", userLocation }: CourtsMapProps) {
   const defaultCenter = useMemo(() => [34.64, 50.88] as [number, number], [])
 
   const mapKey = useMemo(
@@ -155,19 +210,20 @@ export function CourtsMap({ courts, height = "400px" }: CourtsMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapController courts={courts} />
+        <MapController courts={courts} userLocation={userLocation} />
         <LocateButton />
+        {userLocation && <UserMarker location={userLocation} />}
         {courts.map((court) => (
           <Marker
             key={court.id}
             position={[court.latitude, court.longitude]}
-            icon={createSportIcon(court.sport_type)}
+            icon={createSportIcon(court.sport_types?.[0] || "volleyball")}
           >
             <Popup>
               <div className="text-right font-sans" dir="rtl" style={{ minWidth: 180 }}>
                 <h3 className="font-semibold text-sm mb-1">{court.name}</h3>
                 <p className="text-xs text-gray-500 mb-1.5">
-                  {sportLabels[court.sport_type] || court.sport_type}
+                  {court.sport_types?.map(st => sportLabels[st] || st).join('، ')}
                 </p>
                 <p className="text-xs text-gray-500 mb-1.5 truncate max-w-[200px]">
                   {court.address}

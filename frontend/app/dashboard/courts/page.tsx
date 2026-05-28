@@ -43,7 +43,7 @@ const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) =
 interface Court {
   id: number
   name: string
-  sport_type: string
+  sport_types: string[]
   address: string
   latitude: number
   longitude: number
@@ -323,9 +323,13 @@ export default function CourtsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
-                          {sportLabels[court.sport_type] || court.sport_type}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {court.sport_types?.map((st) => (
+                            <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                              {sportLabels[st] || st}
+                            </Badge>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         <div className="flex items-center gap-1">

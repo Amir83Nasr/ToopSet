@@ -56,7 +56,7 @@ import {
 interface Court {
   id: number
   name: string
-  sport_type: string
+  sport_types: string[]
   address: string
   capacity: number
   is_active: boolean
@@ -285,9 +285,13 @@ export default function CourtDetailPage() {
           <div>
             <CardTitle className="text-2xl">{court.name}</CardTitle>
             <CardDescription>
-              <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
-                {sportLabels[court.sport_type] || court.sport_type}
-              </Badge>
+              <div className="flex flex-wrap gap-1.5">
+                {court.sport_types?.map((st) => (
+                  <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                    {sportLabels[st] || st}
+                  </Badge>
+                ))}
+              </div>
             </CardDescription>
           </div>
           <div className="flex gap-2">

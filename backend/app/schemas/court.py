@@ -9,7 +9,7 @@ from app.models.court import SportType
 
 class CourtBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
-    sport_type: SportType
+    sport_types: list[SportType] = Field(..., min_length=1)
     address: str
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
@@ -23,7 +23,7 @@ class CourtCreate(CourtBase):
 
 class CourtUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=256)
-    sport_type: SportType | None = None
+    sport_types: list[SportType] | None = Field(None, min_length=1)
     address: str | None = None
     latitude: float | None = Field(None, ge=-90, le=90)
     longitude: float | None = Field(None, ge=-180, le=180)

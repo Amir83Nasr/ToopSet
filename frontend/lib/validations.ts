@@ -23,9 +23,7 @@ export const sportTypes = ["volleyball", "basketball", "futsal", "handball"] as 
 
 export const courtCreateSchema = z.object({
   name: z.string().min(1, "نام زمین الزامی است").max(256, "نام حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
-  sport_type: z.enum(sportTypes, {
-    error: "نوع ورزش را انتخاب کنید",
-  }),
+  sport_types: z.array(z.enum(sportTypes)).min(1, "حداقل یک نوع ورزش را انتخاب کنید"),
   address: z.string().min(1, "آدرس الزامی است").max(256, "آدرس حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
   latitude: z.coerce
     .number({ error: "عرض جغرافیایی را وارد کنید" })

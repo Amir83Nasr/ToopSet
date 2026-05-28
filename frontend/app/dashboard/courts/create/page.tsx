@@ -10,17 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { api, ApiError } from "@/lib/api"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
+import dynamic from "next/dynamic"
+const LocationPicker = dynamic(() => import("@/components/courts/location-picker").then((m) => ({ default: m.LocationPicker })), { ssr: false })
 import { ArrowRight } from "lucide-react"
 
 const sportTypes = [
@@ -56,8 +52,17 @@ export default function CreateCourtPage() {
     }
   }
 
-  const sportTypeValue = watch("sport_type")
+  const selectedSports: string[] = watch("sport_types") || []
   const amenitiesValue = watch("amenities") || {}
+
+  function toggleSport(value: string) {
+    const current: string[] = watch("sport_types") || []
+    if (current.includes(value)) {
+      setValue("sport_types", current.filter((s) => s !== value), { shouldValidate: true })
+    } else {
+      setValue("sport_types", [...current, value], { shouldValidate: true })
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -79,26 +84,30 @@ export default function CreateCourtPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sport_type">نوع ورزش</Label>
-              <Select
-                value={sportTypeValue || ""}
-                onValueChange={(v) => {
-                  setValue("sport_type", v, { shouldValidate: true, shouldDirty: true })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="انتخاب ورزش" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sportTypes.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.sport_type?.message && (
-                <p className="text-sm text-destructive">{String(errors.sport_type.message)}</p>
+              <Label>نوع ورزش (حداقل یکی)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {sportTypes.map((sport) => {
+                  const checked = selectedSports.includes(sport.value)
+                  return (
+                    <label
+                      key={sport.value}
+                      className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-all ${
+                        checked
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : ""
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleSport(sport.value)}
+                      />
+                      <span className="text-sm font-medium">{sport.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              {errors.sport_types?.message && (
+                <p className="text-sm text-destructive">{String(errors.sport_types.message)}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -108,33 +117,25 @@ export default function CreateCourtPage() {
                 <p className="text-sm text-destructive">{String(errors.address.message)}</p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">عرض جغرافیایی</Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="any"
-                  placeholder="35.6892"
-                  {...register("latitude", { valueAsNumber: true })}
-                />
-                {errors.latitude?.message && (
-                  <p className="text-sm text-destructive">{String(errors.latitude.message)}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">طول جغرافیایی</Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="any"
-                  placeholder="51.3890"
-                  {...register("longitude", { valueAsNumber: true })}
-                />
-                {errors.longitude?.message && (
-                  <p className="text-sm text-destructive">{String(errors.longitude.message)}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label>موقعیت روی نقشه</Label>
+              <LocationPicker
+                latitude={watch("latitude")}
+                longitude={watch("longitude")}
+                onLocationChange={(lat, lng, address) => {
+                  setValue("latitude", lat, { shouldValidate: true })
+                  setValue("longitude", lng, { shouldValidate: true })
+                  if (address) {
+                    setValue("address", address, { shouldValidate: true })
+                  }
+                }}
+              />
+              {errors.latitude?.message && (
+                <p className="text-sm text-destructive">{String(errors.latitude.message)}</p>
+              )}
+              {errors.longitude?.message && (
+                <p className="text-sm text-destructive">{String(errors.longitude.message)}</p>
+              )}
             </div>
             <AmenityCheckboxes
               value={amenitiesValue}

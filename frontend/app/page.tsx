@@ -11,6 +11,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
+import { useGeolocation } from "@/hooks/use-geolocation"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +74,7 @@ import {
 interface Court {
   id: number
   name: string
-  sport_type: string
+  sport_types: string[]
   address: string
   latitude: number
   longitude: number
@@ -125,6 +126,14 @@ function HomePageContent() {
   const [priceMin, setPriceMin] = useState(searchParams.get("price_min") || "")
   const [priceMax, setPriceMax] = useState(searchParams.get("price_max") || "")
 
+  // User geolocation for nearby courts
+  const geo = useGeolocation()
+  const [maxDistance, setMaxDistance] = useState("")
+  const userLocation =
+    geo.latitude && geo.longitude
+      ? { latitude: geo.latitude, longitude: geo.longitude }
+      : null
+
   // Sync URL -> state on mount
   useEffect(() => {
     if (!initialized.current) {
@@ -151,8 +160,18 @@ function HomePageContent() {
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
+    // Nearby courts: pass user location if granted
+    if (userLocation && maxDistance) {
+      params.set("ref_lat", String(userLocation.latitude))
+      params.set("ref_lon", String(userLocation.longitude))
+      params.set("max_distance_km", maxDistance)
+    } else if (userLocation) {
+      params.set("ref_lat", String(userLocation.latitude))
+      params.set("ref_lon", String(userLocation.longitude))
+      params.set("max_distance_km", "20") // default 20km
+    }
     return params.toString()
-  }, [page, limit, searchText, sportFilter, priceMin, priceMax, sortBy])
+  }, [page, limit, searchText, sportFilter, priceMin, priceMax, sortBy, userLocation, maxDistance])
 
   // Sync filters to URL
   useEffect(() => {
@@ -390,7 +409,31 @@ function HomePageContent() {
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
-            <CourtsMap courts={featuredCourts} height="350px" />
+            {/* Location status */}
+            {geo.loading && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 px-4 py-2 text-sm text-blue-700 dark:text-blue-300">
+                <div className="size-2 animate-pulse rounded-full bg-blue-500" />
+                در حال دریافت موقعیت شما...
+              </div>
+            )}
+            {geo.error && (
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-50 dark:bg-amber-950/30 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+                <div className="flex items-center gap-2">
+                  <MapPin className="size-4 shrink-0" />
+                  <span>موقعیت‌یابی غیرفعال است — زمین‌های نزدیک نمایش داده نمی‌شوند</span>
+                </div>
+                {geo.permissionState === "denied" && (
+                  <span className="text-xs text-muted-foreground">فعال‌سازی در تنظیمات مرورگر</span>
+                )}
+              </div>
+            )}
+            {userLocation && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 px-4 py-2 text-sm text-green-700 dark:text-green-300">
+                <MapPin className="size-4 shrink-0" />
+                <span>نمایش زمین‌های نزدیک به موقعیت شما</span>
+              </div>
+            )}
+            <CourtsMap courts={featuredCourts} height="350px" userLocation={userLocation} />
           </ScrollReveal>
         </section>
 
@@ -458,12 +501,17 @@ function HomePageContent() {
                             <span className="truncate">{court.address}</span>
                           </div>
                         </div>
-                        <Badge
-                          className={`shrink-0 ${sportColors[court.sport_type]}`}
-                          variant="secondary"
-                        >
-                          {sportLabels[court.sport_type]}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {court.sport_types?.map((st) => (
+                            <Badge
+                              key={st}
+                              className={`shrink-0 ${sportColors[st]}`}
+                              variant="secondary"
+                            >
+                              {sportLabels[st]}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                       <div className="mt-4 flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">

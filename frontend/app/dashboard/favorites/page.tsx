@@ -109,9 +109,13 @@ export default function FavoritesPage() {
                     <Link href={`/courts/${court.id}`} className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold truncate">{court.name}</h3>
-                        <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
-                          {sportLabels[court.sport_type] || court.sport_type}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {court.sport_types?.map((st: string) => (
+                            <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                              {sportLabels[st] || st}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                       <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">

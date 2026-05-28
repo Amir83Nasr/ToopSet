@@ -49,7 +49,7 @@ class TimeSlotService:
             version=slot.version,
             court_name=court.name if court else "",
             court_address=court.address if court else "",
-            court_sport_type=court.sport_type.value if court else "",
+            court_sport_type=court.sport_types[0] if court and court.sport_types else "",
         )
 
     async def create_slot(self, data: TimeSlotCreate) -> TimeSlotResponse:
