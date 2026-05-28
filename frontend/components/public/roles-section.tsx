@@ -1,5 +1,7 @@
+"use client"
+
 import Link from "next/link"
-import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { motion } from "framer-motion"
 import { User, Building2, Shield } from "lucide-react"
 
 const roles = [
@@ -27,7 +29,7 @@ export function RolesSection() {
   return (
     <section className="relative overflow-hidden border-t px-4 py-16 md:py-20">
       <div className="bg-grid absolute inset-0 opacity-50" />
-      <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
+      <div className="relative z-10 mx-auto max-w-5xl">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             نقش‌های کاربری
@@ -41,23 +43,39 @@ export function RolesSection() {
           {roles.map((role) => {
             const Icon = role.icon
             return (
-              <div key={role.title} className="rounded-xl border bg-card p-6 text-center">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border text-muted-foreground">
+              <motion.div
+                key={role.title}
+                className="rounded-lg border bg-card p-6 text-center"
+                whileHover={{
+                  y: -4,
+                  scale: 1.02,
+                  transition: { type: "spring", stiffness: 300, damping: 15 },
+                }}
+              >
+                <motion.div
+                  className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border text-muted-foreground"
+                  whileHover={{
+                    rotate: 10,
+                    transition: { type: "spring", stiffness: 400 },
+                  }}
+                >
                   <Icon className="size-5" />
-                </div>
+                </motion.div>
                 <h3 className="mb-1.5 font-semibold">{role.title}</h3>
-                <p className="mb-5 text-sm text-muted-foreground">{role.description}</p>
+                <p className="mb-5 text-sm text-muted-foreground">
+                  {role.description}
+                </p>
                 <Link
                   href={role.cta.href}
                   className="text-sm font-medium text-primary hover:underline"
                 >
                   {role.cta.label}
                 </Link>
-              </div>
+              </motion.div>
             )
           })}
         </div>
-      </ScrollReveal>
+      </div>
     </section>
   )
 }

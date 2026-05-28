@@ -266,12 +266,6 @@
    ══════════════════════════════════════════════════ */
 
 /* ── Ambient Cursor Glow ─────────────────────────── */
-@keyframes cursor-ambient-move {
-  0% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.1); }
-  100% { transform: translate(-50%, -50%) scale(1); }
-}
-
 .cursor-ambient {
   position: fixed;
   width: 600px;
@@ -461,21 +455,6 @@
   );
 }
 
-/* Animated glow-dividing line between sections */
-@keyframes glow-line-pulse {
-  0%, 100% { opacity: 0.3; transform: scaleX(0.6); }
-  50% { opacity: 0.8; transform: scaleX(1); }
-}
-
-.glow-divider {
-  height: 1px;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.5), transparent);
-  animation: glow-line-pulse 4s ease-in-out infinite;
-}
-
 /* Subtle noise texture overlay */
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
@@ -510,26 +489,6 @@
   animation: neon-sign-pulse 3s ease-in-out infinite;
 }
 
-/* Neon card border — like a neon tube frame */
-@keyframes neon-border-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 4px hsl(var(--primary) / 0.2),
-      inset 0 0 4px hsl(var(--primary) / 0.05);
-  }
-  50% {
-    box-shadow:
-      0 0 8px hsl(var(--primary) / 0.4),
-      0 0 20px hsl(var(--primary) / 0.15),
-      inset 0 0 8px hsl(var(--primary) / 0.1);
-  }
-}
-
-.neon-border {
-  animation: neon-border-pulse 4s ease-in-out infinite;
-  border: 1px solid hsl(var(--primary) / 0.2);
-}
-
 /* ══════════════════════════════════════════════════
    Glass Card / Frosted Glass
    ══════════════════════════════════════════════════ */
@@ -546,7 +505,7 @@
   border: 1px solid hsl(var(--border) / 0.2);
 }
 
-/* Neon border on hover — like a light tube igniting */
+/* Neon border on hover */
 .neon-border-hover {
   transition: box-shadow 0.5s ease, border-color 0.5s ease, transform 0.3s ease;
 }
@@ -566,41 +525,6 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.text-gradient-accent {
-  background: linear-gradient(135deg, hsl(var(--chart-2)), hsl(var(--chart-4)));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Subtle 3D tilt on hover for cards */
-@keyframes tilt-card {
-  0% { transform: perspective(600px) rotateX(0deg) rotateY(0deg); }
-  25% { transform: perspective(600px) rotateX(1deg) rotateY(-1deg); }
-  75% { transform: perspective(600px) rotateX(-0.5deg) rotateY(0.5deg); }
-  100% { transform: perspective(600px) rotateX(0deg) rotateY(0deg); }
-}
-
-.tilt-card:hover {
-  animation: tilt-card 0.6s ease-in-out;
-}
-
-/* Scale shimmer for loading skeletons */
-@keyframes shimmer-loading {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animate-shimmer-loading {
-  background: linear-gradient(90deg,
-    hsl(var(--muted)) 25%,
-    hsl(var(--muted-foreground) / 0.08) 50%,
-    hsl(var(--muted)) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer-loading 2s ease-in-out infinite;
 }
 
 /* ── Page-level entrance ─────────────────────────── */
@@ -664,101 +588,12 @@
   pointer-events: none;
 }
 
-/* ══════════════════════════════════════════════════
-   Keyframes — More Animations
-   ══════════════════════════════════════════════════ */
-
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fade-in-left {
-  from { opacity: 0; transform: translateX(-24px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes fade-in-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes tilt {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(2deg); }
-  75% { transform: rotate(-2deg); }
-}
-
-@keyframes breath {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ══════════════════════════════════════════════════
-   Animation Utility Classes
-   ══════════════════════════════════════════════════ */
-
-.animate-fade-in-up   { animation: fade-in-up 0.6s ease-out both; }
-.animate-fade-in-down { animation: fade-in-down 0.6s ease-out both; }
-.animate-fade-in-left { animation: fade-in-left 0.6s ease-out both; }
-.animate-fade-in-right { animation: fade-in-right 0.6s ease-out both; }
-.animate-scale-in     { animation: scale-in 0.5s ease-out both; }
-.animate-float        { animation: float 4s ease-in-out infinite; }
-.animate-float-slow   { animation: float-slow 6s ease-in-out infinite; }
-.animate-tilt         { animation: tilt 3s ease-in-out infinite; }
-.animate-breath       { animation: breath 3s ease-in-out infinite; }
-.animate-shimmer      { animation: shimmer 3s linear infinite; background-size: 200% 100%; }
-.animate-spin-slow    { animation: spin-slow 8s linear infinite; }
-
-/* Delay variants for fade-in-up */
-.animate-fade-in-up-delay-1  { animation-delay: 0.1s; }
-.animate-fade-in-up-delay-2  { animation-delay: 0.2s; }
-.animate-fade-in-up-delay-3  { animation-delay: 0.3s; }
-.animate-fade-in-up-delay-4  { animation-delay: 0.4s; }
-.animate-fade-in-up-delay-5  { animation-delay: 0.5s; }
-.animate-fade-in-up-delay-6  { animation-delay: 0.6s; }
-.animate-fade-in-up-delay-7  { animation-delay: 0.7s; }
-.animate-fade-in-up-delay-8  { animation-delay: 0.8s; }
-.animate-fade-in-up-delay-9  { animation-delay: 0.9s; }
-.animate-fade-in-up-delay-10 { animation-delay: 1s; }
-
-/* Delay variants for scale-in */
-.animate-scale-in-delay-1  { animation-delay: 0.1s; }
-.animate-scale-in-delay-2  { animation-delay: 0.2s; }
-.animate-scale-in-delay-3  { animation-delay: 0.3s; }
-.animate-scale-in-delay-4  { animation-delay: 0.4s; }
-
-/* Stagger children */
+/* Stagger children (used in page.tsx courts grid) */
 .stagger-fade-in > * {
   animation: fade-in-up 0.5s ease-out both;
 }
@@ -775,21 +610,3 @@
 .stagger-fade-in > *:nth-child(10) { animation-delay: 0.72s; }
 .stagger-fade-in > *:nth-child(11) { animation-delay: 0.8s; }
 .stagger-fade-in > *:nth-child(12) { animation-delay: 0.88s; }
-
-/* Stagger scale-in */
-.stagger-scale-in > * {
-  animation: scale-in 0.4s ease-out both;
-}
-
-.stagger-scale-in > *:nth-child(1)  { animation-delay: 0s; }
-.stagger-scale-in > *:nth-child(2)  { animation-delay: 0.08s; }
-.stagger-scale-in > *:nth-child(3)  { animation-delay: 0.16s; }
-.stagger-scale-in > *:nth-child(4)  { animation-delay: 0.24s; }
-.stagger-scale-in > *:nth-child(5)  { animation-delay: 0.32s; }
-.stagger-scale-in > *:nth-child(6)  { animation-delay: 0.4s; }
-.stagger-scale-in > *:nth-child(7)  { animation-delay: 0.48s; }
-.stagger-scale-in > *:nth-child(8)  { animation-delay: 0.56s; }
-.stagger-scale-in > *:nth-child(9)  { animation-delay: 0.64s; }
-.stagger-scale-in > *:nth-child(10) { animation-delay: 0.72s; }
-.stagger-scale-in > *:nth-child(11) { animation-delay: 0.8s; }
-.stagger-scale-in > *:nth-child(12) { animation-delay: 0.88s; }

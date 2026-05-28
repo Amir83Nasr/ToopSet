@@ -62,18 +62,16 @@ export default function TermsPage() {
         <div className="bg-grid-side max-md:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20" />
 
         <div className="relative mx-auto max-w-3xl px-4 py-16 md:py-24">
-          <div className="page-entrance">
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-              قوانین و مقررات
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              آخرین به‌روزرسانی: فروردین ۱۴۰۴
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+            قوانین و مقررات
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            آخرین به‌روزرسانی: فروردین ۱۴۰۴
+          </p>
 
           <div className="mt-12 space-y-10">
             {sections.map((section, index) => (
-              <section key={index} className="page-entrance space-y-3">
+              <section key={index} className="space-y-3">
                 <h2 className="text-lg font-semibold">{section.title}</h2>
                 {section.body && (
                   <p className="leading-relaxed text-muted-foreground">

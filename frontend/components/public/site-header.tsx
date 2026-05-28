@@ -118,10 +118,10 @@ export function SiteHeader() {
             </DropdownMenu>
           ) : (
             <>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline">
                 <Link href="/register">ثبت‌نام</Link>
               </Button>
-              <Button asChild size="sm">
+              <Button asChild>
                 <Link href="/login">ورود</Link>
               </Button>
             </>

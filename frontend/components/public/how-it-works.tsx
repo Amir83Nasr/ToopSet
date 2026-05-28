@@ -1,4 +1,6 @@
-import { ScrollReveal } from "@/components/ui/scroll-reveal"
+"use client"
+
+import { motion } from "framer-motion"
 
 const steps = [
   { title: "جستجو", description: "ورزش مورد نظر خود را انتخاب کنید" },
@@ -7,34 +9,71 @@ const steps = [
   { title: "بازی", description: "در ساعت مقرر در زمین حاضر شوید و از ورزش لذت ببرید" },
 ]
 
+const container = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.15 } },
+}
+
+const step = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+}
+
 export function HowItWorks() {
   return (
     <section className="relative overflow-hidden border-t px-4 py-16 md:py-20">
       <div className="bg-grid absolute inset-0 opacity-50" />
-      <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
-        <div className="mb-12 text-center">
+      <div className="relative z-10 mx-auto max-w-5xl">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.5 }}
+          className="mb-12 text-center"
+        >
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             چطور کار می‌کند
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             تنها با ۴ قدم ساده، زمین ورزشی خود را رزرو کنید
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid gap-8 md:grid-cols-4">
-          {steps.map((step, index) => (
-            <div key={step.title} className="flex flex-col items-center text-center">
-              <div className="mb-3 flex size-8 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground">
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="grid gap-8 md:grid-cols-4"
+        >
+          {steps.map((stepItem, index) => (
+            <motion.div
+              key={stepItem.title}
+              variants={step}
+              className="flex flex-col items-center text-center"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 20,
+                  delay: index * 0.15,
+                }}
+                className="mb-3 flex size-8 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground"
+              >
                 {index + 1}
-              </div>
-              <h3 className="mb-1 font-semibold">{step.title}</h3>
+              </motion.div>
+              <h3 className="mb-1 font-semibold">{stepItem.title}</h3>
               <p className="max-w-[180px] text-sm text-muted-foreground">
-                {step.description}
+                {stepItem.description}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
-      </ScrollReveal>
+        </motion.div>
+      </div>
     </section>
   )
 }
