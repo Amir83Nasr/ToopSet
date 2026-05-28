@@ -5,15 +5,15 @@
 # ────────────────────────────────────────────────────────────
 
 # ── Stage 1: Frontend build ──────────────────────────────
-FROM node:20-bookworm-slim AS frontend-builder
+FROM --platform=linux/amd64 node:20-bookworm-slim AS frontend-builder
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm install --ignore-scripts
 COPY frontend/ .
 RUN npm run build
 
-# ── Stage 2: Backend Python dependencies ─────────────────
-FROM python:3.12-slim AS backend-deps
+# ── Stage 2: Backend Python deps ─────────────────────────
+FROM --platform=linux/amd64 python:3.12-slim AS backend-deps
 WORKDIR /build
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -23,14 +23,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# ── Install Node.js (for Next.js production server) ─────
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates gcc libpq-dev && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# ── Install Node.js binary (no apt dependency) ───────────
+COPY scripts/install-node.sh /tmp/install-node.sh
+RUN chmod +x /tmp/install-node.sh && /tmp/install-node.sh && rm /tmp/install-node.sh
 
-# ── Copy installed Python packages ──────────────────────
+# ── Copy Python packages from builder ────────────────────
 COPY --from=backend-deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=backend-deps /usr/local/bin /usr/local/bin
 
@@ -43,10 +40,10 @@ COPY --from=frontend-builder /build/public ./frontend/public
 COPY --from=frontend-builder /build/package.json ./frontend/package.json
 COPY --from=frontend-builder /build/node_modules ./frontend/node_modules
 
-# ── Create logs directory (for Logstash / ELK) ─────────
+# ── Create logs directory ──────────────────────────────
 RUN mkdir -p /app/logs
 
-# ── Install supervisord to manage both processes ────────
+# ── Install supervisor ──────────────────────────────────
 RUN pip install --no-cache-dir supervisor
 
 # ── Supervisor config ───────────────────────────────────
