@@ -1,6 +1,13 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
@@ -35,14 +42,20 @@ import { AboutSection } from "@/components/public/about-section"
 import { RolesSection } from "@/components/public/roles-section"
 import { HowItWorks } from "@/components/public/how-it-works"
 
-const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) => m.CourtsMap), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center rounded-xl border bg-muted" style={{ height: "400px" }}>
-      <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
-    </div>
-  ),
-})
+const CourtsMap = dynamic(
+  () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex items-center justify-center rounded-xl border bg-muted"
+        style={{ height: "400px" }}
+      >
+        <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
+      </div>
+    ),
+  }
+)
 import {
   Building2,
   CalendarDays,
@@ -79,9 +92,11 @@ const sportLabels: Record<string, string> = {
 
 const sportColors: Record<string, string> = {
   volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  basketball:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  handball:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
 }
 
 function formatPrice(price: number | null): string {
@@ -103,7 +118,9 @@ function HomePageContent() {
 
   // Filters from URL
   const [searchText, setSearchText] = useState(searchParams.get("q") || "")
-  const [sportFilter, setSportFilter] = useState(searchParams.get("sport") || "all")
+  const [sportFilter, setSportFilter] = useState(
+    searchParams.get("sport") || "all"
+  )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
   const [priceMin, setPriceMin] = useState(searchParams.get("price_min") || "")
   const [priceMax, setPriceMax] = useState(searchParams.get("price_max") || "")
@@ -127,7 +144,8 @@ function HomePageContent() {
     params.set("limit", String(limit))
     params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
-    if (sportFilter && sportFilter !== "all") params.set("sport_type", sportFilter)
+    if (sportFilter && sportFilter !== "all")
+      params.set("sport_type", sportFilter)
     if (priceMin) params.set("price_min", priceMin)
     if (priceMax) params.set("price_max", priceMax)
     if (sortBy === "price_asc") params.set("sort", "price_asc")
@@ -185,7 +203,12 @@ function HomePageContent() {
     setPage(0)
   }
 
-  const hasActiveFilters = searchText || (sportFilter && sportFilter !== "all") || sortBy !== "default" || priceMin || priceMax
+  const hasActiveFilters =
+    searchText ||
+    (sportFilter && sportFilter !== "all") ||
+    sortBy !== "default" ||
+    priceMin ||
+    priceMax
 
   if (authLoading) {
     return (
@@ -199,15 +222,16 @@ function HomePageContent() {
     )
   }
 
-  if (isAuthenticated) return (
-    <div className="flex min-h-svh flex-col">
-      <SiteHeader />
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-muted-foreground">در حال انتقال به داشبورد...</p>
+  if (isAuthenticated)
+    return (
+      <div className="flex min-h-svh flex-col">
+        <SiteHeader />
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-muted-foreground">در حال انتقال به داشبورد...</p>
+        </div>
+        <SiteFooter />
       </div>
-      <SiteFooter />
-    </div>
-  )
+    )
 
   const totalPages = Math.ceil(total / limit)
 
@@ -232,9 +256,9 @@ function HomePageContent() {
         {/* Search & Filters */}
         <section className="relative overflow-hidden px-4 py-8" id="courts">
           <div className="neon-orb neon-orb-3" />
-          <div className="absolute inset-0 bg-mesh pointer-events-none" />
-          <div className="absolute inset-0 bg-dots pointer-events-none" />
-          <div className="mx-auto max-w-5xl relative z-10">
+          <div className="bg-mesh pointer-events-none absolute inset-0" />
+          <div className="bg-dots pointer-events-none absolute inset-0" />
+          <div className="relative z-10 mx-auto max-w-5xl">
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-bold">جستجوی سالن‌ها</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -242,22 +266,38 @@ function HomePageContent() {
               </p>
             </div>
             <div className="flex flex-wrap items-end gap-3">
-              <div className="flex-1 min-w-[200px]">
-                <Label htmlFor="search" className="mb-1.5 block text-xs text-muted-foreground">جستجو</Label>
+              <div className="min-w-[200px] flex-1">
+                <Label
+                  htmlFor="search"
+                  className="mb-1.5 block text-xs text-muted-foreground"
+                >
+                  جستجو
+                </Label>
                 <div className="relative">
-                  <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="search"
                     placeholder="نام زمین، آدرس..."
                     value={searchText}
-                    onChange={(e) => { setSearchText(e.target.value); setPage(0) }}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                      setPage(0)
+                    }}
                     className="pr-9"
                   />
                 </div>
               </div>
               <div className="w-[140px]">
-                <Label className="mb-1.5 block text-xs text-muted-foreground">ورزش</Label>
-                <Select value={sportFilter} onValueChange={(v) => { setSportFilter(v); setPage(0) }}>
+                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                  ورزش
+                </Label>
+                <Select
+                  value={sportFilter}
+                  onValueChange={(v) => {
+                    setSportFilter(v)
+                    setPage(0)
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -271,8 +311,16 @@ function HomePageContent() {
                 </Select>
               </div>
               <div className="w-[140px]">
-                <Label className="mb-1.5 block text-xs text-muted-foreground">مرتب‌سازی</Label>
-                <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(0) }}>
+                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                  مرتب‌سازی
+                </Label>
+                <Select
+                  value={sortBy}
+                  onValueChange={(v) => {
+                    setSortBy(v)
+                    setPage(0)
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -303,18 +351,28 @@ function HomePageContent() {
                           type="number"
                           placeholder="حداقل"
                           value={priceMin}
-                          onChange={(e) => { setPriceMin(e.target.value); setPage(0) }}
+                          onChange={(e) => {
+                            setPriceMin(e.target.value)
+                            setPage(0)
+                          }}
                         />
                         <span className="text-muted-foreground">—</span>
                         <Input
                           type="number"
                           placeholder="حداکثر"
                           value={priceMax}
-                          onChange={(e) => { setPriceMax(e.target.value); setPage(0) }}
+                          onChange={(e) => {
+                            setPriceMax(e.target.value)
+                            setPage(0)
+                          }}
                         />
                       </div>
                     </div>
-                    <Button variant="outline" className="w-full" onClick={clearFilters}>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={clearFilters}
+                    >
                       <X className="ml-2 size-4" />
                       پاک کردن فیلترها
                     </Button>
@@ -328,26 +386,29 @@ function HomePageContent() {
         {/* Map */}
         <section className="relative overflow-hidden px-4 py-8">
           <div className="neon-orb neon-orb-pink" />
-          <div className="neon-orb neon-orb-cyan !right-auto !left-[60%] top-[20%]" />
-          <div className="absolute inset-0 bg-mesh pointer-events-none" />
-          <div className="absolute inset-0 bg-dots pointer-events-none" />
-          <ScrollReveal className="mx-auto max-w-5xl relative z-10">
+          <div className="neon-orb neon-orb-cyan top-[20%] !right-auto !left-[60%]" />
+          <div className="bg-mesh pointer-events-none absolute inset-0" />
+          <div className="bg-dots pointer-events-none absolute inset-0" />
+          <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
             <CourtsMap courts={featuredCourts} height="350px" />
           </ScrollReveal>
         </section>
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden bg-muted/30 px-4 py-8">
-          <div className="absolute inset-0 bg-mesh pointer-events-none" />
-          <div className="absolute inset-0 bg-dots pointer-events-none" />
-          <ScrollReveal className="mx-auto max-w-5xl relative z-10">
+          <div className="bg-mesh pointer-events-none absolute inset-0" />
+          <div className="bg-dots pointer-events-none absolute inset-0" />
+          <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold">زمین‌ها</h2>
                 <p className="text-sm text-muted-foreground">
                   {toPersianDigits(total)} زمین پیدا شد
                   {hasActiveFilters && (
-                    <button onClick={clearFilters} className="mr-2 text-xs text-primary underline underline-offset-2">
+                    <button
+                      onClick={clearFilters}
+                      className="mr-2 text-xs text-primary underline underline-offset-2"
+                    >
                       پاک کردن فیلتر
                     </button>
                   )}
@@ -368,22 +429,28 @@ function HomePageContent() {
             ) : featuredCourts.length === 0 ? (
               <div className="flex flex-col items-center gap-4 py-16 text-center">
                 <Building2 className="size-12 text-muted-foreground" />
-                <p className="text-lg text-muted-foreground">هیچ زمینی با فیلترهای انتخاب شده یافت نشد</p>
-                <Button variant="outline" onClick={clearFilters}>پاک کردن فیلترها</Button>
+                <p className="text-lg text-muted-foreground">
+                  هیچ زمینی با فیلترهای انتخاب شده یافت نشد
+                </p>
+                <Button variant="outline" onClick={clearFilters}>
+                  پاک کردن فیلترها
+                </Button>
               </div>
             ) : (
               <>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-fade-in">
+                <div className="stagger-fade-in grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {featuredCourts.map((court) => (
                     <Link
                       key={court.id}
                       href={`/courts/${court.id}`}
-                      className="group block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1"
+                      className="group block rounded-xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{court.name}</h3>
+                            <h3 className="truncate font-semibold transition-colors group-hover:text-primary">
+                              {court.name}
+                            </h3>
                             <FavoriteButton courtId={court.id} />
                           </div>
                           <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
@@ -391,7 +458,10 @@ function HomePageContent() {
                             <span className="truncate">{court.address}</span>
                           </div>
                         </div>
-                        <Badge className={`shrink-0 ${sportColors[court.sport_type]}`} variant="secondary">
+                        <Badge
+                          className={`shrink-0 ${sportColors[court.sport_type]}`}
+                          variant="secondary"
+                        >
                           {sportLabels[court.sport_type]}
                         </Badge>
                       </div>
@@ -423,20 +493,23 @@ function HomePageContent() {
                       <ChevronRight className="ml-1 size-4" />
                       قبلی
                     </Button>
-                    {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                      const pageNum = Math.max(0, Math.min(page - 2, totalPages - 5)) + i
-                      if (pageNum >= totalPages) return null
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={page === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPage(pageNum)}
-                        >
-                          {toPersianDigits(pageNum + 1)}
-                        </Button>
-                      )
-                    })}
+                    {Array.from({ length: Math.min(totalPages, 5) }).map(
+                      (_, i) => {
+                        const pageNum =
+                          Math.max(0, Math.min(page - 2, totalPages - 5)) + i
+                        if (pageNum >= totalPages) return null
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={page === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setPage(pageNum)}
+                          >
+                            {toPersianDigits(pageNum + 1)}
+                          </Button>
+                        )
+                      }
+                    )}
                     <Button
                       variant="outline"
                       size="sm"

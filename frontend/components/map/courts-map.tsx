@@ -124,7 +124,7 @@ function LocateButton() {
 }
 
 export function CourtsMap({ courts, height = "400px" }: CourtsMapProps) {
-  const defaultCenter = useMemo(() => [35.7, 51.4] as [number, number], [])
+  const defaultCenter = useMemo(() => [34.64, 50.88] as [number, number], [])
 
   const mapKey = useMemo(
     () => `map-${courts.map((c) => c.id).join("-") || "empty"}`,
@@ -147,7 +147,7 @@ export function CourtsMap({ courts, height = "400px" }: CourtsMapProps) {
       <MapContainer
         key={mapKey}
         center={defaultCenter}
-        zoom={11}
+        zoom={12}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={true}
       >
