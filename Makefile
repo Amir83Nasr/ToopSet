@@ -1,97 +1,141 @@
+# ─── ToopSet Makefile ──────────────────────────────────────
+# Targets:
+#   make help       — show this help
+#
+#   ── Dev servers (local, no Docker) ──
+#   make front-dev      — start frontend (Turbopack)
+#   make front-lint     — lint frontend
+#   make front-format   — format frontend with Prettier
+#   make front-typecheck— TypeScript type checking
+#   make back-dev       — start backend (uvicorn reload)
+#   make back-deps      — install backend Python deps
+#   make dev            — start both frontend + backend
+#
+#   ── Docker (full stack with compose) ──
+#   make db             — start only Postgres + Redis
+#   make db-stop        — stop Postgres + Redis
+#   make up             — start all services
+#   make down           — stop all services
+#   make logs           — tail all service logs
+#
+#   ── Single Docker image ──
+#   make build          — build toopset image (Dockerfile)
+#   make run            — run toopset image (needs DB)
+#
+#   ── Maintenance ──
+#   make install        — install all deps
+#   make clean          — remove containers + volumes
+# ───────────────────────────────────────────────────────────
+
+SHELL := /bin/bash
+COMPOSE_FILE   = compose.yml
+COMPOSE_PROJECT = toopset
+IMAGE_NAME     = toopset
+IMAGE_TAG      ?= latest
+
+# ── Help ───────────────────────────────────────────────────
 .PHONY: help
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+help:
+	@echo "Usage: make <target>"
+	@echo ""
+	@grep -E '^#   make ' Makefile | sed 's/^#   //'
 
-# ── Frontend ──────────────────────────────────────────────
+# ======================================================================
+# ── Frontend (local) ──────────────────────────────────────────────────
+# ======================================================================
 
-.PHONY: front-dev
+.PHONY: front-dev front-lint front-format front-typecheck
+
 front-dev: ## Start frontend dev server (Turbopack)
 	cd frontend && npm run dev
 
-.PHONY: front-build
-front-build: ## Build frontend for production
-	cd frontend && npm run build
-
-.PHONY: front-start
-front-start: ## Start frontend production server
-	cd frontend && npm run start
-
-.PHONY: front-lint
 front-lint: ## Lint frontend code
 	cd frontend && npm run lint
 
-.PHONY: front-format
 front-format: ## Format frontend code with Prettier
 	cd frontend && npm run format
 
-.PHONY: front-typecheck
 front-typecheck: ## Run TypeScript type checking
 	cd frontend && npm run typecheck
 
-.PHONY: front-install
-front-install: ## Install frontend dependencies
-	cd frontend && npm install
+# ======================================================================
+# ── Backend (local) ───────────────────────────────────────────────────
+# ======================================================================
 
-.PHONY: front-clean
-front-clean: ## Clean frontend build artifacts
-	rm -rf frontend/.next frontend/node_modules
+.PHONY: back-dev back-deps
 
-# ── Backend ───────────────────────────────────────────────
-
-.PHONY: back-dev
-back-dev: ## Start backend dev server (local, no Docker)
+back-dev: ## Start backend dev server (local, auto-reload)
 	cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-.PHONY: back-deps
 back-deps: ## Install backend dependencies
-	cd backend && pip install -r requirements.txt
+	pip install -r backend/requirements.txt
 
-.PHONY: back-clean
-back-clean: ## Clean backend build artifacts
-	rm -rf backend/__pycache__ backend/app/__pycache__ backend/**/__pycache__
-
-# ── All ───────────────────────────────────────────────────
+# ======================================================================
+# ── Both frontend + backend (local) ───────────────────────────────────
+# ======================================================================
 
 .PHONY: dev
+
 dev: ## Start both frontend and backend dev servers
-	$(MAKE) back-dev & $(MAKE) front-dev
-
-.PHONY: lint
-lint: front-lint back-lint ## Run all linters
-
-.PHONY: clean
-clean: front-clean back-clean ## Clean all build artifacts
+	@echo "Starting backend & frontend in parallel…"
+	$(MAKE) back-dev & $(MAKE) front-dev; wait
 
 .PHONY: install
-install: front-install back-deps ## Install all dependencies
 
-# ── Docker ────────────────────────────────────────────────
+install: ## Install all dependencies
+	$(MAKE) back-deps
+	cd frontend && npm install
 
-.PHONY: docker-up
-docker-up: ## Start all Docker services (Postgres, Redis, Backend, Frontend)
-	docker compose up -d
+# ======================================================================
+# ── Databases only (fast local dev) ───────────────────────────────────
+# ======================================================================
 
-.PHONY: docker-down
-docker-down: ## Stop all Docker services
-	docker compose down
+.PHONY: db db-stop
 
-.PHONY: docker-logs
-docker-logs: ## Tail logs from all Docker services
-	docker compose logs -f
+db: ## Start only Postgres + Redis (for local dev servers)
+	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
 
-.PHONY: docker-build
-docker-build: ## Rebuild all Docker images
-	docker compose build
+db-stop: ## Stop Postgres + Redis
+	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
 
-.PHONY: docker-build-backend
-docker-build-backend: ## Rebuild backend image only
-	docker compose build backend
+# ======================================================================
+# ── Full Docker stack ─────────────────────────────────────────────────
+# ======================================================================
 
-.PHONY: docker-build-frontend
-docker-build-frontend: ## Rebuild frontend image only
-	docker compose build frontend
+.PHONY: up down logs
 
-.PHONY: docker-reset
-docker-reset: ## Stop and remove all containers + volumes (destroys data)
-	docker compose down -v
+up: ## Start all Docker services (full stack)
+	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d
+
+down: ## Stop all Docker services
+	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
+
+logs: ## Tail logs from all Docker services
+	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) logs -f
+
+# ======================================================================
+# ── Single image (monolith) ──────────────────────────────────────────
+# ======================================================================
+
+.PHONY: build run
+
+build: ## Build single toopset image (frontend + backend in one)
+	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+
+run: ## Run single toopset image (requires Postgres/Redis running)
+	docker run -d \
+		--name toopset \
+		-p 3000:3000 -p 8000:8000 \
+		--env-file .env \
+		--add-host host.docker.internal:host-gateway \
+		$(IMAGE_NAME):$(IMAGE_TAG)
+
+# ======================================================================
+# ── Cleanup ───────────────────────────────────────────────────────────
+# ======================================================================
+
+.PHONY: clean
+
+clean: ## Remove all containers + volumes (⚠ data loss)
+	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v
+	-docker rm -f toopset 2>/dev/null
