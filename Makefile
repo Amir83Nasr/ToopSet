@@ -1,141 +1,350 @@
-# ─── ToopSet Makefile ──────────────────────────────────────
-# Targets:
-#   make help       — show this help
-#
-#   ── Dev servers (local, no Docker) ──
-#   make front-dev      — start frontend (Turbopack)
-#   make front-lint     — lint frontend
-#   make front-format   — format frontend with Prettier
-#   make front-typecheck— TypeScript type checking
-#   make back-dev       — start backend (uvicorn reload)
-#   make back-deps      — install backend Python deps
-#   make dev            — start both frontend + backend
-#
-#   ── Docker (full stack with compose) ──
-#   make db             — start only Postgres + Redis
-#   make db-stop        — stop Postgres + Redis
-#   make up             — start all services
-#   make down           — stop all services
-#   make logs           — tail all service logs
-#
-#   ── Single Docker image ──
-#   make build          — build toopset image (Dockerfile)
-#   make run            — run toopset image (needs DB)
-#
-#   ── Maintenance ──
-#   make install        — install all deps
-#   make clean          — remove containers + volumes
-# ───────────────────────────────────────────────────────────
+# ─── ToopSet Makefile ────────────────────────────────────────────
+# A self-documenting Makefile. Targets automatically appear in
+# `make help` when they have a `##` comment after their declaration.
+# ─────────────────────────────────────────────────────────────────
 
 SHELL := /bin/bash
-COMPOSE_FILE   = compose.yml
-COMPOSE_PROJECT = toopset
-IMAGE_NAME     = toopset
-IMAGE_TAG      ?= latest
+.ONESHELL:
 
-# ── Help ───────────────────────────────────────────────────
+# ── ANSI colors ────────────────────────────────────────────
+BOLD   := \033[1m
+RESET  := \033[0m
+GREEN  := \033[32m
+CYAN   := \033[36m
+YELLOW := \033[33m
+RED    := \033[31m
+GREY   := \033[90m
+
+# ── Project config ─────────────────────────────────────────
+COMPOSE_FILE    := compose.yml
+COMPOSE_PROJECT := toopset
+IMAGE_NAME      := toopset
+IMAGE_TAG       ?= latest
+BACKEND_DIR     := backend
+FRONTEND_DIR    := frontend
+UVICORN_PORT    ?= 8000
+NEXT_PORT       ?= 3000
+
+# ─────────────────────────────────────────────────────────────────────
+# 🏠  Help
+# ─────────────────────────────────────────────────────────────────────
+
 .PHONY: help
-help:
-	@echo "Usage: make <target>"
-	@echo ""
-	@grep -E '^#   make ' Makefile | sed 's/^#   //'
+help: ## Show this help screen
+	@printf "\n$(BOLD)Usage:$(RESET)  make $(GREEN)<target>$(RESET)\n\n"
+	@awk -F ':.*## ' \
+		-v green="$(GREEN)" \
+		-v cyan="$(CYAN)" \
+		-v bold="$(BOLD)" \
+		-v grey="$(GREY)" \
+		-v reset="$(RESET)" \
+		' \
+		/^# ---+ / { \
+			title = $$0; \
+			gsub(/^# -+ | -+$$/, "", title); \
+			sec[++s] = title; \
+			items[s] = ""; \
+			next \
+		} \
+		/^[a-zA-Z_-]+:.*## / { \
+			gsub(/:.*## /, "|", $$0); \
+			split($$0, a, "|"); \
+			t = a[1]; d = a[2]; \
+			items[s] = items[s] sprintf("  %s%-22s%s %s\n", green, t, reset, d) \
+		} \
+		END { \
+			for (i = 1; i <= s; i++) { \
+				printf "\n%s%s── %s ──%s\n\n", bold, cyan, sec[i], reset; \
+				printf "%s", items[i] \
+			}; \
+			printf "\n" \
+		}' Makefile
 
-# ======================================================================
-# ── Frontend (local) ──────────────────────────────────────────────────
-# ======================================================================
+# ─────────────────────────────────────────────────────────────────────
+# --- Frontend (local) ---
+# ─────────────────────────────────────────────────────────────────────
 
-.PHONY: front-dev front-lint front-format front-typecheck
+.PHONY: front-dev front-build front-start front-lint front-format front-typecheck front-install front-clean
 
-front-dev: ## Start frontend dev server (Turbopack)
-	cd frontend && npm run dev
+front-dev: ## Start frontend dev server (Turbopack, HMR)
+	@cd $(FRONTEND_DIR) && npm run dev
 
-front-lint: ## Lint frontend code
-	cd frontend && npm run lint
+front-build: ## Build frontend for production
+	@cd $(FRONTEND_DIR) && npm run build
 
-front-format: ## Format frontend code with Prettier
-	cd frontend && npm run format
+front-start: ## Start frontend production server
+	@cd $(FRONTEND_DIR) && npm run start
 
-front-typecheck: ## Run TypeScript type checking
-	cd frontend && npm run typecheck
+front-lint: ## Lint frontend code (ESLint)
+	@cd $(FRONTEND_DIR) && npm run lint
 
-# ======================================================================
-# ── Backend (local) ───────────────────────────────────────────────────
-# ======================================================================
+front-format: ## Format frontend code (Prettier)
+	@cd $(FRONTEND_DIR) && npm run format
 
-.PHONY: back-dev back-deps
+front-typecheck: ## Run TypeScript type checking (tsc --noEmit)
+	@cd $(FRONTEND_DIR) && npm run typecheck
 
-back-dev: ## Start backend dev server (local, auto-reload)
-	cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+front-install: ## Install / update frontend npm dependencies
+	@cd $(FRONTEND_DIR) && npm install
 
-back-deps: ## Install backend dependencies
-	pip install -r backend/requirements.txt
+front-clean: ## Remove .next build cache and node_modules
+	@rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/node_modules
+	@echo "  $(GREEN)✓$(RESET) Frontend cache cleaned"
 
-# ======================================================================
-# ── Both frontend + backend (local) ───────────────────────────────────
-# ======================================================================
+# ─────────────────────────────────────────────────────────────────────
+# --- Backend (local) ---
+# ─────────────────────────────────────────────────────────────────────
 
-.PHONY: dev
+.PHONY: back-dev back-deps back-migrate back-shell back-clean
 
-dev: ## Start both frontend and backend dev servers
-	@echo "Starting backend & frontend in parallel…"
-	$(MAKE) back-dev & $(MAKE) front-dev; wait
+back-dev: ## Start backend dev server (uvicorn, auto-reload on save)
+	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
-.PHONY: install
+back-deps: ## Install / sync backend Python dependencies (pip install -r)
+	@pip install -r $(BACKEND_DIR)/requirements.txt
+	@echo "  $(GREEN)✓$(RESET) Backend deps installed"
 
-install: ## Install all dependencies
-	$(MAKE) back-deps
-	cd frontend && npm install
+back-migrate: ## Run Alembic migrations (upgrade head)
+	@cd $(BACKEND_DIR) && alembic upgrade head
+	@echo "  $(GREEN)✓$(RESET) Migrations up to date"
 
-# ======================================================================
-# ── Databases only (fast local dev) ───────────────────────────────────
-# ======================================================================
+back-shell: ## Open a Python shell inside the backend directory
+	@cd $(BACKEND_DIR) && python -c "import code; code.interact(local={'app': 'toopset'})"
 
-.PHONY: db db-stop
+back-clean: ## Remove Python cache files (__pycache__, .pyc)
+	@find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null; \
+	 find . -name '*.pyc' -delete
+	@echo "  $(GREEN)✓$(RESET) Python cache cleaned"
 
-db: ## Start only Postgres + Redis (for local dev servers)
-	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
+# ─────────────────────────────────────────────────────────────────────
+# --- Local dev (frontend + backend together) ---
+# ─────────────────────────────────────────────────────────────────────
 
-db-stop: ## Stop Postgres + Redis
-	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
+.PHONY: dev install
 
-# ======================================================================
-# ── Full Docker stack ─────────────────────────────────────────────────
-# ======================================================================
+dev: ## 🚀 Start both backend + frontend in split Terminal tabs (macOS)
+	@echo "  $(CYAN)ℹ$(RESET)  Opening backend + frontend in separate Terminal tabs…"
+	@osascript -e '
+		tell application "Terminal"
+			activate
+			-- backend tab
+			tell application "System Events" to keystroke "t" using command down
+			delay 0.3
+			do script "cd $(PWD) && make back-dev" in front tab of front window
+			-- frontend tab
+			tell application "System Events" to keystroke "t" using command down
+			delay 0.3
+			do script "cd $(PWD) && make front-dev" in front tab of front window
+		end tell
+	'
+	@echo "  $(GREEN)✓$(RESET) Both servers started — switch to Terminal to see logs"
 
-.PHONY: up down logs
+dev-manual: ## Start backend (background) + frontend (foreground) in one terminal
+	@echo "  $(CYAN)ℹ$(RESET)  Starting backend in background…"
+	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload &
+	@sleep 2
+	@echo "  $(CYAN)ℹ$(RESET)  Starting frontend…"
+	@cd $(FRONTEND_DIR) && npm run dev
 
-up: ## Start all Docker services (full stack)
-	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d
+install: ## Install ALL project dependencies (npm + pip)
+	@$(MAKE) back-deps
+	@$(MAKE) front-install
+	@echo "  $(GREEN)✓$(RESET) All dependencies installed"
 
-down: ## Stop all Docker services
-	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
+# ─────────────────────────────────────────────────────────────────────
+# --- Docker: databases only ---
+# ─────────────────────────────────────────────────────────────────────
 
-logs: ## Tail logs from all Docker services
-	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) logs -f
+.PHONY: db db-stop db-status db-reset
 
-# ======================================================================
-# ── Single image (monolith) ──────────────────────────────────────────
-# ======================================================================
+db: ## Start only Postgres + Redis (fast, for local dev servers)
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
+	@echo "  $(GREEN)✓$(RESET) Postgres + Redis are up"
 
-.PHONY: build run
+db-stop: ## Stop Postgres + Redis (data persists in volumes)
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
+	@echo "  $(GREEN)✓$(RESET) Postgres + Redis stopped"
 
-build: ## Build single toopset image (frontend + backend in one)
-	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+db-status: ## Check if Postgres and Redis are healthy
+	@docker inspect --format='{{.State.Status}}' toopset-postgres 2>/dev/null || echo "  $(RED)✗$(RESET) Postgres not running"
+	@docker inspect --format='{{.State.Status}}' toopset-redis 2>/dev/null || echo "  $(RED)✗$(RESET) Redis not running"
 
-run: ## Run single toopset image (requires Postgres/Redis running)
-	docker run -d \
+db-reset: ## ⚠️  Wipe all database data (destroys volumes!)
+	@echo "  $(YELLOW)⚠$(RESET)  This will DELETE all data!"
+	@read -p "  Continue? [y/N] " ans; \
+	if [ "$$ans" = "y" ] || [ "$$ans" = "Y" ]; then \
+		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v postgres redis; \
+		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis; \
+		echo "  $(GREEN)✓$(RESET) Databases recreated"; \
+	else \
+		echo "  $(GREY)Aborted$(RESET)"; \
+	fi
+
+# ─────────────────────────────────────────────────────────────────────
+# --- Docker: full stack ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: up down logs ps
+
+up: ## Start ALL Docker services (full stack: frontend + backend + db + monitoring)
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d
+	@echo "  $(GREEN)✓$(RESET) All services started"
+	@echo "  $(GREY)│$(RESET)  Frontend:  http://localhost:$(NEXT_PORT)"
+	@echo "  $(GREY)│$(RESET)  Backend:   http://localhost:$(UVICORN_PORT)"
+	@echo "  $(GREY)│$(RESET)  Kibana:    http://localhost:5601"
+	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
+	@echo "  $(GREY)│$(RESET)  Prometheus: http://localhost:9090"
+
+down: ## Stop all Docker services (data stays in volumes)
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
+	@echo "  $(GREEN)✓$(RESET) Services stopped"
+
+logs: ## Tail logs from all Docker services (Ctrl+C to exit)
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) logs -f
+
+ps: ## Show status of all Docker services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) ps
+
+# ─────────────────────────────────────────────────────────────────────
+# --- Docker: compose rebuild ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: up-build up-backend up-frontend
+
+up-build: ## Rebuild all images and start services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build
+	@echo "  $(GREEN)✓$(RESET) Services rebuilt and started"
+
+up-backend: ## Rebuild only backend image and restart it
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build backend
+	@echo "  $(GREEN)✓$(RESET) Backend rebuilt"
+
+up-frontend: ## Rebuild only frontend image and restart it
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build frontend
+	@echo "  $(GREEN)✓$(RESET) Frontend rebuilt"
+
+# ─────────────────────────────────────────────────────────────────────
+# --- Single Docker image (monolith) ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: build run run-stop
+
+build: ## 🐳 Build the single toopset image (frontend + backend in one)
+	@echo "  $(CYAN)ℹ$(RESET)  Building $(IMAGE_NAME):$(IMAGE_TAG)…"
+	@docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+	@echo "  $(GREEN)✓$(RESET)  Built $(IMAGE_NAME):$(IMAGE_TAG)"
+
+run: ## 🐳 Run the single toopset image (requires Postgres/Redis running)
+	@echo "  $(CYAN)ℹ$(RESET)  Starting toopset container…"
+	@docker rm -f toopset 2>/dev/null; true
+	@docker run -d \
 		--name toopset \
-		-p 3000:3000 -p 8000:8000 \
+		-p $(NEXT_PORT):3000 \
+		-p $(UVICORN_PORT):8000 \
 		--env-file .env \
 		--add-host host.docker.internal:host-gateway \
 		$(IMAGE_NAME):$(IMAGE_TAG)
+	@echo "  $(GREEN)✓$(RESET)  toopset container started"
+	@echo "  $(GREY)│$(RESET)  Frontend: http://localhost:$(NEXT_PORT)"
+	@echo "  $(GREY)│$(RESET)  Backend:  http://localhost:$(UVICORN_PORT)"
 
-# ======================================================================
-# ── Cleanup ───────────────────────────────────────────────────────────
-# ======================================================================
+run-stop: ## Stop the single toopset container
+	@docker rm -f toopset 2>/dev/null; true
+	@echo "  $(GREEN)✓$(RESET)  toopset container removed"
 
-.PHONY: clean
+# ─────────────────────────────────────────────────────────────────────
+# --- Monitoring (standalone) ---
+# ─────────────────────────────────────────────────────────────────────
 
-clean: ## Remove all containers + volumes (⚠ data loss)
-	docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v
-	-docker rm -f toopset 2>/dev/null
+.PHONY: monitor monitor-stop
+
+monitor: ## Start only monitoring stack (ELK + Prometheus + Grafana)
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d \
+		elasticsearch logstash kibana prometheus grafana \
+		postgres_exporter redis_exporter
+	@echo "  $(GREEN)✓$(RESET)  Monitoring stack started"
+	@echo "  $(GREY)│$(RESET)  Kibana:    http://localhost:5601"
+	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
+	@echo "  $(GREY)│$(RESET)  Prometheus: http://localhost:9090"
+
+monitor-stop: ## Stop monitoring stack
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop \
+		elasticsearch logstash kibana prometheus grafana \
+		postgres_exporter redis_exporter
+	@echo "  $(GREEN)✓$(RESET)  Monitoring stopped"
+
+# ─────────────────────────────────────────────────────────────────────
+# --- Maintenance ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: clean prune doctor
+
+clean: ## ⚠️  Remove ALL containers + volumes (irreversible data loss)
+	@echo "  $(YELLOW)⚠$(RESET)  This will DELETE all Docker volumes (Postgres, Redis, ES, Grafana)!"
+	@read -p "  Type 'yes' to confirm: " ans; \
+	if [ "$$ans" = "yes" ]; then \
+		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v; \
+		-docker rm -f toopset 2>/dev/null; \
+		-docker rmi $(IMAGE_NAME):$(IMAGE_TAG) 2>/dev/null; \
+		echo "  $(GREEN)✓$(RESET)  All cleaned"; \
+	else \
+		echo "  $(GREY)Aborted$(RESET)"; \
+	fi
+
+prune: ## 🧹 Docker system prune (remove unused images, containers, cache)
+	@docker system prune -af --volumes
+	@echo "  $(GREEN)✓$(RESET)  Docker pruned"
+
+doctor: ## 🔍 Check system health (Docker, ports, Python, Node)
+	@echo ""
+	@printf "$(BOLD)System check for ToopSet$(RESET)\n"
+	@printf -- "$(GREY)──────────────────────────────────$(RESET)\n"
+	@# Docker
+	@if command -v docker &>/dev/null; then \
+		printf "  $(GREEN)✓$(RESET) Docker found\n"; \
+	else \
+		printf "  $(RED)✗$(RESET) Docker not found\n"; \
+	fi
+	@# Python
+	@if command -v python3 &>/dev/null; then \
+		pyver=$$(python3 --version 2>&1); \
+		printf "  $(GREEN)✓$(RESET) $$pyver\n"; \
+	else \
+		printf "  $(RED)✗$(RESET) Python 3 not found\n"; \
+	fi
+	@# Node
+	@if command -v node &>/dev/null; then \
+		never=$$(node --version 2>&1); \
+		npmver=$$(npm --version 2>&1); \
+		printf "  $(GREEN)✓$(RESET) Node $$never / npm $$npmver\n"; \
+	else \
+		printf "  $(RED)✗$(RESET) Node.js not found\n"; \
+	fi
+	@# PostgreSQL port
+	@if lsof -i :5432 &>/dev/null; then \
+		printf "  $(GREEN)✓$(RESET) Port 5432 (Postgres) in use\n"; \
+	else \
+		printf "  $(YELLOW)⚠$(RESET) Port 5432 free — run $(GREY)make db$(RESET)\n"; \
+	fi
+	@# Redis port
+	@if lsof -i :6379 &>/dev/null; then \
+		printf "  $(GREEN)✓$(RESET) Port 6379 (Redis) in use\n"; \
+	else \
+		printf "  $(YELLOW)⚠$(RESET) Port 6379 free — run $(GREY)make db$(RESET)\n"; \
+	fi
+	@# Python deps
+	@if python3 -c "import fastapi" &>/dev/null; then \
+		printf "  $(GREEN)✓$(RESET) Python deps installed\n"; \
+	else \
+		printf "  $(YELLOW)⚠$(RESET) Python deps missing — run $(GREY)make back-deps$(RESET)\n"; \
+	fi
+	@# Node deps
+	@if [ -d "$(FRONTEND_DIR)/node_modules" ]; then \
+		printf "  $(GREEN)✓$(RESET) Node deps installed\n"; \
+	else \
+		printf "  $(YELLOW)⚠$(RESET) Node deps missing — run $(GREY)make front-install$(RESET)\n"; \
+	fi
+	@printf -- "$(GREY)──────────────────────────────────$(RESET)\n"
+	@echo ""
+
+.DEFAULT_GOAL := help
