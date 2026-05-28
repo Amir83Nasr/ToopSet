@@ -171,14 +171,22 @@ export default function EditCourtPage() {
                           const current = selectedSports
                           if (current.includes(sport.value)) {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setValue("sport_types", current.filter((s) => s !== sport.value) as any, {
-                              shouldValidate: true,
-                            })
+                            setValue(
+                              "sport_types",
+                              current.filter((s) => s !== sport.value) as any,
+                              {
+                                shouldValidate: true,
+                              }
+                            )
                           } else {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setValue("sport_types", [...current, sport.value] as any, {
-                              shouldValidate: true,
-                            })
+                            setValue(
+                              "sport_types",
+                              [...current, sport.value] as any,
+                              {
+                                shouldValidate: true,
+                              }
+                            )
                           }
                         }}
                       />

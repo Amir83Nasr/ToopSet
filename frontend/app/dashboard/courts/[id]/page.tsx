@@ -48,7 +48,6 @@ import {
   ArrowRight,
   Pencil,
   CalendarPlus,
-
   MapPin,
   Star,
   Users,

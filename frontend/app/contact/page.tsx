@@ -49,7 +49,11 @@ export default function ContactPage() {
       setSuccess(true)
       setForm({ name: "", email: "", phone: "", subject: "", message: "" })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "خطا در ارسال پیام. لطفاً دوباره تلاش کنید.")
+      setError(
+        err instanceof Error
+          ? err.message
+          : "خطا در ارسال پیام. لطفاً دوباره تلاش کنید."
+      )
     } finally {
       setSubmitting(false)
     }

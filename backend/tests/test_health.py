@@ -11,7 +11,7 @@ def test_imports() -> None:
     from app.core.database import get_db
 
     assert get_db is not None
-    from app.core.security import create_access_token, verify_password, decode_token
+    from app.core.security import create_access_token, decode_token, verify_password
 
     assert create_access_token is not None
     assert verify_password is not None

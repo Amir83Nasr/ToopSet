@@ -419,16 +419,13 @@ export default function BookingsPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
                 <AlertDialogDescription>
-                  آیا از لغو رزرو {cancellingBooking.court_name} مطمئن
-                  هستید؟
+                  آیا از لغو رزرو {cancellingBooking.court_name} مطمئن هستید؟
                 </AlertDialogDescription>
               </AlertDialogHeader>
 
               <div className="space-y-3 rounded-lg border p-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    مبلغ پرداختی
-                  </span>
+                  <span className="text-muted-foreground">مبلغ پرداختی</span>
                   <span>
                     {new Intl.NumberFormat("fa-IR").format(
                       cancellingBooking.price_paid
@@ -449,9 +446,7 @@ export default function BookingsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    مبلغ بازگشتی
-                  </span>
+                  <span className="text-muted-foreground">مبلغ بازگشتی</span>
                   <span className="font-medium text-green-600">
                     {new Intl.NumberFormat("fa-IR").format(
                       preview.refundAmount

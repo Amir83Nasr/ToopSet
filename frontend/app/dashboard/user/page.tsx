@@ -7,12 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import Link from "next/link"
-import {
-  AlertCircle,
-  CalendarCheck,
-  RefreshCw,
-  Wallet,
-} from "lucide-react"
+import { AlertCircle, CalendarCheck, RefreshCw, Wallet } from "lucide-react"
 
 interface UserStats {
   upcoming_bookings: number

@@ -7,13 +7,14 @@ SHELL := /bin/bash
 .ONESHELL:
 
 # ── ANSI colors ────────────────────────────────────────────
-BOLD   := \033[1m
-RESET  := \033[0m
-GREEN  := \033[32m
-CYAN   := \033[36m
-YELLOW := \033[33m
-RED    := \033[31m
-GREY   := \033[90m
+ESC    := $(shell printf '\033')
+BOLD   := $(ESC)[1m
+RESET  := $(ESC)[0m
+GREEN  := $(ESC)[32m
+CYAN   := $(ESC)[36m
+YELLOW := $(ESC)[33m
+RED    := $(ESC)[31m
+GREY   := $(ESC)[90m
 
 # ── Project config ─────────────────────────────────────────
 COMPOSE_FILE    := compose.yml

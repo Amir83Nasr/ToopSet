@@ -9,11 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  ChevronRight,
-  ShieldX,
-  User,
-} from "lucide-react"
+import { ChevronRight, ShieldX, User } from "lucide-react"
 import Link from "next/link"
 
 interface UserDetail {
