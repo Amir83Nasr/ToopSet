@@ -289,7 +289,7 @@ function HomePageContent() {
           id="courts"
         >
           <div className="neon-orb neon-orb-3" />
-          <div className="neon-orb neon-orb-purple top-1/4 !right-auto left-1/3" />
+          <div className="neon-orb neon-orb-purple top-1/4 right-auto! left-1/3" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <div className="relative z-10 mx-auto max-w-5xl">
@@ -302,7 +302,7 @@ function HomePageContent() {
               </p>
             </div>
             <div className="glass-card flex flex-wrap items-end gap-3 rounded-2xl p-5 md:p-6">
-              <div className="min-w-[200px] flex-1">
+              <div className="min-w-50 flex-1">
                 <Label
                   htmlFor="search"
                   className="mb-1.5 block text-xs text-muted-foreground"
@@ -323,7 +323,7 @@ function HomePageContent() {
                   />
                 </div>
               </div>
-              <div className="w-[140px]">
+              <div className="w-35">
                 <Label className="mb-1.5 block text-xs text-muted-foreground">
                   ورزش
                 </Label>
@@ -346,7 +346,7 @@ function HomePageContent() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-[140px]">
+              <div className="w-35">
                 <Label className="mb-1.5 block text-xs text-muted-foreground">
                   مرتب‌سازی
                 </Label>
@@ -376,7 +376,7 @@ function HomePageContent() {
                     فیلترهای بیشتر
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[300px]">
+                <SheetContent side="right" className="w-75">
                   <SheetHeader>
                     <SheetTitle>فیلترها</SheetTitle>
                   </SheetHeader>
@@ -423,8 +423,8 @@ function HomePageContent() {
         {/* Map */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
           <div className="neon-orb neon-orb-pink" />
-          <div className="neon-orb neon-orb-cyan top-[20%] !right-auto !left-[60%]" />
-          <div className="neon-orb neon-orb-orange !right-[-60px] !bottom-[-80px]" />
+          <div className="neon-orb neon-orb-cyan top-[20%] right-auto! left-[60%]!" />
+          <div className="neon-orb neon-orb-orange -right-15! -bottom-20!" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
@@ -476,9 +476,9 @@ function HomePageContent() {
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
-          <div className="neon-orb neon-orb-3 !top-auto !bottom-[-120px] !left-[-100px]" />
-          <div className="neon-orb neon-orb-green !right-[-80px] !bottom-[-80px]" />
-          <div className="neon-orb neon-orb-cyan !top-[-150px] !right-[-120px]" />
+          <div className="neon-orb neon-orb-3 top-auto! -bottom-30! -left-25!" />
+          <div className="neon-orb neon-orb-green -right-20! -bottom-20!" />
+          <div className="neon-orb neon-orb-cyan -top-37.5! -right-30!" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">

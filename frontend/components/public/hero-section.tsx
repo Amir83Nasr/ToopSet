@@ -16,7 +16,7 @@ export function HeroSection() {
       <div className="bg-dots pointer-events-none absolute inset-0" />
 
       {/* Decorative gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
+      <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-background to-secondary/5" />
 
       {/* Content */}
       <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-8 text-center">
