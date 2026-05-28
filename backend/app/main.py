@@ -20,8 +20,11 @@ from app.api.v1.notifications import router as notifications_router
 from app.api.v1.penalties import router as penalties_router
 from app.api.v1.users import router as users_router
 from app.api.v1.contact import router as contact_router
+from app.api.v1.admin import router as admin_router
 from app.api.v1.favorites import router as favorites_router
 from app.core.database import async_session_factory, engine
+from app.core.logging_config import setup_logging
+from app.core.metrics import PrometheusMiddleware, metrics_response
 
 
 async def _cancel_expired_pending():
@@ -48,6 +51,7 @@ async def _cancel_expired_pending():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging()
     task = asyncio.create_task(_cancel_expired_pending())
     yield
     task.cancel()
@@ -63,6 +67,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(PrometheusMiddleware)
 
 uploads_path = Path("uploads")
 uploads_path.mkdir(exist_ok=True)
@@ -83,6 +88,7 @@ app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(penalties_router, prefix="/api/v1")
 app.include_router(contact_router, prefix="/api/v1")
 app.include_router(favorites_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 
 
 @app.get("/")
@@ -93,3 +99,8 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+async def metrics():
+    return metrics_response()

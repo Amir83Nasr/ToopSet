@@ -40,3 +40,5 @@ backend/*.db
 
 # Logs
 *.log
+logs/*
+!logs/.gitkeep
