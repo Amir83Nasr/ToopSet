@@ -58,7 +58,6 @@ class ReviewService:
         return ReviewListResponse(reviews=items, total=total)
 
     async def create(self, data: ReviewCreate) -> ReviewDetailResponse:
-        # Validate booking exists
         booking = await self.booking_repo.get_by_id(data.booking_id)
         if not booking:
             raise HTTPException(
@@ -66,18 +65,30 @@ class ReviewService:
                 detail="Booking not found",
             )
 
-        # Validate booking belongs to current user
         if booking.user_id != self.current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not your booking",
             )
 
-        # Validate booking is CONFIRMED
         if booking.status != BookingStatus.CONFIRMED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Booking is not confirmed",
+            )
+
+        slot = await self.slot_repo.get_by_id(booking.slot_id)
+        if not slot:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Time slot not found",
+            )
+
+        from datetime import datetime, timezone, timedelta
+        if slot.end_time + timedelta(hours=2) > datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Review can only be submitted 2 hours after the session ends",
             )
 
         # Validate no existing review for this booking
@@ -88,13 +99,6 @@ class ReviewService:
                 detail="Booking already has a review",
             )
 
-        # Get court_id from booking's slot → court chain
-        slot = await self.slot_repo.get_by_id(booking.slot_id)
-        if not slot:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Time slot not found",
-            )
         court_id = slot.court.id if slot.court else None
 
         # Create review

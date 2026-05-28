@@ -94,6 +94,8 @@ export default function ReviewsPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === "admin"
 
+  const isManager = user?.role === "manager"
+
   const [activeTab, setActiveTab] = useState<Tab>("my")
   const [reviews, setReviews] = useState<ReviewDetail[]>([])
   const [total, setTotal] = useState(0)
@@ -241,7 +243,7 @@ export default function ReviewsPage() {
                 <TableHead>نظر</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>وضعیت</TableHead>
-                {isAdmin && <TableHead className="text-left">عملیات</TableHead>}
+                {(isAdmin || isManager) && <TableHead className="text-left">عملیات</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -252,7 +254,7 @@ export default function ReviewsPage() {
                   <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-[90px]" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-[60px] rounded-full" /></TableCell>
-                  {isAdmin && <TableCell><Skeleton className="h-8 w-[60px] rounded-md" /></TableCell>}
+                  {(isAdmin || isManager) && <TableCell><Skeleton className="h-8 w-[60px] rounded-md" /></TableCell>}
                 </TableRow>
               ))}
             </TableBody>
@@ -293,7 +295,7 @@ export default function ReviewsPage() {
               <TableHead>نظر</TableHead>
               <TableHead>تاریخ</TableHead>
               <TableHead>وضعیت</TableHead>
-              {isAdmin && <TableHead className="text-left">عملیات</TableHead>}
+              {(isAdmin || isManager) && <TableHead className="text-left">عملیات</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -320,21 +322,39 @@ export default function ReviewsPage() {
                     <Badge variant="outline">تایید شده</Badge>
                   )}
                 </TableCell>
-                {isAdmin && (
+                {(isAdmin || isManager) && (
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={reportingId === review.id || review.is_reported}
-                      onClick={() => handleReport(review.id)}
-                    >
-                      {reportingId === review.id ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Flag className="size-4" />
+                    <div className="flex gap-1">
+                      {isManager && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setRespondReviewId(review.id)
+                            setRespondText("")
+                            setRespondDialogOpen(true)
+                          }}
+                        >
+                          <MessageSquare className="ml-1 size-3" />
+                          پاسخ
+                        </Button>
                       )}
-                      <span className="mr-1">گزارش</span>
-                    </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={reportingId === review.id || review.is_reported}
+                          onClick={() => handleReport(review.id)}
+                        >
+                          {reportingId === review.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Flag className="size-4" />
+                          )}
+                          <span className="mr-1">گزارش</span>
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 )}
               </TableRow>
