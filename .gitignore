@@ -1,4 +1,8 @@
-# Python
+# ────────────────────────────────────────────────────────────
+# ToopSet — root .gitignore
+# ────────────────────────────────────────────────────────────
+
+# ── Python ─────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -8,37 +12,65 @@ build/
 .venv/
 venv/
 *.so
+*.pyc
 
-# Node
+# ── Node / JavaScript ─────────────────────────────────────
 node_modules/
 .next/
 out/
+build/
 
-# IDE
+# ── IDE / Editor ──────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
+*.bak
+*~
 .omo
 .agents
 .kilo
 
-# OS
+# ── OS ─────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# Environment
+# ── Environment / Secrets ─────────────────────────────────
 .env
 .env.local
+.env.*.local
+*.pem
+*.key
 
-# Docker
+# ── Docker ────────────────────────────────────────────────
 docker-data/
 
-# Backend
+# ── Backend ───────────────────────────────────────────────
 backend/bin/
 backend/*.db
+backend/.coverage
+backend/htmlcov/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.pytest_cache/
 
-# Logs
+# ── Logs ──────────────────────────────────────────────────
 *.log
 logs/*
 !logs/.gitkeep
+
+# ── Uploads (runtime data) ────────────────────────────────
+uploads/*
+!uploads/.gitkeep
+
+# ── Misc ──────────────────────────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
+*.pid

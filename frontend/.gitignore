@@ -1,4 +1,8 @@
-# dependencies
+# ────────────────────────────────────────────────────────────
+# ToopSet — frontend .gitignore
+# ────────────────────────────────────────────────────────────
+
+# ── Dependencies ──────────────────────────────────────────
 /node_modules
 /.pnp
 .pnp.*
@@ -8,29 +12,39 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# ── Next.js ───────────────────────────────────────────────
 /.next/
 /out/
 
-# production
+# ── Build output ──────────────────────────────────────────
 /build
 
-# misc
-.DS_Store
-*.pem
+# ── Testing ───────────────────────────────────────────────
+/coverage
 
-# debug
+# ── Environment ───────────────────────────────────────────
+.env*.local
+
+# ── Debug logs ────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# env files
-.env*.local
-
-# typescript
+# ── TypeScript ────────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+
+# ── IDE / Editor ──────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ────────────────────────────────────────────────────
+.DS_Store
+*.pem
+
+# ── Misc ──────────────────────────────────────────────────
+*.log
