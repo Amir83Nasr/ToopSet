@@ -244,9 +244,15 @@ function HomePageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <div className="flex flex-1 items-center justify-center">
+        <main className="relative flex flex-1 items-center justify-center">
+          {/* Neon orbs */}
+          <div className="neon-orb neon-orb-1" />
+          <div className="neon-orb neon-orb-cyan max-lg:hidden" />
+          {/* Vertical hash side columns — like tailwindcss.com */}
+          <div className="bg-grid-side max-lg:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
+          <div className="bg-grid-side max-lg:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
           <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
-        </div>
+        </main>
         <SiteFooter />
       </div>
     )
@@ -270,10 +276,16 @@ function HomePageContent() {
       {/* Site Header */}
       <SiteHeader />
 
-      <main className="relative">
+        <main className="relative">
+        {/* Neon orbs — floating ambient glow */}
+        <div className="neon-orb neon-orb-1" />
+        <div className="neon-orb neon-orb-cyan" />
+        <div className="neon-orb neon-orb-purple" />
+        <div className="neon-orb neon-orb-pink" />
+
         {/* Vertical hash side columns — like tailwindcss.com */}
-        <div className="bg-fixed bg-[image:repeating-linear-gradient(315deg,hsl(var(--border)/.05)_0,hsl(var(--border)/.05)_1px,transparent_0,transparent_50%)] bg-[size:10px_10px] max-lg:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-l border-border/20 z-10" />
-        <div className="bg-fixed bg-[image:repeating-linear-gradient(315deg,hsl(var(--border)/.05)_0,hsl(var(--border)/.05)_1px,transparent_0,transparent_50%)] bg-[size:10px_10px] max-lg:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-r border-border/20 z-10" />
+        <div className="bg-grid-side max-lg:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
+        <div className="bg-grid-side max-lg:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
 
         {/* Hero Section */}
         <HeroSection />
@@ -304,11 +316,10 @@ function HomePageContent() {
           className="relative overflow-hidden px-4 py-16 md:py-20"
           id="courts"
         >
-          <div className="bg-grid pointer-events-none absolute inset-0" />
           <div className="relative z-10 mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                جستجوی <span className="bg-linear-to-r from-primary to-primary/50 bg-clip-text text-transparent">سالن‌ها</span>
+                جستجوی <span className="text-primary">سالن‌ها</span>
               </h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
                 زمین ورزشی مورد نظر خود را پیدا کنید
@@ -438,11 +449,10 @@ function HomePageContent() {
 
         {/* Map */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
-          <div className="bg-grid pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
             <div className="mb-8 text-center">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                موقعیت <span className="bg-linear-to-r from-primary to-primary/50 bg-clip-text text-transparent">سالن‌ها</span>
+                موقعیت <span className="text-primary">سالن‌ها</span>
               </h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
                 نزدیک‌ترین زمین‌های ورزشی به خود را پیدا کنید
@@ -491,12 +501,11 @@ function HomePageContent() {
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
-          <div className="bg-grid pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
             <div className="mb-10 flex items-end justify-between">
               <div>
                 <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                  <span className="bg-linear-to-r from-primary to-primary/50 bg-clip-text text-transparent">سالن‌های</span> موجود
+                  <span className="text-primary">سالن‌های</span> موجود
                 </h2>
                 <p className="mt-2 text-muted-foreground">
                   {toPersianDigits(total)} زمین پیدا شد

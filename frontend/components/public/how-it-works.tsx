@@ -1,27 +1,10 @@
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { Search, CalendarCheck, CreditCard, Play } from "lucide-react"
 
 const steps = [
-  {
-    icon: Search,
-    title: "جستجو",
-    description: "ورزش مورد نظر خود را انتخاب کنید و زمین‌های موجود را ببینید",
-  },
-  {
-    icon: CalendarCheck,
-    title: "انتخاب",
-    description: "سانس مورد نظر خود را در تاریخ و ساعت دلخواه انتخاب کنید",
-  },
-  {
-    icon: CreditCard,
-    title: "رزرو",
-    description: "به صورت آنلاین پرداخت کنید و رزرو خود را قطعی کنید",
-  },
-  {
-    icon: Play,
-    title: "بازی",
-    description: "در ساعت مقرر در زمین حاضر شوید و از ورزش لذت ببرید",
-  },
+  { title: "جستجو", description: "ورزش مورد نظر خود را انتخاب کنید" },
+  { title: "انتخاب", description: "سانس مورد نظر خود را در تاریخ دلخواه انتخاب کنید" },
+  { title: "رزرو", description: "به صورت آنلاین پرداخت کنید و رزرو را قطعی کنید" },
+  { title: "بازی", description: "در ساعت مقرر در زمین حاضر شوید و از ورزش لذت ببرید" },
 ]
 
 export function HowItWorks() {
@@ -38,26 +21,18 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <div className="relative grid gap-8 md:grid-cols-4">
-          <div className="absolute top-5 right-[calc(12.5%+1rem)] left-[calc(12.5%+1rem)] hidden h-px bg-linear-to-r from-transparent via-border to-transparent md:block" />
-
-          {steps.map((step, index) => {
-            const Icon = step.icon
-            return (
-              <div
-                key={step.title}
-                className="relative flex flex-col items-center text-center"
-              >
-                <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                  {index + 1}
-                </div>
-                <h3 className="mb-1 font-semibold">{step.title}</h3>
-                <p className="max-w-[200px] text-sm text-muted-foreground">
-                  {step.description}
-                </p>
+        <div className="grid gap-8 md:grid-cols-4">
+          {steps.map((step, index) => (
+            <div key={step.title} className="flex flex-col items-center text-center">
+              <div className="mb-3 flex size-8 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground">
+                {index + 1}
               </div>
-            )
-          })}
+              <h3 className="mb-1 font-semibold">{step.title}</h3>
+              <p className="max-w-[180px] text-sm text-muted-foreground">
+                {step.description}
+              </p>
+            </div>
+          ))}
         </div>
       </ScrollReveal>
     </section>
