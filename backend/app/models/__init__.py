@@ -10,6 +10,7 @@ from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
 from app.models.notification import Notification
 from app.models.contact import ContactMessage
+from app.models.favorite import Favorite
 
 __all__ = [
     "User",
@@ -24,4 +25,5 @@ __all__ = [
     "WalletTransaction",
     "Notification",
     "ContactMessage",
+    "Favorite",
 ]

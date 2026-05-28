@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { FavoriteButton } from "@/components/courts/favorite-button"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,11 +37,16 @@ import {
   MapPin,
   Star,
   Users,
+  Heart,
+  Building2,
   Clock,
-  CheckCircle2,
-  XCircle,
   Calendar,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react"
 
 interface Court {
@@ -276,7 +282,10 @@ export default function PublicCourtDetailPage() {
       <div className="mb-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">{court.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">{court.name}</h1>
+              <FavoriteButton courtId={court.id} size="md" />
+            </div>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <Badge className={sportColors[court.sport_type] || ""} variant="secondary">
                 {sportLabels[court.sport_type] || court.sport_type}

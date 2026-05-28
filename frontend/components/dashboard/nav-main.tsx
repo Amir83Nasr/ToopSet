@@ -31,6 +31,7 @@ import {
   BarChart3,
   Gavel,
   ChevronDown,
+  Heart,
 } from "lucide-react"
 
 interface NavItem {
@@ -47,6 +48,12 @@ const allNavItems: NavItem[] = [
     url: "/dashboard",
     icon: LayoutDashboard,
     roles: ["admin", "manager", "user"],
+  },
+  {
+    title: "علاقه‌مندی‌ها",
+    url: "/dashboard/favorites",
+    icon: Heart,
+    roles: ["user", "manager", "admin"],
   },
   {
     title: "زمین‌ها",

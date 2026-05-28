@@ -8,6 +8,7 @@ import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { FavoriteButton } from "@/components/courts/favorite-button"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -369,15 +370,18 @@ function HomePageContent() {
                       href={`/courts/${court.id}`}
                       className="block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold">{court.name}</h3>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold truncate">{court.name}</h3>
+                            <FavoriteButton courtId={court.id} />
+                          </div>
                           <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="size-3" />
+                            <MapPin className="size-3 shrink-0" />
                             <span className="truncate">{court.address}</span>
                           </div>
                         </div>
-                        <Badge className={sportColors[court.sport_type]} variant="secondary">
+                        <Badge className={`shrink-0 ${sportColors[court.sport_type]}`} variant="secondary">
                           {sportLabels[court.sport_type]}
                         </Badge>
                       </div>
