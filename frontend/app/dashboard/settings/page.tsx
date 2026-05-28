@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Loader2, Wallet, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, User, Lock, SunMoon, Check, Phone, IdCard } from "lucide-react"
 import { toast } from "sonner"
 
 interface UserProfile {
@@ -22,12 +22,10 @@ interface UserProfile {
   is_active: boolean
 }
 
-interface WalletTransaction {
-  id: number
-  amount: number
-  type: "deposit" | "withdrawal" | "refund"
-  description: string | null
-  created_at: string
+const roleLabels: Record<string, string> = {
+  user: "کاربر عادی",
+  manager: "مدیر مجموعه",
+  admin: "ادمین",
 }
 
 export default function SettingsPage() {
@@ -44,28 +42,9 @@ export default function SettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
 
-  async function fetchWallet() {
-    setWalletLoading(true)
-    try {
-      const [balanceRes, txns] = await Promise.all([
-        api<{ balance: number }>("/api/v1/wallet/balance"),
-        api<WalletTransaction[]>("/api/v1/wallet/transactions"),
-      ])
-      setWalletBalance(balanceRes.balance)
-      setWalletTransactions(txns)
-    } catch {
-      // wallet may not be set up yet
-    } finally {
-      setWalletLoading(false)
-    }
-  }
+  const isDark =
+    theme === "dark" || (theme === "system" && resolvedTheme === "dark")
 
-  // Wallet state
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([])
-  const [walletLoading, setWalletLoading] = useState(false)
-
-  /* ---------- fetch fresh user data on mount ---------- */
   const fetchUser = useCallback(async () => {
     setPageLoading(true)
     try {
@@ -81,16 +60,13 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchUser()
-    fetchWallet()
-  }, [])
+  }, [fetchUser])
 
-  /* ---------- save full name ---------- */
   const handleSaveName = useCallback(async () => {
     if (!fullName.trim()) {
       toast.error("نام نمی‌تواند خالی باشد")
       return
     }
-
     setSavingName(true)
     try {
       const updated = await api<UserProfile>("/api/v1/auth/profile", {
@@ -108,7 +84,6 @@ export default function SettingsPage() {
     }
   }, [fullName])
 
-  /* ---------- change password ---------- */
   const handleChangePassword = useCallback(async () => {
     if (!currentPassword) {
       toast.error("لطفاً رمز عبور فعلی را وارد کنید")
@@ -126,7 +101,6 @@ export default function SettingsPage() {
       toast.error("رمز عبور جدید و تکرار آن مطابقت ندارند")
       return
     }
-
     setChangingPassword(true)
     try {
       await api("/api/v1/auth/profile", {
@@ -149,10 +123,7 @@ export default function SettingsPage() {
     }
   }, [currentPassword, newPassword, confirmNewPassword])
 
-  const isDark =
-    theme === "dark" || (theme === "system" && resolvedTheme === "dark")
-
-  /* =============== LOADING STATE =============== */
+  /* =============== LOADING =============== */
   if (pageLoading) {
     return (
       <div className="flex flex-1 flex-col gap-6">
@@ -160,34 +131,28 @@ export default function SettingsPage() {
           <Skeleton className="h-7 w-24" />
           <Skeleton className="mt-1 h-4 w-44" />
         </div>
-
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-5 w-28" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-4 w-36" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-24" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader><Skeleton className="h-5 w-28" /></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1"><Skeleton className="h-3 w-20" /><Skeleton className="h-4 w-36" /></div>
+              <div className="space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-full" /></div>
+              <Skeleton className="h-8 w-28" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><Skeleton className="h-5 w-28" /></CardHeader>
+            <CardContent className="space-y-4">
               <Skeleton className="h-8 w-full" />
-            </div>
-            <Skeleton className="h-8 w-28" />
-          </CardContent>
-        </Card>
-
+              <Skeleton className="h-8 w-20" />
+            </CardContent>
+          </Card>
+        </div>
         <Card>
-          <CardHeader>
-            <Skeleton className="h-5 w-28" />
-          </CardHeader>
+          <CardHeader><Skeleton className="h-5 w-28" /></CardHeader>
           <CardContent className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-8 w-full" />
-              </div>
+              <div key={i} className="space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-full" /></div>
             ))}
             <Skeleton className="h-8 w-32" />
           </CardContent>
@@ -196,185 +161,177 @@ export default function SettingsPage() {
     )
   }
 
-  /* =============== ERROR / NO USER =============== */
   if (!user) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">امکان بارگذاری اطلاعات وجود ندارد</p>
-        <Button variant="outline" onClick={fetchUser}>
-          تلاش مجدد
-        </Button>
+        <Button variant="outline" onClick={fetchUser}>تلاش مجدد</Button>
       </div>
     )
   }
 
-  /* =============== MAIN CONTENT =============== */
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">تنظیمات</h1>
-        <p className="text-muted-foreground">
-          مدیریت حساب کاربری و تنظیمات ظاهری
-        </p>
+        <p className="text-muted-foreground">مدیریت حساب کاربری و تنظیمات ظاهری</p>
       </div>
 
-      {/* ---- Section 1: Account Info ---- */}
-      <Card>
-        <CardHeader>
-          <CardTitle>اطلاعات حساب</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* read-only phone */}
-          <div className="space-y-1.5">
-            <Label>شماره تلفن</Label>
-            <div className="text-sm font-medium text-foreground">
-              {toPersianDigits(user.phone)}
+      {/* Row 1: Profile + Theme side by side */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Profile Info */}
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+              <User className="size-5 text-primary" />
             </div>
-          </div>
+            <div>
+              <CardTitle className="text-base">اطلاعات حساب</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">مشاهده و ویرایش اطلاعات شخصی</p>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+              <Phone className="size-5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">شماره تلفن</p>
+                <p className="text-sm font-medium" dir="ltr">{toPersianDigits(user.phone)}</p>
+              </div>
+            </div>
 
-          {/* editable full name */}
-          <div className="space-y-2">
-            <Label htmlFor="fullName">نام و نام خانوادگی</Label>
-            <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="نام خود را وارد کنید"
-            />
-          </div>
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+              <IdCard className="size-5 text-muted-foreground shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">نقش کاربری</p>
+                <Badge variant="outline" className="mt-0.5 text-xs">
+                  {roleLabels[user.role] || user.role}
+                </Badge>
+              </div>
+            </div>
 
-          <Button onClick={handleSaveName} disabled={savingName}>
-            {savingName && (
-              <Loader2 className="ml-1 size-4 animate-spin" aria-hidden="true" />
-            )}
-            {savingName ? "در حال ذخیره..." : "ذخیره تغییرات"}
-          </Button>
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">نام و نام خانوادگی</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="نام خود را وارد کنید"
+                />
+                <Button
+                  onClick={handleSaveName}
+                  disabled={savingName || fullName === user.full_name}
+                  size="icon"
+                  className="shrink-0"
+                  title="ذخیره"
+                >
+                  {savingName ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Check className="size-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Separator />
+        {/* Appearance */}
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+              <SunMoon className="size-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-base">تنظیمات ظاهری</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">تغییر تم روشن/تاریک</p>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-4">
+              <div>
+                <p className="text-sm font-medium">حالت تاریک</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isDark ? "در حال حاضر تم تاریک فعال است" : "در حال حاضر تم روشن فعال است"}
+                </p>
+              </div>
+              <Switch
+                id="darkMode"
+                checked={isDark}
+                onCheckedChange={(checked) =>
+                  setTheme(checked ? "dark" : "light")
+                }
+              />
+            </div>
 
-      {/* ---- Section 2: Change Password ---- */}
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-xs text-muted-foreground">
+                برای تغییر بین تم روشن، تاریک و سیستمی می‌توانید از دکمه
+                <span className="mx-1 inline-flex items-center"><SunMoon className="size-3.5 inline" /></span>
+                در نوار بالایی استفاده کنید.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: Change Password (full width) */}
       <Card>
-        <CardHeader>
-          <CardTitle>تغییر رمز عبور</CardTitle>
+        <CardHeader className="flex flex-row items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+            <Lock className="size-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-base">تغییر رمز عبور</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">رمز عبور جدید باید حداقل ۶ کاراکتر باشد</p>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="رمز عبور فعلی را وارد کنید"
-            />
-          </div>
+        <CardContent>
+          <div className="grid gap-5 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">رمز عبور جدید</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="حداقل ۶ کاراکتر"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">رمز عبور جدید</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="حداقل ۶ کاراکتر"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmNewPassword">تکرار رمز عبور جدید</Label>
-            <Input
-              id="confirmNewPassword"
-              type="password"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              placeholder="رمز عبور جدید را تکرار کنید"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">تکرار رمز عبور جدید</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="تکرار رمز جدید"
+              />
+            </div>
           </div>
 
           <Button
             onClick={handleChangePassword}
             disabled={changingPassword}
+            className="mt-5"
           >
             {changingPassword && (
-              <Loader2 className="ml-1 size-4 animate-spin" aria-hidden="true" />
+              <Loader2 className="ml-1 size-4 animate-spin" />
             )}
             {changingPassword ? "در حال تغییر..." : "تغییر رمز عبور"}
           </Button>
-        </CardContent>
-      </Card>
-
-      {/* ---- Section 3: Wallet ---- */}
-      <Card>
-        <CardHeader>
-          <CardTitle>کیف پول</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {walletLoading ? (
-            <Skeleton className="h-8 w-32" />
-          ) : walletBalance !== null ? (
-            <>
-              <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
-                <Wallet className="size-8 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">موجودی</p>
-                  <p className="text-2xl font-bold">{toPersianDigits(new Intl.NumberFormat("fa-IR").format(walletBalance))} تومان</p>
-                </div>
-              </div>
-
-              {walletTransactions.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">تراکنش‌های اخیر</h4>
-                  <div className="divide-y rounded-lg border">
-                    {walletTransactions.slice(0, 5).map((tx) => {
-                      const isPositive = tx.type === "deposit" || tx.type === "refund"
-                      return (
-                        <div key={tx.id} className="flex items-center justify-between p-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            {isPositive ? (
-                              <ArrowDownLeft className="size-4 text-green-500" />
-                            ) : (
-                              <ArrowUpRight className="size-4 text-red-500" />
-                            )}
-                            <span>{tx.description || "تراکنش"}</span>
-                          </div>
-                          <span className={isPositive ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                            {isPositive ? "+" : "-"}{toPersianDigits(new Intl.NumberFormat("fa-IR").format(Math.abs(tx.amount)))}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">کیف پول در دسترس نیست</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      {/* ---- Section 4: Appearance / Theme Toggle ---- */}
-      <Card>
-        <CardHeader>
-          <CardTitle>تنظیمات ظاهری</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="darkMode" className="cursor-pointer">
-              حالت تاریک
-            </Label>
-            <Switch
-              id="darkMode"
-              checked={isDark}
-              onCheckedChange={(checked) =>
-                setTheme(checked ? "dark" : "light")
-              }
-            />
-          </div>
         </CardContent>
       </Card>
     </div>
