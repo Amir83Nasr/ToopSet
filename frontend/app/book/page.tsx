@@ -27,9 +27,7 @@ import {
 import {
   ArrowRight,
   CheckCircle2,
-  Clock,
   CreditCard,
-  Calendar,
   MapPin,
   AlertTriangle,
   Loader2,
@@ -52,7 +50,14 @@ interface SlotDetail {
 }
 
 type BookingStatus = "pending_payment" | "confirmed" | "cancelled"
-type PageStep = "loading" | "confirm" | "processing" | "created" | "paid" | "error" | "conflict"
+type PageStep =
+  | "loading"
+  | "confirm"
+  | "processing"
+  | "created"
+  | "paid"
+  | "error"
+  | "conflict"
 
 interface BookingResult {
   id: number
@@ -98,7 +103,12 @@ function BookPageContent() {
 
   const [step, setStep] = useState<PageStep>("loading")
   const [slot, setSlot] = useState<SlotDetail | null>(null)
-  const [court, setCourt] = useState<{ id: number; name: string; sport_type: string; address: string } | null>(null)
+  const [court, setCourt] = useState<{
+    id: number
+    name: string
+    sport_type: string
+    address: string
+  } | null>(null)
   const [booking, setBooking] = useState<BookingResult | null>(null)
   const [errorMsg, setErrorMsg] = useState<string>("")
   const [participants, setParticipants] = useState(1)
@@ -108,7 +118,9 @@ function BookPageContent() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(`/book?slot_id=${slotId}&court_id=${courtId}`)}`)
+      router.push(
+        `/login?redirect=${encodeURIComponent(`/book?slot_id=${slotId}&court_id=${courtId}`)}`
+      )
     }
   }, [authLoading, isAuthenticated, router, slotId, courtId])
 
@@ -119,7 +131,8 @@ function BookPageContent() {
     async function fetchDetails() {
       try {
         const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
-        if (slotRes.is_reserved) throw new ApiError(409, "این سانس قبلاً رزرو شده است")
+        if (slotRes.is_reserved)
+          throw new ApiError(409, "این سانس قبلاً رزرو شده است")
         setSlot(slotRes)
         setCourt({
           id: slotRes.court_id,
@@ -196,9 +209,12 @@ function BookPageContent() {
   const handlePay = useCallback(async () => {
     if (!booking) return
     try {
-      const res = await api<BookingResult>(`/api/v1/bookings/${booking.id}/pay`, {
-        method: "POST",
-      })
+      const res = await api<BookingResult>(
+        `/api/v1/bookings/${booking.id}/pay`,
+        {
+          method: "POST",
+        }
+      )
       setBooking(res)
       setStep("paid")
       toast.success("پرداخت با موفقیت انجام شد")
@@ -270,7 +286,9 @@ function BookPageContent() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             {court ? (
-              <BreadcrumbLink href={`/courts/${court.id}`}>{court.name}</BreadcrumbLink>
+              <BreadcrumbLink href={`/courts/${court.id}`}>
+                {court.name}
+              </BreadcrumbLink>
             ) : (
               <BreadcrumbPage>...</BreadcrumbPage>
             )}
@@ -318,7 +336,9 @@ function BookPageContent() {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">تاریخ</span>
-                <span className="font-medium">{formatDate(slot.start_time)}</span>
+                <span className="font-medium">
+                  {formatDate(slot.start_time)}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">ساعت</span>
@@ -333,7 +353,9 @@ function BookPageContent() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">تعداد شرکت‌کنندگان</span>
+                <span className="text-muted-foreground">
+                  تعداد شرکت‌کنندگان
+                </span>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -385,7 +407,8 @@ function BookPageContent() {
               <CheckCircle2 className="size-12 text-amber-500" />
               <CardTitle className="text-xl">رزرو با موفقیت ایجاد شد</CardTitle>
               <CardDescription className="text-center">
-                برای تأیید نهایی، لطفاً تا سقف {toPersianDigits(10)} دقیقه پرداخت را انجام دهید
+                برای تأیید نهایی، لطفاً تا سقف {toPersianDigits(10)} دقیقه
+                پرداخت را انجام دهید
               </CardDescription>
             </CardContent>
           </Card>
@@ -396,7 +419,8 @@ function BookPageContent() {
               <CardContent className="flex items-center justify-center gap-3 py-4">
                 <Timer className="size-6 text-primary" />
                 <span className="text-2xl font-bold tabular-nums" dir="ltr">
-                  {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+                  {Math.floor(timeLeft / 60)}:
+                  {String(timeLeft % 60).padStart(2, "0")}
                 </span>
               </CardContent>
             </Card>
@@ -405,7 +429,9 @@ function BookPageContent() {
             <Card>
               <CardContent className="flex items-center justify-center gap-3 py-4">
                 <XCircle className="size-6 text-destructive" />
-                <span className="text-lg font-semibold text-destructive">مهلت پرداخت به پایان رسید</span>
+                <span className="text-lg font-semibold text-destructive">
+                  مهلت پرداخت به پایان رسید
+                </span>
               </CardContent>
             </Card>
           )}
@@ -422,11 +448,16 @@ function BookPageContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">مبلغ</span>
-                <span className="font-bold">{formatPrice(booking.price_paid)}</span>
+                <span className="font-bold">
+                  {formatPrice(booking.price_paid)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">وضعیت</span>
-                <Badge variant="outline" className="text-amber-600 border-amber-300">
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 text-amber-600"
+                >
                   منتظر پرداخت
                 </Badge>
               </div>
@@ -443,11 +474,7 @@ function BookPageContent() {
               <CreditCard className="ml-2 size-5" />
               پرداخت
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleCancel}
-            >
+            <Button variant="outline" size="lg" onClick={handleCancel}>
               لغو رزرو
             </Button>
           </div>
@@ -462,9 +489,12 @@ function BookPageContent() {
               <div className="rounded-full bg-green-100 p-3 dark:bg-green-900">
                 <CheckCircle2 className="size-12 text-green-600 dark:text-green-300" />
               </div>
-              <CardTitle className="text-xl">پرداخت با موفقیت انجام شد</CardTitle>
+              <CardTitle className="text-xl">
+                پرداخت با موفقیت انجام شد
+              </CardTitle>
               <CardDescription className="text-center">
-                رزرو شما تأیید شد. برای مشاهده جزئیات به داشبورد خود مراجعه کنید.
+                رزرو شما تأیید شد. برای مشاهده جزئیات به داشبورد خود مراجعه
+                کنید.
               </CardDescription>
             </CardContent>
           </Card>
@@ -480,7 +510,9 @@ function BookPageContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">مبلغ پرداختی</span>
-                <span className="font-bold text-green-600">{formatPrice(booking.price_paid)}</span>
+                <span className="font-bold text-green-600">
+                  {formatPrice(booking.price_paid)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">وضعیت</span>
@@ -489,7 +521,11 @@ function BookPageContent() {
             </CardContent>
           </Card>
 
-          <Button className="w-full" size="lg" onClick={() => router.push("/dashboard/bookings")}>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => router.push("/dashboard/bookings")}
+          >
             مشاهده رزروهای من
           </Button>
         </div>
@@ -502,7 +538,8 @@ function BookPageContent() {
             <XCircle className="size-12 text-destructive" />
             <CardTitle className="text-xl">متأسفیم</CardTitle>
             <CardDescription className="text-center">
-              این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید.
+              این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب
+              کنید.
             </CardDescription>
             <Button asChild>
               <Link href={`/courts/${courtId}`}>
@@ -520,8 +557,13 @@ function BookPageContent() {
           <CardContent className="flex flex-col items-center gap-4 py-12">
             <AlertTriangle className="size-12 text-destructive" />
             <CardTitle className="text-xl">خطا</CardTitle>
-            <CardDescription className="text-center">{errorMsg}</CardDescription>
-            <Button variant="outline" onClick={() => router.push(`/courts/${courtId}`)}>
+            <CardDescription className="text-center">
+              {errorMsg}
+            </CardDescription>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/courts/${courtId}`)}
+            >
               <ArrowRight className="ml-2 size-4" />
               بازگشت
             </Button>

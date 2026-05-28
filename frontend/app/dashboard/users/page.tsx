@@ -7,10 +7,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -97,7 +94,8 @@ export default function UsersPage() {
       params.set("limit", String(limit))
       if (search) params.set("search", search)
       if (roleFilter && roleFilter !== "all") params.set("role", roleFilter)
-      if (statusFilter && statusFilter !== "all") params.set("is_active", statusFilter)
+      if (statusFilter && statusFilter !== "all")
+        params.set("is_active", statusFilter)
 
       const res = await api<AdminUserListResponse>(`/api/v1/users?${params}`)
       setUsers(res.users)
@@ -111,7 +109,8 @@ export default function UsersPage() {
   }, [page, search, roleFilter, statusFilter])
 
   useEffect(() => {
-    fetchUsers()
+    const timer = setTimeout(() => fetchUsers(), 0)
+    return () => clearTimeout(timer)
   }, [fetchUsers])
 
   async function handleRoleChange(userId: number, newRole: string) {
@@ -169,7 +168,7 @@ export default function UsersPage() {
       <Card>
         <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="جستجوی کاربر..."
               value={searchInput}
@@ -255,9 +254,7 @@ export default function UsersPage() {
                     <TableCell className="text-muted-foreground">
                       {page * limit + idx + 1}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {u.full_name}
-                    </TableCell>
+                    <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell dir="ltr" className="text-left">
                       {toPersianDigits(u.phone)}
                     </TableCell>

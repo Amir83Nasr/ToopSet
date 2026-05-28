@@ -6,10 +6,7 @@ import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -19,7 +16,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { Bell, ChevronLeft, ChevronRight, CheckCheck, Loader2 } from "lucide-react"
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  CheckCheck,
+  Loader2,
+} from "lucide-react"
 
 interface Notification {
   id: number
@@ -42,9 +45,12 @@ const notificationLabels: Record<string, string> = {
 }
 
 const notificationColors: Record<string, string> = {
-  booking_created: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  booking_confirmed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  booking_cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  booking_created:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  booking_confirmed:
+    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  booking_cancelled:
+    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 }
 
 export default function NotificationsPage() {
@@ -60,7 +66,9 @@ export default function NotificationsPage() {
     setLoading(true)
     try {
       const url = `/api/v1/notifications?skip=${page * limit}&limit=${limit}${unreadOnly ? "&unread_only=true" : ""}`
-      const res = await api<{ notifications: Notification[]; total: number }>(url)
+      const res = await api<{ notifications: Notification[]; total: number }>(
+        url
+      )
       setNotifications(res.notifications)
       setTotal(res.total)
     } catch {
@@ -71,7 +79,10 @@ export default function NotificationsPage() {
   }, [page, unreadOnly])
 
   useEffect(() => {
-    fetchNotifications()
+    const timer = setTimeout(() => {
+      fetchNotifications()
+    }, 0)
+    return () => clearTimeout(timer)
   }, [fetchNotifications])
 
   async function handleMarkRead(id: number) {
@@ -107,19 +118,28 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">اعلان‌ها</h1>
           <p className="text-muted-foreground">
-            {toPersianDigits(total)} اعلان — {toPersianDigits(unreadCount)} خوانده نشده
+            {toPersianDigits(total)} اعلان — {toPersianDigits(unreadCount)}{" "}
+            خوانده نشده
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant={unreadOnly ? "default" : "outline"}
             size="sm"
-            onClick={() => { setPage(0); setUnreadOnly((v) => !v) }}
+            onClick={() => {
+              setPage(0)
+              setUnreadOnly((v) => !v)
+            }}
           >
             {unreadOnly ? "همه" : "خوانده نشده"}
           </Button>
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={markingAll}
+            >
               {markingAll ? (
                 <Loader2 className="ml-2 size-4 animate-spin" />
               ) : (
@@ -146,11 +166,21 @@ export default function NotificationsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-60" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-16 rounded-md" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-60" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-8 w-16 rounded-md" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -159,11 +189,13 @@ export default function NotificationsPage() {
       ) : notifications.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="mb-4 rounded-full bg-muted p-4">
               <Bell className="size-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">هیچ اعلانی وجود ندارد</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
+            <h3 className="mb-1 text-lg font-semibold">
+              هیچ اعلانی وجود ندارد
+            </h3>
+            <p className="max-w-sm text-center text-sm text-muted-foreground">
               اعلان‌های مربوط به رزروها و رویدادها در اینجا نمایش داده می‌شوند.
             </p>
           </CardContent>
@@ -184,14 +216,17 @@ export default function NotificationsPage() {
               {notifications.map((n) => (
                 <TableRow key={n.id} className={n.is_read ? "" : "bg-muted/30"}>
                   <TableCell>
-                    <Badge className={notificationColors[n.type] || ""} variant="secondary">
+                    <Badge
+                      className={notificationColors[n.type] || ""}
+                      variant="secondary"
+                    >
                       {notificationLabels[n.type] || n.type}
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-[300px]">
                     <p className="truncate">{n.message}</p>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
+                  <TableCell className="text-xs whitespace-nowrap">
                     {formatDateTime(n.created_at)}
                   </TableCell>
                   <TableCell>
@@ -201,7 +236,11 @@ export default function NotificationsPage() {
                   </TableCell>
                   <TableCell>
                     {!n.is_read && (
-                      <Button variant="ghost" size="sm" onClick={() => handleMarkRead(n.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleMarkRead(n.id)}
+                      >
                         <CheckCheck className="size-4" />
                       </Button>
                     )}
@@ -214,14 +253,25 @@ export default function NotificationsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
                   <ChevronRight className="ml-1 size-4" />
                   قبلی
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
                   بعدی
                   <ChevronLeft className="mr-1 size-4" />
                 </Button>

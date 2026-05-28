@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -68,8 +67,10 @@ const statusLabels: Record<string, string> = {
 }
 
 const statusStyles: Record<string, string> = {
-  pending_payment: "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
-  confirmed: "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
+  pending_payment:
+    "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
+  confirmed:
+    "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
   cancelled: "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
 }
 
@@ -78,7 +79,10 @@ function formatDate(iso: string): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+  return new Date(iso).toLocaleTimeString("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 export default function AdminBookingsPage() {
@@ -88,7 +92,8 @@ export default function AdminBookingsPage() {
   const [page, setPage] = useState(0)
   const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
-  const [cancellingBooking, setCancellingBooking] = useState<AdminBooking | null>(null)
+  const [cancellingBooking, setCancellingBooking] =
+    useState<AdminBooking | null>(null)
   const [cancellingLoading, setCancellingLoading] = useState(false)
   const limit = 20
 
@@ -98,7 +103,8 @@ export default function AdminBookingsPage() {
       const params = new URLSearchParams()
       params.set("skip", String(page * limit))
       params.set("limit", String(limit))
-      if (statusFilter && statusFilter !== "all") params.set("status", statusFilter)
+      if (statusFilter && statusFilter !== "all")
+        params.set("status", statusFilter)
       const res = await api<{ bookings: AdminBooking[]; total: number }>(
         `/api/v1/bookings/all?${params}`
       )
@@ -111,7 +117,10 @@ export default function AdminBookingsPage() {
     }
   }, [page, statusFilter])
 
-  useEffect(() => { fetchBookings() }, [fetchBookings])
+  useEffect(() => {
+    const timer = setTimeout(() => fetchBookings(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchBookings])
 
   async function handleCancelBooking(bookingId: number) {
     setCancellingLoading(true)
@@ -149,7 +158,10 @@ export default function AdminBookingsPage() {
         </div>
         <Select
           value={statusFilter}
-          onValueChange={(v) => { setStatusFilter(v); setPage(0) }}
+          onValueChange={(v) => {
+            setStatusFilter(v)
+            setPage(0)
+          }}
         >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="همه وضعیت‌ها" />
@@ -181,7 +193,9 @@ export default function AdminBookingsPage() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 7 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))}
@@ -191,11 +205,13 @@ export default function AdminBookingsPage() {
       ) : bookings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="mb-4 rounded-full bg-muted p-4">
               <CalendarCheck className="size-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">هیچ رزروی یافت نشد</h3>
-            <p className="text-sm text-muted-foreground">هنوز رزروی در سیستم ثبت نشده است</p>
+            <h3 className="mb-1 text-lg font-semibold">هیچ رزروی یافت نشد</h3>
+            <p className="text-sm text-muted-foreground">
+              هنوز رزروی در سیستم ثبت نشده است
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -217,15 +233,21 @@ export default function AdminBookingsPage() {
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.user_name}</TableCell>
                   <TableCell>{b.court_name}</TableCell>
-                  <TableCell>{b.slot_start_time ? formatDate(b.slot_start_time) : "-"}</TableCell>
+                  <TableCell>
+                    {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
+                  </TableCell>
                   <TableCell>
                     {b.slot_start_time && b.slot_end_time
                       ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
                       : "-"}
                   </TableCell>
-                  <TableCell>{new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان</TableCell>
                   <TableCell>
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[b.status] || ""}`}>
+                    {new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[b.status] || ""}`}
+                    >
                       {statusLabels[b.status] || b.status}
                     </span>
                   </TableCell>
@@ -248,13 +270,24 @@ export default function AdminBookingsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
                   <ChevronRight className="ml-1 size-4" /> قبلی
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
                   بعدی <ChevronLeft className="mr-1 size-4" />
                 </Button>
               </div>
@@ -264,24 +297,36 @@ export default function AdminBookingsPage() {
       )}
 
       {/* Cancel dialog */}
-      <AlertDialog open={!!cancellingBooking} onOpenChange={(o) => { if (!o) setCancellingBooking(null) }}>
+      <AlertDialog
+        open={!!cancellingBooking}
+        onOpenChange={(o) => {
+          if (!o) setCancellingBooking(null)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
             <AlertDialogDescription>
-              آیا از لغو رزرو {cancellingBooking?.court_name} توسط {cancellingBooking?.user_name} مطمئن هستید؟
+              آیا از لغو رزرو {cancellingBooking?.court_name} توسط{" "}
+              {cancellingBooking?.user_name} مطمئن هستید؟
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>انصراف</AlertDialogCancel>
             <AlertDialogAction
               disabled={cancellingLoading}
-              onClick={() => cancellingBooking && handleCancelBooking(cancellingBooking.id)}
+              onClick={() =>
+                cancellingBooking && handleCancelBooking(cancellingBooking.id)
+              }
               className="bg-destructive hover:bg-destructive/90"
             >
               {cancellingLoading ? (
-                <><Loader2 className="ml-1 size-4 animate-spin" /> در حال لغو...</>
-              ) : "تأیید لغو"}
+                <>
+                  <Loader2 className="ml-1 size-4 animate-spin" /> در حال لغو...
+                </>
+              ) : (
+                "تأیید لغو"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,18 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -63,7 +58,13 @@ interface BookingDetail extends Booking {
   payment: { id: number; status: string } | null
 }
 
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+const statusLabels: Record<
+  string,
+  {
+    label: string
+    variant: "default" | "secondary" | "outline" | "destructive"
+  }
+> = {
   pending_payment: { label: "در انتظار پرداخت", variant: "outline" },
   confirmed: { label: "تایید شده", variant: "default" },
   cancelled: { label: "لغو شده", variant: "secondary" },
@@ -74,7 +75,10 @@ function formatDate(iso: string): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+  return new Date(iso).toLocaleTimeString("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 export default function BookingsPage() {
@@ -83,8 +87,10 @@ export default function BookingsPage() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<number | null>(null)
-  const [cancellingBooking, setCancellingBooking] = useState<BookingDetail | null>(null)
+  const [cancellingBooking, setCancellingBooking] =
+    useState<BookingDetail | null>(null)
   const [cancellingLoading, setCancellingLoading] = useState(false)
+  const [cancelDialogTimestamp, setCancelDialogTimestamp] = useState(0)
   const limit = 20
 
   const fetchBookings = useCallback(async () => {
@@ -103,7 +109,8 @@ export default function BookingsPage() {
   }, [page])
 
   useEffect(() => {
-    fetchBookings()
+    const timer = setTimeout(() => fetchBookings(), 0)
+    return () => clearTimeout(timer)
   }, [fetchBookings])
 
   async function handlePay(bookingId: number) {
@@ -126,7 +133,10 @@ export default function BookingsPage() {
     }
   }
 
-  function getCancelPreview(b: BookingDetail): {
+  function getCancelPreview(
+    b: BookingDetail,
+    now: number
+  ): {
     canCancel: boolean
     refundPercent: number
     penaltyPercent: number
@@ -135,9 +145,15 @@ export default function BookingsPage() {
     reason: string
   } {
     if (!b.slot_start_time) {
-      return { canCancel: true, refundPercent: 100, penaltyPercent: 0, refundAmount: b.price_paid, penaltyAmount: 0, reason: "" }
+      return {
+        canCancel: true,
+        refundPercent: 100,
+        penaltyPercent: 0,
+        refundAmount: b.price_paid,
+        penaltyAmount: 0,
+        reason: "",
+      }
     }
-    const now = Date.now()
     const slotTime = new Date(b.slot_start_time).getTime()
     const hoursUntil = (slotTime - now) / (1000 * 60 * 60)
 
@@ -174,13 +190,16 @@ export default function BookingsPage() {
 
   function handleCancelClick(b: BookingDetail) {
     setCancellingBooking(b)
+    setCancelDialogTimestamp(Date.now())
   }
 
   async function handleConfirmCancel() {
     if (!cancellingBooking) return
     setCancellingLoading(true)
     try {
-      await api(`/api/v1/bookings/${cancellingBooking.id}/cancel`, { method: "POST" })
+      await api(`/api/v1/bookings/${cancellingBooking.id}/cancel`, {
+        method: "POST",
+      })
       toast.success("رزرو لغو شد")
       setCancellingBooking(null)
       fetchBookings()
@@ -193,6 +212,13 @@ export default function BookingsPage() {
   }
 
   const totalPages = Math.ceil(total / limit)
+  const preview = useMemo(
+    () =>
+      cancellingBooking
+        ? getCancelPreview(cancellingBooking, cancelDialogTimestamp)
+        : null,
+    [cancellingBooking, cancelDialogTimestamp]
+  )
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -218,13 +244,27 @@ export default function BookingsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-28" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-12" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -233,11 +273,11 @@ export default function BookingsPage() {
       ) : bookings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="mb-4 rounded-full bg-muted p-4">
               <CalendarCheck className="size-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">هنوز رزروی ندارید</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+            <h3 className="mb-1 text-lg font-semibold">هنوز رزروی ندارید</h3>
+            <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
               زمین مورد علاقه خود را انتخاب کنید و رزرو نمایید.
             </p>
             <Button asChild>
@@ -264,20 +304,30 @@ export default function BookingsPage() {
             </TableHeader>
             <TableBody>
               {bookings.map((b) => {
-                const st = statusLabels[b.status] || { label: b.status, variant: "outline" }
+                const st = statusLabels[b.status] || {
+                  label: b.status,
+                  variant: "outline",
+                }
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="font-medium">{b.court_name}</TableCell>
-                    <TableCell>{b.slot_start_time ? formatDate(b.slot_start_time) : "-"}</TableCell>
+                    <TableCell className="font-medium">
+                      {b.court_name}
+                    </TableCell>
+                    <TableCell>
+                      {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
+                    </TableCell>
                     <TableCell>
                       {b.slot_start_time && b.slot_end_time
                         ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      {new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان
+                      {new Intl.NumberFormat("fa-IR").format(b.price_paid)}{" "}
+                      تومان
                     </TableCell>
-                    <TableCell>{toPersianDigits(b.participants_count)}</TableCell>
+                    <TableCell>
+                      {toPersianDigits(b.participants_count)}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={st.variant}>{st.label}</Badge>
                     </TableCell>
@@ -328,14 +378,25 @@ export default function BookingsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
                   <ChevronRight className="ml-1 size-4" />
                   قبلی
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
                   بعدی
                   <ChevronLeft className="mr-1 size-4" />
                 </Button>
@@ -346,72 +407,96 @@ export default function BookingsPage() {
       )}
 
       {/* Cancel dialog with penalty preview */}
-      <AlertDialog open={!!cancellingBooking} onOpenChange={(o) => { if (!o) setCancellingBooking(null) }}>
+      <AlertDialog
+        open={!!cancellingBooking}
+        onOpenChange={(o) => {
+          if (!o) setCancellingBooking(null)
+        }}
+      >
         <AlertDialogContent>
-          {cancellingBooking && (() => {
-            const preview = getCancelPreview(cancellingBooking)
-            return (
-              <>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    آیا از لغو رزرو {cancellingBooking.court_name} مطمئن هستید؟
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
+          {cancellingBooking && preview && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
+                <AlertDialogDescription>
+                  آیا از لغو رزرو {cancellingBooking.court_name} مطمئن
+                  هستید؟
+                </AlertDialogDescription>
+              </AlertDialogHeader>
 
-                <div className="space-y-3 rounded-lg border p-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">مبلغ پرداختی</span>
-                    <span>{new Intl.NumberFormat("fa-IR").format(cancellingBooking.price_paid)} تومان</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">درصد بازگشت</span>
-                    <span className={preview.refundPercent >= 100 ? "text-green-600" : "text-amber-600"}>
-                      {toPersianDigits(preview.refundPercent)}٪
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">مبلغ بازگشتی</span>
-                    <span className="font-medium text-green-600">
-                      {new Intl.NumberFormat("fa-IR").format(preview.refundAmount)} تومان
-                    </span>
-                  </div>
-                  {preview.penaltyAmount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">جریمه</span>
-                      <span className="font-medium text-destructive">
-                        {new Intl.NumberFormat("fa-IR").format(preview.penaltyAmount)} تومان
-                      </span>
-                    </div>
-                  )}
-                  {!preview.canCancel && (
-                    <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                      <AlertTriangle className="size-4 shrink-0" />
-                      <span>{preview.reason}</span>
-                    </div>
-                  )}
+              <div className="space-y-3 rounded-lg border p-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    مبلغ پرداختی
+                  </span>
+                  <span>
+                    {new Intl.NumberFormat("fa-IR").format(
+                      cancellingBooking.price_paid
+                    )}{" "}
+                    تومان
+                  </span>
                 </div>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel>انصراف</AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={!preview.canCancel || cancellingLoading}
-                    onClick={handleConfirmCancel}
-                    className="bg-destructive hover:bg-destructive/90"
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">درصد بازگشت</span>
+                  <span
+                    className={
+                      preview.refundPercent >= 100
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }
                   >
-                    {cancellingLoading ? (
-                      <>
-                        <Loader2 className="ml-1 size-4 animate-spin" />
-                        در حال لغو...
-                      </>
-                    ) : (
-                      "تأیید لغو"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </>
-            )
-          })()}
+                    {toPersianDigits(preview.refundPercent)}٪
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    مبلغ بازگشتی
+                  </span>
+                  <span className="font-medium text-green-600">
+                    {new Intl.NumberFormat("fa-IR").format(
+                      preview.refundAmount
+                    )}{" "}
+                    تومان
+                  </span>
+                </div>
+                {preview.penaltyAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">جریمه</span>
+                    <span className="font-medium text-destructive">
+                      {new Intl.NumberFormat("fa-IR").format(
+                        preview.penaltyAmount
+                      )}{" "}
+                      تومان
+                    </span>
+                  </div>
+                )}
+                {!preview.canCancel && (
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    <span>{preview.reason}</span>
+                  </div>
+                )}
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={!preview.canCancel || cancellingLoading}
+                  onClick={handleConfirmCancel}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  {cancellingLoading ? (
+                    <>
+                      <Loader2 className="ml-1 size-4 animate-spin" />
+                      در حال لغو...
+                    </>
+                  ) : (
+                    "تأیید لغو"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </div>

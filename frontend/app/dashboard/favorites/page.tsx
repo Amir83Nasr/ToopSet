@@ -3,20 +3,12 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Heart, MapPin, Star, Building2, Trash2 } from "lucide-react"
+import { Heart, MapPin, Star, Trash2 } from "lucide-react"
 import { toast } from "sonner"
-import { FavoriteButton } from "@/components/courts/favorite-button"
-
-interface CourtItem {
-  id: number
-  court_id: number
-  created_at: string
-}
 
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
@@ -25,31 +17,47 @@ const sportLabels: Record<string, string> = {
   handball: "هندبال",
 }
 
+interface Court {
+  id: number
+  name: string
+  sport_types: string[]
+  address: string
+  average_rating: number
+}
+
+interface Favorite {
+  id: number
+  court_id: number
+  court?: Court
+}
+
 const sportColors: Record<string, string> = {
   volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  basketball:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  handball:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
 }
 
 export default function FavoritesPage() {
-  const [favorites, setFavorites] = useState<any[]>([])
+  const [favorites, setFavorites] = useState<Favorite[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchFavorites = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api<any[]>("/api/v1/favorites")
+      const data = await api<Favorite[]>("/api/v1/favorites")
       // Fetch court details for each favorite
       const withCourts = await Promise.all(
         data.map(async (fav) => {
           try {
-            const court = await api<any>(`/api/v1/courts/${fav.court_id}`)
+            const court = await api<Court>(`/api/v1/courts/${fav.court_id}`)
             return { ...fav, court }
           } catch {
             return { ...fav, court: null }
           }
-        }),
+        })
       )
       setFavorites(withCourts.filter((f) => f.court !== null))
     } catch {
@@ -60,7 +68,10 @@ export default function FavoritesPage() {
   }, [])
 
   useEffect(() => {
-    fetchFavorites()
+    const timer = setTimeout(() => {
+      fetchFavorites()
+    }, 0)
+    return () => clearTimeout(timer)
   }, [fetchFavorites])
 
   const handleRemove = async (courtId: number) => {
@@ -95,7 +106,9 @@ export default function FavoritesPage() {
           ) : favorites.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-12 text-center">
               <Heart className="size-12 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground">هنوز هیچ زمینی به علاقه‌مندی‌ها اضافه نکرده‌اید</p>
+              <p className="text-lg text-muted-foreground">
+                هنوز هیچ زمینی به علاقه‌مندی‌ها اضافه نکرده‌اید
+              </p>
               <Button asChild variant="outline">
                 <Link href="/">جستجوی زمین‌ها</Link>
               </Button>
@@ -104,14 +117,25 @@ export default function FavoritesPage() {
             <div className="space-y-3">
               {favorites.map((fav) => {
                 const court = fav.court
+                if (!court) return null
                 return (
-                  <div key={fav.id} className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50">
-                    <Link href={`/courts/${court.id}`} className="flex-1 min-w-0">
+                  <div
+                    key={fav.id}
+                    className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                  >
+                    <Link
+                      href={`/courts/${court.id}`}
+                      className="min-w-0 flex-1"
+                    >
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold truncate">{court.name}</h3>
+                        <h3 className="truncate font-semibold">{court.name}</h3>
                         <div className="flex flex-wrap gap-1">
                           {court.sport_types?.map((st: string) => (
-                            <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                            <Badge
+                              key={st}
+                              className={sportColors[st] || ""}
+                              variant="secondary"
+                            >
                               {sportLabels[st] || st}
                             </Badge>
                           ))}
@@ -128,7 +152,12 @@ export default function FavoritesPage() {
                         </span>
                       </div>
                     </Link>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemove(court.id)} className="shrink-0 text-muted-foreground hover:text-destructive">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemove(court.id)}
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                    >
                       <Trash2 className="size-4" />
                     </Button>
                   </div>

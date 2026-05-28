@@ -8,10 +8,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -40,7 +37,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Trash2,
 } from "lucide-react"
 
 // --- Types ---
@@ -125,7 +121,7 @@ export default function ReviewsPage() {
     setLoading(true)
     try {
       const res = await api<{ reviews: ReviewDetail[]; total: number }>(
-        `/api/v1/reviews/my?skip=${page * limit}&limit=${limit}`,
+        `/api/v1/reviews/my?skip=${page * limit}&limit=${limit}`
       )
       setReviews(res.reviews)
       setTotal(res.total)
@@ -137,9 +133,9 @@ export default function ReviewsPage() {
   }, [page])
 
   useEffect(() => {
-    if (activeTab === "my") {
-      fetchReviews()
-    }
+    if (activeTab !== "my") return
+    const timer = setTimeout(() => fetchReviews(), 0)
+    return () => clearTimeout(timer)
   }, [activeTab, fetchReviews])
 
   async function handleCreateReview() {
@@ -243,18 +239,34 @@ export default function ReviewsPage() {
                 <TableHead>نظر</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>وضعیت</TableHead>
-                {(isAdmin || isManager) && <TableHead className="text-left">عملیات</TableHead>}
+                {(isAdmin || isManager) && (
+                  <TableHead className="text-left">عملیات</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-[110px]" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-[90px]" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-[60px] rounded-full" /></TableCell>
-                  {(isAdmin || isManager) && <TableCell><Skeleton className="h-8 w-[60px] rounded-md" /></TableCell>}
+                  <TableCell>
+                    <Skeleton className="h-4 w-[110px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[80px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[200px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[90px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-[60px] rounded-full" />
+                  </TableCell>
+                  {(isAdmin || isManager) && (
+                    <TableCell>
+                      <Skeleton className="h-8 w-[60px] rounded-md" />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -267,11 +279,11 @@ export default function ReviewsPage() {
       return (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="mb-4 rounded-full bg-muted p-4">
               <Star className="size-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">هنوز نظری ثبت نشده</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+            <h3 className="mb-1 text-lg font-semibold">هنوز نظری ثبت نشده</h3>
+            <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
               پس از رزرو و استفاده از زمین‌ها می‌توانید نظر خود را ثبت کنید.
             </p>
             <Button asChild>
@@ -295,24 +307,30 @@ export default function ReviewsPage() {
               <TableHead>نظر</TableHead>
               <TableHead>تاریخ</TableHead>
               <TableHead>وضعیت</TableHead>
-              {(isAdmin || isManager) && <TableHead className="text-left">عملیات</TableHead>}
+              {(isAdmin || isManager) && (
+                <TableHead className="text-left">عملیات</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {reviews.map((review) => (
               <TableRow key={review.id}>
-                <TableCell className="font-medium">{review.court_name}</TableCell>
+                <TableCell className="font-medium">
+                  {review.court_name}
+                </TableCell>
                 <TableCell>
                   <StarRating rating={review.rating} />
                 </TableCell>
                 <TableCell className="max-w-[250px]">
                   <p className="truncate text-muted-foreground">
                     {review.comment ?? (
-                      <span className="italic text-muted-foreground/60">بدون نظر</span>
+                      <span className="text-muted-foreground/60 italic">
+                        بدون نظر
+                      </span>
                     )}
                   </p>
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-xs">
+                <TableCell className="text-xs whitespace-nowrap">
                   {formatDateTime(review.created_at)}
                 </TableCell>
                 <TableCell>
@@ -343,7 +361,9 @@ export default function ReviewsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          disabled={reportingId === review.id || review.is_reported}
+                          disabled={
+                            reportingId === review.id || review.is_reported
+                          }
                           onClick={() => handleReport(review.id)}
                         >
                           {reportingId === review.id ? (
@@ -397,11 +417,11 @@ export default function ReviewsPage() {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16">
-          <div className="rounded-full bg-muted p-4 mb-4">
+          <div className="mb-4 rounded-full bg-muted p-4">
             <MessageSquare className="size-10 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold mb-1">به زودی</h3>
-          <p className="text-sm text-muted-foreground text-center max-w-sm">
+          <h3 className="mb-1 text-lg font-semibold">به زودی</h3>
+          <p className="max-w-sm text-center text-sm text-muted-foreground">
             بخش نظرات زمین‌ها به زودی اضافه می‌شود
           </p>
         </CardContent>
@@ -416,7 +436,9 @@ export default function ReviewsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">نظرات</h1>
-          <p className="text-muted-foreground">مدیریت و ثبت نظرات برای زمین‌های ورزشی</p>
+          <p className="text-muted-foreground">
+            مدیریت و ثبت نظرات برای زمین‌های ورزشی
+          </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -496,7 +518,7 @@ export default function ReviewsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit" role="tablist">
+      <div className="flex w-fit gap-1 rounded-lg bg-muted p-1" role="tablist">
         <button
           role="tab"
           aria-selected={activeTab === "my"}
@@ -560,12 +582,21 @@ export default function ReviewsPage() {
           <DialogHeader>
             <DialogTitle>حذف نظر</DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground">آیا از حذف این نظر اطمینان دارید؟ این عمل قابل بازگشت نیست.</p>
+          <p className="text-muted-foreground">
+            آیا از حذف این نظر اطمینان دارید؟ این عمل قابل بازگشت نیست.
+          </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
               انصراف
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "در حال حذف..." : "حذف"}
             </Button>
           </DialogFooter>

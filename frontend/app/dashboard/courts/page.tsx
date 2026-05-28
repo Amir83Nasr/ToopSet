@@ -16,10 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -30,17 +27,37 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Plus, Eye, Pencil, Building2, MapPin, Search, ChevronLeft, ChevronRight, Map, Star, Trash2, ToggleLeft, ToggleRight } from "lucide-react"
+import {
+  Plus,
+  Eye,
+  Pencil,
+  Building2,
+  MapPin,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Map,
+  Star,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react"
 import dynamic from "next/dynamic"
 
-const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) => m.CourtsMap), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center rounded-xl border bg-muted" style={{ height: "400px" }}>
-      <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
-    </div>
-  ),
-})
+const CourtsMap = dynamic(
+  () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex items-center justify-center rounded-xl border bg-muted"
+        style={{ height: "400px" }}
+      >
+        <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
+      </div>
+    ),
+  }
+)
 
 interface Court {
   id: number
@@ -64,9 +81,11 @@ const sportLabels: Record<string, string> = {
 
 const sportColors: Record<string, string> = {
   volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  basketball:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  handball:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
 }
 
 export default function CourtsPage() {
@@ -125,10 +144,23 @@ export default function CourtsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, debouncedSearch, sportType, isActive, dateFrom, dateTo, priceMin, priceMax, refLat, refLon, maxDistance])
+  }, [
+    page,
+    debouncedSearch,
+    sportType,
+    isActive,
+    dateFrom,
+    dateTo,
+    priceMin,
+    priceMax,
+    refLat,
+    refLon,
+    maxDistance,
+  ])
 
   useEffect(() => {
-    fetchCourts()
+    const timer = setTimeout(() => fetchCourts(), 0)
+    return () => clearTimeout(timer)
   }, [fetchCourts])
 
   const totalPages = Math.ceil(total / limit)
@@ -138,7 +170,9 @@ export default function CourtsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">زمین‌ها</h1>
-          <p className="text-muted-foreground">مدیریت و مشاهده زمین‌های ورزشی</p>
+          <p className="text-muted-foreground">
+            مدیریت و مشاهده زمین‌های ورزشی
+          </p>
         </div>
         <Button asChild>
           <Link href="/dashboard/courts/create">
@@ -151,7 +185,7 @@ export default function CourtsPage() {
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="جستجوی زمین..."
             value={search}
@@ -196,28 +230,40 @@ export default function CourtsPage() {
         <Input
           type="date"
           value={dateFrom}
-          onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setDateFrom(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-40"
           placeholder="از تاریخ"
         />
         <Input
           type="date"
           value={dateTo}
-          onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setDateTo(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-40"
           placeholder="تا تاریخ"
         />
         <Input
           type="number"
           value={priceMin}
-          onChange={(e) => { setPriceMin(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setPriceMin(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-28"
           placeholder="حداقل قیمت"
         />
         <Input
           type="number"
           value={priceMax}
-          onChange={(e) => { setPriceMax(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setPriceMax(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-28"
           placeholder="حداکثر قیمت"
         />
@@ -225,7 +271,10 @@ export default function CourtsPage() {
           type="number"
           step="any"
           value={refLat}
-          onChange={(e) => { setRefLat(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setRefLat(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-24"
           placeholder="عرض موقعیت"
         />
@@ -233,21 +282,27 @@ export default function CourtsPage() {
           type="number"
           step="any"
           value={refLon}
-          onChange={(e) => { setRefLon(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setRefLon(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-24"
           placeholder="طول موقعیت"
         />
         <Input
           type="number"
           value={maxDistance}
-          onChange={(e) => { setMaxDistance(e.target.value); setPage(0); }}
+          onChange={(e) => {
+            setMaxDistance(e.target.value)
+            setPage(0)
+          }}
           className="w-full sm:w-28"
           placeholder="حداکثر فاصله (km)"
         />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+        <TabsList className="grid w-full max-w-xs grid-cols-2">
           <TabsTrigger value="table">جدول</TabsTrigger>
           <TabsTrigger value="map">
             <Map className="ml-1 size-4" />
@@ -273,12 +328,24 @@ export default function CourtsPage() {
                 <TableBody>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-40" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-12" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -287,12 +354,15 @@ export default function CourtsPage() {
           ) : courts.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <div className="rounded-full bg-muted p-4 mb-4">
+                <div className="mb-4 rounded-full bg-muted p-4">
                   <Building2 className="size-10 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold mb-1">هنوز زمینی ثبت نشده</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-                  اولین زمین ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز کنید.
+                <h3 className="mb-1 text-lg font-semibold">
+                  هنوز زمینی ثبت نشده
+                </h3>
+                <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
+                  اولین زمین ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز
+                  کنید.
                 </p>
                 <Button asChild>
                   <Link href="/dashboard/courts/create">
@@ -328,7 +398,11 @@ export default function CourtsPage() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {court.sport_types?.map((st) => (
-                            <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                            <Badge
+                              key={st}
+                              className={sportColors[st] || ""}
+                              variant="secondary"
+                            >
                               {sportLabels[st] || st}
                             </Badge>
                           ))}
@@ -340,15 +414,23 @@ export default function CourtsPage() {
                           <span className="truncate">{court.address}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{toPersianDigits(court.capacity)} نفر</TableCell>
+                      <TableCell>
+                        {toPersianDigits(court.capacity)} نفر
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Star className="size-3.5 text-amber-400 fill-amber-400" />
-                          <span>{toPersianDigits(court.average_rating?.toFixed(1) || "0.0")}</span>
+                          <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                          <span>
+                            {toPersianDigits(
+                              court.average_rating?.toFixed(1) || "0.0"
+                            )}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={court.is_active ? "default" : "secondary"}>
+                        <Badge
+                          variant={court.is_active ? "default" : "secondary"}
+                        >
                           {court.is_active ? "فعال" : "غیرفعال"}
                         </Badge>
                       </TableCell>
@@ -371,30 +453,58 @@ export default function CourtsPage() {
                                 size="icon"
                                 onClick={async () => {
                                   try {
-                                    await api(`/api/v1/courts/${court.id}/toggle`, {
-                                      method: "PATCH",
-                                      body: JSON.stringify({ is_active: !court.is_active }),
-                                    })
-                                    toast.success(court.is_active ? "زمین غیرفعال شد" : "زمین فعال شد")
+                                    await api(
+                                      `/api/v1/courts/${court.id}/toggle`,
+                                      {
+                                        method: "PATCH",
+                                        body: JSON.stringify({
+                                          is_active: !court.is_active,
+                                        }),
+                                      }
+                                    )
+                                    toast.success(
+                                      court.is_active
+                                        ? "زمین غیرفعال شد"
+                                        : "زمین فعال شد"
+                                    )
                                     fetchCourts()
                                   } catch (err) {
-                                    toast.error(err instanceof ApiError ? err.message : "خطا")
+                                    toast.error(
+                                      err instanceof ApiError
+                                        ? err.message
+                                        : "خطا"
+                                    )
                                   }
                                 }}
                               >
-                                {court.is_active ? <ToggleRight className="size-4 text-green-600" /> : <ToggleLeft className="size-4 text-muted-foreground" />}
+                                {court.is_active ? (
+                                  <ToggleRight className="size-4 text-green-600" />
+                                ) : (
+                                  <ToggleLeft className="size-4 text-muted-foreground" />
+                                )}
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={async () => {
-                                  if (!confirm(`آیا از حذف "${court.name}" مطمئن هستید؟`)) return
+                                  if (
+                                    !confirm(
+                                      `آیا از حذف "${court.name}" مطمئن هستید؟`
+                                    )
+                                  )
+                                    return
                                   try {
-                                    await api(`/api/v1/courts/${court.id}`, { method: "DELETE" })
+                                    await api(`/api/v1/courts/${court.id}`, {
+                                      method: "DELETE",
+                                    })
                                     toast.success("زمین حذف شد")
                                     fetchCourts()
                                   } catch (err) {
-                                    toast.error(err instanceof ApiError ? err.message : "خطا در حذف")
+                                    toast.error(
+                                      err instanceof ApiError
+                                        ? err.message
+                                        : "خطا در حذف"
+                                    )
                                   }
                                 }}
                               >
@@ -412,7 +522,9 @@ export default function CourtsPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t px-4 py-3">
                   <p className="text-sm text-muted-foreground">
-                    صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)} — {toPersianDigits(total)} زمین
+                    صفحه {toPersianDigits(page + 1)} از{" "}
+                    {toPersianDigits(totalPages)} — {toPersianDigits(total)}{" "}
+                    زمین
                   </p>
                   <div className="flex gap-2">
                     <Button

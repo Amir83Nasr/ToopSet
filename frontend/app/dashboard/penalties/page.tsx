@@ -1,17 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { api, ApiError } from "@/lib/api"
+import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -20,11 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Gavel,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, Gavel } from "lucide-react"
 
 interface Penalty {
   id: number
@@ -66,7 +57,8 @@ export default function PenaltiesPage() {
   }, [page])
 
   useEffect(() => {
-    fetchPenalties()
+    const timer = setTimeout(() => fetchPenalties(), 0)
+    return () => clearTimeout(timer)
   }, [fetchPenalties])
 
   const totalPages = Math.ceil(total / limit)
@@ -94,12 +86,13 @@ export default function PenaltiesPage() {
       ) : penalties.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="mb-4 rounded-full bg-muted p-4">
               <Gavel className="size-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">جریمه‌ای ثبت نشده</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              در صورت لغو رزرو در بازه ۲ تا ۲۴ ساعت قبل از شروع سانس، جریمه برای شما ثبت خواهد شد.
+            <h3 className="mb-1 text-lg font-semibold">جریمه‌ای ثبت نشده</h3>
+            <p className="max-w-sm text-center text-sm text-muted-foreground">
+              در صورت لغو رزرو در بازه ۲ تا ۲۴ ساعت قبل از شروع سانس، جریمه برای
+              شما ثبت خواهد شد.
             </p>
           </CardContent>
         </Card>
@@ -120,27 +113,44 @@ export default function PenaltiesPage() {
               <TableBody>
                 {penalties.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="whitespace-nowrap">{formatDate(p.created_at)}</TableCell>
-                    <TableCell>
-                      <Badge variant="destructive">{formatPrice(p.amount)}</Badge>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDate(p.created_at)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{p.reason}</TableCell>
+                    <TableCell>
+                      <Badge variant="destructive">
+                        {formatPrice(p.amount)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {p.reason}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t px-4 py-3 mt-4">
+              <div className="mt-4 flex items-center justify-between border-t px-4 py-3">
                 <p className="text-sm text-muted-foreground">
-                  صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                  صفحه {toPersianDigits(page + 1)} از{" "}
+                  {toPersianDigits(totalPages)}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
                     <ChevronRight className="ml-1 size-4" />
                     قبلی
                   </Button>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
                     بعدی
                     <ChevronLeft className="mr-1 size-4" />
                   </Button>

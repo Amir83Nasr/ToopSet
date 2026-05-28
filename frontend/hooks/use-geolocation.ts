@@ -61,30 +61,36 @@ export function useGeolocation() {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 300000, // 5 minutes cache
-      },
+      }
     )
   }, [])
 
   useEffect(() => {
-    // Check permission state first
-    if (typeof window !== "undefined" && navigator.permissions) {
-      navigator.permissions.query({ name: "geolocation" }).then((result) => {
-        setState((s) => ({ ...s, permissionState: result.state as PermissionState }))
-        if (result.state === "granted") {
-          requestLocation()
-        } else if (result.state === "denied") {
+    const timer = setTimeout(() => {
+      if (typeof window !== "undefined" && navigator.permissions) {
+        navigator.permissions.query({ name: "geolocation" }).then((result) => {
           setState((s) => ({
             ...s,
-            loading: false,
-            error: "دسترسی به موقعیت مجاز نیست. لطفاً از تنظیمات مرورگر مجوز دهید.",
+            permissionState: result.state as PermissionState,
           }))
-        } else {
-          setState((s) => ({ ...s, loading: false }))
-        }
-      })
-    } else {
-      requestLocation()
-    }
+          if (result.state === "granted") {
+            requestLocation()
+          } else if (result.state === "denied") {
+            setState((s) => ({
+              ...s,
+              loading: false,
+              error:
+                "دسترسی به موقعیت مجاز نیست. لطفاً از تنظیمات مرورگر مجوز دهید.",
+            }))
+          } else {
+            setState((s) => ({ ...s, loading: false }))
+          }
+        })
+      } else {
+        requestLocation()
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [requestLocation])
 
   return { ...state, requestLocation }

@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import Link from "next/link"
 import {
   AlertCircle,
   CalendarCheck,
-  CreditCard,
   RefreshCw,
   Wallet,
-  Star,
 } from "lucide-react"
 
 interface UserStats {
@@ -29,14 +28,10 @@ interface UserStats {
   }>
 }
 
-const sportLabels: Record<string, string> = {
-  volleyball: "والیبال",
-  basketball: "بسکتبال",
-  futsal: "فوتسال",
-  handball: "هندبال",
-}
-
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+const statusLabels: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "outline" }
+> = {
   pending_payment: { label: "در انتظار پرداخت", variant: "outline" },
   confirmed: { label: "تایید شده", variant: "default" },
   cancelled: { label: "لغو شده", variant: "secondary" },
@@ -74,10 +69,11 @@ export default function UserDashboardPage() {
   }, [])
 
   useEffect(() => {
-    fetchStats()
+    const timer = setTimeout(() => fetchStats(), 0)
+    return () => clearTimeout(timer)
   }, [fetchStats])
 
-const statCards = [
+  const statCards = [
     {
       title: "رزروهای پیش‌رو",
       value: stats?.upcoming_bookings,
@@ -122,10 +118,7 @@ const statCards = [
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="glass-card rounded-2xl p-6"
-                  >
+                  <div key={i} className="glass-card rounded-2xl p-6">
                     <Skeleton className="size-12 rounded-lg" />
                     <div className="mt-4 space-y-2">
                       <Skeleton className="h-4 w-24" />
@@ -145,7 +138,9 @@ const statCards = [
                       </div>
                     </div>
                     <div className="mt-4 text-right">
-                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stat.title}
+                      </p>
                       <p className="text-2xl font-bold">
                         {stat.value != null
                           ? formatPersianNumber(stat.value)
@@ -227,13 +222,25 @@ const statCards = [
               <div className="glass-card neon-border-hover rounded-2xl p-6">
                 <h2 className="mb-4 text-lg font-semibold">دسترسی سریع</h2>
                 <div className="flex flex-col gap-2">
-                  <Button variant="outline" className="neon-border-hover" asChild>
-                    <a href="/dashboard/courts">رزرو زمین</a>
+                  <Button
+                    variant="outline"
+                    className="neon-border-hover"
+                    asChild
+                  >
+                    <Link href="/dashboard/courts">رزرو زمین</Link>
                   </Button>
-                  <Button variant="outline" className="neon-border-hover" asChild>
+                  <Button
+                    variant="outline"
+                    className="neon-border-hover"
+                    asChild
+                  >
                     <a href="/dashboard/bookings">رزروهای من</a>
                   </Button>
-                  <Button variant="outline" className="neon-border-hover" asChild>
+                  <Button
+                    variant="outline"
+                    className="neon-border-hover"
+                    asChild
+                  >
                     <a href="/dashboard/wallet">کیف پول</a>
                   </Button>
                 </div>

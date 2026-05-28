@@ -1,7 +1,13 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState } from "react"
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  useMap,
+} from "react-leaflet"
 import L from "leaflet"
 import { Loader2, MapPin } from "lucide-react"
 
@@ -42,34 +48,28 @@ function ClickHandler({
   return null
 }
 
-function FlyTo({
-  lat,
-  lng,
-  zoom,
-}: {
-  lat: number
-  lng: number
-  zoom: number
-}) {
+function FlyTo({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) {
   const map = useMap()
   const done = useRef(false)
-  if (!done.current && lat && lng) {
-    map.flyTo([lat, lng], zoom, { duration: 0.5 })
-    done.current = true
-  }
+  useEffect(() => {
+    if (!done.current && lat && lng) {
+      map.flyTo([lat, lng], zoom, { duration: 0.5 })
+      done.current = true
+    }
+  })
   return null
 }
 
 async function reverseGeocode(
   lat: number,
-  lng: number,
+  lng: number
 ): Promise<string | null> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&accept-language=fa`,
       {
         headers: { "User-Agent": "ToopSet/1.0" },
-      },
+      }
     )
     if (!res.ok) return null
     const data = await res.json()
@@ -104,7 +104,7 @@ export function LocationPicker({
       setGeocoding(false)
       onLocationChange(lat, lng, address || undefined)
     },
-    [onLocationChange],
+    [onLocationChange]
   )
 
   const handleDragEnd = useCallback(
@@ -113,12 +113,13 @@ export function LocationPicker({
       const pos = marker.getLatLng()
       handlePlace(pos.lat, pos.lng)
     },
-    [handlePlace],
+    [handlePlace]
   )
 
   const markerPosition = useMemo(
-    () => (hasLocation ? [latitude!, longitude!] : null) as [number, number] | null,
-    [hasLocation, latitude, longitude],
+    () =>
+      (hasLocation ? [latitude!, longitude!] : null) as [number, number] | null,
+    [hasLocation, latitude, longitude]
   )
 
   return (
@@ -145,14 +146,18 @@ export function LocationPicker({
               />
             )}
             {hasLocation && markerPosition && (
-              <FlyTo lat={markerPosition[0]} lng={markerPosition[1]} zoom={15} />
+              <FlyTo
+                lat={markerPosition[0]}
+                lng={markerPosition[1]}
+                zoom={15}
+              />
             )}
           </MapContainer>
         </div>
 
         {/* Click hint */}
         {!hasLocation && (
-          <div className="absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-background/80 backdrop-blur-sm px-3 py-1.5 text-xs text-muted-foreground shadow-sm border flex items-center gap-1.5 pointer-events-none">
+          <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
             <MapPin className="size-3.5" />
             روی نقشه کلیک کنید تا موقعیت را مشخص کنید
           </div>
@@ -160,7 +165,7 @@ export function LocationPicker({
 
         {/* Geocoding indicator */}
         {geocoding && (
-          <div className="absolute top-3 right-3 z-[1000] rounded-full bg-background/80 backdrop-blur-sm px-2.5 py-1 text-xs text-muted-foreground shadow-sm border flex items-center gap-1.5 pointer-events-none">
+          <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
             <Loader2 className="size-3 animate-spin" />
             در حال تشخیص آدرس...
           </div>

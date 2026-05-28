@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -61,7 +60,10 @@ export default function ManagerDashboardPage() {
   }, [])
 
   useEffect(() => {
-    fetchStats()
+    const timer = setTimeout(() => {
+      fetchStats()
+    }, 0)
+    return () => clearTimeout(timer)
   }, [fetchStats])
 
   const statCards = [
@@ -105,9 +107,7 @@ export default function ManagerDashboardPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               داشبورد <span className="text-gradient-primary">مدیر مجموعه</span>
             </h1>
-            <p className="text-muted-foreground">
-              مدیریت زمین‌های شما و درآمد
-            </p>
+            <p className="text-muted-foreground">مدیریت زمین‌های شما و درآمد</p>
           </div>
         </ScrollReveal>
 
@@ -135,11 +135,17 @@ export default function ManagerDashboardPage() {
                       </div>
                     </div>
                     <div className="mt-4 text-right">
-                      <p className="text-sm text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold">
-                        {stat.value != null ? formatPersianNumber(stat.value) : "-"}
+                      <p className="text-sm text-muted-foreground">
+                        {stat.title}
                       </p>
-                      <p className="text-xs text-muted-foreground">{stat.description}</p>
+                      <p className="text-2xl font-bold">
+                        {stat.value != null
+                          ? formatPersianNumber(stat.value)
+                          : "-"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {stat.description}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -178,8 +184,12 @@ export default function ManagerDashboardPage() {
                             <CalendarCheck className="size-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">{booking.court_name}</p>
-                            <p className="text-xs text-muted-foreground">{formatTime(booking.start_time)}</p>
+                            <p className="text-sm font-medium">
+                              {booking.court_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(booking.start_time)}
+                            </p>
                           </div>
                         </div>
                         <span className="text-sm font-medium">
@@ -200,13 +210,25 @@ export default function ManagerDashboardPage() {
               <div className="glass-card neon-border-hover rounded-2xl p-6">
                 <h2 className="mb-4 text-lg font-semibold">دسترسی سریع</h2>
                 <div className="flex flex-col gap-2">
-                  <Button variant="outline" className="neon-border-hover" asChild>
+                  <Button
+                    variant="outline"
+                    className="neon-border-hover"
+                    asChild
+                  >
                     <Link href="/dashboard/courts">مدیریت زمین‌ها</Link>
                   </Button>
-                  <Button variant="outline" className="neon-border-hover" asChild>
+                  <Button
+                    variant="outline"
+                    className="neon-border-hover"
+                    asChild
+                  >
                     <Link href="/dashboard/courts/schedule">زمان‌بندی</Link>
                   </Button>
-                  <Button variant="outline" className="neon-border-hover" asChild>
+                  <Button
+                    variant="outline"
+                    className="neon-border-hover"
+                    asChild
+                  >
                     <Link href="/dashboard/wallet">کیف پول</Link>
                   </Button>
                 </div>

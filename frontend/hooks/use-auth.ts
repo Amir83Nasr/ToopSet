@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { api, clearTokens, setTokens } from "@/lib/api"
-import type { AuthResponse, LoginRequest, RegisterRequest, User } from "@/types/auth"
+import type {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+} from "@/types/auth"
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -12,26 +17,31 @@ export function useAuth() {
 
   useEffect(() => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("access_token") : null
-    if (token) {
-      api<{
-        id: number
-        phone: string
-        full_name: string
-        role: string
-        is_active: boolean
-        created_at: string
-      }>("/api/v1/auth/me")
-        .then((data) => {
-          setUser({ ...data, role: data.role as User["role"] })
-        })
-        .catch(() => {
-          clearTokens()
-        })
-        .finally(() => setLoading(false))
-    } else {
-      setLoading(false)
-    }
+      typeof window !== "undefined"
+        ? localStorage.getItem("access_token")
+        : null
+    const timer = setTimeout(() => {
+      if (token) {
+        api<{
+          id: number
+          phone: string
+          full_name: string
+          role: string
+          is_active: boolean
+          created_at: string
+        }>("/api/v1/auth/me")
+          .then((data) => {
+            setUser({ ...data, role: data.role as User["role"] })
+          })
+          .catch(() => {
+            clearTokens()
+          })
+          .finally(() => setLoading(false))
+      } else {
+        setLoading(false)
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [])
 
   const login = useCallback(
@@ -48,7 +58,7 @@ export function useAuth() {
         router.push("/")
       }
     },
-    [router],
+    [router]
   )
 
   const register = useCallback(
@@ -61,7 +71,7 @@ export function useAuth() {
       setUser(res.user)
       router.push("/")
     },
-    [router],
+    [router]
   )
 
   const logout = useCallback(() => {

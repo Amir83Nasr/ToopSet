@@ -3,14 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -21,12 +15,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  ChevronLeft,
-  ChevronRight,
-  BarChart3,
-  Download,
-} from "lucide-react"
+import { BarChart3 } from "lucide-react"
 
 interface RevenueRow {
   date: string
@@ -60,7 +49,8 @@ export default function ReportsPage() {
   }, [dateFrom, dateTo])
 
   useEffect(() => {
-    fetchReport()
+    const timer = setTimeout(() => fetchReport(), 0)
+    return () => clearTimeout(timer)
   }, [fetchReport])
 
   const totalRevenue = rows.reduce((sum, r) => sum + r.revenue, 0)
@@ -72,7 +62,9 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">گزارشات درآمد</h1>
-          <p className="text-muted-foreground">گزارش روزانه رزروها و درآمد زمین‌های شما</p>
+          <p className="text-muted-foreground">
+            گزارش روزانه رزروها و درآمد زمین‌های شما
+          </p>
         </div>
       </div>
 
@@ -80,29 +72,43 @@ export default function ReportsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">مجموع رزروها</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              مجموع رزروها
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{toPersianDigits(totalBookings)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">مجموع درآمد</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">
-              {toPersianDigits(Math.round(totalRevenue).toLocaleString("fa-IR"))} تومان
+            <p className="text-3xl font-bold">
+              {toPersianDigits(totalBookings)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">مجموع جریمه‌ها</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              مجموع درآمد
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-green-600">
+              {toPersianDigits(
+                Math.round(totalRevenue).toLocaleString("fa-IR")
+              )}{" "}
+              تومان
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              مجموع جریمه‌ها
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-red-600">
-              {toPersianDigits(Math.round(totalPenalties).toLocaleString("fa-IR"))} تومان
+              {toPersianDigits(
+                Math.round(totalPenalties).toLocaleString("fa-IR")
+              )}{" "}
+              تومان
             </p>
           </CardContent>
         </Card>
@@ -143,10 +149,18 @@ export default function ReportsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -155,12 +169,15 @@ export default function ReportsPage() {
       ) : rows.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="mb-4 rounded-full bg-muted p-4">
               <BarChart3 className="size-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">داده‌ای برای نمایش وجود ندارد</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              پس از ثبت رزروها و انجام تراکنش‌ها، گزارشات در اینجا نمایش داده می‌شوند.
+            <h3 className="mb-1 text-lg font-semibold">
+              داده‌ای برای نمایش وجود ندارد
+            </h3>
+            <p className="max-w-sm text-center text-sm text-muted-foreground">
+              پس از ثبت رزروها و انجام تراکنش‌ها، گزارشات در اینجا نمایش داده
+              می‌شوند.
             </p>
           </CardContent>
         </Card>
@@ -178,13 +195,23 @@ export default function ReportsPage() {
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.date}>
-                  <TableCell>{toPersianDigits(new Date(row.date).toLocaleDateString("fa-IR"))}</TableCell>
-                  <TableCell>{toPersianDigits(row.bookings_count)}</TableCell>
-                  <TableCell className="text-green-600 font-medium">
-                    {toPersianDigits(Math.round(row.revenue).toLocaleString("fa-IR"))} تومان
+                  <TableCell>
+                    {toPersianDigits(
+                      new Date(row.date).toLocaleDateString("fa-IR")
+                    )}
                   </TableCell>
-                  <TableCell className="text-red-600 font-medium">
-                    {toPersianDigits(Math.round(row.penalties).toLocaleString("fa-IR"))} تومان
+                  <TableCell>{toPersianDigits(row.bookings_count)}</TableCell>
+                  <TableCell className="font-medium text-green-600">
+                    {toPersianDigits(
+                      Math.round(row.revenue).toLocaleString("fa-IR")
+                    )}{" "}
+                    تومان
+                  </TableCell>
+                  <TableCell className="font-medium text-red-600">
+                    {toPersianDigits(
+                      Math.round(row.penalties).toLocaleString("fa-IR")
+                    )}{" "}
+                    تومان
                   </TableCell>
                 </TableRow>
               ))}

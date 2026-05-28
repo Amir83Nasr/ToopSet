@@ -5,10 +5,7 @@ import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -19,13 +16,11 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
 import {
   ChevronLeft,
   ChevronRight,
   ShieldX,
   History,
-  Search,
   RefreshCw,
 } from "lucide-react"
 
@@ -42,7 +37,10 @@ function formatDate(iso: string): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+  return new Date(iso).toLocaleTimeString("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 const actionLabels: Record<string, string> = {
@@ -86,7 +84,10 @@ export default function AdminLogsPage() {
     }
   }, [page, actionFilter])
 
-  useEffect(() => { fetchLogs() }, [fetchLogs])
+  useEffect(() => {
+    const timer = setTimeout(() => fetchLogs(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchLogs])
 
   const totalPages = Math.ceil(total / limit)
 
@@ -110,10 +111,18 @@ export default function AdminLogsPage() {
           <Input
             placeholder="فیلتر بر اساس action..."
             value={actionFilter}
-            onChange={(e) => { setActionFilter(e.target.value); setPage(0) }}
+            onChange={(e) => {
+              setActionFilter(e.target.value)
+              setPage(0)
+            }}
             className="w-48"
           />
-          <Button variant="outline" size="icon" onClick={fetchLogs} disabled={loading}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={fetchLogs}
+            disabled={loading}
+          >
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -134,7 +143,9 @@ export default function AdminLogsPage() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 4 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))}
@@ -144,8 +155,10 @@ export default function AdminLogsPage() {
       ) : logs.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <History className="size-12 text-muted-foreground mb-4" />
-            <p className="text-lg text-muted-foreground">رویدادی ثبت نشده است</p>
+            <History className="mb-4 size-12 text-muted-foreground" />
+            <p className="text-lg text-muted-foreground">
+              رویدادی ثبت نشده است
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -162,7 +175,7 @@ export default function AdminLogsPage() {
             <TableBody>
               {logs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
                     {formatDate(log.created_at)} {formatTime(log.created_at)}
                   </TableCell>
                   <TableCell>
@@ -183,13 +196,24 @@ export default function AdminLogsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
                   <ChevronRight className="ml-1 size-4" /> قبلی
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
                   بعدی <ChevronLeft className="mr-1 size-4" />
                 </Button>
               </div>

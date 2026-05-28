@@ -16,7 +16,7 @@ RUN npm run build
 FROM --platform=linux/amd64 python:3.12-slim AS backend-deps
 WORKDIR /build
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # ── Stage 3: Final image ─────────────────────────────────
 FROM python:3.12-slim

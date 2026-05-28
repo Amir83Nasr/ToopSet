@@ -91,16 +91,20 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api || !setApi) return
-    setApi(api)
+    const timer = setTimeout(() => setApi(api), 0)
+    return () => clearTimeout(timer)
   }, [api, setApi])
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
-    api.on("reInit", onSelect)
-    api.on("select", onSelect)
+    const timer = setTimeout(() => {
+      onSelect(api)
+      api.on("reInit", onSelect)
+      api.on("select", onSelect)
+    }, 0)
 
     return () => {
+      clearTimeout(timer)
       api?.off("select", onSelect)
     }
   }, [api, onSelect])
@@ -188,15 +192,19 @@ function CarouselPrevious({
       className={cn(
         "absolute touch-manipulation rounded-full",
         orientation === "horizontal"
-          ? "top-1/2 -start-12 -translate-y-1/2"
-          : "-top-12 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 rotate-90",
+          ? "-start-12 top-1/2 -translate-y-1/2"
+          : "start-1/2 -top-12 -translate-x-1/2 rotate-90 rtl:translate-x-1/2",
         className
       )}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       {...props}
     >
-      <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="rtl:rotate-180" />
+      <HugeiconsIcon
+        icon={ArrowLeft01Icon}
+        strokeWidth={2}
+        className="rtl:rotate-180"
+      />
       <span className="sr-only">Previous slide</span>
     </Button>
   )
@@ -218,15 +226,19 @@ function CarouselNext({
       className={cn(
         "absolute touch-manipulation rounded-full",
         orientation === "horizontal"
-          ? "top-1/2 -end-12 -translate-y-1/2"
-          : "-bottom-12 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 rotate-90",
+          ? "-end-12 top-1/2 -translate-y-1/2"
+          : "start-1/2 -bottom-12 -translate-x-1/2 rotate-90 rtl:translate-x-1/2",
         className
       )}
       disabled={!canScrollNext}
       onClick={scrollNext}
       {...props}
     >
-      <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="rtl:rotate-180" />
+      <HugeiconsIcon
+        icon={ArrowRight01Icon}
+        strokeWidth={2}
+        className="rtl:rotate-180"
+      />
       <span className="sr-only">Next slide</span>
     </Button>
   )

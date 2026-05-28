@@ -2,17 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -30,7 +21,6 @@ import {
   Building2,
   CalendarCheck,
   CreditCard,
-  FileText,
   Gavel,
   History,
   MessageSquare,
@@ -75,13 +65,11 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fa-IR")
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
-}
-
 const statusStyles: Record<string, string> = {
-  pending_payment: "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
-  confirmed: "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
+  pending_payment:
+    "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
+  confirmed:
+    "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
   cancelled: "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
 }
 
@@ -105,7 +93,8 @@ export default function AdminDashboardPage() {
       const data = await api<AdminStats>("/api/v1/dashboard/admin-stats")
       setStats(data)
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "خطا در دریافت اطلاعات"
+      const msg =
+        err instanceof ApiError ? err.message : "خطا در دریافت اطلاعات"
       setError(msg)
     } finally {
       setLoading(false)
@@ -113,7 +102,8 @@ export default function AdminDashboardPage() {
   }, [])
 
   useEffect(() => {
-    fetchStats()
+    const timer = setTimeout(() => fetchStats(), 0)
+    return () => clearTimeout(timer)
   }, [fetchStats])
 
   const statCards = [
@@ -131,7 +121,8 @@ export default function AdminDashboardPage() {
       icon: Building2,
       description: "زمین فعال در سیستم",
       href: "/dashboard/courts",
-      color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400",
+      color:
+        "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400",
     },
     {
       title: "کل رزروها",
@@ -139,7 +130,8 @@ export default function AdminDashboardPage() {
       icon: CalendarCheck,
       description: "رزرو ثبت‌شده",
       href: "/dashboard/bookings",
-      color: "text-violet-600 bg-violet-100 dark:bg-violet-900/30 dark:text-violet-400",
+      color:
+        "text-violet-600 bg-violet-100 dark:bg-violet-900/30 dark:text-violet-400",
     },
     {
       title: "درآمد کل",
@@ -147,7 +139,8 @@ export default function AdminDashboardPage() {
       icon: TrendingUp,
       description: "تومان",
       href: "/dashboard/payments",
-      color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
+      color:
+        "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
     },
     {
       title: "مدیران فعال",
@@ -182,12 +175,23 @@ export default function AdminDashboardPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                <span className="text-gradient-primary">داشبورد</span> مدیریت سیستم
+                <span className="text-gradient-primary">داشبورد</span> مدیریت
+                سیستم
               </h1>
-              <p className="text-muted-foreground">نمای کلی و کنترل کامل سیستم</p>
+              <p className="text-muted-foreground">
+                نمای کلی و کنترل کامل سیستم
+              </p>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchStats} disabled={loading} className="neon-border-hover">
-              <RefreshCw className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchStats}
+              disabled={loading}
+              className="neon-border-hover"
+            >
+              <RefreshCw
+                className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`}
+              />
               بروزرسانی
             </Button>
           </div>
@@ -206,16 +210,28 @@ export default function AdminDashboardPage() {
                   </div>
                 ))
               : statCards.map((stat) => (
-                  <Link key={stat.title} href={stat.href} className="block transition-all hover:-translate-y-0.5">
-                    <div className="glass-card neon-border-hover rounded-2xl p-5 h-full">
-                      <div className={`inline-flex size-10 items-center justify-center rounded-xl ${stat.color}`}>
+                  <Link
+                    key={stat.title}
+                    href={stat.href}
+                    className="block transition-all hover:-translate-y-0.5"
+                  >
+                    <div className="glass-card neon-border-hover h-full rounded-2xl p-5">
+                      <div
+                        className={`inline-flex size-10 items-center justify-center rounded-xl ${stat.color}`}
+                      >
                         <stat.icon className="size-5" />
                       </div>
-                      <p className="mt-3 text-sm text-muted-foreground">{stat.title}</p>
-                      <p className="mt-1 text-2xl font-bold">
-                        {stat.value != null ? formatPersianNumber(stat.value) : "-"}
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {stat.title}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{stat.description}</p>
+                      <p className="mt-1 text-2xl font-bold">
+                        {stat.value != null
+                          ? formatPersianNumber(stat.value)
+                          : "-"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {stat.description}
+                      </p>
                     </div>
                   </Link>
                 ))}
@@ -231,7 +247,12 @@ export default function AdminDashboardPage() {
                   <AlertCircle className="size-5" />
                   <span>{error}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchStats} className="neon-border-hover">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchStats}
+                  className="neon-border-hover"
+                >
                   تلاش مجدد
                 </Button>
               </div>
@@ -244,33 +265,45 @@ export default function AdminDashboardPage() {
             {/* Today's overview */}
             <ScrollReveal className="mt-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                  <p className="text-sm font-medium text-muted-foreground">درآمد امروز</p>
+                <div className="glass-card rounded-2xl border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-5">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    درآمد امروز
+                  </p>
                   <p className="mt-1 text-3xl font-bold text-primary">
                     {formatPersianNumber(Math.round(stats.today_revenue))}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">تومان</p>
                 </div>
-                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-amber/5 to-amber/10 border-amber/20">
-                  <p className="text-sm font-medium text-muted-foreground">رزروهای امروز</p>
+                <div className="glass-card from-amber/5 to-amber/10 border-amber/20 rounded-2xl bg-gradient-to-br p-5">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    رزروهای امروز
+                  </p>
                   <p className="mt-1 text-3xl font-bold text-amber-600 dark:text-amber-400">
                     {formatPersianNumber(stats.today_bookings)}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">رزرو</p>
                 </div>
-                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-rose/5 to-rose/10 border-rose/20">
-                  <p className="text-sm font-medium text-muted-foreground">در انتظار پرداخت</p>
+                <div className="glass-card from-rose/5 to-rose/10 border-rose/20 rounded-2xl bg-gradient-to-br p-5">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    در انتظار پرداخت
+                  </p>
                   <p className="mt-1 text-3xl font-bold text-rose-600 dark:text-rose-400">
                     {formatPersianNumber(stats.pending_bookings)}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">رزرو نیازمند پیگیری</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    رزرو نیازمند پیگیری
+                  </p>
                 </div>
-                <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-cyan/5 to-cyan/10 border-cyan/20">
-                  <p className="text-sm font-medium text-muted-foreground">مدیران فعال</p>
+                <div className="glass-card from-cyan/5 to-cyan/10 border-cyan/20 rounded-2xl bg-gradient-to-br p-5">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    مدیران فعال
+                  </p>
                   <p className="mt-1 text-3xl font-bold text-cyan-600 dark:text-cyan-400">
                     {formatPersianNumber(stats.active_managers)}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">از {formatPersianNumber(stats.total_managers)} مدیر</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    از {formatPersianNumber(stats.total_managers)} مدیر
+                  </p>
                 </div>
               </div>
             </ScrollReveal>
@@ -280,7 +313,9 @@ export default function AdminDashboardPage() {
               <ScrollReveal className="lg:col-span-2">
                 <div className="glass-card neon-border-hover rounded-2xl p-6">
                   <h2 className="text-lg font-semibold">آخرین رزروها</h2>
-                  <p className="text-sm text-muted-foreground mt-1">۱۰ رزرو آخر سیستم</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    ۱۰ رزرو آخر سیستم
+                  </p>
                   <div className="mt-4">
                     {stats.recent_bookings.length === 0 ? (
                       <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
@@ -300,14 +335,21 @@ export default function AdminDashboardPage() {
                         <TableBody>
                           {stats.recent_bookings.map((b) => (
                             <TableRow key={b.id}>
-                              <TableCell className="font-medium">{b.court_name}</TableCell>
+                              <TableCell className="font-medium">
+                                {b.court_name}
+                              </TableCell>
                               <TableCell>{b.user_name}</TableCell>
                               <TableCell className="text-muted-foreground">
                                 {b.start_time ? formatDate(b.start_time) : "-"}
                               </TableCell>
-                              <TableCell>{formatPersianNumber(Math.round(b.price_paid))} تومان</TableCell>
                               <TableCell>
-                                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[b.status] || ""}`}>
+                                {formatPersianNumber(Math.round(b.price_paid))}{" "}
+                                تومان
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[b.status] || ""}`}
+                                >
                                   {statusLabels[b.status] || b.status}
                                 </span>
                               </TableCell>
@@ -323,57 +365,95 @@ export default function AdminDashboardPage() {
               <ScrollReveal>
                 <div className="glass-card neon-border-hover rounded-2xl p-6">
                   <h2 className="text-lg font-semibold">دسترسی سریع</h2>
-                  <p className="text-sm text-muted-foreground mt-1">مدیریت بخش‌های مختلف</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    مدیریت بخش‌های مختلف
+                  </p>
                   <div className="mt-4 space-y-2">
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/users">
                         <Users className="ml-2 size-4" />
                         مدیریت کاربران
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/courts">
                         <Building2 className="ml-2 size-4" />
                         مدیریت زمین‌ها
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/admin/bookings">
                         <CalendarCheck className="ml-2 size-4" />
                         رزروهای سیستم
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/payments">
                         <CreditCard className="ml-2 size-4" />
                         تراکنش‌ها
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/contact">
                         <MessageSquare className="ml-2 size-4" />
                         پیام‌های تماس
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/wallet">
                         <Wallet className="ml-2 size-4" />
                         کیف پول
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/penalties">
                         <Gavel className="ml-2 size-4" />
                         جریمه‌ها
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/reports">
                         <TrendingUp className="ml-2 size-4" />
                         گزارشات
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start neon-border-hover" asChild>
+                    <Button
+                      variant="outline"
+                      className="neon-border-hover w-full justify-start"
+                      asChild
+                    >
                       <Link href="/dashboard/admin/logs">
                         <History className="ml-2 size-4" />
                         لاگ سیستم
@@ -389,19 +469,23 @@ export default function AdminDashboardPage() {
               <ScrollReveal className="mt-6">
                 <div className="glass-card neon-border-hover rounded-2xl p-6">
                   <h2 className="text-lg font-semibold">محبوب‌ترین زمین‌ها</h2>
-                  <p className="text-sm text-muted-foreground mt-1">زمین‌های با بیشترین رزرو</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    زمین‌های با بیشترین رزرو
+                  </p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                     {stats.popular_courts.map((court, idx) => (
                       <Link
                         key={court.court_id}
                         href={`/dashboard/courts/${court.court_id}`}
-                        className="flex items-center gap-3 rounded-xl border bg-background/40 p-3 transition-all hover:bg-background/60 hover:-translate-y-0.5"
+                        className="flex items-center gap-3 rounded-xl border bg-background/40 p-3 transition-all hover:-translate-y-0.5 hover:bg-background/60"
                       >
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                           {idx + 1}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{court.court_name}</p>
+                          <p className="truncate text-sm font-medium">
+                            {court.court_name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {formatPersianNumber(court.booking_count)} رزرو
                           </p>
@@ -417,24 +501,33 @@ export default function AdminDashboardPage() {
             <ScrollReveal className="mt-6">
               <div className="glass-card neon-border-hover rounded-2xl p-6">
                 <h2 className="text-lg font-semibold">اعلان همگانی</h2>
-                <p className="text-sm text-muted-foreground mt-1">ارسال پیام به تمام کاربران</p>
-                <form onSubmit={async (e) => {
-                  e.preventDefault()
-                  if (!broadcastMessage.trim()) return
-                  setBroadcasting(true)
-                  try {
-                    await api("/api/v1/admin/notifications/broadcast", {
-                      method: "POST",
-                      body: JSON.stringify({ message: broadcastMessage, type: "broadcast" }),
-                    })
-                    toast.success("اعلان برای تمام کاربران ارسال شد")
-                    setBroadcastMessage("")
-                  } catch (err) {
-                    toast.error(err instanceof ApiError ? err.message : "خطا در ارسال")
-                  } finally {
-                    setBroadcasting(false)
-                  }
-                }}>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  ارسال پیام به تمام کاربران
+                </p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!broadcastMessage.trim()) return
+                    setBroadcasting(true)
+                    try {
+                      await api("/api/v1/admin/notifications/broadcast", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          message: broadcastMessage,
+                          type: "broadcast",
+                        }),
+                      })
+                      toast.success("اعلان برای تمام کاربران ارسال شد")
+                      setBroadcastMessage("")
+                    } catch (err) {
+                      toast.error(
+                        err instanceof ApiError ? err.message : "خطا در ارسال"
+                      )
+                    } finally {
+                      setBroadcasting(false)
+                    }
+                  }}
+                >
                   <div className="mt-4 flex gap-2">
                     <Input
                       name="message"

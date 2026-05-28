@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { courtCreateSchema } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,13 @@ import { api, ApiError } from "@/lib/api"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
 import dynamic from "next/dynamic"
-const LocationPicker = dynamic(() => import("@/components/courts/location-picker").then((m) => ({ default: m.LocationPicker })), { ssr: false })
+const LocationPicker = dynamic(
+  () =>
+    import("@/components/courts/location-picker").then((m) => ({
+      default: m.LocationPicker,
+    })),
+  { ssr: false }
+)
 import { ArrowRight } from "lucide-react"
 
 const sportTypes = [
@@ -33,32 +39,41 @@ export default function CreateCourtPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm({ resolver: zodResolver(courtCreateSchema) as any })
+  const selectedSports: string[] =
+    (useWatch({ control, name: "sport_types" }) as string[]) || []
+  const amenitiesValue = useWatch({ control, name: "amenities" }) || {}
 
   async function onSubmit(data: Record<string, unknown>) {
     try {
       await api("/api/v1/courts", {
         method: "POST",
-        body: JSON.stringify({ ...data, amenities: data.amenities || {}, images: courtImages }),
+        body: JSON.stringify({
+          ...data,
+          amenities: data.amenities || {},
+          images: courtImages,
+        }),
       })
       toast.success("زمین با موفقیت ایجاد شد")
       router.push("/dashboard/courts")
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "خطا در ایجاد زمین"
+      const message =
+        err instanceof ApiError ? err.message : "خطا در ایجاد زمین"
       toast.error(message)
     }
   }
 
-  const selectedSports: string[] = watch("sport_types") || []
-  const amenitiesValue = watch("amenities") || {}
-
   function toggleSport(value: string) {
-    const current: string[] = watch("sport_types") || []
+    const current = selectedSports
     if (current.includes(value)) {
-      setValue("sport_types", current.filter((s) => s !== value), { shouldValidate: true })
+      setValue(
+        "sport_types",
+        current.filter((s) => s !== value),
+        { shouldValidate: true }
+      )
     } else {
       setValue("sport_types", [...current, value], { shouldValidate: true })
     }
@@ -78,9 +93,15 @@ export default function CreateCourtPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">نام زمین</Label>
-              <Input id="name" placeholder="مثلاً سالن ۱" {...register("name")} />
+              <Input
+                id="name"
+                placeholder="مثلاً سالن ۱"
+                {...register("name")}
+              />
               {errors.name?.message && (
-                <p className="text-sm text-destructive">{String(errors.name.message)}</p>
+                <p className="text-sm text-destructive">
+                  {String(errors.name.message)}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -91,10 +112,8 @@ export default function CreateCourtPage() {
                   return (
                     <label
                       key={sport.value}
-                      className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-all ${
-                        checked
-                          ? "border-primary bg-primary/5 shadow-sm"
-                          : ""
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition-all ${
+                        checked ? "border-primary bg-primary/5 shadow-sm" : ""
                       }`}
                     >
                       <Checkbox
@@ -107,21 +126,29 @@ export default function CreateCourtPage() {
                 })}
               </div>
               {errors.sport_types?.message && (
-                <p className="text-sm text-destructive">{String(errors.sport_types.message)}</p>
+                <p className="text-sm text-destructive">
+                  {String(errors.sport_types.message)}
+                </p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">آدرس</Label>
-              <Textarea id="address" placeholder="آدرس کامل زمین" {...register("address")} />
+              <Textarea
+                id="address"
+                placeholder="آدرس کامل زمین"
+                {...register("address")}
+              />
               {errors.address?.message && (
-                <p className="text-sm text-destructive">{String(errors.address.message)}</p>
+                <p className="text-sm text-destructive">
+                  {String(errors.address.message)}
+                </p>
               )}
             </div>
             <div className="space-y-2">
               <Label>موقعیت روی نقشه</Label>
               <LocationPicker
-                latitude={watch("latitude")}
-                longitude={watch("longitude")}
+                latitude={useWatch({ control, name: "latitude" })}
+                longitude={useWatch({ control, name: "longitude" })}
                 onLocationChange={(lat, lng, address) => {
                   setValue("latitude", lat, { shouldValidate: true })
                   setValue("longitude", lng, { shouldValidate: true })
@@ -131,10 +158,14 @@ export default function CreateCourtPage() {
                 }}
               />
               {errors.latitude?.message && (
-                <p className="text-sm text-destructive">{String(errors.latitude.message)}</p>
+                <p className="text-sm text-destructive">
+                  {String(errors.latitude.message)}
+                </p>
               )}
               {errors.longitude?.message && (
-                <p className="text-sm text-destructive">{String(errors.longitude.message)}</p>
+                <p className="text-sm text-destructive">
+                  {String(errors.longitude.message)}
+                </p>
               )}
             </div>
             <AmenityCheckboxes
@@ -154,7 +185,9 @@ export default function CreateCourtPage() {
                 {...register("capacity", { valueAsNumber: true })}
               />
               {errors.capacity?.message && (
-                <p className="text-sm text-destructive">{String(errors.capacity.message)}</p>
+                <p className="text-sm text-destructive">
+                  {String(errors.capacity.message)}
+                </p>
               )}
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>

@@ -59,11 +59,8 @@ const CourtsMap = dynamic(
 )
 import {
   Building2,
-  CalendarDays,
-  CreditCard,
   Star,
   MapPin,
-  Users,
   SlidersHorizontal,
   Search,
   ChevronLeft,
@@ -108,7 +105,7 @@ function formatPrice(price: number | null): string {
 function HomePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, loading: authLoading, isAuthenticated } = useAuth()
+  const { loading: authLoading, isAuthenticated } = useAuth()
 
   const [featuredCourts, setFeaturedCourts] = useState<Court[]>([])
   const [total, setTotal] = useState(0)
@@ -128,11 +125,14 @@ function HomePageContent() {
 
   // User geolocation for nearby courts
   const geo = useGeolocation()
-  const [maxDistance, setMaxDistance] = useState("")
-  const userLocation =
-    geo.latitude && geo.longitude
-      ? { latitude: geo.latitude, longitude: geo.longitude }
-      : null
+  const [maxDistance] = useState("")
+  const userLocation = useMemo(
+    () =>
+      geo.latitude && geo.longitude
+        ? { latitude: geo.latitude, longitude: geo.longitude }
+        : null,
+    [geo.latitude, geo.longitude]
+  )
 
   // Sync URL -> state on mount
   useEffect(() => {
@@ -172,7 +172,17 @@ function HomePageContent() {
       params.set("max_distance_km", "20") // default 20km
     }
     return params.toString()
-  }, [page, limit, searchText, sportFilter, priceMin, priceMax, sortBy, userLocation, maxDistance])
+  }, [
+    page,
+    limit,
+    searchText,
+    sportFilter,
+    priceMin,
+    priceMax,
+    sortBy,
+    userLocation,
+    maxDistance,
+  ])
 
   // Sync filters to URL
   useEffect(() => {
@@ -203,9 +213,9 @@ function HomePageContent() {
   }, [apiParams])
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      fetchCourts()
-    }
+    if (authLoading || isAuthenticated) return
+    const timer = setTimeout(() => fetchCourts(), 0)
+    return () => clearTimeout(timer)
   }, [authLoading, isAuthenticated, fetchCourts])
 
   useEffect(() => {
@@ -274,9 +284,12 @@ function HomePageContent() {
         <RolesSection />
 
         {/* Search & Filters */}
-        <section className="relative overflow-hidden px-4 py-16 md:py-20" id="courts">
+        <section
+          className="relative overflow-hidden px-4 py-16 md:py-20"
+          id="courts"
+        >
           <div className="neon-orb neon-orb-3" />
-          <div className="neon-orb neon-orb-purple !right-auto left-1/3 top-1/4" />
+          <div className="neon-orb neon-orb-purple top-1/4 !right-auto left-1/3" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <div className="relative z-10 mx-auto max-w-5xl">
@@ -284,11 +297,11 @@ function HomePageContent() {
               <h2 className="text-3xl font-bold md:text-4xl">
                 جستجوی <span className="text-gradient-primary">سالن‌ها</span>
               </h2>
-              <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
                 زمین ورزشی مورد نظر خود را پیدا کنید
               </p>
             </div>
-            <div className="glass-card rounded-2xl p-5 md:p-6 flex flex-wrap items-end gap-3">
+            <div className="glass-card flex flex-wrap items-end gap-3 rounded-2xl p-5 md:p-6">
               <div className="min-w-[200px] flex-1">
                 <Label
                   htmlFor="search"
@@ -411,7 +424,7 @@ function HomePageContent() {
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
           <div className="neon-orb neon-orb-pink" />
           <div className="neon-orb neon-orb-cyan top-[20%] !right-auto !left-[60%]" />
-          <div className="neon-orb neon-orb-orange !bottom-[-80px] !right-[-60px]" />
+          <div className="neon-orb neon-orb-orange !right-[-60px] !bottom-[-80px]" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
           <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
@@ -419,36 +432,44 @@ function HomePageContent() {
               <h2 className="text-3xl font-bold md:text-4xl">
                 موقعیت <span className="text-gradient-primary">سالن‌ها</span>
               </h2>
-              <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
                 نزدیک‌ترین زمین‌های ورزشی به خود را پیدا کنید
               </p>
             </div>
             {/* Location status */}
             {geo.loading && (
-              <div className="mb-3 flex items-center gap-2 rounded-xl glass-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
+              <div className="glass-card mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
                 <div className="size-2 animate-pulse rounded-full bg-blue-500" />
                 در حال دریافت موقعیت شما...
               </div>
             )}
             {geo.error && (
-              <div className="mb-3 flex items-center justify-between rounded-xl glass-card px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+              <div className="glass-card mb-3 flex items-center justify-between rounded-xl px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
                 <div className="flex items-center gap-2">
                   <MapPin className="size-4 shrink-0" />
-                  <span>موقعیت‌یابی غیرفعال است — زمین‌های نزدیک نمایش داده نمی‌شوند</span>
+                  <span>
+                    موقعیت‌یابی غیرفعال است — زمین‌های نزدیک نمایش داده نمی‌شوند
+                  </span>
                 </div>
                 {geo.permissionState === "denied" && (
-                  <span className="text-xs text-muted-foreground">فعال‌سازی در تنظیمات مرورگر</span>
+                  <span className="text-xs text-muted-foreground">
+                    فعال‌سازی در تنظیمات مرورگر
+                  </span>
                 )}
               </div>
             )}
             {userLocation && (
-              <div className="mb-3 flex items-center gap-2 rounded-xl glass-card px-4 py-3 text-sm text-green-700 dark:text-green-300">
+              <div className="glass-card mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-green-700 dark:text-green-300">
                 <MapPin className="size-4 shrink-0" />
                 <span>نمایش زمین‌های نزدیک به موقعیت شما</span>
               </div>
             )}
-            <div className="glass-card rounded-2xl overflow-hidden">
-              <CourtsMap courts={featuredCourts} height="400px" userLocation={userLocation} />
+            <div className="glass-card overflow-hidden rounded-2xl">
+              <CourtsMap
+                courts={featuredCourts}
+                height="400px"
+                userLocation={userLocation}
+              />
             </div>
           </ScrollReveal>
         </section>
@@ -456,7 +477,7 @@ function HomePageContent() {
         {/* Courts Grid */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
           <div className="neon-orb neon-orb-3 !top-auto !bottom-[-120px] !left-[-100px]" />
-          <div className="neon-orb neon-orb-green !bottom-[-80px] !right-[-80px]" />
+          <div className="neon-orb neon-orb-green !right-[-80px] !bottom-[-80px]" />
           <div className="neon-orb neon-orb-cyan !top-[-150px] !right-[-120px]" />
           <div className="bg-mesh pointer-events-none absolute inset-0" />
           <div className="bg-dots pointer-events-none absolute inset-0" />
@@ -491,14 +512,18 @@ function HomePageContent() {
                 ))}
               </div>
             ) : featuredCourts.length === 0 ? (
-              <div className="glass-card rounded-2xl flex flex-col items-center gap-4 py-20 text-center">
+              <div className="glass-card flex flex-col items-center gap-4 rounded-2xl py-20 text-center">
                 <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
                   <Building2 className="size-8 text-muted-foreground" />
                 </div>
                 <p className="text-lg text-muted-foreground">
                   هیچ زمینی با فیلترهای انتخاب شده یافت نشد
                 </p>
-                <Button variant="outline" onClick={clearFilters} className="neon-border-hover">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="neon-border-hover"
+                >
                   پاک کردن فیلترها
                 </Button>
               </div>
@@ -509,7 +534,7 @@ function HomePageContent() {
                     <Link
                       key={court.id}
                       href={`/courts/${court.id}`}
-                      className="group block glass-card neon-border-hover tilt-card rounded-2xl p-5 transition-all hover:-translate-y-1.5"
+                      className="group glass-card neon-border-hover tilt-card block rounded-2xl p-5 transition-all hover:-translate-y-1.5"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -545,7 +570,7 @@ function HomePageContent() {
                           <span>{court.average_rating.toFixed(1)}</span>
                         </div>
                       </div>
-                      <div className="mt-3 text-sm font-medium text-gradient-primary">
+                      <div className="text-gradient-primary mt-3 text-sm font-medium">
                         {formatPrice(court.base_price)}
                       </div>
                     </Link>

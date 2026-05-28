@@ -1,9 +1,9 @@
 "use client"
 
 import { useCallback, useState } from "react"
+import Image from "next/image"
 import { uploadFile } from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { ImagePlus, Loader2, Trash2, X } from "lucide-react"
+import { ImagePlus, Loader2, Trash2 } from "lucide-react"
 
 interface ImageUploadProps {
   images: string[]
@@ -11,7 +11,11 @@ interface ImageUploadProps {
   maxImages?: number
 }
 
-export function ImageUpload({ images, onChange, maxImages = 5 }: ImageUploadProps) {
+export function ImageUpload({
+  images,
+  onChange,
+  maxImages = 5,
+}: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
 
   const handleUpload = useCallback(
@@ -31,14 +35,14 @@ export function ImageUpload({ images, onChange, maxImages = 5 }: ImageUploadProp
         e.target.value = ""
       }
     },
-    [images, onChange],
+    [images, onChange]
   )
 
   const removeImage = useCallback(
     (index: number) => {
       onChange(images.filter((_, i) => i !== index))
     },
-    [images, onChange],
+    [images, onChange]
   )
 
   const canUpload = images.length < maxImages
@@ -47,11 +51,16 @@ export function ImageUpload({ images, onChange, maxImages = 5 }: ImageUploadProp
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
         {images.map((url, index) => (
-          <div key={url} className="group relative size-24 overflow-hidden rounded-lg border">
-            <img
+          <div
+            key={url}
+            className="group relative size-24 overflow-hidden rounded-lg border"
+          >
+            <Image
               src={url}
               alt={`تصویر ${index + 1}`}
-              className="size-full object-cover"
+              fill
+              className="object-cover"
+              sizes="96px"
             />
             <button
               type="button"

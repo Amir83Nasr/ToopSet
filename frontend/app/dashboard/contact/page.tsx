@@ -4,13 +4,9 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   Table,
@@ -36,7 +32,6 @@ import {
   ChevronRight,
   Loader2,
   Mail,
-  MessageSquare,
   Phone,
   Trash2,
   User,
@@ -66,7 +61,9 @@ export default function ContactMessagesPage() {
   const [messages, setMessages] = useState<ContactMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null)
+  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
+    null
+  )
   const [deleteTarget, setDeleteTarget] = useState<ContactMessage | null>(null)
   const limit = 20
 
@@ -85,7 +82,8 @@ export default function ContactMessagesPage() {
   }, [page])
 
   useEffect(() => {
-    fetchMessages()
+    const timer = setTimeout(() => fetchMessages(), 0)
+    return () => clearTimeout(timer)
   }, [fetchMessages])
 
   async function handleDelete(msg: ContactMessage) {
@@ -106,7 +104,9 @@ export default function ContactMessagesPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">پیام‌های تماس</h1>
-        <p className="text-muted-foreground">مدیریت پیام‌های ارسال شده از صفحه تماس با ما</p>
+        <p className="text-muted-foreground">
+          مدیریت پیام‌های ارسال شده از صفحه تماس با ما
+        </p>
       </div>
 
       {/* Loading */}
@@ -146,17 +146,22 @@ export default function ContactMessagesPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium">{msg.name}</p>
-                        <p className="text-xs text-muted-foreground" dir="ltr">{msg.email}</p>
+                        <p className="text-xs text-muted-foreground" dir="ltr">
+                          {msg.email}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[200px]">
                       <p className="truncate">{msg.subject}</p>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDate(msg.created_at)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           variant="ghost"
                           size="icon"
@@ -174,9 +179,7 @@ export default function ContactMessagesPage() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {page + 1}
-              </p>
+              <p className="text-sm text-muted-foreground">صفحه {page + 1}</p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -217,12 +220,18 @@ export default function ContactMessagesPage() {
                     <User className="size-4" />
                     <span>{selectedMessage?.name}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground" dir="ltr">
+                  <div
+                    className="flex items-center gap-1.5 text-muted-foreground"
+                    dir="ltr"
+                  >
                     <Mail className="size-4" />
                     <span>{selectedMessage?.email}</span>
                   </div>
                   {selectedMessage?.phone && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground" dir="ltr">
+                    <div
+                      className="flex items-center gap-1.5 text-muted-foreground"
+                      dir="ltr"
+                    >
                       <Phone className="size-4" />
                       <span>{toPersianDigits(selectedMessage.phone)}</span>
                     </div>
@@ -240,8 +249,10 @@ export default function ContactMessagesPage() {
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel>بستن</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => selectedMessage && setDeleteTarget(selectedMessage)}
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={() =>
+                selectedMessage && setDeleteTarget(selectedMessage)
+              }
             >
               <Trash2 className="ml-1 size-4" />
               حذف پیام
@@ -265,7 +276,7 @@ export default function ContactMessagesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>انصراف</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
             >
               حذف

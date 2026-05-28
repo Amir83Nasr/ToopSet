@@ -158,7 +158,7 @@ export default function SchedulePage() {
   const [creating, setCreating] = useState(false)
   const [slotToDelete, setSlotToDelete] = useState<TimeSlot | null>(null)
   const [selectedDays, setSelectedDays] = useState<boolean[]>(
-    Array.from({ length: 7 }, () => false),
+    Array.from({ length: 7 }, () => false)
   )
 
   const weekDays = useMemo(() => getWeekDays(), [])
@@ -167,7 +167,7 @@ export default function SchedulePage() {
   const fetchCourts = useCallback(async () => {
     try {
       const res = await api<{ courts: Court[]; total: number }>(
-        "/api/v1/courts?skip=0&limit=100",
+        "/api/v1/courts?skip=0&limit=100"
       )
       setCourts(res.courts)
     } catch {
@@ -178,14 +178,18 @@ export default function SchedulePage() {
   }, [])
 
   useEffect(() => {
-    fetchCourts()
+    const timer = setTimeout(() => fetchCourts(), 0)
+    return () => clearTimeout(timer)
   }, [fetchCourts])
 
   /* auto-select first court when list loads ----------------------- */
   useEffect(() => {
-    if (courts.length > 0 && selectedCourtId === null) {
-      setSelectedCourtId(courts[0].id)
-    }
+    const timer = setTimeout(() => {
+      if (courts.length > 0 && selectedCourtId === null) {
+        setSelectedCourtId(courts[0].id)
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [courts, selectedCourtId])
 
   /* fetch slots for the selected court ---------------------------- */
@@ -195,7 +199,7 @@ export default function SchedulePage() {
     setError(null)
     try {
       const res = await api<{ slots: TimeSlot[]; total: number }>(
-        `/api/v1/courts/${selectedCourtId}/slots?skip=0&limit=100`,
+        `/api/v1/courts/${selectedCourtId}/slots?skip=0&limit=100`
       )
       setSlots(res.slots)
       setSlotsTotal(res.total)
@@ -207,7 +211,8 @@ export default function SchedulePage() {
   }, [selectedCourtId])
 
   useEffect(() => {
-    fetchSlots()
+    const timer = setTimeout(() => fetchSlots(), 0)
+    return () => clearTimeout(timer)
   }, [fetchSlots])
 
   /* group slots by day -------------------------------------------- */
@@ -223,7 +228,7 @@ export default function SchedulePage() {
     Object.values(groups).forEach((daySlots) => {
       daySlots.sort(
         (a, b) =>
-          new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
       )
     })
     return groups
@@ -266,7 +271,7 @@ export default function SchedulePage() {
 
       if (endDateTime <= startDateTime) {
         errors.push(
-          `${PERSIAN_DAY_NAMES[dayIndex]}: زمان پایان باید بعد از شروع باشد`,
+          `${PERSIAN_DAY_NAMES[dayIndex]}: زمان پایان باید بعد از شروع باشد`
         )
         continue
       }
@@ -283,8 +288,7 @@ export default function SchedulePage() {
         })
         created++
       } catch (err) {
-        const msg =
-          err instanceof ApiError ? err.message : "خطا در ایجاد زمان"
+        const msg = err instanceof ApiError ? err.message : "خطا در ایجاد زمان"
         errors.push(`${PERSIAN_DAY_NAMES[dayIndex]}: ${msg}`)
       }
     }
@@ -307,10 +311,9 @@ export default function SchedulePage() {
     if (!slotToDelete || !selectedCourtId) return
 
     try {
-      await api(
-        `/api/v1/courts/${selectedCourtId}/slots/${slotToDelete.id}`,
-        { method: "DELETE" },
-      )
+      await api(`/api/v1/courts/${selectedCourtId}/slots/${slotToDelete.id}`, {
+        method: "DELETE",
+      })
       toast.success("زمان با موفقیت حذف شد")
       setSlotToDelete(null)
       fetchSlots()
@@ -422,8 +425,7 @@ export default function SchedulePage() {
             open={dialogOpen}
             onOpenChange={(open) => {
               setDialogOpen(open)
-              if (!open)
-                setSelectedDays(Array.from({ length: 7 }, () => false))
+              if (!open) setSelectedDays(Array.from({ length: 7 }, () => false))
             }}
           >
             <DialogTrigger asChild>
@@ -485,12 +487,7 @@ export default function SchedulePage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="end_time">ساعت پایان</Label>
-                    <Input
-                      id="end_time"
-                      name="end_time"
-                      type="time"
-                      required
-                    />
+                    <Input id="end_time" name="end_time" type="time" required />
                   </div>
                 </div>
 
@@ -575,10 +572,7 @@ export default function SchedulePage() {
                 <p className="text-muted-foreground">
                   هیچ زمانی برای این زمین تعریف نشده
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() => setDialogOpen(true)}
-                >
+                <Button variant="outline" onClick={() => setDialogOpen(true)}>
                   <CalendarPlus className="ml-2 size-4" />
                   ایجاد زمان جدید
                 </Button>
@@ -683,7 +677,9 @@ export default function SchedulePage() {
                                           <div className="absolute inset-0 cursor-help rounded-lg" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p>این زمان توسط کاربر رزرو شده است</p>
+                                          <p>
+                                            این زمان توسط کاربر رزرو شده است
+                                          </p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -719,10 +715,7 @@ export default function SchedulePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={handleDelete}
-            >
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
               حذف
             </AlertDialogAction>
           </AlertDialogFooter>

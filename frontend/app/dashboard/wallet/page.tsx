@@ -3,12 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -28,7 +23,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Wallet, RefreshCw, ArrowDownLeft, ArrowUpRight, Plus, Minus } from "lucide-react"
+import {
+  Wallet,
+  RefreshCw,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Plus,
+  Minus,
+} from "lucide-react"
 import { toast } from "sonner"
 
 interface WalletTransaction {
@@ -51,7 +53,10 @@ function formatAmount(amount: number): string {
   return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومان`
 }
 
-const typeLabels: Record<string, { label: string; variant: "default" | "destructive" | "secondary" }> = {
+const typeLabels: Record<
+  string,
+  { label: string; variant: "default" | "destructive" | "secondary" }
+> = {
   deposit: { label: "واریز", variant: "default" },
   withdrawal: { label: "برداشت", variant: "destructive" },
   refund: { label: "استرداد", variant: "secondary" },
@@ -63,7 +68,7 @@ function TransactionRow({ tx }: { tx: WalletTransaction }) {
 
   return (
     <TableRow>
-      <TableCell className="whitespace-nowrap text-xs">
+      <TableCell className="text-xs whitespace-nowrap">
         {formatDate(tx.created_at)}
       </TableCell>
       <TableCell>
@@ -73,7 +78,9 @@ function TransactionRow({ tx }: { tx: WalletTransaction }) {
           ) : (
             <ArrowUpRight className="size-4 text-red-500" />
           )}
-          <span className="font-medium">{formatAmount(Math.abs(tx.amount))}</span>
+          <span className="font-medium">
+            {formatAmount(Math.abs(tx.amount))}
+          </span>
         </div>
       </TableCell>
       <TableCell>
@@ -81,7 +88,7 @@ function TransactionRow({ tx }: { tx: WalletTransaction }) {
           {type.label}
         </span>
       </TableCell>
-      <TableCell className="text-muted-foreground text-sm">
+      <TableCell className="text-sm text-muted-foreground">
         {tx.description || "-"}
       </TableCell>
     </TableRow>
@@ -126,12 +133,17 @@ function TransactionForm({
           description: description || undefined,
         }),
       })
-      toast.success(type === "deposit" ? "واریز موفقیت‌آمیز بود" : "برداشت موفقیت‌آمیز بود")
+      toast.success(
+        type === "deposit" ? "واریز موفقیت‌آمیز بود" : "برداشت موفقیت‌آمیز بود"
+      )
       setAmount("")
       setDescription("")
       onSuccess()
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : `خطا در ${type === "deposit" ? "واریز" : "برداشت"}`
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : `خطا در ${type === "deposit" ? "واریز" : "برداشت"}`
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -193,7 +205,8 @@ export default function WalletPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    const timer = setTimeout(() => fetchData(), 0)
+    return () => clearTimeout(timer)
   }, [fetchData])
 
   if (loading) {
@@ -283,7 +296,7 @@ export default function WalletPage() {
         <CardContent>
           {transactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Wallet className="size-12 text-muted-foreground mb-4" />
+              <Wallet className="mb-4 size-12 text-muted-foreground" />
               <p className="text-muted-foreground">تراکنشی وجود ندارد</p>
             </div>
           ) : (

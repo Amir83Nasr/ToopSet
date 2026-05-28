@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -12,7 +12,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { Loader2, User, Lock, SunMoon, Check, Phone, IdCard } from "lucide-react"
+import {
+  Loader2,
+  User,
+  Lock,
+  SunMoon,
+  Check,
+  Phone,
+  IdCard,
+} from "lucide-react"
 import { toast } from "sonner"
 
 interface UserProfile {
@@ -60,7 +68,8 @@ export default function SettingsPage() {
   }, [])
 
   useEffect(() => {
-    fetchUser()
+    const timer = setTimeout(() => fetchUser(), 0)
+    return () => clearTimeout(timer)
   }, [fetchUser])
 
   const handleSaveName = useCallback(async () => {
@@ -140,8 +149,14 @@ export default function SettingsPage() {
             <div className="glass-card rounded-2xl p-6">
               <Skeleton className="h-5 w-28" />
               <div className="mt-4 space-y-4">
-                <div className="space-y-1"><Skeleton className="h-3 w-20" /><Skeleton className="h-4 w-36" /></div>
-                <div className="space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-full" /></div>
+                <div className="space-y-1">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
                 <Skeleton className="h-8 w-28" />
               </div>
             </div>
@@ -153,11 +168,14 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <div className="glass-card rounded-2xl p-6 mt-6">
+          <div className="glass-card mt-6 rounded-2xl p-6">
             <Skeleton className="h-5 w-28" />
             <div className="mt-4 space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-full" /></div>
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
               ))}
               <Skeleton className="h-8 w-32" />
             </div>
@@ -174,8 +192,16 @@ export default function SettingsPage() {
         <div className="bg-mesh pointer-events-none absolute inset-0" />
         <div className="bg-dots pointer-events-none absolute inset-0" />
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <p className="text-muted-foreground">امکان بارگذاری اطلاعات وجود ندارد</p>
-          <Button variant="outline" className="neon-border-hover" onClick={fetchUser}>تلاش مجدد</Button>
+          <p className="text-muted-foreground">
+            امکان بارگذاری اطلاعات وجود ندارد
+          </p>
+          <Button
+            variant="outline"
+            className="neon-border-hover"
+            onClick={fetchUser}
+          >
+            تلاش مجدد
+          </Button>
         </div>
       </div>
     )
@@ -195,7 +221,9 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               <span className="text-gradient-primary">تنظیمات</span> حساب
             </h1>
-            <p className="text-muted-foreground">مدیریت حساب کاربری و تنظیمات ظاهری</p>
+            <p className="text-muted-foreground">
+              مدیریت حساب کاربری و تنظیمات ظاهری
+            </p>
           </div>
         </ScrollReveal>
 
@@ -209,20 +237,24 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-semibold">اطلاعات حساب</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">مشاهده و ویرایش اطلاعات شخصی</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    مشاهده و ویرایش اطلاعات شخصی
+                  </p>
                 </div>
               </div>
               <div className="mt-6 space-y-5">
                 <div className="flex items-center gap-3 rounded-xl border bg-background/40 p-3">
-                  <Phone className="size-5 text-muted-foreground shrink-0" />
+                  <Phone className="size-5 shrink-0 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">شماره تلفن</p>
-                    <p className="text-sm font-medium" dir="ltr">{toPersianDigits(user.phone)}</p>
+                    <p className="text-sm font-medium" dir="ltr">
+                      {toPersianDigits(user.phone)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 rounded-xl border bg-background/40 p-3">
-                  <IdCard className="size-5 text-muted-foreground shrink-0" />
+                  <IdCard className="size-5 shrink-0 text-muted-foreground" />
                   <div className="flex-1">
                     <p className="text-xs text-muted-foreground">نقش کاربری</p>
                     <Badge variant="outline" className="mt-0.5 text-xs">
@@ -267,26 +299,33 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-semibold">تنظیمات ظاهری</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">تغییر تم روشن/تاریک</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    تغییر تم روشن/تاریک
+                  </p>
                 </div>
               </div>
               <div className="mt-6 space-y-5">
                 <div className="flex items-center justify-between rounded-xl border bg-background/40 p-4">
                   <div>
                     <p className="text-sm font-medium">حالت تاریک</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {isDark ? "در حال حاضر تم تاریک فعال است" : "در حال حاضر تم روشن فعال است"}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {isDark
+                        ? "در حال حاضر تم تاریک فعال است"
+                        : "در حال حاضر تم روشن فعال است"}
                     </p>
                   </div>
                   <Switch
                     id="darkMode"
                     checked={isDark}
-                    onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                    onCheckedChange={(checked) =>
+                      setTheme(checked ? "dark" : "light")
+                    }
                   />
                 </div>
                 <div className="rounded-xl border bg-background/40 p-4">
                   <p className="text-xs text-muted-foreground">
-                    از دکمه <SunMoon className="mx-1 inline size-3.5" /> در نوار بالایی برای تغییر سریع تم استفاده کنید.
+                    از دکمه <SunMoon className="mx-1 inline size-3.5" /> در نوار
+                    بالایی برای تغییر سریع تم استفاده کنید.
                   </p>
                 </div>
               </div>
@@ -303,7 +342,9 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h2 className="text-base font-semibold">تغییر رمز عبور</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">رمز عبور جدید باید حداقل ۶ کاراکتر باشد</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  رمز عبور جدید باید حداقل ۶ کاراکتر باشد
+                </p>
               </div>
             </div>
             <div className="mt-6 grid gap-5 md:grid-cols-3">
@@ -343,7 +384,9 @@ export default function SettingsPage() {
               disabled={changingPassword}
               className="mt-5"
             >
-              {changingPassword && <Loader2 className="ml-1 size-4 animate-spin" />}
+              {changingPassword && (
+                <Loader2 className="ml-1 size-4 animate-spin" />
+              )}
               {changingPassword ? "در حال تغییر..." : "تغییر رمز عبور"}
             </Button>
           </div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Image from "next/image"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
@@ -47,7 +48,7 @@ import {
   ArrowRight,
   Pencil,
   CalendarPlus,
-  Building2,
+
   MapPin,
   Star,
   Users,
@@ -85,9 +86,19 @@ const sportLabels: Record<string, string> = {
 
 const sportColors: Record<string, string> = {
   volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  basketball:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  handball:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+}
+
+interface Review {
+  id: number
+  user_name?: string
+  rating: number
+  comment?: string
+  response?: string
 }
 
 const amenityLabels: Record<string, string> = {
@@ -130,7 +141,7 @@ export default function CourtDetailPage() {
   const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
   const [bookingParticipants, setBookingParticipants] = useState(1)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
-  const [recentReviews, setRecentReviews] = useState<any[]>([])
+  const [recentReviews, setRecentReviews] = useState<Review[]>([])
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
 
   const canManage = user?.role === "manager" || user?.role === "admin"
@@ -148,7 +159,7 @@ export default function CourtDetailPage() {
       setSlotsTotal(slotsRes.total)
       // Fetch recent reviews
       try {
-        const revRes = await api<{ reviews: any[]; total: number }>(
+        const revRes = await api<{ reviews: Review[]; total: number }>(
           `/api/v1/courts/${courtId}/reviews?limit=3`
         )
         setRecentReviews(revRes.reviews || [])
@@ -167,7 +178,8 @@ export default function CourtDetailPage() {
   }, [courtId])
 
   useEffect(() => {
-    fetchData()
+    const timer = setTimeout(() => fetchData(), 0)
+    return () => clearTimeout(timer)
   }, [fetchData])
 
   async function handleCreateSlot(e: React.FormEvent<HTMLFormElement>) {
@@ -262,9 +274,12 @@ export default function CourtDetailPage() {
 
   if (notFound || !court) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
         <p className="text-xl text-muted-foreground">زمین مورد نظر یافت نشد</p>
-        <Button variant="outline" onClick={() => router.push("/dashboard/courts")}>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/dashboard/courts")}
+        >
           <ArrowRight className="ml-2 size-4" />
           بازگشت به لیست
         </Button>
@@ -274,7 +289,11 @@ export default function CourtDetailPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <Button variant="ghost" className="w-fit" onClick={() => router.push("/dashboard/courts")}>
+      <Button
+        variant="ghost"
+        className="w-fit"
+        onClick={() => router.push("/dashboard/courts")}
+      >
         <ArrowRight className="ml-2 size-4" />
         بازگشت به لیست زمین‌ها
       </Button>
@@ -287,7 +306,11 @@ export default function CourtDetailPage() {
             <CardDescription>
               <div className="flex flex-wrap gap-1.5">
                 {court.sport_types?.map((st) => (
-                  <Badge key={st} className={sportColors[st] || ""} variant="secondary">
+                  <Badge
+                    key={st}
+                    className={sportColors[st] || ""}
+                    variant="secondary"
+                  >
                     {sportLabels[st] || st}
                   </Badge>
                 ))}
@@ -341,11 +364,13 @@ export default function CourtDetailPage() {
           </div>
           {court.amenities && Object.keys(court.amenities).length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {Object.entries(court.amenities).filter(([, v]) => v).map(([key]) => (
-                <Badge key={key} variant="outline" className="text-xs">
-                  {amenityLabels[key] || key}
-                </Badge>
-              ))}
+              {Object.entries(court.amenities)
+                .filter(([, v]) => v)
+                .map(([key]) => (
+                  <Badge key={key} variant="outline" className="text-xs">
+                    {amenityLabels[key] || key}
+                  </Badge>
+                ))}
             </div>
           )}
         </CardContent>
@@ -362,11 +387,13 @@ export default function CourtDetailPage() {
               <CarouselContent>
                 {court.images.map((img: string, i: number) => (
                   <CarouselItem key={i}>
-                    <div className="relative aspect-video rounded-lg overflow-hidden border">
-                      <img
+                    <div className="relative aspect-video overflow-hidden rounded-lg border">
+                      <Image
                         src={img}
                         alt={`${court.name} - ${i + 1}`}
-                        className="object-cover w-full h-full"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 50vw"
                       />
                     </div>
                   </CarouselItem>
@@ -390,16 +417,25 @@ export default function CourtDetailPage() {
             <CardTitle>نظرات اخیر</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentReviews.map((rev: any) => (
-              <div key={rev.id} className="border-b last:border-0 pb-3 last:pb-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">{rev.user_name || "کاربر"}</span>
+            {recentReviews.map((rev: Review) => (
+              <div
+                key={rev.id}
+                className="border-b pb-3 last:border-0 last:pb-0"
+              >
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {rev.user_name || "کاربر"}
+                  </span>
                   <div className="flex items-center gap-0.5" dir="ltr">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
                         size={12}
-                        className={star <= rev.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}
+                        className={
+                          star <= rev.rating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-muted-foreground/30"
+                        }
                       />
                     ))}
                   </div>
@@ -409,7 +445,9 @@ export default function CourtDetailPage() {
                 )}
                 {rev.response && (
                   <div className="mt-2 rounded-lg bg-muted p-2 text-sm">
-                    <span className="text-xs font-medium text-muted-foreground">پاسخ مدیر: </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      پاسخ مدیر:{" "}
+                    </span>
                     {rev.response}
                   </div>
                 )}
@@ -451,11 +489,21 @@ export default function CourtDetailPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="start_time">ساعت شروع</Label>
-                      <Input id="start_time" name="start_time" type="time" required />
+                      <Input
+                        id="start_time"
+                        name="start_time"
+                        type="time"
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="end_time">ساعت پایان</Label>
-                      <Input id="end_time" name="end_time" type="time" required />
+                      <Input
+                        id="end_time"
+                        name="end_time"
+                        type="time"
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -504,7 +552,9 @@ export default function CourtDetailPage() {
                     <TableCell>{formatTime(slot.end_time)}</TableCell>
                     <TableCell>{formatPrice(slot.base_price)}</TableCell>
                     <TableCell>
-                      <Badge variant={slot.is_reserved ? "secondary" : "outline"}>
+                      <Badge
+                        variant={slot.is_reserved ? "secondary" : "outline"}
+                      >
                         {slot.is_reserved ? "رزرو شده" : "آزاد"}
                       </Badge>
                     </TableCell>
@@ -560,11 +610,14 @@ export default function CourtDetailPage() {
                 router.push("/dashboard/bookings")
               } catch (err) {
                 if (err instanceof ApiError && err.status === 409) {
-                  toast.error("این زمان تغییر کرده است. لطفاً صفحه را بازنشانی کنید.")
+                  toast.error(
+                    "این زمان تغییر کرده است. لطفاً صفحه را بازنشانی کنید."
+                  )
                   setBookingDialogOpen(false)
                   fetchData()
                 } else {
-                  const msg = err instanceof ApiError ? err.message : "خطا در رزرو"
+                  const msg =
+                    err instanceof ApiError ? err.message : "خطا در رزرو"
                   toast.error(msg)
                 }
               } finally {
@@ -582,7 +635,11 @@ export default function CourtDetailPage() {
                 min={1}
                 max={court?.capacity ?? 50}
                 value={bookingParticipants}
-                onChange={(e) => setBookingParticipants(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setBookingParticipants(
+                    Math.max(1, parseInt(e.target.value) || 1)
+                  )
+                }
                 required
               />
               {court && (
