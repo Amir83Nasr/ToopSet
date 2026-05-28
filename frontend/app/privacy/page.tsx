@@ -70,13 +70,9 @@ export default function PrivacyPage() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main className="flex-1">
-        <div className="relative isolate">
-          {/* Vertical hash decorative columns — like tailwindcss.com */}
-          <div className="bg-grid-vert pointer-events-none fixed inset-y-0 right-0 z-0 hidden w-16 lg:block" />
-          <div className="bg-grid-vert pointer-events-none fixed inset-y-0 left-0 z-0 hidden w-16 lg:block" />
-          <div className="bg-grid pointer-events-none absolute inset-0 z-0" />
-
-          <div className="relative z-10 mx-auto max-w-3xl px-4 py-12 md:py-16">
+        <div className="relative">
+          <div className="bg-grid pointer-events-none absolute inset-0" />
+          <div className="relative mx-auto max-w-3xl px-4 py-12 md:py-16">
             <div className="text-center">
               <div className="mb-6 inline-flex items-center justify-center rounded-2xl border bg-card p-3 shadow-xs">
                 <ShieldCheck className="size-8 text-primary" />
