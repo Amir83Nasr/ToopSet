@@ -20,11 +20,15 @@ GREY   := $(ESC)[90m
 COMPOSE_FILE    := compose.yml
 COMPOSE_PROJECT := toopset
 IMAGE_NAME      := toopset
-IMAGE_TAG       ?= latest
+IMAGE_TAG       ?= $(shell cat VERSION 2>/dev/null || echo "latest")
 BACKEND_DIR     := backend
 FRONTEND_DIR    := frontend
 UVICORN_PORT    ?= 8000
 NEXT_PORT       ?= 3000
+
+# ── Version management ─────────────────────────────────────────
+CUR_VERSION := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
+SEMVER_RE   := ^[0-9]+\.[0-9]+\.[0-9]+
 
 # ─────────────────────────────────────────────────────────────────────
 # 🏠  Help
@@ -174,6 +178,51 @@ install: ## Install ALL project dependencies (npm + pip)
 	@$(MAKE) back-deps
 	@$(MAKE) front-install
 	@echo "  $(GREEN)✓$(RESET) All dependencies installed"
+
+# ─────────────────────────────────────────────────────────────────────
+# --- Version management ---
+# ─────────────────────────────────────────────────────────────────────
+
+.PHONY: version version-sync version-bump version-check
+
+version: ## Show current project version
+	@echo "  $(CUR_VERSION)"
+
+version-sync: ## Sync VERSION → pyproject.toml + package.json
+	$(eval V := $(shell cat VERSION))
+	@sed -i '' 's/^version = ".*"/version = "$(V)"/' $(BACKEND_DIR)/pyproject.toml
+	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' $(FRONTEND_DIR)/package.json
+	@echo "  $(GREEN)✓$(RESET) Version synced to $(V)"
+
+define bump-usage
+Usage:  make version-bump BUMP=<part>
+  BUMP=patch   (0.1.0 → 0.1.1)
+  BUMP=minor   (0.1.0 → 0.2.0)
+  BUMP=major   (0.1.0 → 1.0.0)
+endef
+
+version-bump: ## Bump version (BUMP=patch|minor|major)
+	@if [ -z "$(BUMP)" ]; then \
+		echo "  $(RED)✗$(RESET) Usage: make version-bump BUMP=patch|minor|major"; \
+		exit 1; \
+	fi
+	$(eval V := $(shell cat VERSION))
+	$(eval MAJ := $(word 1,$(subst ., ,$(V))))
+	$(eval MIN := $(word 2,$(subst ., ,$(V))))
+	$(eval PAT := $(word 3,$(subst ., ,$(V))))
+	$(eval NEW_V := $(if $(filter patch,$(BUMP)),$(MAJ).$(MIN).$$(shell expr $(PAT) + 1),$(if $(filter minor,$(BUMP)),$(MAJ).$$(shell expr $(MIN) + 1).0,$(if $(filter major,$(BUMP)),$$(shell expr $(MAJ) + 1).0.0,))))
+	@if [ "$(NEW_V)" = "" ]; then \
+		echo "  $(RED)✗$(RESET) Invalid BUMP: $(BUMP). Use patch, minor, or major."; \
+		exit 1; \
+	fi
+	@printf '%s' "$(NEW_V)" > VERSION
+	@$(MAKE) version-sync V=$(NEW_V)
+	@echo "  $(GREEN)✓$(RESET) Bumped $(V) → $(NEW_V)"
+
+version-check: ## Verify VERSION matches pyproject.toml and package.json
+	@python3 scripts/check-version.py "$(shell cat VERSION)" \
+		--pyproject $(BACKEND_DIR)/pyproject.toml \
+		--package $(FRONTEND_DIR)/package.json
 
 # ─────────────────────────────────────────────────────────────────────
 # --- Docker: databases only ---
