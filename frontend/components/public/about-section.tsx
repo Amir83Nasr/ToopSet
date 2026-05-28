@@ -33,7 +33,8 @@ export function AboutSection() {
     <section id="about" className="relative overflow-hidden px-4 py-16 md:py-20">
       <div className="neon-orb neon-orb-green" />
       <div className="neon-orb neon-orb-cyan !top-auto !bottom-[-80px] !left-[-60px]" />
-      <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-mesh pointer-events-none" />
+      <div className="absolute inset-0 bg-dots pointer-events-none" />
       <ScrollReveal className="mx-auto max-w-5xl relative z-10">
         {/* Section Header */}
         <div className="mb-12 text-center">
@@ -50,7 +51,7 @@ export function AboutSection() {
             return (
               <div
                 key={feature.title}
-                className="group relative rounded-xl border bg-card p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg"
+                className="group relative rounded-xl border bg-card p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10"
               >
                 <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <Icon className="size-7" />

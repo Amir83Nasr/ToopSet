@@ -232,7 +232,8 @@ function HomePageContent() {
         {/* Search & Filters */}
         <section className="relative overflow-hidden px-4 py-8" id="courts">
           <div className="neon-orb neon-orb-3" />
-          <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+          <div className="absolute inset-0 bg-mesh pointer-events-none" />
+          <div className="absolute inset-0 bg-dots pointer-events-none" />
           <div className="mx-auto max-w-5xl relative z-10">
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-bold">جستجوی سالن‌ها</h2>
@@ -328,7 +329,8 @@ function HomePageContent() {
         <section className="relative overflow-hidden px-4 py-8">
           <div className="neon-orb neon-orb-pink" />
           <div className="neon-orb neon-orb-cyan !right-auto !left-[60%] top-[20%]" />
-          <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+          <div className="absolute inset-0 bg-mesh pointer-events-none" />
+          <div className="absolute inset-0 bg-dots pointer-events-none" />
           <ScrollReveal className="mx-auto max-w-5xl relative z-10">
             <CourtsMap courts={featuredCourts} height="350px" />
           </ScrollReveal>
@@ -336,7 +338,8 @@ function HomePageContent() {
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden bg-muted/30 px-4 py-8">
-          <div className="absolute inset-0 bg-neon-grid pointer-events-none" />
+          <div className="absolute inset-0 bg-mesh pointer-events-none" />
+          <div className="absolute inset-0 bg-dots pointer-events-none" />
           <ScrollReveal className="mx-auto max-w-5xl relative z-10">
             <div className="mb-6 flex items-center justify-between">
               <div>
@@ -375,12 +378,12 @@ function HomePageContent() {
                     <Link
                       key={court.id}
                       href={`/courts/${court.id}`}
-                      className="block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+                      className="group block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold truncate">{court.name}</h3>
+                            <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{court.name}</h3>
                             <FavoriteButton courtId={court.id} />
                           </div>
                           <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

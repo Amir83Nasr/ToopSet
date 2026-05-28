@@ -29,7 +29,8 @@ export function HowItWorks() {
     <section className="relative overflow-hidden px-4 py-16 md:py-20">
       <div className="neon-orb neon-orb-purple !right-auto !left-[-120px]" />
       <div className="neon-orb neon-orb-orange" />
-      <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-mesh pointer-events-none" />
+      <div className="absolute inset-0 bg-dots pointer-events-none" />
       <ScrollReveal className="mx-auto max-w-5xl relative z-10">
         {/* Section Header */}
         <div className="mb-12 text-center">
@@ -49,7 +50,9 @@ export function HowItWorks() {
             return (
               <div key={step.title} className="relative flex flex-col items-center text-center">
                 {/* Step Number */}
-                <div className="relative z-10 mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
+                <div className={`relative z-10 mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 animate-float-slow`}
+                  style={{ animationDelay: `${index * 0.3}s` }}
+                >
                   <Icon className="size-7" />
                 </div>
 

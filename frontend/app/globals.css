@@ -224,195 +224,309 @@
 }
 
 /* ══════════════════════════════════════════════════
-   Neon Effects
+   Background Patterns — Mesh Gradients & Dot Overlay
+   Inspired by tailwindcss.com background aesthetics
    ══════════════════════════════════════════════════ */
 
-@keyframes neon-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+/* Mesh gradient — large blurred radial gradients like tailwindcss.com */
+.bg-mesh {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--primary) / 0.08), transparent),
+    radial-gradient(ellipse 50% 60% at 80% 20%, hsl(var(--chart-2) / 0.06), transparent),
+    radial-gradient(ellipse 40% 50% at 0% 50%, hsl(var(--chart-5) / 0.05), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--chart-1) / 0.04), transparent);
 }
 
-@keyframes neon-glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.3),
-                0 0 20px hsl(var(--primary) / 0.15);
-  }
-  50% {
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.5),
-                0 0 30px hsl(var(--primary) / 0.25),
-                0 0 60px hsl(var(--primary) / 0.1);
-  }
+/* Subtle dot pattern overlay like tailwindcss.com */
+.bg-dots {
+  background-image: radial-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.neon-glow {
-  animation: neon-glow-pulse 3s ease-in-out infinite;
+/* Hero-specific: larger, more dramatic mesh */
+.bg-mesh-hero {
+  background-image:
+    radial-gradient(ellipse 100% 60% at 50% -10%, hsl(var(--primary) / 0.12), transparent),
+    radial-gradient(ellipse 60% 70% at 80% 10%, hsl(var(--chart-2) / 0.08), transparent),
+    radial-gradient(ellipse 50% 60% at 10% 40%, hsl(var(--chart-5) / 0.06), transparent),
+    radial-gradient(ellipse 70% 50% at 30% 90%, hsl(var(--chart-3) / 0.05), transparent),
+    radial-gradient(ellipse 40% 40% at 90% 80%, hsl(var(--chart-1) / 0.04), transparent);
+}
+
+/* ══════════════════════════════════════════════════
+   Neon Orbs — floating glowing spheres
+   ══════════════════════════════════════════════════ */
+
+@keyframes neon-float {
+  0%, 100% { transform: translate(0, 0); opacity: 0.15; }
+  25% { transform: translate(10px, -15px); opacity: 0.25; }
+  50% { transform: translate(-5px, -25px); opacity: 0.2; }
+  75% { transform: translate(-15px, -5px); opacity: 0.18; }
+}
+
+@keyframes neon-float-reverse {
+  0%, 100% { transform: translate(0, 0); opacity: 0.12; }
+  25% { transform: translate(-10px, 15px); opacity: 0.2; }
+  50% { transform: translate(5px, 25px); opacity: 0.16; }
+  75% { transform: translate(15px, 5px); opacity: 0.14; }
 }
 
 .neon-orb {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(80px);
+  filter: blur(100px);
   pointer-events: none;
-  opacity: 0.15;
+  z-index: 0;
 }
 
+/* Primary theme orbs */
 .neon-orb-1 {
   background: hsl(var(--primary));
-  width: 400px;
-  height: 400px;
-  top: -100px;
+  width: 500px;
+  height: 500px;
+  top: -150px;
   right: -100px;
-  animation: neon-pulse 4s ease-in-out infinite;
+  animation: neon-float 8s ease-in-out infinite;
 }
 
 .neon-orb-2 {
-  background: hsl(var(--primary) / 0.6);
-  width: 300px;
-  height: 300px;
-  bottom: -50px;
-  left: -80px;
-  animation: neon-pulse 5s ease-in-out infinite 1s;
+  background: hsl(var(--primary) / 0.5);
+  width: 350px;
+  height: 350px;
+  bottom: -80px;
+  left: -100px;
+  animation: neon-float-reverse 10s ease-in-out infinite;
 }
 
 .neon-orb-3 {
-  background: hsl(var(--secondary));
-  width: 250px;
-  height: 250px;
-  top: 40%;
-  left: 10%;
-  animation: neon-pulse 6s ease-in-out infinite 2s;
+  background: hsl(var(--secondary) / 0.4);
+  width: 300px;
+  height: 300px;
+  top: 30%;
+  left: 5%;
+  animation: neon-float 9s ease-in-out infinite 2s;
 }
 
-/* Colorful neon orbs */
+/* Colorful orbs */
 .neon-orb-purple {
   background: hsl(270 80% 60% / 0.15);
-  width: 350px;
-  height: 350px;
-  top: -80px;
-  left: -100px;
-  animation: neon-pulse 5s ease-in-out infinite 0.5s;
+  width: 400px;
+  height: 400px;
+  top: -120px;
+  left: -120px;
+  animation: neon-float 8s ease-in-out infinite 0.5s;
 }
 
 .neon-orb-green {
   background: hsl(160 70% 50% / 0.12);
-  width: 300px;
-  height: 300px;
-  bottom: -60px;
-  right: -80px;
-  animation: neon-pulse 6s ease-in-out infinite 1.5s;
+  width: 350px;
+  height: 350px;
+  bottom: -80px;
+  right: -100px;
+  animation: neon-float-reverse 9s ease-in-out infinite 1.5s;
 }
 
 .neon-orb-pink {
   background: hsl(330 80% 60% / 0.12);
-  width: 280px;
-  height: 280px;
-  top: 20%;
-  right: 10%;
-  animation: neon-pulse 4.5s ease-in-out infinite 0.8s;
+  width: 320px;
+  height: 320px;
+  top: 15%;
+  right: 5%;
+  animation: neon-float 7s ease-in-out infinite 0.8s;
 }
 
 .neon-orb-orange {
-  background: hsl(25 90% 55% / 0.12);
-  width: 250px;
-  height: 250px;
-  bottom: 10%;
+  background: hsl(25 90% 55% / 0.11);
+  width: 300px;
+  height: 300px;
+  bottom: 15%;
   left: 5%;
-  animation: neon-pulse 5.5s ease-in-out infinite 2s;
+  animation: neon-float-reverse 8.5s ease-in-out infinite 2s;
 }
 
 .neon-orb-cyan {
-  background: hsl(190 80% 55% / 0.12);
-  width: 320px;
-  height: 320px;
-  top: -120px;
-  left: 30%;
-  animation: neon-pulse 6s ease-in-out infinite 1s;
-}
-
-/* Neon grid overlay */
-.bg-neon-grid {
-  background-image:
-    linear-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--primary) / 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
+  background: hsl(190 80% 55% / 0.11);
+  width: 380px;
+  height: 380px;
+  top: -150px;
+  left: 25%;
+  animation: neon-float 10s ease-in-out infinite 1s;
 }
 
 /* ══════════════════════════════════════════════════
-   Entrance Animations
+   Neon Sign / Neon Lamp Text Effects
+   Realistic neon tube glow with multiple shadow layers
+   ══════════════════════════════════════════════════ */
+
+@keyframes neon-sign-pulse {
+  0%, 100% {
+    text-shadow:
+      0 0 4px hsl(var(--primary) / 0.4),
+      0 0 10px hsl(var(--primary) / 0.3),
+      0 0 20px hsl(var(--primary) / 0.2),
+      0 0 40px hsl(var(--primary) / 0.15),
+      0 0 80px hsl(var(--primary) / 0.1);
+  }
+  50% {
+    text-shadow:
+      0 0 6px hsl(var(--primary) / 0.6),
+      0 0 15px hsl(var(--primary) / 0.5),
+      0 0 30px hsl(var(--primary) / 0.35),
+      0 0 60px hsl(var(--primary) / 0.2),
+      0 0 100px hsl(var(--primary) / 0.15);
+  }
+}
+
+.neon-sign {
+  animation: neon-sign-pulse 3s ease-in-out infinite;
+}
+
+/* Neon card border — like a neon tube frame */
+@keyframes neon-border-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 4px hsl(var(--primary) / 0.2),
+      inset 0 0 4px hsl(var(--primary) / 0.05);
+  }
+  50% {
+    box-shadow:
+      0 0 8px hsl(var(--primary) / 0.4),
+      0 0 20px hsl(var(--primary) / 0.15),
+      inset 0 0 8px hsl(var(--primary) / 0.1);
+  }
+}
+
+.neon-border {
+  animation: neon-border-pulse 4s ease-in-out infinite;
+  border: 1px solid hsl(var(--primary) / 0.2);
+}
+
+/* ══════════════════════════════════════════════════
+   Keyframes — More Animations
    ══════════════════════════════════════════════════ */
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fade-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-12px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out both;
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
-.animate-fade-in-up-delay-1 { animation-delay: 0.1s; }
-.animate-fade-in-up-delay-2 { animation-delay: 0.2s; }
-.animate-fade-in-up-delay-3 { animation-delay: 0.3s; }
-.animate-fade-in-up-delay-4 { animation-delay: 0.4s; }
-.animate-fade-in-up-delay-5 { animation-delay: 0.5s; }
-.animate-fade-in-up-delay-6 { animation-delay: 0.6s; }
-.animate-fade-in-up-delay-7 { animation-delay: 0.7s; }
-.animate-fade-in-up-delay-8 { animation-delay: 0.8s; }
-.animate-fade-in-up-delay-9 { animation-delay: 0.9s; }
+@keyframes tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(2deg); }
+  75% { transform: rotate(-2deg); }
+}
+
+@keyframes breath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════════
+   Animation Utility Classes
+   ══════════════════════════════════════════════════ */
+
+.animate-fade-in-up   { animation: fade-in-up 0.6s ease-out both; }
+.animate-fade-in-down { animation: fade-in-down 0.6s ease-out both; }
+.animate-fade-in-left { animation: fade-in-left 0.6s ease-out both; }
+.animate-fade-in-right { animation: fade-in-right 0.6s ease-out both; }
+.animate-scale-in     { animation: scale-in 0.5s ease-out both; }
+.animate-float        { animation: float 4s ease-in-out infinite; }
+.animate-float-slow   { animation: float-slow 6s ease-in-out infinite; }
+.animate-tilt         { animation: tilt 3s ease-in-out infinite; }
+.animate-breath       { animation: breath 3s ease-in-out infinite; }
+.animate-shimmer      { animation: shimmer 3s linear infinite; background-size: 200% 100%; }
+.animate-spin-slow    { animation: spin-slow 8s linear infinite; }
+
+/* Delay variants for fade-in-up */
+.animate-fade-in-up-delay-1  { animation-delay: 0.1s; }
+.animate-fade-in-up-delay-2  { animation-delay: 0.2s; }
+.animate-fade-in-up-delay-3  { animation-delay: 0.3s; }
+.animate-fade-in-up-delay-4  { animation-delay: 0.4s; }
+.animate-fade-in-up-delay-5  { animation-delay: 0.5s; }
+.animate-fade-in-up-delay-6  { animation-delay: 0.6s; }
+.animate-fade-in-up-delay-7  { animation-delay: 0.7s; }
+.animate-fade-in-up-delay-8  { animation-delay: 0.8s; }
+.animate-fade-in-up-delay-9  { animation-delay: 0.9s; }
 .animate-fade-in-up-delay-10 { animation-delay: 1s; }
 
-.animate-scale-in {
-  animation: scale-in 0.5s ease-out both;
-}
+/* Delay variants for scale-in */
+.animate-scale-in-delay-1  { animation-delay: 0.1s; }
+.animate-scale-in-delay-2  { animation-delay: 0.2s; }
+.animate-scale-in-delay-3  { animation-delay: 0.3s; }
+.animate-scale-in-delay-4  { animation-delay: 0.4s; }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: float 6s ease-in-out infinite;
-}
-
-/* Stagger children fade-in-up */
+/* Stagger children */
 .stagger-fade-in > * {
   animation: fade-in-up 0.5s ease-out both;
 }
 
-.stagger-fade-in > *:nth-child(1) { animation-delay: 0s; }
-.stagger-fade-in > *:nth-child(2) { animation-delay: 0.1s; }
-.stagger-fade-in > *:nth-child(3) { animation-delay: 0.2s; }
-.stagger-fade-in > *:nth-child(4) { animation-delay: 0.3s; }
-.stagger-fade-in > *:nth-child(5) { animation-delay: 0.4s; }
-.stagger-fade-in > *:nth-child(6) { animation-delay: 0.5s; }
-.stagger-fade-in > *:nth-child(7) { animation-delay: 0.6s; }
-.stagger-fade-in > *:nth-child(8) { animation-delay: 0.7s; }
-.stagger-fade-in > *:nth-child(9) { animation-delay: 0.8s; }
-.stagger-fade-in > *:nth-child(10) { animation-delay: 0.9s; }
-.stagger-fade-in > *:nth-child(11) { animation-delay: 1s; }
-.stagger-fade-in > *:nth-child(12) { animation-delay: 1.1s; }
+.stagger-fade-in > *:nth-child(1)  { animation-delay: 0s; }
+.stagger-fade-in > *:nth-child(2)  { animation-delay: 0.08s; }
+.stagger-fade-in > *:nth-child(3)  { animation-delay: 0.16s; }
+.stagger-fade-in > *:nth-child(4)  { animation-delay: 0.24s; }
+.stagger-fade-in > *:nth-child(5)  { animation-delay: 0.32s; }
+.stagger-fade-in > *:nth-child(6)  { animation-delay: 0.4s; }
+.stagger-fade-in > *:nth-child(7)  { animation-delay: 0.48s; }
+.stagger-fade-in > *:nth-child(8)  { animation-delay: 0.56s; }
+.stagger-fade-in > *:nth-child(9)  { animation-delay: 0.64s; }
+.stagger-fade-in > *:nth-child(10) { animation-delay: 0.72s; }
+.stagger-fade-in > *:nth-child(11) { animation-delay: 0.8s; }
+.stagger-fade-in > *:nth-child(12) { animation-delay: 0.88s; }
+
+/* Stagger scale-in */
+.stagger-scale-in > * {
+  animation: scale-in 0.4s ease-out both;
+}
+
+.stagger-scale-in > *:nth-child(1)  { animation-delay: 0s; }
+.stagger-scale-in > *:nth-child(2)  { animation-delay: 0.08s; }
+.stagger-scale-in > *:nth-child(3)  { animation-delay: 0.16s; }
+.stagger-scale-in > *:nth-child(4)  { animation-delay: 0.24s; }
+.stagger-scale-in > *:nth-child(5)  { animation-delay: 0.32s; }
+.stagger-scale-in > *:nth-child(6)  { animation-delay: 0.4s; }
+.stagger-scale-in > *:nth-child(7)  { animation-delay: 0.48s; }
+.stagger-scale-in > *:nth-child(8)  { animation-delay: 0.56s; }
+.stagger-scale-in > *:nth-child(9)  { animation-delay: 0.64s; }
+.stagger-scale-in > *:nth-child(10) { animation-delay: 0.72s; }
+.stagger-scale-in > *:nth-child(11) { animation-delay: 0.8s; }
+.stagger-scale-in > *:nth-child(12) { animation-delay: 0.88s; }

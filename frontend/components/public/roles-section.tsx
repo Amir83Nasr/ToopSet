@@ -59,8 +59,9 @@ export function RolesSection() {
   return (
     <section className="relative overflow-hidden bg-muted/30 px-4 py-16 md:py-20">
       <div className="neon-orb neon-orb-purple" />
-      <div className="neon-orb neon-orb-blue !right-auto left-1/4 top-1/3" />
-      <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+      <div className="neon-orb neon-orb-cyan !right-auto left-1/4 top-1/3" />
+      <div className="absolute inset-0 bg-mesh pointer-events-none" />
+      <div className="absolute inset-0 bg-dots pointer-events-none" />
       <ScrollReveal className="mx-auto max-w-5xl relative z-10">
         {/* Section Header */}
         <div className="mb-12 text-center">
@@ -77,8 +78,8 @@ export function RolesSection() {
             return (
               <div
                 key={role.title}
-                className={`relative rounded-xl border bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-lg ${
-                  role.featured ? "ring-2 ring-primary shadow-lg scale-[1.02] md:scale-105" : ""
+                className={`relative rounded-xl border bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10 ${
+                  role.featured ? "ring-2 ring-primary shadow-lg shadow-primary/20 scale-[1.02] md:scale-105 neon-border" : ""
                 }`}
               >
                 {role.featured && (
