@@ -32,12 +32,13 @@ class CourtService:
         ref_lat: float | None = None,
         ref_lon: float | None = None,
         max_distance_km: float | None = None,
+        sort: str = "default",
     ) -> CourtListResponse:
         if self.current_user is None or self.current_user.role not in ("admin", "manager"):
             is_active = True
         courts, total = await self.repo.list(
             skip=skip, limit=limit, sport_type=sport_type, is_active=is_active, search=search,
-            date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max,
+            date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max, sort=sort,
             ref_lat=ref_lat, ref_lon=ref_lon, max_distance_km=max_distance_km
         )
         return CourtListResponse(

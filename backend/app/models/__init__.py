@@ -9,6 +9,7 @@ from app.models.log import Log
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
 from app.models.notification import Notification
+from app.models.contact import ContactMessage
 
 __all__ = [
     "User",
@@ -22,4 +23,5 @@ __all__ = [
     "Wallet",
     "WalletTransaction",
     "Notification",
+    "ContactMessage",
 ]

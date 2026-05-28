@@ -1,14 +1,37 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import dynamic from "next/dynamic"
+import { SiteHeader } from "@/components/public/site-header"
+import { SiteFooter } from "@/components/public/site-footer"
+import { HeroSection } from "@/components/public/hero-section"
+import { AboutSection } from "@/components/public/about-section"
+import { RolesSection } from "@/components/public/roles-section"
+import { HowItWorks } from "@/components/public/how-it-works"
 
 const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) => m.CourtsMap), {
   ssr: false,
@@ -19,16 +42,20 @@ const CourtsMap = dynamic(() => import("@/components/map/courts-map").then((m) =
   ),
 })
 import {
-  Volleyball,
   Building2,
   CalendarDays,
   CreditCard,
   Star,
   MapPin,
   Users,
+  SlidersHorizontal,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react"
 
-interface FeaturedCourt {
+interface Court {
   id: number
   name: string
   sport_type: string
@@ -38,6 +65,7 @@ interface FeaturedCourt {
   capacity: number
   is_active: boolean
   average_rating: number
+  base_price: number | null
 }
 
 const sportLabels: Record<string, string> = {
@@ -54,11 +82,91 @@ const sportColors: Record<string, string> = {
   handball: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
 }
 
-export default function HomePage() {
-  const { user, loading: authLoading, isAuthenticated } = useAuth()
+function formatPrice(price: number | null): string {
+  if (price == null) return "—"
+  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
+}
+
+function HomePageContent() {
   const router = useRouter()
-  const [featuredCourts, setFeaturedCourts] = useState<FeaturedCourt[]>([])
+  const searchParams = useSearchParams()
+  const { user, loading: authLoading, isAuthenticated } = useAuth()
+
+  const [featuredCourts, setFeaturedCourts] = useState<Court[]>([])
+  const [total, setTotal] = useState(0)
   const [courtsLoading, setCourtsLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const limit = 12
+  const initialized = useRef(false)
+
+  // Filters from URL
+  const [searchText, setSearchText] = useState(searchParams.get("q") || "")
+  const [sportFilter, setSportFilter] = useState(searchParams.get("sport") || "all")
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
+  const [priceMin, setPriceMin] = useState(searchParams.get("price_min") || "")
+  const [priceMax, setPriceMax] = useState(searchParams.get("price_max") || "")
+
+  // Sync URL -> state on mount
+  useEffect(() => {
+    if (!initialized.current) {
+      setSearchText(searchParams.get("q") || "")
+      setSportFilter(searchParams.get("sport") || "all")
+      setSortBy(searchParams.get("sort") || "default")
+      setPriceMin(searchParams.get("price_min") || "")
+      setPriceMax(searchParams.get("price_max") || "")
+      initialized.current = true
+    }
+  }, [searchParams])
+
+  // Build API params
+  const apiParams = useMemo(() => {
+    const params = new URLSearchParams()
+    params.set("skip", String(page * limit))
+    params.set("limit", String(limit))
+    params.set("is_active", "true")
+    if (searchText) params.set("search", searchText)
+    if (sportFilter && sportFilter !== "all") params.set("sport_type", sportFilter)
+    if (priceMin) params.set("price_min", priceMin)
+    if (priceMax) params.set("price_max", priceMax)
+    if (sortBy === "price_asc") params.set("sort", "price_asc")
+    if (sortBy === "price_desc") params.set("sort", "price_desc")
+    if (sortBy === "rating") params.set("sort", "rating")
+    return params.toString()
+  }, [page, limit, searchText, sportFilter, priceMin, priceMax, sortBy])
+
+  // Sync filters to URL
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (searchText) params.set("q", searchText)
+    if (sportFilter && sportFilter !== "all") params.set("sport", sportFilter)
+    if (sortBy !== "default") params.set("sort", sortBy)
+    if (priceMin) params.set("price_min", priceMin)
+    if (priceMax) params.set("price_max", priceMax)
+    const qs = params.toString()
+    const url = qs ? `/?${qs}` : "/"
+    router.replace(url, { scroll: false })
+  }, [searchText, sportFilter, sortBy, priceMin, priceMax, router])
+
+  const fetchCourts = useCallback(async () => {
+    setCourtsLoading(true)
+    try {
+      const res = await api<{ courts: Court[]; total: number }>(
+        `/api/v1/courts?${apiParams}`
+      )
+      setFeaturedCourts(res.courts)
+      setTotal(res.total)
+    } catch {
+      // API may not be available
+    } finally {
+      setCourtsLoading(false)
+    }
+  }, [apiParams])
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      fetchCourts()
+    }
+  }, [authLoading, isAuthenticated, fetchCourts])
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -66,166 +174,282 @@ export default function HomePage() {
     }
   }, [authLoading, isAuthenticated, router])
 
-  const fetchFeaturedCourts = useCallback(async () => {
-    try {
-      const res = await api<{ courts: FeaturedCourt[] }>(
-        "/api/v1/courts?limit=6&is_active=true"
-      )
-      setFeaturedCourts(res.courts)
-    } catch {
-      // API may not be available
-    } finally {
-      setCourtsLoading(false)
-    }
-  }, [])
+  function clearFilters() {
+    setSearchText("")
+    setSportFilter("all")
+    setSortBy("default")
+    setPriceMin("")
+    setPriceMax("")
+    setPage(0)
+  }
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      fetchFeaturedCourts()
-    }
-  }, [authLoading, isAuthenticated, fetchFeaturedCourts])
+  const hasActiveFilters = searchText || (sportFilter && sportFilter !== "all") || sortBy !== "default" || priceMin || priceMax
 
   if (authLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      <div className="flex min-h-svh flex-col">
+        <SiteHeader />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        </div>
+        <SiteFooter />
       </div>
     )
   }
 
-  if (isAuthenticated) return null
+  if (isAuthenticated) return (
+    <div className="flex min-h-svh flex-col">
+      <SiteHeader />
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-muted-foreground">در حال انتقال به داشبورد...</p>
+      </div>
+      <SiteFooter />
+    </div>
+  )
+
+  const totalPages = Math.ceil(total / limit)
 
   return (
     <div className="flex min-h-svh flex-col">
-      {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center px-6 py-20 text-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-        <div className="relative z-10 flex max-w-2xl flex-col items-center gap-6">
-          <div className="flex size-20 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-2xl">
-            <Volleyball className="size-10" />
-          </div>
-          <div className="space-y-3">
-            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-              توپ سِت
-            </h1>
-            <p className="text-lg leading-relaxed text-muted-foreground">
-              سامانه هوشمند رزرو آنلاین زمین‌های ورزشی
-              <br />
-              والیبال، بسکتبال، فوتسال و هندبال
-            </p>
-          </div>
-          <div className="flex gap-4">
-            <Button asChild size="lg" className="h-12 px-8">
-              <Link href="/login">ورود</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="h-12 px-8">
-              <Link href="/register">ثبت‌نام</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      {/* Site Header */}
+      <SiteHeader />
 
-      {/* How It Works */}
-      <section className="bg-muted/30 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="mb-12 text-center text-2xl font-bold">چگونه کار می‌کند؟</h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary">
-                <Building2 className="size-8 text-primary-foreground" />
-              </div>
-              <h3 className="mb-2 font-semibold">زمین انتخاب کنید</h3>
-              <p className="text-sm text-muted-foreground">
-                از میان زمین‌های ورزشی در نقشه، زمین مورد علاقه خود را انتخاب کنید
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary">
-                <CalendarDays className="size-8 text-primary-foreground" />
-              </div>
-              <h3 className="mb-2 font-semibold">زمان انتخاب کنید</h3>
-              <p className="text-sm text-muted-foreground">
-                از بین زمان‌های آزاد، زمان دلخواه خود را رزرو کنید
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary">
-                <CreditCard className="size-8 text-primary-foreground" />
-              </div>
-              <h3 className="mb-2 font-semibold">پرداخت کنید</h3>
-              <p className="text-sm text-muted-foreground">
-                با استفاده از کیف پول دیجیتال، هزینه را به راحتی پرداخت کنید
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <main>
+        {/* Hero Section */}
+        <HeroSection />
 
-      {/* Featured Courts Map */}
-      <section className="px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold">زمین‌های ما را روی نقشه ببینید</h2>
-            <p className="text-muted-foreground">
-              تمام زمین‌های ورزشی در دسترس شما
-            </p>
-          </div>
-          <CourtsMap courts={featuredCourts} height="400px" />
-        </div>
-      </section>
+        {/* About Section */}
+        <AboutSection />
 
-      {/* Featured Courts List */}
-      {featuredCourts.length > 0 && (
-        <section className="bg-muted/30 px-6 py-16">
+        {/* How It Works */}
+        <HowItWorks />
+
+        {/* Roles Section */}
+        <RolesSection />
+
+        {/* Search & Filters */}
+        <section className="px-4 py-8" id="courts">
           <div className="mx-auto max-w-5xl">
-            <h2 className="mb-8 text-2xl font-bold">زمین‌های ویژه</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {featuredCourts.map((court) => (
-                <Link
-                  key={court.id}
-                  href={`/courts/${court.id}`}
-                  className="block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{court.name}</h3>
-                      <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="size-3" />
-                        <span className="truncate">{court.address}</span>
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold">جستجوی سالن‌ها</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                زمین ورزشی مورد نظر خود را پیدا کنید
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor="search" className="mb-1.5 block text-xs text-muted-foreground">جستجو</Label>
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="نام زمین، آدرس..."
+                    value={searchText}
+                    onChange={(e) => { setSearchText(e.target.value); setPage(0) }}
+                    className="pr-9"
+                  />
+                </div>
+              </div>
+              <div className="w-[140px]">
+                <Label className="mb-1.5 block text-xs text-muted-foreground">ورزش</Label>
+                <Select value={sportFilter} onValueChange={(v) => { setSportFilter(v); setPage(0) }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                    <SelectItem value="volleyball">والیبال</SelectItem>
+                    <SelectItem value="basketball">بسکتبال</SelectItem>
+                    <SelectItem value="futsal">فوتسال</SelectItem>
+                    <SelectItem value="handball">هندبال</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[140px]">
+                <Label className="mb-1.5 block text-xs text-muted-foreground">مرتب‌سازی</Label>
+                <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(0) }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">پیش‌فرض</SelectItem>
+                    <SelectItem value="price_asc">قیمت: کم به زیاد</SelectItem>
+                    <SelectItem value="price_desc">قیمت: زیاد به کم</SelectItem>
+                    <SelectItem value="rating">امتیاز</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <SlidersHorizontal className="size-4" />
+                    فیلترهای بیشتر
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px]">
+                  <SheetHeader>
+                    <SheetTitle>فیلترها</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-6">
+                    <div className="space-y-2">
+                      <Label>محدوده قیمت (تومان)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="حداقل"
+                          value={priceMin}
+                          onChange={(e) => { setPriceMin(e.target.value); setPage(0) }}
+                        />
+                        <span className="text-muted-foreground">—</span>
+                        <Input
+                          type="number"
+                          placeholder="حداکثر"
+                          value={priceMax}
+                          onChange={(e) => { setPriceMax(e.target.value); setPage(0) }}
+                        />
                       </div>
                     </div>
-                    <Badge className={sportColors[court.sport_type]} variant="secondary">
-                      {sportLabels[court.sport_type]}
-                    </Badge>
+                    <Button variant="outline" className="w-full" onClick={clearFilters}>
+                      <X className="ml-2 size-4" />
+                      پاک کردن فیلترها
+                    </Button>
                   </div>
-                  <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      ظرفیت: {toPersianDigits(court.capacity)} نفر
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                      <span>{court.average_rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </section>
-      )}
 
-      {/* CTA Section */}
-      <section className="px-6 py-20 text-center">
-        <div className="mx-auto max-w-xl">
-          <h2 className="mb-4 text-2xl font-bold">آماده شروع هستید؟</h2>
-          <p className="mb-6 text-muted-foreground">
-            همین حالا ثبت‌نام کنید و اولین رزرو ورزشی خود را انجام دهید
-          </p>
-          <Button asChild size="lg" className="h-12 px-8">
-            <Link href="/register">ثبت‌نام رایگان</Link>
-          </Button>
-        </div>
-      </section>
+        {/* Map */}
+        <section className="px-4 py-8">
+          <div className="mx-auto max-w-5xl">
+            <CourtsMap courts={featuredCourts} height="350px" />
+          </div>
+        </section>
+
+        {/* Courts Grid */}
+        <section className="bg-muted/30 px-4 py-8">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">زمین‌ها</h2>
+                <p className="text-sm text-muted-foreground">
+                  {toPersianDigits(total)} زمین پیدا شد
+                  {hasActiveFilters && (
+                    <button onClick={clearFilters} className="mr-2 text-xs text-primary underline underline-offset-2">
+                      پاک کردن فیلتر
+                    </button>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {courtsLoading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border bg-card p-5">
+                    <Skeleton className="mb-3 h-5 w-32" />
+                    <Skeleton className="mb-2 h-4 w-full" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ))}
+              </div>
+            ) : featuredCourts.length === 0 ? (
+              <div className="flex flex-col items-center gap-4 py-16 text-center">
+                <Building2 className="size-12 text-muted-foreground" />
+                <p className="text-lg text-muted-foreground">هیچ زمینی با فیلترهای انتخاب شده یافت نشد</p>
+                <Button variant="outline" onClick={clearFilters}>پاک کردن فیلترها</Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {featuredCourts.map((court) => (
+                    <Link
+                      key={court.id}
+                      href={`/courts/${court.id}`}
+                      className="block rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold">{court.name}</h3>
+                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="size-3" />
+                            <span className="truncate">{court.address}</span>
+                          </div>
+                        </div>
+                        <Badge className={sportColors[court.sport_type]} variant="secondary">
+                          {sportLabels[court.sport_type]}
+                        </Badge>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          ظرفیت: {toPersianDigits(court.capacity)} نفر
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                          <span>{court.average_rating.toFixed(1)}</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-primary">
+                        {formatPrice(court.base_price)}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      <ChevronRight className="ml-1 size-4" />
+                      قبلی
+                    </Button>
+                    {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                      const pageNum = Math.max(0, Math.min(page - 2, totalPages - 5)) + i
+                      if (pageNum >= totalPages) return null
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPage(pageNum)}
+                        >
+                          {toPersianDigits(pageNum + 1)}
+                        </Button>
+                      )
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPages - 1}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      بعدی
+                      <ChevronLeft className="mr-1 size-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+      </main>
+
+      {/* Site Footer */}
+      <SiteFooter />
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageContent />
+    </Suspense>
   )
 }

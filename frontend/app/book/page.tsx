@@ -17,6 +17,14 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import {
   ArrowRight,
   CheckCircle2,
   Clock,
@@ -216,6 +224,21 @@ function BookPageContent() {
   if (authLoading || step === "loading") {
     return (
       <div className="mx-auto flex max-w-lg flex-col gap-6 px-4 py-12">
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>...</BreadcrumbPage>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>رزرو سانس</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-48 w-full rounded-xl" />
         <Skeleton className="h-10 w-full" />
@@ -239,6 +262,25 @@ function BookPageContent() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            {court ? (
+              <BreadcrumbLink href={`/courts/${court.id}`}>{court.name}</BreadcrumbLink>
+            ) : (
+              <BreadcrumbPage>...</BreadcrumbPage>
+            )}
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>رزرو سانس</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       {/* Back button */}
       <Button variant="ghost" className="mb-4 w-fit" asChild>
         <Link href={`/courts/${courtId}`}>

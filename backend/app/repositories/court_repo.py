@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from math import asin, cos, radians, sin, sqrt
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.court import Court, SportType
+from app.models.time_slot import TimeSlot
 
 
 class CourtRepo:
@@ -36,8 +37,8 @@ class CourtRepo:
         ref_lat: float | None = None,
         ref_lon: float | None = None,
         max_distance_km: float | None = None,
+        sort: str = "default",
     ) -> tuple[list[Court], int]:
-        from app.models.time_slot import TimeSlot
         query = select(Court)
         count_query = select(Court.id)
 
@@ -74,7 +75,20 @@ class CourtRepo:
 
         total = len((await self.db.execute(count_query)).scalars().all())
 
-        result = await self.db.execute(query.offset(skip).limit(limit).order_by(Court.created_at.desc()))
+        order = Court.created_at.desc()
+        if sort in ("price_asc", "price_desc"):
+            price_subq = (
+                select(func.min(TimeSlot.base_price))
+                .where(TimeSlot.court_id == Court.id, TimeSlot.is_reserved == False)
+                .correlate(Court)
+                .scalar_subquery()
+            )
+            query = query.add_columns(price_subq)
+            order = price_subq.asc() if sort == "price_asc" else price_subq.desc()
+        elif sort == "rating":
+            order = Court.average_rating.desc()
+
+        result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
         courts = list(result.scalars().all())
 
         # Distance filter (in-memory Haversine)

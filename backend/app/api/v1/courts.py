@@ -30,12 +30,13 @@ async def list_courts(
     ref_lat: float | None = None,
     ref_lon: float | None = None,
     max_distance_km: float | None = None,
+    sort: str | None = Query("default", enum=["default", "price_asc", "price_desc", "rating"]),
     service: CourtService = Depends(get_court_service_public),
 ):
     return await service.list_courts(
         skip=skip, limit=limit, sport_type=sport_type, search=search, is_active=is_active,
         date_from=date_from, date_to=date_to, price_min=price_min, price_max=price_max,
-        ref_lat=ref_lat, ref_lon=ref_lon, max_distance_km=max_distance_km
+        ref_lat=ref_lat, ref_lon=ref_lon, max_distance_km=max_distance_km, sort=sort
     )
 
 

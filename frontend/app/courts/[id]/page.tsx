@@ -17,6 +17,14 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -180,6 +188,17 @@ export default function PublicCourtDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>...</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <Skeleton className="h-9 w-32 rounded-md" />
         <Skeleton className="h-64 w-full rounded-xl" />
         <Skeleton className="h-7 w-56" />
@@ -207,6 +226,17 @@ export default function PublicCourtDetailPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{court.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       {/* Back button */}
       <Button variant="ghost" className="mb-4 w-fit" asChild>
         <Link href="/">
