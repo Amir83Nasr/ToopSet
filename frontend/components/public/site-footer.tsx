@@ -26,9 +26,9 @@ export function SiteFooter() {
           <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
-                <Image src="/favicon.svg" alt="توپ سِت" width={36} height={36} className="size-9" />
+                <Image src="/favicon.svg" alt="توپ‌سِت" width={36} height={36} className="size-9" />
               </div>
-              <span>توپ سِت</span>
+              <span>توپ‌سِت</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               سامانه هوشمند رزرو آنلاین زمین‌های ورزشی. والیبال، بسکتبال، فوتسال و هندبال.
@@ -58,7 +58,7 @@ export function SiteFooter() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 shrink-0" />
-                <span>تهران، خیابان ولیعصر، مجتمع ورزشی توپ سِت</span>
+                <span>تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="size-4 shrink-0" />
@@ -96,8 +96,8 @@ export function SiteFooter() {
 
         {/* Bottom Bar */}
         <div className="mt-10 border-t pt-6 text-center text-xs text-muted-foreground">
-          <p>تمامی حقوق مادی و معنوی این سایت متعلق به توپ سِت می‌باشد.</p>
-          <p className="mt-1">© ۱۴۰۴ توپ سِت — ToopSet</p>
+          <p>تمامی حقوق مادی و معنوی این سایت متعلق به توپ‌سِت می‌باشد.</p>
+          <p className="mt-1">© ۱۴۰۴ توپ‌سِت — ToopSet</p>
         </div>
       </div>
     </footer>

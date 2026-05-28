@@ -39,9 +39,9 @@ export function SiteHeader() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
           <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
-            <Image src="/favicon.svg" alt="توپ سِت" width={36} height={36} className="size-9" />
+            <Image src="/favicon.svg" alt="توپ‌سِت" width={36} height={36} className="size-9" />
           </div>
-          <span>توپ سِت</span>
+          <span>توپ‌سِت</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -120,8 +120,8 @@ export function SiteHeader() {
             <SheetContent side="right" className="w-[280px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Image src="/favicon.svg" alt="توپ سِت" width={24} height={24} className="size-6" />
-                  توپ سِت
+                  <Image src="/favicon.svg" alt="توپ‌سِت" width={24} height={24} className="size-6" />
+                  توپ‌سِت
                 </SheetTitle>
               </SheetHeader>
               <nav className="mt-8 flex flex-col gap-2">

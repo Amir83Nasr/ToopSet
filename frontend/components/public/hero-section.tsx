@@ -21,13 +21,13 @@ export function HeroSection() {
       <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-8 text-center">
         {/* Logo icon */}
         <div className="flex size-20 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/70 shadow-2xl shadow-primary/20 ring-1 ring-white/10">
-          <Image src="/favicon.svg" alt="توپ سِت" width={72} height={72} className="size-16" />
+          <Image src="/favicon.svg" alt="توپ‌سِت" width={72} height={72} className="size-16" />
         </div>
 
         {/* Title */}
         <div className="space-y-4">
           <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl animate-fade-in-up">
-            توپ <span className="text-primary">سِت</span>
+            توپ‌<span className="text-primary">سِت</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed animate-fade-in-up animate-fade-in-up-delay-1">
             سامانه هوشمند رزرو آنلاین زمین‌های ورزشی

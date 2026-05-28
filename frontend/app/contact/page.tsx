@@ -64,7 +64,7 @@ export default function ContactPage() {
                       <div>
                         <h4 className="text-sm font-medium">آدرس</h4>
                         <p className="text-sm text-muted-foreground">
-                          تهران، خیابان ولیعصر، مجتمع ورزشی توپ سِت
+                          تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت
                         </p>
                       </div>
                     </div>

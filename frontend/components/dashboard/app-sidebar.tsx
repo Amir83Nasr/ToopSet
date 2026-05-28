@@ -22,10 +22,10 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             className="flex items-center gap-2 font-heading text-lg font-bold"
           >
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary overflow-hidden">
-              <Image src="/favicon.svg" alt="توپ سِت" width={32} height={32} className="size-8" />
+              <Image src="/favicon.svg" alt="توپ‌سِت" width={32} height={32} className="size-8" />
             </div>
             <span className="truncate group-data-[collapsible=icon]:hidden">
-              توپ سِت
+              توپ‌سِت
             </span>
           </Link>
         </div>

@@ -1,3 +1,4 @@
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { CalendarDays, CreditCard, Headphones, Trophy } from "lucide-react"
 
 const features = [
@@ -17,7 +18,7 @@ const features = [
     icon: Headphones,
     title: "پشتیبانی ۲۴/۷",
     description:
-      "تیم پشتیبانی توپ سِت در تمام ساعات شبانه‌روز آماده پاسخگویی به سوالات و مشکلات شماست.",
+      "تیم پشتیبانی توپ‌سِت در تمام ساعات شبانه‌روز آماده پاسخگویی به سوالات و مشکلات شماست.",
   },
   {
     icon: Trophy,
@@ -29,11 +30,14 @@ const features = [
 
 export function AboutSection() {
   return (
-    <section id="about" className="px-4 py-16 md:py-20">
-      <div className="mx-auto max-w-5xl">
+    <section id="about" className="relative overflow-hidden px-4 py-16 md:py-20">
+      <div className="neon-orb neon-orb-green" />
+      <div className="neon-orb neon-orb-cyan !top-auto !bottom-[-80px] !left-[-60px]" />
+      <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+      <ScrollReveal className="mx-auto max-w-5xl relative z-10">
         {/* Section Header */}
-        <div className="mb-12 text-center animate-fade-in-up">
-          <h2 className="text-3xl font-bold md:text-4xl">چرا توپ سِت؟</h2>
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl font-bold md:text-4xl">چرا توپ‌سِت؟</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
             ساده‌ترین راه برای رزرو زمین ورزشی، با بهترین امکانات و قیمت
           </p>
@@ -57,7 +61,7 @@ export function AboutSection() {
             )
           })}
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   )
 }

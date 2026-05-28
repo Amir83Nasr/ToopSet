@@ -1,3 +1,4 @@
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { Search, CalendarCheck, CreditCard, Play } from "lucide-react"
 
 const steps = [
@@ -25,10 +26,13 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="px-4 py-16 md:py-20">
-      <div className="mx-auto max-w-5xl">
+    <section className="relative overflow-hidden px-4 py-16 md:py-20">
+      <div className="neon-orb neon-orb-purple !right-auto !left-[-120px]" />
+      <div className="neon-orb neon-orb-orange" />
+      <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+      <ScrollReveal className="mx-auto max-w-5xl relative z-10">
         {/* Section Header */}
-        <div className="mb-12 text-center animate-fade-in-up">
+        <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold md:text-4xl">چطور کار می‌کند</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
             تنها با ۴ قدم ساده، زمین ورزشی خود را رزرو کنید
@@ -61,8 +65,7 @@ export function HowItWorks() {
           })}
         </div>
 
-        {/* Mobile step numbers (visible below) — the connecting line already has numbers */}
-      </div>
+      </ScrollReveal>
     </section>
   )
 }

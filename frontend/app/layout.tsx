@@ -4,7 +4,7 @@ import { Providers } from "./providers"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "توپ سِت | ToopSet",
+  title: "توپ‌سِت | ToopSet",
   description: "سامانه رزرو آنلاین زمین‌های ورزشی",
   icons: {
     icon: [

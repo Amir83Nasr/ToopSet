@@ -27,6 +27,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import dynamic from "next/dynamic"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
 import { HeroSection } from "@/components/public/hero-section"
@@ -324,16 +325,19 @@ function HomePageContent() {
         </section>
 
         {/* Map */}
-        <section className="px-4 py-8">
-          <div className="mx-auto max-w-5xl">
+        <section className="relative overflow-hidden px-4 py-8">
+          <div className="neon-orb neon-orb-pink" />
+          <div className="neon-orb neon-orb-cyan !right-auto !left-[60%] top-[20%]" />
+          <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+          <ScrollReveal className="mx-auto max-w-5xl relative z-10">
             <CourtsMap courts={featuredCourts} height="350px" />
-          </div>
+          </ScrollReveal>
         </section>
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden bg-muted/30 px-4 py-8">
           <div className="absolute inset-0 bg-neon-grid pointer-events-none" />
-          <div className="mx-auto max-w-5xl relative z-10">
+          <ScrollReveal className="mx-auto max-w-5xl relative z-10">
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold">زمین‌ها</h2>
@@ -443,7 +447,7 @@ function HomePageContent() {
                 )}
               </>
             )}
-          </div>
+          </ScrollReveal>
         </section>
       </main>
 

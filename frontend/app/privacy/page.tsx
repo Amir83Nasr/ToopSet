@@ -3,8 +3,8 @@ import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
 
 export const metadata: Metadata = {
-  title: "حریم خصوصی | توپ سِت",
-  description: "سیاست حفظ حریم خصوصی کاربران در سامانه توپ سِت",
+  title: "حریم خصوصی | توپ‌سِت",
+  description: "سیاست حفظ حریم خصوصی کاربران در سامانه توپ‌سِت",
 }
 
 export default function PrivacyPage() {
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
 
           <h2>۳. اشتراک‌گذاری اطلاعات</h2>
           <p>
-            توپ سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر در موارد زیر:
+            توپ‌سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر در موارد زیر:
           </p>
           <ul>
             <li>با مدیران مجموعه‌های ورزشی برای انجام رزرو</li>

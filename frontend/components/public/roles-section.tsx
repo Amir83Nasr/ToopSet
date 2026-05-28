@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { Button } from "@/components/ui/button"
 import { User, Building2, Shield, Check } from "lucide-react"
 
@@ -56,13 +57,16 @@ const roles = [
 
 export function RolesSection() {
   return (
-    <section className="bg-muted/30 px-4 py-16 md:py-20">
-      <div className="mx-auto max-w-5xl">
+    <section className="relative overflow-hidden bg-muted/30 px-4 py-16 md:py-20">
+      <div className="neon-orb neon-orb-purple" />
+      <div className="neon-orb neon-orb-blue !right-auto left-1/4 top-1/3" />
+      <div className="bg-neon-grid absolute inset-0 pointer-events-none" />
+      <ScrollReveal className="mx-auto max-w-5xl relative z-10">
         {/* Section Header */}
-        <div className="mb-12 text-center animate-fade-in-up">
+        <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold md:text-4xl">نقش‌های کاربری</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            توپ سِت برای نیازهای مختلف کاربران طراحی شده است
+            توپ‌سِت برای نیازهای مختلف کاربران طراحی شده است
           </p>
         </div>
 
@@ -108,7 +112,7 @@ export function RolesSection() {
             )
           })}
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   )
 }
