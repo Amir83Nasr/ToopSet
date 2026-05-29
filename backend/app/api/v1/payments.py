@@ -29,6 +29,11 @@ async def list_my_payments(
                 amount=float(p.amount),
                 status=p.status,
                 gateway_transaction_id=p.gateway_transaction_id,
+                gateway_name=p.gateway_name,
+                card_number=p.card_number,
+                ref_id=p.ref_id,
+                gateway_fee=float(p.gateway_fee) if p.gateway_fee else None,
+                paid_at=p.paid_at,
                 created_at=p.created_at,
                 court_name=p.booking.slot.court.name
                 if p.booking and p.booking.slot and p.booking.slot.court

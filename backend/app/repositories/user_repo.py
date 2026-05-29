@@ -9,11 +9,16 @@ class UserRepository:
         self.db = db
 
     async def get_by_phone(self, phone: str) -> User | None:
-        result = await self.db.execute(select(User).where(User.phone == phone))
+        result = await self.db.execute(
+            select(User).where(User.phone == phone, User.is_deleted == False)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: int) -> User | None:
-        return await self.db.get(User, user_id)
+        result = await self.db.execute(
+            select(User).where(User.id == user_id, User.is_deleted == False)
+        )
+        return result.scalar_one_or_none()
 
     async def create(self, phone: str, password_hash: str, full_name: str) -> User:
         user = User(
@@ -36,8 +41,8 @@ class UserRepository:
         """List users with optional filters and pagination. Returns (users, total_count)."""
         from sqlalchemy import func, or_
 
-        query = select(User)
-        count_query = select(func.count(User.id))
+        query = select(User).where(User.is_deleted == False)
+        count_query = select(func.count(User.id)).where(User.is_deleted == False)
 
         if search:
             pattern = f"%{search}%"

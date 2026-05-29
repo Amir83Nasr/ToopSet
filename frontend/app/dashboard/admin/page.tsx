@@ -30,6 +30,8 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 
 interface AdminStats {
@@ -55,6 +57,26 @@ interface AdminStats {
     court_name: string
     booking_count: number
   }>
+}
+
+interface MonthlyRecap {
+  current_month: {
+    label: string
+    bookings: number
+    revenue: number
+    new_users: number
+  }
+  last_month: {
+    label: string
+    bookings: number
+    revenue: number
+    new_users: number
+  }
+  changes: {
+    bookings_pct: number
+    revenue_pct: number
+    users_pct: number
+  }
 }
 
 function formatPersianNumber(num: number): string {
@@ -83,6 +105,8 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [monthlyRecap, setMonthlyRecap] = useState<MonthlyRecap | null>(null)
+  const [recapLoading, setRecapLoading] = useState(true)
   const [broadcastMessage, setBroadcastMessage] = useState("")
   const [broadcasting, setBroadcasting] = useState(false)
 
@@ -101,10 +125,29 @@ export default function AdminDashboardPage() {
     }
   }, [])
 
+  const fetchMonthlyRecap = useCallback(async () => {
+    setRecapLoading(true)
+    try {
+      const data = await api<MonthlyRecap>(
+        "/api/v1/dashboard/admin/monthly-recap"
+      )
+      setMonthlyRecap(data)
+    } catch {
+      // Non-critical
+    } finally {
+      setRecapLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     const timer = setTimeout(() => fetchStats(), 0)
     return () => clearTimeout(timer)
   }, [fetchStats])
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchMonthlyRecap(), 100)
+    return () => clearTimeout(timer)
+  }, [fetchMonthlyRecap])
 
   const statCards = [
     {
@@ -255,6 +298,81 @@ export default function AdminDashboardPage() {
                 >
                   تلاش مجدد
                 </Button>
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* Monthly Recap */}
+        {!recapLoading && monthlyRecap && (
+          <ScrollReveal className="mt-6">
+            <div className="glass-card neon-border-hover rounded-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    خلاصه {monthlyRecap.current_month.label}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    مقایسه با {monthlyRecap.last_month.label}
+                  </p>
+                </div>
+                <div className="rounded-full border bg-muted/50 px-3.5 py-1 text-xs text-muted-foreground">
+                  گزارش ماهانه
+                </div>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                {[
+                  {
+                    label: "رزروها",
+                    current: monthlyRecap.current_month.bookings,
+                    change: monthlyRecap.changes.bookings_pct,
+                  },
+                  {
+                    label: "درآمد",
+                    current: Math.round(monthlyRecap.current_month.revenue),
+                    change: monthlyRecap.changes.revenue_pct,
+                    isCurrency: true,
+                  },
+                  {
+                    label: "کاربران جدید",
+                    current: monthlyRecap.current_month.new_users,
+                    change: monthlyRecap.changes.users_pct,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border bg-background/40 p-4"
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {formatPersianNumber(item.current)}
+                      {item.isCurrency && (
+                        <span className="mr-1 text-xs font-normal text-muted-foreground">
+                          تومان
+                        </span>
+                      )}
+                    </p>
+                    <div
+                      className={`mt-1 flex items-center gap-1 text-xs ${
+                        item.change >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {item.change >= 0 ? (
+                        <ArrowUp className="size-3" />
+                      ) : (
+                        <ArrowDown className="size-3" />
+                      )}
+                      <span>
+                        {item.change >= 0 ? "+" : ""}
+                        {item.change}% نسبت به ماه قبل
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </ScrollReveal>

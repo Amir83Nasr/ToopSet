@@ -32,6 +32,11 @@ interface PaymentDetail {
   amount: number
   status: "success" | "pending" | "failed"
   gateway_transaction_id: string | null
+  gateway_name: string | null
+  card_number: string | null
+  ref_id: string | null
+  gateway_fee: number | null
+  paid_at: string | null
   created_at: string
   court_name: string
   court_address: string
@@ -81,7 +86,10 @@ function SkeletonRow() {
         <Skeleton className="h-5 w-16 rounded-full" />
       </TableCell>
       <TableCell>
-        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-20" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-24" />
       </TableCell>
     </TableRow>
   )
@@ -97,6 +105,7 @@ function LoadingSkeleton() {
             <TableHead>زمین</TableHead>
             <TableHead>مبلغ</TableHead>
             <TableHead>وضعیت</TableHead>
+            <TableHead>درگاه</TableHead>
             <TableHead>کد پیگیری</TableHead>
           </TableRow>
         </TableHeader>
@@ -202,6 +211,7 @@ export default function PaymentsPage() {
               <TableHead>زمین</TableHead>
               <TableHead>مبلغ</TableHead>
               <TableHead>وضعیت</TableHead>
+              <TableHead>درگاه</TableHead>
               <TableHead>کد پیگیری</TableHead>
             </TableRow>
           </TableHeader>
@@ -220,6 +230,20 @@ export default function PaymentsPage() {
                   <TableCell>{formatAmount(p.amount)}</TableCell>
                   <TableCell>
                     <Badge variant={status.variant}>{status.label}</Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {p.gateway_name ? (
+                      <span className="flex flex-col">
+                        <span>{p.gateway_name}</span>
+                        {p.card_number && (
+                          <span className="font-mono text-[10px]" dir="ltr">
+                            {p.card_number}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      "-"
+                    )}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {p.gateway_transaction_id

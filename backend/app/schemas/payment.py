@@ -13,6 +13,11 @@ class PaymentDetailResponse(BaseModel):
     amount: float
     status: PaymentStatus
     gateway_transaction_id: str | None = None
+    gateway_name: str | None = None
+    card_number: str | None = None
+    ref_id: str | None = None
+    gateway_fee: float | None = None
+    paid_at: datetime | None = None
     created_at: datetime
     court_name: str = ""
     court_address: str = ""

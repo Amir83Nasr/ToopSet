@@ -62,6 +62,15 @@ export function RolesSection() {
 
       <div className="relative z-10 mx-auto max-w-4xl">
         <div className="mb-12 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+            className="mb-4 inline-block rounded-full border bg-muted/50 px-3.5 py-1 text-xs text-muted-foreground"
+          >
+            مخاطبان توپ‌سِت
+          </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}

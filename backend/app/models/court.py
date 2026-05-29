@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import ARRAY, JSON, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.models.mixins import SoftDeleteMixin
 from app.core.database import Base
 
 _values_callable = lambda x: [e.value for e in x]  # noqa: E731
@@ -18,7 +19,7 @@ class SportType(str, enum.Enum):
     HANDBALL = "handball"
 
 
-class Court(Base):
+class Court(Base, SoftDeleteMixin):
     __tablename__ = "courts"
 
     id: Mapped[int] = mapped_column(primary_key=True)

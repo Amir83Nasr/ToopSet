@@ -18,11 +18,18 @@ const legalLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative border-t bg-card">
+    <footer className="relative overflow-hidden border-t">
+      {/* Background layers */}
+      <div className="bg-grid pointer-events-none absolute inset-0 opacity-50" />
+      <div className="bg-dots pointer-events-none absolute inset-0" />
+      <div className="pointer-events-none absolute -left-32 bottom-0 size-96 rounded-full bg-primary/5 blur-[120px]" />
+      <div className="pointer-events-none absolute -right-32 top-1/2 size-80 rounded-full bg-blue-500/5 blur-[100px]" />
+      <div className="absolute inset-0 bg-card/60 backdrop-blur-[10px] dark:bg-card/40" />
+
       {/* Subtle top accent line */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-      <div className="mx-auto max-w-5xl px-4">
+      <div className="relative mx-auto max-w-5xl px-4">
         {/* Main footer content */}
         <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}

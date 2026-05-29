@@ -17,8 +17,14 @@ class ReviewRepo:
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Review], int]:
-        query = select(Review).where(Review.court_id == court_id).order_by(Review.created_at.desc())
-        count_q = select(func.count(Review.id)).where(Review.court_id == court_id)
+        query = (
+            select(Review)
+            .where(Review.court_id == court_id, Review.is_deleted == False)
+            .order_by(Review.created_at.desc())
+        )
+        count_q = select(func.count(Review.id)).where(
+            Review.court_id == court_id, Review.is_deleted == False
+        )
 
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))
@@ -32,8 +38,14 @@ class ReviewRepo:
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Review], int]:
-        query = select(Review).where(Review.user_id == user_id).order_by(Review.created_at.desc())
-        count_q = select(func.count(Review.id)).where(Review.user_id == user_id)
+        query = (
+            select(Review)
+            .where(Review.user_id == user_id, Review.is_deleted == False)
+            .order_by(Review.created_at.desc())
+        )
+        count_q = select(func.count(Review.id)).where(
+            Review.user_id == user_id, Review.is_deleted == False
+        )
 
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))
@@ -41,11 +53,15 @@ class ReviewRepo:
         return reviews, total
 
     async def get_by_id(self, review_id: int) -> Review | None:
-        result = await self.db.execute(select(Review).where(Review.id == review_id))
+        result = await self.db.execute(
+            select(Review).where(Review.id == review_id, Review.is_deleted == False)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_booking(self, booking_id: int) -> Review | None:
-        result = await self.db.execute(select(Review).where(Review.booking_id == booking_id))
+        result = await self.db.execute(
+            select(Review).where(Review.booking_id == booking_id, Review.is_deleted == False)
+        )
         return result.scalar_one_or_none()
 
     async def create(self, data: dict) -> Review:
@@ -56,5 +72,9 @@ class ReviewRepo:
         return review
 
     async def delete(self, review: Review) -> None:
+        review.soft_delete()
+        await self.db.commit()
+
+    async def hard_delete(self, review: Review) -> None:
         await self.db.delete(review)
         await self.db.commit()

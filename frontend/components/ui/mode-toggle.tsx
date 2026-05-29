@@ -1,50 +1,64 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Sun, Moon, Monitor } from "lucide-react"
+import { Moon, Sun, Monitor } from "lucide-react"
+
+const themes = ["light", "dark", "system"] as const
+
+const icons: Record<string, typeof Sun> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+}
+
+const labels: Record<string, string> = {
+  light: "روشن",
+  dark: "تیره",
+  system: "سیستم",
+}
 
 export function ModeToggle() {
-  const { theme, resolvedTheme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  const isDark = resolvedTheme === "dark"
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-9"
+        disabled
+        aria-label="تغییر تم"
+      >
+        <Sun className="size-4" />
+      </Button>
+    )
+  }
+
+  const current = theme || "system"
+  const Icon = icons[current] || Sun
+
+  function cycle() {
+    const idx = themes.indexOf(current as (typeof themes)[number])
+    setTheme(themes[(idx + 1) % themes.length])
+  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-9 relative text-muted-foreground hover:text-foreground" aria-label="تغییر تم">
-          <Sun
-            className={`size-4 transition-all ${
-              isDark ? "scale-0" : "scale-100"
-            }`}
-          />
-          <Moon
-            className={`absolute size-4 transition-all ${
-              isDark ? "scale-100" : "scale-0"
-            }`}
-          />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2">
-          <Sun className="size-4" />
-          روشن
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")} className="gap-2">
-          <Moon className="size-4" />
-          تیره
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2">
-          <Monitor className="size-4" />
-          سیستم
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={cycle}
+      className="size-9 text-muted-foreground transition-colors hover:text-foreground"
+      aria-label={`تم فعلی: ${labels[current] || "سیستم"}`}
+      title={`تم فعلی: ${labels[current] || "سیستم"}`}
+    >
+      <Icon className="size-4" />
+    </Button>
   )
 }

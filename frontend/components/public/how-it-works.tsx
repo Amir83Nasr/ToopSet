@@ -52,6 +52,15 @@ export function HowItWorks() {
           transition={{ duration: 0.5 }}
           className="mb-12 text-center"
         >
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+            className="mb-4 inline-block rounded-full border bg-muted/50 px-3.5 py-1 text-xs text-muted-foreground"
+          >
+            راهنمای گام به گام
+          </motion.div>
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             چطور کار می‌کند
           </h2>

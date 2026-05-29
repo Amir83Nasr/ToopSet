@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.models.user import User
+from app.repositories.court_repo import CourtRepo
 from app.repositories.log_repo import LogRepo
 from app.repositories.notification_repo import NotificationRepo
+from app.repositories.review_repo import ReviewRepo
+from app.repositories.user_repo import UserRepository
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -57,3 +60,49 @@ async def list_logs(
     repo = LogRepo(db)
     logs, total = await repo.list(skip=skip, limit=limit, action=action, user_id=user_id)
     return LogListResponse(logs=[LogResponse.model_validate(log) for log in logs], total=total)
+
+
+# ── Soft-delete endpoints ───────────────────────────────────────────
+
+
+@router.delete("/courts/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def soft_delete_court(
+    court_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Soft-delete a court (sets is_deleted = True)."""
+    repo = CourtRepo(db)
+    court = await repo.get_by_id(court_id)
+    if not court:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+    await repo.delete(court)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def soft_delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Soft-delete a user (sets is_deleted = True)."""
+    repo = UserRepository(db)
+    user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.soft_delete()
+    await db.commit()
+
+
+@router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def soft_delete_review(
+    review_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Soft-delete a review (sets is_deleted = True)."""
+    repo = ReviewRepo(db)
+    review = await repo.get_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+    await repo.delete(review)

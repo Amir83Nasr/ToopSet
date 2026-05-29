@@ -5,10 +5,11 @@ from datetime import datetime
 from sqlalchemy import Boolean, ForeignKey, SmallInteger, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.models.mixins import SoftDeleteMixin
 from app.core.database import Base
 
 
-class Review(Base):
+class Review(Base, SoftDeleteMixin):
     __tablename__ = "reviews"
 
     id: Mapped[int] = mapped_column(primary_key=True)

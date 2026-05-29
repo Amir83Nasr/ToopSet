@@ -358,6 +358,70 @@ class DashboardService:
             recent_bookings=recent_bookings,
         )
 
+    async def get_monthly_recap(self) -> dict:
+        now = datetime.now(timezone.utc)
+        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if current_month_start.month == 1:
+            last_month_start = current_month_start.replace(year=current_month_start.year - 1, month=12)
+        else:
+            last_month_start = current_month_start.replace(month=current_month_start.month - 1)
+        last_month_end = current_month_start
+
+        async def month_data(start: datetime, end: datetime) -> dict:
+            bookings_result = await self.db.execute(
+                select(func.count(Booking.id)).where(
+                    Booking.created_at >= start,
+                    Booking.created_at < end,
+                    Booking.status.not_in([BookingStatus.CANCELLED]),
+                )
+            )
+            revenue_result = await self.db.execute(
+                select(func.coalesce(func.sum(Booking.price_paid), 0)).where(
+                    Booking.created_at >= start,
+                    Booking.created_at < end,
+                    Booking.status == BookingStatus.CONFIRMED,
+                )
+            )
+            users_result = await self.db.execute(
+                select(func.count(User.id)).where(
+                    User.created_at >= start,
+                    User.created_at < end,
+                )
+            )
+            return {
+                "bookings": bookings_result.scalar() or 0,
+                "revenue": float(revenue_result.scalar() or 0),
+                "new_users": users_result.scalar() or 0,
+            }
+
+        current = await month_data(current_month_start, now)
+        last = await month_data(last_month_start, last_month_end)
+
+        def pct_change(current_val: float, last_val: float) -> float:
+            if last_val == 0:
+                return 100.0 if current_val > 0 else 0.0
+            return round((current_val - last_val) / last_val * 100, 1)
+
+        return {
+            "current_month": {
+                "label": current_month_start.strftime("%B"),
+                "bookings": current["bookings"],
+                "revenue": current["revenue"],
+                "new_users": current["new_users"],
+            },
+            "last_month": {
+                "label": last_month_start.strftime("%B"),
+                "bookings": last["bookings"],
+                "revenue": last["revenue"],
+                "new_users": last["new_users"],
+            },
+            "changes": {
+                "bookings_pct": pct_change(current["bookings"], last["bookings"]),
+                "revenue_pct": pct_change(current["revenue"], last["revenue"]),
+                "users_pct": pct_change(current["new_users"], last["new_users"]),
+            },
+        }
+
     async def get_user_stats(self, user_id: int) -> UserStats:
         now = datetime.now(timezone.utc)
 

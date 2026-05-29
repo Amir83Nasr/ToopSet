@@ -39,6 +39,11 @@ class PaymentResponse(BaseModel):
     booking_id: int
     amount: float
     gateway_transaction_id: str | None = None
+    gateway_name: str | None = None
+    card_number: str | None = None
+    ref_id: str | None = None
+    gateway_fee: float | None = None
+    paid_at: datetime | None = None
     status: PaymentStatus
     created_at: datetime
 

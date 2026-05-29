@@ -26,10 +26,12 @@ class BookingRepo:
         query = (
             select(Booking)
             .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
-            .where(Booking.user_id == user_id)
+            .where(Booking.user_id == user_id, Booking.is_deleted == False)
             .order_by(Booking.created_at.desc())
         )
-        count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
+        count_q = select(func.count(Booking.id)).where(
+            Booking.user_id == user_id, Booking.is_deleted == False
+        )
 
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))
@@ -37,11 +39,15 @@ class BookingRepo:
         return bookings, total
 
     async def get_by_id(self, booking_id: int) -> Booking | None:
-        result = await self.db.execute(select(Booking).where(Booking.id == booking_id))
+        result = await self.db.execute(
+            select(Booking).where(Booking.id == booking_id, Booking.is_deleted == False)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_slot(self, slot_id: int) -> Booking | None:
-        result = await self.db.execute(select(Booking).where(Booking.slot_id == slot_id))
+        result = await self.db.execute(
+            select(Booking).where(Booking.slot_id == slot_id, Booking.is_deleted == False)
+        )
         return result.scalar_one_or_none()
 
     async def create(self, data: dict) -> Booking:
@@ -69,8 +75,8 @@ class BookingRepo:
         query = select(Booking).options(
             selectinload(Booking.slot).selectinload(TimeSlot.court),
             selectinload(Booking.user),
-        )
-        count_q = select(func.count(Booking.id))
+        ).where(Booking.is_deleted == False)
+        count_q = select(func.count(Booking.id)).where(Booking.is_deleted == False)
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)

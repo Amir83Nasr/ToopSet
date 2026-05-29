@@ -24,7 +24,13 @@ from app.schemas.booking import (
     BookingResponse,
     PaymentResponse,
 )
-from app.services.payment_service import PaymentError, PaymentService
+from app.services.payment_service import (
+    FraudDetectionError,
+    GatewayTimeoutError,
+    InsufficientFundsError,
+    PaymentError,
+    PaymentService,
+)
 
 
 class BookingService:
@@ -152,6 +158,23 @@ class BookingService:
             payment=None,
         )
 
+    async def _record_failed_payment(
+        self, booking_id: int, amount: float
+    ) -> None:
+        await self.payment_repo.create(
+            {
+                "booking_id": booking_id,
+                "amount": amount,
+                "gateway_transaction_id": None,
+                "status": "failed",
+            }
+        )
+        await self.notify_repo.create(
+            user_id=self.current_user.id,
+            type_="booking_failed",
+            message="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
+        )
+
     async def pay_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
         if not booking:
@@ -171,23 +194,28 @@ class BookingService:
         # Process mock payment
         payment_service = PaymentService()
         try:
-            gateway_id = await payment_service.process_payment(float(booking.price_paid))
+            result = await payment_service.process_payment(float(booking.price_paid))
+        except InsufficientFundsError:
+            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="موجودی حساب کافی نیست. لطفاً از کارت دیگری استفاده کنید.",
+            )
+        except GatewayTimeoutError:
+            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="درگاه پرداخت پاسخگو نیست. لطفاً مجدداً تلاش کنید.",
+            )
+        except FraudDetectionError:
+            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="تراکنش توسط سیستم امنیتی مسدود شد. لطفاً با پشتیبانی تماس بگیرید.",
+            )
         except PaymentError:
-            # Payment failed — create failed record, keep booking pending
-            await self.payment_repo.create(
-                {
-                    "booking_id": booking_id,
-                    "amount": float(booking.price_paid),
-                    "gateway_transaction_id": None,
-                    "status": "failed",
-                }
-            )
-            # Notify user about failed payment
-            await self.notify_repo.create(
-                user_id=self.current_user.id,
-                type_="booking_failed",
-                message="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
-            )
+            # Generic / unknown failure
+            await self._record_failed_payment(booking_id, float(booking.price_paid))
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
@@ -197,7 +225,12 @@ class BookingService:
             {
                 "booking_id": booking_id,
                 "amount": float(booking.price_paid),
-                "gateway_transaction_id": gateway_id,
+                "gateway_transaction_id": result.transaction_id,
+                "gateway_name": result.gateway_name,
+                "card_number": result.card_number,
+                "ref_id": result.ref_id,
+                "gateway_fee": result.fee,
+                "paid_at": result.paid_at,
                 "status": "success",
             }
         )

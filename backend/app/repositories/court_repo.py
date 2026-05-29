@@ -40,8 +40,8 @@ class CourtRepo:
         max_distance_km: float | None = None,
         sort: str = "default",
     ) -> tuple[list[Court], int]:
-        query = select(Court)
-        count_query = select(Court.id)
+        query = select(Court).where(Court.is_deleted == False)
+        count_query = select(Court.id).where(Court.is_deleted == False)
 
         if sport_type:
             query = query.where(Court.sport_types.any(sport_type.value))
@@ -76,7 +76,7 @@ class CourtRepo:
 
         from sqlalchemy import func as sa_func
 
-        count_q = select(sa_func.count()).select_from(Court)
+        count_q = select(sa_func.count()).select_from(Court).where(Court.is_deleted == False)
         if sport_type:
             count_q = count_q.where(Court.sport_types.any(sport_type.value))
         if is_active is not None:
@@ -130,12 +130,16 @@ class CourtRepo:
         from sqlalchemy import func as sa_func
 
         result = await self.db.execute(
-            select(sa_func.count(Court.id)).where(Court.is_active == True)
+            select(sa_func.count(Court.id)).where(
+                Court.is_active == True, Court.is_deleted == False
+            )
         )
         return result.scalar_one()
 
     async def get_by_id(self, court_id: int) -> Court | None:
-        result = await self.db.execute(select(Court).where(Court.id == court_id))
+        result = await self.db.execute(
+            select(Court).where(Court.id == court_id, Court.is_deleted == False)
+        )
         return result.scalar_one_or_none()
 
     async def create(self, data: dict) -> Court:
@@ -154,5 +158,9 @@ class CourtRepo:
         return court
 
     async def delete(self, court: Court) -> None:
+        court.soft_delete()
+        await self.db.commit()
+
+    async def hard_delete(self, court: Court) -> None:
         await self.db.delete(court)
         await self.db.commit()

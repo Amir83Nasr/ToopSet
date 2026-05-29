@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import Enum, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.models.mixins import SoftDeleteMixin
 from app.core.database import Base
 
 _values_callable = lambda x: [e.value for e in x]  # noqa: E731
@@ -17,7 +18,7 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
 
 
-class User(Base):
+class User(Base, SoftDeleteMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)

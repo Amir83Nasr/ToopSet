@@ -69,6 +69,14 @@ async def get_manager_stats(
     return await service.get_manager_stats(current_user.id)
 
 
+@router.get("/admin/monthly-recap")
+async def get_monthly_recap(
+    service: DashboardService = Depends(get_dashboard_service),
+    _: User = Depends(get_current_admin),
+):
+    return await service.get_monthly_recap()
+
+
 @router.get("/user-stats", response_model=UserStats)
 async def get_user_stats(
     service: DashboardService = Depends(get_dashboard_service),
