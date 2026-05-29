@@ -168,6 +168,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -175,6 +176,18 @@ services:
       - "--web.console.libraries=/etc/prometheus/consoles"
       - "--web.console.templates=/etc/prometheus/consoles"
       - "--web.enable-lifecycle"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: toopset-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/config.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--log.level=info"
 
 volumes:
   postgres_data:
