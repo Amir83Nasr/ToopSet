@@ -315,23 +315,15 @@ export default function PublicCourtDetailPage() {
             <div className="flex-1">
               {/* Sport badges + Favorite */}
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                {court.sport_types?.map((st) => {
-                  const colorMap: Record<string, string> = {
-                    volleyball: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-                    basketball: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800",
-                    futsal: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800",
-                    handball: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800",
-                  }
-                  return (
+                {court.sport_types?.map((st) => (
                     <Badge
                       key={st}
-                      variant="outline"
-                      className={`border px-3 py-1 text-xs font-medium ${colorMap[st] || ""}`}
+                      variant="secondary"
+                      className="bg-secondary/60 px-3 py-1 text-xs font-medium"
                     >
                       {sportLabels[st] || st}
                     </Badge>
-                  )
-                })}
+                  ))}
                 <FavoriteButton courtId={court.id} size="sm" />
               </div>
 

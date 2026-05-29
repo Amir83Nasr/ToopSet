@@ -11,7 +11,7 @@ const quickLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t px-4 py-10">
+    <footer className="border-t bg-muted px-4 py-10">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center">
         <Link href="/" className="text-lg font-bold">
           توپ‌سِت
