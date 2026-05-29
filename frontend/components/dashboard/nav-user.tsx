@@ -31,7 +31,10 @@ import {
   Monitor,
 } from "lucide-react"
 
-const roleConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+const roleConfig: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "outline" }
+> = {
   user: { label: "کاربر", variant: "secondary" },
   manager: { label: "مدیر مجموعه", variant: "default" },
   admin: { label: "مدیر ارشد", variant: "outline" },
@@ -50,7 +53,10 @@ export function NavUser() {
     .join("")
     .slice(0, 2)
 
-  const role = roleConfig[user.role] || { label: user.role, variant: "outline" as const }
+  const role = roleConfig[user.role] || {
+    label: user.role,
+    variant: "outline" as const,
+  }
 
   return (
     <SidebarMenu>
@@ -68,7 +74,10 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-right">
                 <span className="truncate font-medium">{user.full_name}</span>
-                <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                <span
+                  className="truncate text-xs text-muted-foreground"
+                  dir="ltr"
+                >
                   {toPersianDigits(user.phone)}
                 </span>
               </div>
@@ -84,13 +93,18 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-right">
                 <Avatar className="size-10 rounded-lg">
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 gap-0.5">
                   <span className="truncate font-medium">{user.full_name}</span>
                   <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
                     {toPersianDigits(user.phone)}
-                    <Badge variant={role.variant} className="px-1.5 py-0 text-[10px] leading-normal">
+                    <Badge
+                      variant={role.variant}
+                      className="px-1.5 py-0 text-[10px] leading-normal"
+                    >
                       {role.label}
                     </Badge>
                   </span>

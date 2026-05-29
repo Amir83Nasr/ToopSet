@@ -75,6 +75,7 @@ class CourtRepo:
             query = query.distinct()
 
         from sqlalchemy import func as sa_func
+
         count_q = select(sa_func.count()).select_from(Court)
         if sport_type:
             count_q = count_q.where(Court.sport_types.any(sport_type.value))

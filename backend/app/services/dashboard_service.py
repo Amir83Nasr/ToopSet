@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

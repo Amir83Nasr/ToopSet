@@ -33,7 +33,6 @@ from app.core.metrics import (
 )
 from app.core.redis_client import close_redis
 
-
 METRICS_REFRESH_INTERVAL = 120  # seconds
 
 
@@ -71,6 +70,7 @@ async def _cancel_expired_pending():
                     await repo.update(b, {"status": BookingStatus.CANCELLED})
         except Exception:
             import logging
+
             logging.exception("_cancel_expired_pending failed")
         await asyncio.sleep(60)
 

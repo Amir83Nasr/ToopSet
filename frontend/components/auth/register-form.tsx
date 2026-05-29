@@ -52,7 +52,7 @@ export function RegisterForm({
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">ایجاد حساب کاربری</h1>
-          <p className="text-balance text-sm text-muted-foreground">
+          <p className="text-sm text-balance text-muted-foreground">
             برای ثبت‌نام اطلاعات زیر را وارد کنید
           </p>
         </div>

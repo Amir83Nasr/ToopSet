@@ -67,7 +67,11 @@ export function RolesSection() {
                 whileHover={{
                   y: -6,
                   scale: 1.03,
-                  transition: { type: "spring" as const, stiffness: 300, damping: 15 },
+                  transition: {
+                    type: "spring" as const,
+                    stiffness: 300,
+                    damping: 15,
+                  },
                 }}
                 className="rounded-lg border bg-card p-6 text-center"
               >

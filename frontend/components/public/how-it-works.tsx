@@ -76,7 +76,7 @@ export function HowItWorks() {
                 className="group relative rounded-xl border bg-card p-6 text-center transition-colors hover:bg-accent/50"
               >
                 {/* Step number badge */}
-                <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground group-hover:border-primary/30 group-hover:text-primary transition-colors">
+                <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:text-primary">
                   {i + 1}
                 </div>
 

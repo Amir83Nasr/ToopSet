@@ -3,14 +3,35 @@
 import { motion } from "framer-motion"
 
 const orbs = [
-  { size: 300, color: "bg-primary/8", blur: "blur-[100px]", x: "-15%", y: "-20%", delay: 0 },
-  { size: 200, color: "bg-blue-500/6", blur: "blur-[80px]", x: "55%", y: "-10%", delay: 1.2 },
-  { size: 180, color: "bg-teal-400/6", blur: "blur-[70px]", x: "20%", y: "45%", delay: 0.6 },
+  {
+    size: 300,
+    color: "bg-primary/8",
+    blur: "blur-[100px]",
+    x: "-15%",
+    y: "-20%",
+    delay: 0,
+  },
+  {
+    size: 200,
+    color: "bg-blue-500/6",
+    blur: "blur-[80px]",
+    x: "55%",
+    y: "-10%",
+    delay: 1.2,
+  },
+  {
+    size: 180,
+    color: "bg-teal-400/6",
+    blur: "blur-[70px]",
+    x: "20%",
+    y: "45%",
+    delay: 0.6,
+  },
 ]
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden px-4 pb-20 pt-24 md:pb-28 md:pt-32">
+    <section className="relative overflow-hidden px-4 pt-24 pb-20 md:pt-32 md:pb-28">
       <div className="bg-grid absolute inset-0" />
 
       {/* Glow behind headline */}
@@ -89,7 +110,12 @@ export function HeroSection() {
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.2, type: "spring" as const, stiffness: 200 }}
+              transition={{
+                duration: 0.4,
+                delay: 0.2,
+                type: "spring" as const,
+                stiffness: 200,
+              }}
               className="text-primary"
             >
               سِت

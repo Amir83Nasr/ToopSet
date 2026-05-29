@@ -117,7 +117,7 @@ back-shell: ## Open a Python shell inside the backend directory
 	@cd $(BACKEND_DIR) && python3 -c "import code; code.interact(local={'app': 'toopset'})"
 
 back-lint: ## Lint Python code with ruff
-	@cd $(BACKEND_DIR) && ruff check .
+	@cd $(BACKEND_DIR) && ruff check --fix .
 	@echo "  $(GREEN)✓$(RESET) Ruff checks passed"
 
 back-format: ## Format Python code with ruff
@@ -150,22 +150,15 @@ back-clean: ## Remove Python cache files (__pycache__, .pyc)
 
 .PHONY: dev install
 
-dev: ## 🚀 Start both backend + frontend in split Terminal tabs (macOS)
-	@echo "  $(CYAN)ℹ$(RESET)  Opening backend + frontend in separate Terminal tabs…"
-	@osascript -e '
-		tell application "Terminal"
-			activate
-			-- backend tab
-			tell application "System Events" to keystroke "t" using command down
-			delay 0.3
-			do script "cd $(PWD) && make back-dev" in front tab of front window
-			-- frontend tab
-			tell application "System Events" to keystroke "t" using command down
-			delay 0.3
-			do script "cd $(PWD) && make front-dev" in front tab of front window
-		end tell
-	'
-	@echo "  $(GREEN)✓$(RESET) Both servers started — switch to Terminal to see logs"
+dev: ## 🚀 Start both backend + frontend in separate Terminal windows (macOS)
+	@echo "  $(CYAN)ℹ$(RESET)  Opening backend + frontend in separate Terminal windows…"
+	@osascript \
+		-e 'tell application "Terminal"' \
+		-e 'activate' \
+		-e 'do script "cd $(PWD) && make back-dev"' \
+		-e 'do script "cd $(PWD) && make front-dev"' \
+		-e 'end tell'
+	@echo "  $(GREEN)✓$(RESET) Both servers started — check the Terminal windows"
 
 dev-manual: ## Start backend (background) + frontend (foreground) in one terminal
 	@echo "  $(CYAN)ℹ$(RESET)  Starting backend in background…"

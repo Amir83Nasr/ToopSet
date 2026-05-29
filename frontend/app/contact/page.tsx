@@ -9,10 +9,22 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
-import { Send, CheckCircle2, Loader2, MapPin, Phone, Mail, Clock } from "lucide-react"
+import {
+  Send,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+} from "lucide-react"
 
 const contactInfo = [
-  { icon: MapPin, label: "آدرس", value: "تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت" },
+  {
+    icon: MapPin,
+    label: "آدرس",
+    value: "تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت",
+  },
   { icon: Phone, label: "تلفن", value: "۰۲۱-۱۲۳۴۵۶۷۸", dir: "ltr" as const },
   { icon: Mail, label: "ایمیل", value: "info@toopset.com" },
   { icon: Clock, label: "ساعت کاری", value: "همه‌روزه ۸ صبح تا ۱۲ شب" },
@@ -95,7 +107,11 @@ export default function ContactPage() {
                 {contactInfo.map((info) => {
                   const Icon = info.icon
                   return (
-                    <motion.div key={info.label} variants={item} className="flex items-start gap-3">
+                    <motion.div
+                      key={info.label}
+                      variants={item}
+                      className="flex items-start gap-3"
+                    >
                       <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
                       <div>
                         <h4 className="text-sm font-medium">{info.label}</h4>
@@ -124,7 +140,8 @@ export default function ContactPage() {
                       پیام شما با موفقیت ارسال شد
                     </h3>
                     <p className="max-w-sm text-muted-foreground">
-                      از ارتباط شما سپاسگزاریم. در اسرع وقت با شما تماس خواهیم گرفت.
+                      از ارتباط شما سپاسگزاریم. در اسرع وقت با شما تماس خواهیم
+                      گرفت.
                     </p>
                     <Button variant="outline" onClick={() => setSuccess(false)}>
                       ارسال پیام جدید
@@ -146,7 +163,9 @@ export default function ContactPage() {
                           required
                           placeholder="نام خود را وارد کنید"
                           value={form.name}
-                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, name: e.target.value })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -157,7 +176,9 @@ export default function ContactPage() {
                           required
                           placeholder="example@email.com"
                           value={form.email}
-                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, email: e.target.value })
+                          }
                         />
                       </div>
                     </div>
@@ -168,7 +189,9 @@ export default function ContactPage() {
                           id="phone"
                           placeholder="۰۹۱۲۳۴۵۶۷۸۹"
                           value={form.phone}
-                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, phone: e.target.value })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -178,7 +201,9 @@ export default function ContactPage() {
                           required
                           placeholder="موضوع پیام"
                           value={form.subject}
-                          onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, subject: e.target.value })
+                          }
                         />
                       </div>
                     </div>
@@ -190,11 +215,20 @@ export default function ContactPage() {
                         rows={6}
                         placeholder="پیام خود را بنویسید..."
                         value={form.message}
-                        onChange={(e) => setForm({ ...form, message: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, message: e.target.value })
+                        }
                       />
                     </div>
-                    {error && <p className="text-sm text-destructive">{error}</p>}
-                    <Button type="submit" disabled={submitting} size="lg" className="gap-2">
+                    {error && (
+                      <p className="text-sm text-destructive">{error}</p>
+                    )}
+                    <Button
+                      type="submit"
+                      disabled={submitting}
+                      size="lg"
+                      className="gap-2"
+                    >
                       {submitting ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (

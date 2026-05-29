@@ -29,7 +29,8 @@ export default function Error({
         </div>
         <h2 className="mb-2 text-xl font-semibold">خطایی رخ داد</h2>
         <p className="mb-8 text-sm text-muted-foreground">
-          متأسفانه در پردازش درخواست شما خطایی رخ داده است. لطفاً مجدداً تلاش کنید.
+          متأسفانه در پردازش درخواست شما خطایی رخ داده است. لطفاً مجدداً تلاش
+          کنید.
         </p>
         <Button onClick={reset} variant="default" size="lg">
           تلاش مجدد

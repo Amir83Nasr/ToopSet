@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 import pytest
 from httpx import AsyncClient
 
@@ -41,7 +39,11 @@ class TestListCourts:
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=headers)
         # Create volleyball-only court
-        volley_payload = {**COURT_CREATE_PAYLOAD, "name": "زمین والیبال", "sport_types": ["volleyball"]}
+        volley_payload = {
+            **COURT_CREATE_PAYLOAD,
+            "name": "زمین والیبال",
+            "sport_types": ["volleyball"],
+        }
         await client.post("/api/v1/courts", json=volley_payload, headers=headers)
 
         resp = await client.get("/api/v1/courts?sport_type=futsal")
@@ -114,7 +116,9 @@ class TestUpdateCourt:
         assert resp.status_code == 200
         assert resp.json()["name"] == "زمین شماره ۲"
 
-    async def test_update_not_owner(self, client: AsyncClient, manager_token: dict, user_token: dict):
+    async def test_update_not_owner(
+        self, client: AsyncClient, manager_token: dict, user_token: dict
+    ):
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         create = await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=headers)
         court_id = create.json()["id"]
@@ -139,7 +143,9 @@ class TestUpdateCourt:
 
 
 class TestDeleteCourt:
-    async def test_delete_as_admin(self, client: AsyncClient, manager_token: dict, admin_token: dict):
+    async def test_delete_as_admin(
+        self, client: AsyncClient, manager_token: dict, admin_token: dict
+    ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         create = await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=mgr_headers)
         court_id = create.json()["id"]

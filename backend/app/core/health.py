@@ -13,7 +13,6 @@ from typing import Any
 
 from sqlalchemy import text
 
-from app.core.config import settings
 from app.core.database import async_session_factory
 from app.core.redis_client import get_redis
 

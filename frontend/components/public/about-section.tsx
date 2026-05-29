@@ -42,7 +42,10 @@ const card = {
 
 export function AboutSection() {
   return (
-    <section id="about" className="relative overflow-hidden border-t px-4 py-16 md:py-20">
+    <section
+      id="about"
+      className="relative overflow-hidden border-t px-4 py-16 md:py-20"
+    >
       <div className="bg-grid absolute inset-0 opacity-50" />
       <div className="relative z-10 mx-auto max-w-5xl">
         <motion.div
@@ -71,7 +74,10 @@ export function AboutSection() {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.3 }}
                 variants={card}
-                whileHover={{ y: -6, transition: { type: "spring" as const, stiffness: 300 } }}
+                whileHover={{
+                  y: -6,
+                  transition: { type: "spring" as const, stiffness: 300 },
+                }}
                 className="rounded-xl border bg-card p-6 text-center transition-colors hover:bg-accent/50"
               >
                 <Icon className="mx-auto mb-3 size-6 text-primary" />

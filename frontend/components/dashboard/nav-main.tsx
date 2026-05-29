@@ -55,7 +55,11 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "manager"],
     items: [
       { title: "همه زمین‌ها", url: "/dashboard/courts", icon: Building2 },
-      { title: "مدیریت زمان", url: "/dashboard/courts/schedule", icon: CalendarCheck },
+      {
+        title: "مدیریت زمان",
+        url: "/dashboard/courts/schedule",
+        icon: CalendarCheck,
+      },
     ],
   },
   {
@@ -72,16 +76,18 @@ const navGroups: NavGroup[] = [
     roles: ["manager"],
     items: [
       { title: "زمین‌ها", url: "/dashboard/courts", icon: Building2 },
-      { title: "مدیریت زمان", url: "/dashboard/courts/schedule", icon: CalendarCheck },
+      {
+        title: "مدیریت زمان",
+        url: "/dashboard/courts/schedule",
+        icon: CalendarCheck,
+      },
       { title: "نظرات", url: "/dashboard/reviews", icon: Star },
     ],
   },
   {
     label: "گزارشات",
     roles: ["manager", "admin"],
-    items: [
-      { title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 },
-    ],
+    items: [{ title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 }],
   },
   {
     label: "مالی",
@@ -103,7 +109,11 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "کاربران", url: "/dashboard/users", icon: Users },
-      { title: "مدیریت رزروها", url: "/dashboard/admin/bookings", icon: CalendarCheck },
+      {
+        title: "مدیریت رزروها",
+        url: "/dashboard/admin/bookings",
+        icon: CalendarCheck,
+      },
       { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
       { title: "نظرات", url: "/dashboard/reviews", icon: Star },
       { title: "لاگ سیستم", url: "/dashboard/admin/logs", icon: History },
@@ -154,7 +164,11 @@ export function NavMain() {
 
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={isActive}
+                  >
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

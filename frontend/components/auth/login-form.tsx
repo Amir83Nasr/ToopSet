@@ -49,7 +49,7 @@ export function LoginForm({ login, redirect, className, ...props }: Props) {
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">به توپ‌سِت خوش آمدید</h1>
-          <p className="text-balance text-sm text-muted-foreground">
+          <p className="text-sm text-balance text-muted-foreground">
             برای ورود شماره موبایل خود را وارد کنید
           </p>
         </div>

@@ -243,8 +243,8 @@ function HomePageContent() {
           <div className="neon-orb neon-orb-1" />
           <div className="neon-orb neon-orb-cyan max-lg:hidden" />
           {/* Vertical hash side columns — like tailwindcss.com */}
-          <div className="bg-grid-side max-lg:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
-          <div className="bg-grid-side max-lg:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
+          <div className="bg-grid-side absolute inset-y-0 left-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
+          <div className="bg-grid-side absolute inset-y-0 right-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
           <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </main>
         <SiteFooter />
@@ -270,7 +270,7 @@ function HomePageContent() {
       {/* Site Header */}
       <SiteHeader />
 
-        <main className="relative">
+      <main className="relative">
         {/* Neon orbs — floating ambient glow */}
         <div className="neon-orb neon-orb-1" />
         <div className="neon-orb neon-orb-cyan" />
@@ -278,8 +278,8 @@ function HomePageContent() {
         <div className="neon-orb neon-orb-pink" />
 
         {/* Vertical hash side columns — like tailwindcss.com */}
-        <div className="bg-grid-side max-lg:hidden absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
-        <div className="bg-grid-side max-lg:hidden absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 z-10" />
+        <div className="bg-grid-side absolute inset-y-0 left-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
+        <div className="bg-grid-side absolute inset-y-0 right-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
 
         {/* Hero Section */}
         <HeroSection />
@@ -379,25 +379,31 @@ function HomePageContent() {
 
               {/* Row 2: Sport type pills */}
               <div className="mt-4 flex flex-wrap gap-2">
-                {(["all", "volleyball", "basketball", "futsal", "handball"] as const).map(
-                  (type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => {
-                        setSportFilter(type)
-                        setPage(0)
-                      }}
-                      className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-                        sportFilter === type
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                      }`}
-                    >
-                      {type === "all" ? "همه" : sportLabels[type]}
-                    </button>
-                  )
-                )}
+                {(
+                  [
+                    "all",
+                    "volleyball",
+                    "basketball",
+                    "futsal",
+                    "handball",
+                  ] as const
+                ).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setSportFilter(type)
+                      setPage(0)
+                    }}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                      sportFilter === type
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    }`}
+                  >
+                    {type === "all" ? "همه" : sportLabels[type]}
+                  </button>
+                ))}
               </div>
 
               {/* Row 3: Price range + active filters */}
@@ -597,10 +603,7 @@ function HomePageContent() {
                 <p className="text-lg text-muted-foreground">
                   هیچ زمینی با فیلترهای انتخاب شده یافت نشد
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                >
+                <Button variant="outline" onClick={clearFilters}>
                   پاک کردن فیلترها
                 </Button>
               </div>
@@ -625,7 +628,7 @@ function HomePageContent() {
                     >
                       <Link
                         href={`/courts/${court.id}`}
-                        className="group block rounded-xl border bg-card p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
+                        className="group block rounded-xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">

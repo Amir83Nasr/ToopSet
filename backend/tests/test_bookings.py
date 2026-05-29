@@ -30,7 +30,6 @@ async def _create_slot(
     end = start + timedelta(hours=2)
 
     # Create via API if possible, or raw SQL
-    from app.models.time_slot import TimeSlot
 
     result = await session.execute(
         text(
@@ -237,9 +236,7 @@ class TestPayBooking:
         booking_id = create.json()["id"]
 
         with patch("random.random", return_value=0.99):
-            resp = await client.post(
-                f"/api/v1/bookings/{booking_id}/pay", headers=user_headers
-            )
+            resp = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
         assert resp.status_code == 200, resp.text
         assert resp.json()["status"] == "confirmed"
 
@@ -264,9 +261,7 @@ class TestPayBooking:
         with patch("random.random", return_value=0.99):
             await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
         # Pay again
-        resp = await client.post(
-            f"/api/v1/bookings/{booking_id}/pay", headers=user_headers
-        )
+        resp = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
         assert resp.status_code == 400
 
 
@@ -289,9 +284,7 @@ class TestCancelBooking:
         )
         booking_id = create.json()["id"]
 
-        resp = await client.post(
-            f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers
-        )
+        resp = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
         assert resp.status_code == 200
         assert resp.json()["status"] == "cancelled"
 
@@ -313,7 +306,5 @@ class TestCancelBooking:
         booking_id = create.json()["id"]
 
         await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
-        resp = await client.post(
-            f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers
-        )
+        resp = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
         assert resp.status_code == 400

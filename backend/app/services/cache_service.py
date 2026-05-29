@@ -8,8 +8,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from app.core.redis_client import get_redis
 from app.core.metrics import toopset_cache_hits_total, toopset_cache_misses_total
+from app.core.redis_client import get_redis
 
 # ── TTLs (seconds) ───────────────────────────────────────────────────────────
 

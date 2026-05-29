@@ -281,7 +281,7 @@ export default function SettingsPage() {
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
               همچنین می‌توانید با دکمه{" "}
-              <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[11px] font-mono">
+              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px]">
                 D
               </kbd>{" "}
               روی صفحه‌کلید تم را سریع切换 کنید.

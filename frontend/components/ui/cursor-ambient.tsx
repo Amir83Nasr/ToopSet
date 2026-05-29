@@ -72,7 +72,9 @@ export function CursorAmbient() {
 
     const onMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      setHovering(!!target.closest("a, button, input, select, textarea, [role='button']"))
+      setHovering(
+        !!target.closest("a, button, input, select, textarea, [role='button']")
+      )
     }
 
     window.addEventListener("mousemove", onMouseMove, { passive: true })
