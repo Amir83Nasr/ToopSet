@@ -24,9 +24,31 @@ from app.api.v1.uploads import router as uploads_router
 from app.api.v1.users import router as users_router
 from app.api.v1.wallet import router as wallet_router
 from app.core.database import async_session_factory, engine
+from app.core.health import check_health
 from app.core.logging_config import setup_logging
-from app.core.metrics import PrometheusMiddleware, metrics_response
+from app.core.metrics import (
+    PrometheusMiddleware,
+    metrics_response,
+    refresh_business_metrics,
+)
 from app.core.redis_client import close_redis
+
+
+METRICS_REFRESH_INTERVAL = 120  # seconds
+
+
+async def _refresh_metrics_periodically():
+    """Periodically update business gauges from the database."""
+    # Initial refresh after a short delay to let the DB pool warm up
+    await asyncio.sleep(5)
+    while True:
+        try:
+            await refresh_business_metrics(async_session_factory)
+        except Exception:
+            import logging
+
+            logging.exception("_refresh_metrics_periodically failed")
+        await asyncio.sleep(METRICS_REFRESH_INTERVAL)
 
 
 async def _cancel_expired_pending():
@@ -56,9 +78,11 @@ async def _cancel_expired_pending():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    task = asyncio.create_task(_cancel_expired_pending())
+    metrics_task = asyncio.create_task(_refresh_metrics_periodically())
+    cancel_task = asyncio.create_task(_cancel_expired_pending())
     yield
-    task.cancel()
+    metrics_task.cancel()
+    cancel_task.cancel()
     await close_redis()
     await engine.dispose()
 
@@ -103,7 +127,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return await check_health()
 
 
 @app.get("/metrics")

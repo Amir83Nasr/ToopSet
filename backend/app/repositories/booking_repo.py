@@ -86,3 +86,28 @@ class BookingRepo:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_today(self, reference: datetime | None = None) -> int:
+        """Number of bookings created since the start of *reference* day (UTC)."""
+        from datetime import time, timedelta
+
+        ref = reference or datetime.now()
+        day_start = ref.replace(hour=0, minute=0, second=0, microsecond=0)
+        query = select(func.count(Booking.id)).where(Booking.created_at >= day_start)
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
+    async def sum_today_revenue(self, reference: datetime | None = None) -> float:
+        """Total ``price_paid`` for confirmed bookings created today (UTC)."""
+        from datetime import time, timedelta
+
+        ref = reference or datetime.now()
+        day_start = ref.replace(hour=0, minute=0, second=0, microsecond=0)
+        query = select(
+            func.coalesce(func.sum(Booking.price_paid), 0)
+        ).where(
+            Booking.created_at >= day_start,
+            Booking.status == BookingStatus.CONFIRMED,
+        )
+        result = await self.db.execute(query)
+        return float(result.scalar_one())

@@ -84,6 +84,39 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# ── Business metrics refresh ──────────────────────────────────────────────────
+
+
+async def refresh_business_metrics(db_session_factory) -> None:
+    """Query the database and update the four business-gauges with live values.
+
+    Intended to be called once at startup and periodically from a background
+    task (see ``main.py`` lifespan).
+    """
+    from datetime import datetime, timezone
+
+    from app.repositories.booking_repo import BookingRepo
+    from app.repositories.court_repo import CourtRepo
+    from app.repositories.user_repo import UserRepository
+
+    try:
+        async with db_session_factory() as db:
+            user_repo = UserRepository(db)
+            court_repo = CourtRepo(db)
+            booking_repo = BookingRepo(db)
+
+            toopset_db_users_total.set(await user_repo.count_all())
+            toopset_active_courts_total.set(await court_repo.count_active())
+
+            now = datetime.now(timezone.utc)
+            toopset_today_bookings_total.set(await booking_repo.count_today(now))
+            toopset_today_revenue_toman.set(await booking_repo.sum_today_revenue(now))
+    except Exception:
+        import logging
+
+        logging.exception("refresh_business_metrics failed")
+
+
 # ── Metrics endpoint helper ───────────────────────────────────────────────────
 
 

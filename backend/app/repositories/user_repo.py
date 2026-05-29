@@ -93,3 +93,9 @@ class UserRepository:
 
         result = await self.db.execute(select(func.count(User.id)).where(User.role == role))
         return result.scalar_one()
+
+    async def count_all(self) -> int:
+        from sqlalchemy import func
+
+        result = await self.db.execute(select(func.count(User.id)))
+        return result.scalar_one()

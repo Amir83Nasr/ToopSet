@@ -125,6 +125,14 @@ class CourtRepo:
 
         return courts, total
 
+    async def count_active(self) -> int:
+        from sqlalchemy import func as sa_func
+
+        result = await self.db.execute(
+            select(sa_func.count(Court.id)).where(Court.is_active == True)
+        )
+        return result.scalar_one()
+
     async def get_by_id(self, court_id: int) -> Court | None:
         result = await self.db.execute(select(Court).where(Court.id == court_id))
         return result.scalar_one_or_none()
