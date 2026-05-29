@@ -9,15 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import {
   LayoutDashboard,
   Building2,
@@ -30,114 +22,100 @@ import {
   Bell,
   BarChart3,
   Gavel,
-  ChevronDown,
   Heart,
   History,
   MessageSquare,
+  type LucideIcon,
 } from "lucide-react"
 
 interface NavItem {
   title: string
   url: string
-  icon: typeof LayoutDashboard
-  roles?: ("admin" | "manager" | "user")[]
-  items?: { title: string; url: string }[]
+  icon: LucideIcon
 }
 
-const allNavItems: NavItem[] = [
+interface NavGroup {
+  label: string
+  roles: ("admin" | "manager" | "user")[]
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
   {
-    title: "داشبورد",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    roles: ["admin", "manager", "user"],
-  },
-  {
-    title: "علاقه‌مندی‌ها",
-    url: "/dashboard/favorites",
-    icon: Heart,
-    roles: ["user", "manager", "admin"],
-  },
-  {
-    title: "زمین‌ها",
-    url: "/dashboard/courts",
-    icon: Building2,
+    label: "اصلی",
     roles: ["admin", "manager", "user"],
     items: [
-      { title: "همه زمین‌ها", url: "/dashboard/courts" },
-      { title: "مدیریت زمان", url: "/dashboard/courts/schedule" },
+      { title: "داشبورد", url: "/dashboard", icon: LayoutDashboard },
+      { title: "رزروها", url: "/dashboard/bookings", icon: CalendarCheck },
+      { title: "علاقه‌مندی‌ها", url: "/dashboard/favorites", icon: Heart },
     ],
   },
   {
-    title: "رزروها",
-    url: "/dashboard/bookings",
-    icon: CalendarCheck,
-    roles: ["admin", "manager", "user"],
-  },
-  {
-    title: "پرداخت‌ها",
-    url: "/dashboard/payments",
-    icon: CreditCard,
-    roles: ["admin"],
-  },
-  {
-    title: "گزارشات",
-    url: "/dashboard/reports",
-    icon: BarChart3,
-    roles: ["manager", "admin"],
-  },
-  {
-    title: "کیف پول",
-    url: "/dashboard/wallet",
-    icon: Wallet,
-    roles: ["admin", "manager", "user"],
-  },
-  {
-    title: "جریمه‌ها",
-    url: "/dashboard/penalties",
-    icon: Gavel,
-    roles: ["admin", "manager", "user"],
-  },
-  {
-    title: "اعلان‌ها",
-    url: "/dashboard/notifications",
-    icon: Bell,
-    roles: ["admin", "manager", "user"],
-  },
-  {
-    title: "نظرات",
-    url: "/dashboard/reviews",
-    icon: Star,
+    label: "زمین‌ها",
     roles: ["admin", "manager"],
+    items: [
+      { title: "همه زمین‌ها", url: "/dashboard/courts", icon: Building2 },
+      { title: "مدیریت زمان", url: "/dashboard/courts/schedule", icon: CalendarCheck },
+    ],
   },
   {
-    title: "پیام‌ها",
-    url: "/dashboard/contact",
-    icon: MessageSquare,
-    roles: ["admin"],
+    label: "خدمات",
+    roles: ["user"],
+    items: [
+      { title: "زمین‌ها", url: "/dashboard/courts", icon: Building2 },
+      { title: "کیف پول", url: "/dashboard/wallet", icon: Wallet },
+      { title: "جریمه‌ها", url: "/dashboard/penalties", icon: Gavel },
+    ],
   },
   {
-    title: "کاربران",
-    url: "/dashboard/users",
-    icon: Users,
-    roles: ["admin"],
+    label: "مدیریت",
+    roles: ["manager"],
+    items: [
+      { title: "زمین‌ها", url: "/dashboard/courts", icon: Building2 },
+      { title: "مدیریت زمان", url: "/dashboard/courts/schedule", icon: CalendarCheck },
+      { title: "نظرات", url: "/dashboard/reviews", icon: Star },
+    ],
   },
   {
-    title: "مدیریت رزروها",
-    url: "/dashboard/admin/bookings",
-    icon: CalendarCheck,
-    roles: ["admin"],
+    label: "گزارشات",
+    roles: ["manager", "admin"],
+    items: [
+      { title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 },
+    ],
   },
   {
-    title: "لاگ سیستم",
-    url: "/dashboard/admin/logs",
-    icon: History,
-    roles: ["admin"],
-  },
-  {
-    title: "تنظیمات",
-    url: "/dashboard/settings",
-    icon: Settings,
+    label: "مالی",
     roles: ["admin", "manager", "user"],
+    items: [
+      { title: "کیف پول", url: "/dashboard/wallet", icon: Wallet },
+      { title: "جریمه‌ها", url: "/dashboard/penalties", icon: Gavel },
+    ],
+  },
+  {
+    label: "امور مالی",
+    roles: ["admin"],
+    items: [
+      { title: "پرداخت‌ها", url: "/dashboard/payments", icon: CreditCard },
+    ],
+  },
+  {
+    label: "مدیریت سیستم",
+    roles: ["admin"],
+    items: [
+      { title: "کاربران", url: "/dashboard/users", icon: Users },
+      { title: "مدیریت رزروها", url: "/dashboard/admin/bookings", icon: CalendarCheck },
+      { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
+      { title: "نظرات", url: "/dashboard/reviews", icon: Star },
+      { title: "لاگ سیستم", url: "/dashboard/admin/logs", icon: History },
+    ],
+  },
+  {
+    label: "سیستم",
+    roles: ["admin", "manager", "user"],
+    items: [
+      { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
+      { title: "تنظیمات", url: "/dashboard/settings", icon: Settings },
+    ],
   },
 ]
 
@@ -145,80 +123,49 @@ export function NavMain() {
   const pathname = usePathname()
   const { user, loading } = useAuth()
 
-  const navItems = allNavItems.filter((item) => {
-    if (!item.roles) return true
-    return user && item.roles.includes(user.role)
-  })
-
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>منو</SidebarGroupLabel>
-      <SidebarMenu>
-        {loading ? (
+  if (loading) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>منو</SidebarGroupLabel>
+        <SidebarMenu>
           <div className="p-2 text-sm text-muted-foreground">
             در حال بارگذاری...
           </div>
-        ) : (
-          navItems.map((item) => {
-            const isActive =
-              pathname === item.url || pathname.startsWith(item.url + "/")
+        </SidebarMenu>
+      </SidebarGroup>
+    )
+  }
 
-            if (item.items) {
+  if (!user) return null
+
+  const groups = navGroups
+    .filter((g) => g.roles.includes(user.role))
+    .filter((g) => g.items.length > 0)
+
+  return (
+    <>
+      {groups.map((group) => (
+        <SidebarGroup key={group.label}>
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarMenu>
+            {group.items.map((item) => {
+              const isActive =
+                pathname === item.url || pathname.startsWith(item.url + "/")
+
               return (
-                <Collapsible
-                  key={item.title}
-                  defaultOpen={isActive}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        isActive={isActive}
-                      >
-                        <item.icon />
-                        <span>{item.title}</span>
-                        <ChevronDown className="mr-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items.map((sub) => (
-                          <SidebarMenuSubItem key={sub.title}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={pathname === sub.url}
-                            >
-                              <Link href={sub.url}>
-                                <span>{sub.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )
-            }
-
-            return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  tooltip={item.title}
-                  isActive={isActive}
-                >
-                  <Link href={item.url}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })
-        )}
-      </SidebarMenu>
-    </SidebarGroup>
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
   )
 }

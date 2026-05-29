@@ -245,8 +245,13 @@
    Text Selection — primary-tinted blue glow
    ══════════════════════════════════════════════════ */
 ::selection {
-  background-color: oklch(from var(--color-primary) l c h / 0.25);
-  color: var(--foreground);
+  background-color: oklch(from var(--color-primary) l c h / 0.35);
+  color: var(--primary-foreground);
+}
+
+.dark ::selection {
+  background-color: oklch(from var(--color-primary) l c h / 0.4);
+  color: var(--primary-foreground);
 }
 
 /* ══════════════════════════════════════════════════
