@@ -15,6 +15,11 @@ from app.schemas.time_slot import (
     TimeSlotResponse,
     TimeSlotUpdate,
 )
+from app.services.cache_service import (
+    cache_slot_list,
+    get_cached_slot_list,
+    invalidate_slot_list,
+)
 
 
 class TimeSlotService:
@@ -34,7 +39,21 @@ class TimeSlotService:
         court = await self.court_repo.get_by_id(court_id)
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+
+        # Try Redis cache (first page only for simplicity)
+        if skip == 0 and limit <= 50:
+            cached = await get_cached_slot_list(court_id, date=date)
+            if cached is not None:
+                # cached contains full result for the page
+                return TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
+
         slots, total = await self.repo.list_by_court(court_id, date=date, skip=skip, limit=limit)
+        serialised = [TimeSlotResponse.model_validate(s).model_dump(mode="json") for s in slots]
+
+        # Warm cache for the common case (first page, no offset)
+        if skip == 0 and limit <= 50:
+            await cache_slot_list(court_id, serialised, date=date)
+
         return TimeSlotListResponse(
             slots=[TimeSlotResponse.model_validate(s) for s in slots],
             total=total,
@@ -67,6 +86,7 @@ class TimeSlotService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time"
             )
         slot = await self.repo.create(data.model_dump())
+        await invalidate_slot_list(data.court_id)
         return TimeSlotResponse.model_validate(slot)
 
     async def update_slot(self, slot_id: int, data: TimeSlotUpdate) -> TimeSlotResponse:
@@ -78,6 +98,7 @@ class TimeSlotService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify a reserved slot"
             )
         updated = await self.repo.update(slot, data.model_dump(exclude_none=True))
+        await invalidate_slot_list(updated.court_id)
         return TimeSlotResponse.model_validate(updated)
 
     async def delete_slot(self, slot_id: int) -> None:
@@ -88,7 +109,9 @@ class TimeSlotService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a reserved slot"
             )
+        court_id = slot.court_id
         await self.repo.delete(slot)
+        await invalidate_slot_list(court_id)
 
 
 async def get_time_slot_service(

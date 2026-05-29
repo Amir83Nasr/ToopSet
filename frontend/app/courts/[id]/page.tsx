@@ -37,12 +37,25 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react"
+import dynamic from "next/dynamic"
 
+const CourtLocationMap = dynamic(
+  () =>
+    import("@/components/map/court-location-map").then(
+      (m) => m.CourtLocationMap
+    ),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-48 w-full rounded-xl" />,
+  }
+)
 interface Court {
   id: number
   name: string
   sport_types: string[]
   address: string
+  latitude: number
+  longitude: number
   capacity: number
   is_active: boolean
   average_rating: number
@@ -369,6 +382,18 @@ export default function PublicCourtDetailPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Location Map */}
+        {court.latitude != null && court.longitude != null && (
+          <div className="glass-card neon-border-hover mb-8 rounded-2xl p-6">
+            <h2 className="mb-4 text-lg font-semibold">موقعیت روی نقشه</h2>
+            <CourtLocationMap
+              latitude={court.latitude}
+              longitude={court.longitude}
+              name={court.name}
+            />
           </div>
         )}
 

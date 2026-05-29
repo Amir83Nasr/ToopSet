@@ -109,7 +109,7 @@ export default function AdminLogsPage() {
         </div>
         <div className="flex gap-2">
           <Input
-            placeholder="فیلتر بر اساس action..."
+            placeholder="فیلتر بر اساس عملیات..."
             value={actionFilter}
             onChange={(e) => {
               setActionFilter(e.target.value)

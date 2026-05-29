@@ -166,82 +166,51 @@ export default function UserDashboardPage() {
         )}
 
         {!loading && !error && stats && (
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <ScrollReveal>
-              <div className="glass-card neon-border-hover rounded-2xl p-6">
-                <h2 className="mb-4 text-lg font-semibold">رزروهای اخیر</h2>
-                {stats.recent_bookings && stats.recent_bookings.length > 0 ? (
-                  <div className="space-y-3">
-                    {stats.recent_bookings.map((booking) => {
-                      const st = statusLabels[booking.status] || {
-                        label: booking.status,
-                        variant: "outline",
-                      }
-                      return (
-                        <div
-                          key={booking.id}
-                          className="flex items-center justify-between rounded-xl border bg-background/40 p-3 transition-colors hover:bg-background/60"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
-                              <CalendarCheck className="size-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">
-                                {booking.court_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatTime(booking.start_time)}
-                              </p>
-                            </div>
+          <ScrollReveal>
+            <div className="glass-card neon-border-hover rounded-2xl p-6">
+              <h2 className="mb-4 text-lg font-semibold">رزروهای اخیر</h2>
+              {stats.recent_bookings && stats.recent_bookings.length > 0 ? (
+                <div className="space-y-3">
+                  {stats.recent_bookings.map((booking) => {
+                    const st = statusLabels[booking.status] || {
+                      label: booking.status,
+                      variant: "outline",
+                    }
+                    return (
+                      <div
+                        key={booking.id}
+                        className="flex items-center justify-between rounded-xl border bg-background/40 p-3 transition-colors hover:bg-background/60"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                            <CalendarCheck className="size-5 text-primary" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {formatPersianNumber(booking.price_paid)} تومان
-                            </span>
-                            <Badge variant={st.variant}>{st.label}</Badge>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {booking.court_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(booking.start_time)}
+                            </p>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center py-12 text-muted-foreground">
-                    رزروی وجود ندارد
-                  </div>
-                )}
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal>
-              <div className="glass-card neon-border-hover rounded-2xl p-6">
-                <h2 className="mb-4 text-lg font-semibold">دسترسی سریع</h2>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    className="neon-border-hover"
-                    asChild
-                  >
-                    <Link href="/dashboard/courts">رزرو زمین</Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="neon-border-hover"
-                    asChild
-                  >
-                    <a href="/dashboard/bookings">رزروهای من</a>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="neon-border-hover"
-                    asChild
-                  >
-                    <a href="/dashboard/wallet">کیف پول</a>
-                  </Button>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {formatPersianNumber(booking.price_paid)} تومان
+                          </span>
+                          <Badge variant={st.variant}>{st.label}</Badge>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-            </ScrollReveal>
-          </div>
+              ) : (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  رزروی وجود ندارد
+                </div>
+              )}
+            </div>
+          </ScrollReveal>
         )}
       </div>
     </div>

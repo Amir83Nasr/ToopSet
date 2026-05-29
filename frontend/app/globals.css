@@ -242,6 +242,14 @@
 }
 
 /* ══════════════════════════════════════════════════
+   Text Selection — primary-tinted blue glow
+   ══════════════════════════════════════════════════ */
+::selection {
+  background-color: oklch(from var(--color-primary) l c h / 0.25);
+  color: var(--foreground);
+}
+
+/* ══════════════════════════════════════════════════
    Background Patterns — Mesh Gradients & Dot Overlay
    Inspired by tailwindcss.com background aesthetics
    ══════════════════════════════════════════════════ */

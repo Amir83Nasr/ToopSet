@@ -32,6 +32,9 @@ class BookingService:
         self.booking_repo = BookingRepo(db)
         self.slot_repo = TimeSlotRepo(db)
         self.payment_repo = PaymentRepo(db)
+        self.notify_repo = NotificationRepo(db)
+        self.penalty_repo = PenaltyRepo(db)
+        self.wallet_repo = WalletRepo(db)
         self.current_user = current_user
 
     async def list_my_bookings(
@@ -60,8 +63,7 @@ class BookingService:
         payment = await self.payment_repo.get_by_booking(booking_id)
         # Notify manager about new booking
         if court:
-            notify_repo = NotificationRepo(self.booking_repo.db)
-            await notify_repo.create(
+            await self.notify_repo.create(
                 user_id=court.manager_id,
                 type_="booking_created",
                 message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
@@ -73,6 +75,7 @@ class BookingService:
             slot_id=booking.slot_id,
             status=booking.status,
             price_paid=float(booking.price_paid),
+            participants_count=booking.participants_count,
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -125,8 +128,7 @@ class BookingService:
 
         # Notify manager about new booking
         if court:
-            notify_repo = NotificationRepo(self.booking_repo.db)
-            await notify_repo.create(
+            await self.notify_repo.create(
                 user_id=court.manager_id,
                 type_="booking_created",
                 message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
@@ -138,6 +140,7 @@ class BookingService:
             slot_id=booking.slot_id,
             status=booking.status,
             price_paid=float(booking.price_paid),
+            participants_count=booking.participants_count,
             penalty_amount=None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -180,8 +183,7 @@ class BookingService:
                 }
             )
             # Notify user about failed payment
-            notify_repo = NotificationRepo(self.booking_repo.db)
-            await notify_repo.create(
+            await self.notify_repo.create(
                 user_id=self.current_user.id,
                 type_="booking_failed",
                 message="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
@@ -207,8 +209,7 @@ class BookingService:
         booking = await self.booking_repo.update(booking, {"status": BookingStatus.CONFIRMED})
 
         # Notify user about confirmed booking
-        notify_repo = NotificationRepo(self.booking_repo.db)
-        await notify_repo.create(
+        await self.notify_repo.create(
             user_id=self.current_user.id,
             type_="booking_confirmed",
             message=f"رزرو شما برای {court.name if court else 'زمین'} تایید شد",
@@ -220,6 +221,7 @@ class BookingService:
             slot_id=booking.slot_id,
             status=booking.status,
             price_paid=float(booking.price_paid),
+            participants_count=booking.participants_count,
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -258,9 +260,6 @@ class BookingService:
                 detail="Cannot cancel within 2 hours of the session start time",
             )
 
-        penalty_repo = PenaltyRepo(self.booking_repo.db)
-        wallet_repo = WalletRepo(self.booking_repo.db)
-
         if hours_until_slot <= 24:
             penalty_amount = float(booking.price_paid) * 0.5
             refund_amount = float(booking.price_paid) * 0.5
@@ -268,7 +267,7 @@ class BookingService:
                 "status": BookingStatus.CANCELLED,
                 "penalty_amount": penalty_amount,
             }
-            await penalty_repo.create(
+            await self.penalty_repo.create(
                 user_id=self.current_user.id,
                 booking_id=booking_id,
                 amount=penalty_amount,
@@ -287,15 +286,14 @@ class BookingService:
         if was_confirmed:
             await self.slot_repo.update(slot, {"is_reserved": False})
 
-        wallet = await wallet_repo.get_or_create(self.current_user.id)
-        await wallet_repo.add_balance(
+        wallet = await self.wallet_repo.get_or_create(self.current_user.id)
+        await self.wallet_repo.add_balance(
             wallet, refund_amount, f"Refund for cancelled booking #{booking_id}"
         )
 
         # Notify manager about cancellation
         if court:
-            notify_repo = NotificationRepo(self.booking_repo.db)
-            await notify_repo.create(
+            await self.notify_repo.create(
                 user_id=court.manager_id,
                 type_="booking_cancelled",
                 message=f"رزرو {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
@@ -307,6 +305,7 @@ class BookingService:
             slot_id=booking.slot_id,
             status=booking.status,
             price_paid=float(booking.price_paid),
+            participants_count=booking.participants_count,
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,

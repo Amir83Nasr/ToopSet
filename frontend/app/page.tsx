@@ -67,6 +67,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Navigation,
 } from "lucide-react"
 
 interface Court {
@@ -126,7 +127,8 @@ function HomePageContent() {
 
   // User geolocation for nearby courts
   const geo = useGeolocation()
-  const [maxDistance] = useState("")
+  const [maxDistance, setMaxDistance] = useState("")
+  const [locating, setLocating] = useState(false)
   const userLocation = useMemo(
     () =>
       geo.latitude && geo.longitude
@@ -394,6 +396,27 @@ function HomePageContent() {
                   </SelectContent>
                 </Select>
               </div>
+              <Button
+                variant={userLocation ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 self-end"
+                onClick={() => {
+                  setLocating(true)
+                  setSortBy("distance")
+                  setPage(0)
+                  // If location never requested, trigger it now
+                  if (!userLocation) {
+                    geo.requestLocation()
+                  }
+                  setTimeout(() => setLocating(false), 3000)
+                }}
+                disabled={locating}
+              >
+                <Navigation
+                  className={`size-4 ${locating ? "animate-spin" : ""}`}
+                />
+                {userLocation ? "نزدیک به من" : "موقعیت من"}
+              </Button>
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="gap-2">

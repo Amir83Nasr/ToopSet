@@ -26,6 +26,7 @@ from app.api.v1.wallet import router as wallet_router
 from app.core.database import async_session_factory, engine
 from app.core.logging_config import setup_logging
 from app.core.metrics import PrometheusMiddleware, metrics_response
+from app.core.redis_client import close_redis
 
 
 async def _cancel_expired_pending():
@@ -47,7 +48,8 @@ async def _cancel_expired_pending():
                         await slot_repo.update(slot, {"is_reserved": False})
                     await repo.update(b, {"status": BookingStatus.CANCELLED})
         except Exception:
-            pass
+            import logging
+            logging.exception("_cancel_expired_pending failed")
         await asyncio.sleep(60)
 
 
@@ -57,6 +59,7 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(_cancel_expired_pending())
     yield
     task.cancel()
+    await close_redis()
     await engine.dispose()
 
 

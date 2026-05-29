@@ -309,8 +309,8 @@ export default function AdminDashboardPage() {
             </ScrollReveal>
 
             {/* Recent bookings + Quick actions */}
-            <div className="mt-6 grid gap-4 lg:grid-cols-3">
-              <ScrollReveal className="lg:col-span-2">
+            <div className="mt-6">
+              <ScrollReveal>
                 <div className="glass-card neon-border-hover rounded-2xl p-6">
                   <h2 className="text-lg font-semibold">آخرین رزروها</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -358,107 +358,6 @@ export default function AdminDashboardPage() {
                         </TableBody>
                       </Table>
                     )}
-                  </div>
-                </div>
-              </ScrollReveal>
-
-              <ScrollReveal>
-                <div className="glass-card neon-border-hover rounded-2xl p-6">
-                  <h2 className="text-lg font-semibold">دسترسی سریع</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    مدیریت بخش‌های مختلف
-                  </p>
-                  <div className="mt-4 space-y-2">
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/users">
-                        <Users className="ml-2 size-4" />
-                        مدیریت کاربران
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/courts">
-                        <Building2 className="ml-2 size-4" />
-                        مدیریت زمین‌ها
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/admin/bookings">
-                        <CalendarCheck className="ml-2 size-4" />
-                        رزروهای سیستم
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/payments">
-                        <CreditCard className="ml-2 size-4" />
-                        تراکنش‌ها
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/contact">
-                        <MessageSquare className="ml-2 size-4" />
-                        پیام‌های تماس
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/wallet">
-                        <Wallet className="ml-2 size-4" />
-                        کیف پول
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/penalties">
-                        <Gavel className="ml-2 size-4" />
-                        جریمه‌ها
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/reports">
-                        <TrendingUp className="ml-2 size-4" />
-                        گزارشات
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="neon-border-hover w-full justify-start"
-                      asChild
-                    >
-                      <Link href="/dashboard/admin/logs">
-                        <History className="ml-2 size-4" />
-                        لاگ سیستم
-                      </Link>
-                    </Button>
                   </div>
                 </div>
               </ScrollReveal>

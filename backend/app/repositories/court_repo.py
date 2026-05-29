@@ -74,7 +74,27 @@ class CourtRepo:
 
             query = query.distinct()
 
-        total = len((await self.db.execute(count_query)).scalars().all())
+        from sqlalchemy import func as sa_func
+        count_q = select(sa_func.count()).select_from(Court)
+        if sport_type:
+            count_q = count_q.where(Court.sport_types.any(sport_type.value))
+        if is_active is not None:
+            count_q = count_q.where(Court.is_active == is_active)
+        if search:
+            count_q = count_q.where(Court.name.ilike(f"%{search}%"))
+
+        if date_from or date_to or price_min is not None or price_max is not None:
+            count_q = count_q.join(Court.time_slots).where(TimeSlot.is_reserved == False)
+            if date_from:
+                count_q = count_q.where(TimeSlot.start_time >= date_from)
+            if date_to:
+                count_q = count_q.where(TimeSlot.end_time <= date_to)
+            if price_min is not None:
+                count_q = count_q.where(TimeSlot.base_price >= price_min)
+            if price_max is not None:
+                count_q = count_q.where(TimeSlot.base_price <= price_max)
+
+        total = (await self.db.execute(count_q)).scalar_one()
 
         order = Court.created_at.desc()
         if sort in ("price_asc", "price_desc"):

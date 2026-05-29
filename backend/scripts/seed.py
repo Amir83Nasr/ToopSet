@@ -63,7 +63,7 @@ async def seed():
             Court(
                 manager_id=users[1].id,
                 name="زمین فوتسال آزادی",
-                sport_type=SportType.FUTSAL,
+                sport_types=[SportType.FUTSAL.value],
                 address="تهران، خیابان آزادی",
                 latitude=35.7,
                 longitude=51.4,
@@ -72,7 +72,7 @@ async def seed():
             Court(
                 manager_id=users[1].id,
                 name="زمین بسکتبال انقلاب",
-                sport_type=SportType.BASKETBALL,
+                sport_types=[SportType.BASKETBALL.value],
                 address="تهران، خیابان انقلاب",
                 latitude=35.7,
                 longitude=51.4,
@@ -81,7 +81,7 @@ async def seed():
             Court(
                 manager_id=users[2].id,
                 name="زمین والیبال دانشگاه",
-                sport_type=SportType.VOLLEYBALL,
+                sport_types=[SportType.VOLLEYBALL.value],
                 address="تهران، خیابان دانشگاه",
                 latitude=35.7,
                 longitude=51.4,
@@ -90,7 +90,7 @@ async def seed():
             Court(
                 manager_id=users[2].id,
                 name="زمین فوتسال نوآوری",
-                sport_type=SportType.FUTSAL,
+                sport_types=[SportType.FUTSAL.value],
                 address="تهران، خیابان نوآوری",
                 latitude=35.7,
                 longitude=51.4,

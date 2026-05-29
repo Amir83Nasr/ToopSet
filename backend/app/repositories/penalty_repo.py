@@ -17,7 +17,20 @@ class PenaltyRepo:
         await self.db.refresh(penalty)
         return penalty
 
-    async def list_by_user(self, user_id: int) -> list[Penalty]:
-        stmt = select(Penalty).where(Penalty.user_id == user_id).order_by(Penalty.created_at.desc())
+    async def list_by_user(
+        self, user_id: int, *, skip: int = 0, limit: int = 20
+    ) -> tuple[list[Penalty], int]:
+        from sqlalchemy import func as sa_func
+
+        count_q = select(sa_func.count()).select_from(Penalty).where(Penalty.user_id == user_id)
+        total = (await self.db.execute(count_q)).scalar_one()
+
+        stmt = (
+            select(Penalty)
+            .where(Penalty.user_id == user_id)
+            .order_by(Penalty.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.db.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.scalars().all()), total

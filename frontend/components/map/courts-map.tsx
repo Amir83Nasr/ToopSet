@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import { toPersianDigits } from "@/lib/utils"
+import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM, CLOSE_ZOOM } from "@/lib/map-utils"
 
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
@@ -101,17 +102,17 @@ function MapController({
           )
         }
         const group = new L.FeatureGroup(markers)
-        map.fitBounds(group.getBounds().pad(0.2))
+        map.fitBounds(group.getBounds().pad(0.15))
       }
     }
 
     // Center on user if they just appeared
     if (userLocation && userKey !== prevUserRef.current) {
       prevUserRef.current = userKey
-      map.setView(
-        [userLocation.latitude, userLocation.longitude],
-        map.getZoom() || 12
-      )
+        map.setView(
+          [userLocation.latitude, userLocation.longitude],
+          map.getZoom() || DEFAULT_ZOOM
+        )
     }
   }, [courts, map, userLocation])
 
@@ -200,7 +201,7 @@ export function CourtsMap({
   height = "400px",
   userLocation,
 }: CourtsMapProps) {
-  const defaultCenter = useMemo(() => [34.64, 50.88] as [number, number], [])
+  const defaultCenter = useMemo(() => QOM_CENTER, [])
 
   const mapKey = useMemo(
     () => `map-${courts.map((c) => c.id).join("-") || "empty"}`,
@@ -225,9 +226,13 @@ export function CourtsMap({
       <MapContainer
         key={mapKey}
         center={defaultCenter}
-        zoom={12}
+        zoom={DEFAULT_ZOOM}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={true}
+        maxBounds={QOM_BOUNDS}
+        maxBoundsViscosity={1.0}
+        minZoom={10}
+        maxZoom={18}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

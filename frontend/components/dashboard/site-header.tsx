@@ -12,12 +12,23 @@ import { usePathname } from "next/navigation"
 
 const breadcrumbLabels: Record<string, string> = {
   dashboard: "داشبورد",
+  user: "کاربر",
+  manager: "مدیر مجموعه",
+  admin: "مدیریت سیستم",
   courts: "زمین‌ها",
+  create: "ایجاد",
   schedule: "مدیریت زمان",
   bookings: "رزروها",
   payments: "پرداخت‌ها",
   reviews: "نظرات",
   users: "کاربران",
+  favorites: "علاقه‌مندی‌ها",
+  wallet: "کیف پول",
+  penalties: "جریمه‌ها",
+  notifications: "اعلان‌ها",
+  contact: "پیام‌ها",
+  reports: "گزارشات",
+  logs: "لاگ‌ها",
   settings: "تنظیمات",
 }
 

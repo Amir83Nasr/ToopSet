@@ -20,10 +20,8 @@ async def list_penalties(
     current_user: User = Depends(get_current_user),
 ):
     repo = PenaltyRepo(db)
-    penalties = await repo.list_by_user(current_user.id)
-    total = len(penalties)
-    page = penalties[skip : skip + limit]
+    penalties, total = await repo.list_by_user(current_user.id, skip=skip, limit=limit)
     return PenaltyListResponse(
-        penalties=[PenaltyResponse.model_validate(p) for p in page],
+        penalties=[PenaltyResponse.model_validate(p) for p in penalties],
         total=total,
     )

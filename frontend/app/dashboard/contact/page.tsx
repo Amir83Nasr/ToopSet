@@ -176,7 +176,7 @@ export default function ContactMessagesPage() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">صفحه {page + 1}</p>
+              <p className="text-sm text-muted-foreground">صفحه {toPersianDigits(page + 1)}</p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"

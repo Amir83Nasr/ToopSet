@@ -1,7 +1,6 @@
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "./providers"
-import { CursorAmbient } from "@/components/ui/cursor-ambient"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -22,8 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
-      <body className="cursor-none">
-        <CursorAmbient />
+      <body>
         <ThemeProvider>
           <Providers>{children}</Providers>
         </ThemeProvider>

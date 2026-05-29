@@ -28,6 +28,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import dynamic from "next/dynamic"
+
+const CourtLocationMap = dynamic(
+  () =>
+    import("@/components/map/court-location-map").then(
+      (m) => m.CourtLocationMap
+    ),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-48 w-full rounded-xl" />,
+  }
+)
 import {
   Carousel,
   CarouselContent,
@@ -58,6 +70,8 @@ interface Court {
   name: string
   sport_types: string[]
   address: string
+  latitude: number
+  longitude: number
   capacity: number
   is_active: boolean
   average_rating: number
@@ -405,6 +419,23 @@ export default function CourtDetailPage() {
                 </>
               )}
             </Carousel>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Location Map */}
+      {court.latitude != null && court.longitude != null && (
+        <Card>
+          <CardHeader>
+            <CardTitle>موقعیت روی نقشه</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CourtLocationMap
+              latitude={court.latitude}
+              longitude={court.longitude}
+              name={court.name}
+              height="250px"
+            />
           </CardContent>
         </Card>
       )}

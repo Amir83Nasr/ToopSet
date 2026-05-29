@@ -27,8 +27,4 @@ class FavoriteService:
         return await self.repo.list_by_user(self.current_user.id, skip=skip, limit=limit)
 
     async def check_favorites(self, court_ids: list[int]) -> list[int]:
-        result = []
-        for cid in court_ids:
-            if await self.repo.is_favorited(self.current_user.id, cid):
-                result.append(cid)
-        return result
+        return await self.repo.check_favorited_ids(self.current_user.id, court_ids)

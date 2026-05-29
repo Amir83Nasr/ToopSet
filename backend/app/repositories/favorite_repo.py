@@ -43,5 +43,17 @@ class FavoriteRepo:
         return result.scalar_one_or_none() is not None
 
     async def count_by_user(self, user_id: int) -> int:
-        result = await self.db.execute(select(Favorite).where(Favorite.user_id == user_id))
-        return len(result.scalars().all())
+        from sqlalchemy import func as sa_func
+
+        result = await self.db.execute(
+            select(sa_func.count()).select_from(Favorite).where(Favorite.user_id == user_id)
+        )
+        return result.scalar_one()
+
+    async def check_favorited_ids(self, user_id: int, court_ids: list[int]) -> list[int]:
+        result = await self.db.execute(
+            select(Favorite.court_id).where(
+                Favorite.user_id == user_id, Favorite.court_id.in_(court_ids)
+            )
+        )
+        return [row[0] for row in result.all()]

@@ -10,8 +10,7 @@ import {
 } from "react-leaflet"
 import L from "leaflet"
 import { Loader2, MapPin } from "lucide-react"
-
-const QOM_CENTER: [number, number] = [34.64, 50.88]
+import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM, CLOSE_ZOOM } from "@/lib/map-utils"
 
 interface LocationPickerProps {
   latitude: number | null
@@ -128,9 +127,13 @@ export function LocationPicker({
         <div style={{ height: 300 }}>
           <MapContainer
             center={QOM_CENTER}
-            zoom={12}
+            zoom={DEFAULT_ZOOM}
             style={{ height: "100%", width: "100%" }}
             scrollWheelZoom={true}
+            maxBounds={QOM_BOUNDS}
+            maxBoundsViscosity={1.0}
+            minZoom={10}
+            maxZoom={18}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -149,7 +152,7 @@ export function LocationPicker({
               <FlyTo
                 lat={markerPosition[0]}
                 lng={markerPosition[1]}
-                zoom={15}
+                zoom={CLOSE_ZOOM}
               />
             )}
           </MapContainer>
