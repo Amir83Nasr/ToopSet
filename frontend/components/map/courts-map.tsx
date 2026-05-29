@@ -95,14 +95,21 @@ function MapController({
     if (ids !== prevIdsRef.current) {
       prevIdsRef.current = ids
       if (courts.length > 0) {
-        const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
-        if (userLocation) {
-          markers.push(
-            L.marker([userLocation.latitude, userLocation.longitude])
-          )
+        try {
+          const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
+          if (userLocation) {
+            markers.push(
+              L.marker([userLocation.latitude, userLocation.longitude])
+            )
+          }
+          const group = new L.FeatureGroup(markers)
+          const bounds = group.getBounds()
+          if (bounds.isValid()) {
+            map.fitBounds(bounds.pad(0.15))
+          }
+        } catch {
+          // ignore fitBounds errors (e.g. invalid coordinates)
         }
-        const group = new L.FeatureGroup(markers)
-        map.fitBounds(group.getBounds().pad(0.15))
       }
     }
 
@@ -170,30 +177,19 @@ function UserMarker({
 }: {
   location: { latitude: number; longitude: number }
 }) {
-  const markerRef = useRef<L.Marker | null>(null)
-  const map = useMap()
-
-  useEffect(() => {
-    if (markerRef.current) {
-      markerRef.current.setLatLng([location.latitude, location.longitude])
-    } else {
-      markerRef.current = L.marker([location.latitude, location.longitude], {
-        icon: createUserIcon(),
-        zIndexOffset: 1000,
-      }).addTo(map)
-      markerRef.current.bindPopup(
-        `<div class="text-right font-sans" dir="rtl"><strong>موقعیت شما</strong></div>`
-      )
-    }
-    return () => {
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current)
-        markerRef.current = null
-      }
-    }
-  }, [location, map])
-
-  return null
+  return (
+    <Marker
+      position={[location.latitude, location.longitude]}
+      icon={createUserIcon()}
+      zIndexOffset={1000}
+    >
+      <Popup>
+        <div className="text-right font-sans" dir="rtl">
+          <strong>موقعیت شما</strong>
+        </div>
+      </Popup>
+    </Marker>
+  )
 }
 
 export function CourtsMap({
