@@ -266,7 +266,8 @@ up: ## Start ALL Docker services (full stack: frontend + backend + db + monitori
 	@echo "  $(GREY)│$(RESET)  Backend:   http://localhost:$(UVICORN_PORT)"
 	@echo "  $(GREY)│$(RESET)  Kibana:    http://localhost:5601"
 	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
-	@echo "  $(GREY)│$(RESET)  Prometheus: http://localhost:9090"
+	@echo "  $(GREY)│$(RESET)  Prometheus:  http://localhost:9090"
+	@echo "  $(GREY)│$(RESET)  Alertmanager: http://localhost:9093"
 
 down: ## Stop all Docker services (data stays in volumes)
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
@@ -331,18 +332,19 @@ run-stop: ## Stop the single toopset container
 
 .PHONY: monitor monitor-stop
 
-monitor: ## Start only monitoring stack (ELK + Prometheus + Grafana)
+monitor: ## Start only monitoring stack (ELK + Prometheus + Grafana + Alertmanager)
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d \
-		elasticsearch logstash kibana prometheus grafana \
+		elasticsearch logstash kibana prometheus grafana alertmanager \
 		postgres_exporter redis_exporter
 	@echo "  $(GREEN)✓$(RESET)  Monitoring stack started"
 	@echo "  $(GREY)│$(RESET)  Kibana:    http://localhost:5601"
 	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
-	@echo "  $(GREY)│$(RESET)  Prometheus: http://localhost:9090"
+	@echo "  $(GREY)│$(RESET)  Prometheus:  http://localhost:9090"
+	@echo "  $(GREY)│$(RESET)  Alertmanager: http://localhost:9093"
 
 monitor-stop: ## Stop monitoring stack
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop \
-		elasticsearch logstash kibana prometheus grafana \
+		elasticsearch logstash kibana prometheus grafana alertmanager \
 		postgres_exporter redis_exporter
 	@echo "  $(GREEN)✓$(RESET)  Monitoring stopped"
 
@@ -350,14 +352,23 @@ monitor-stop: ## Stop monitoring stack
 # --- Testing ---
 # ─────────────────────────────────────────────────────────────────────
 
-.PHONY: test back-test front-test
+.PHONY: test back-test front-test test-db-setup
 
 ## Run all tests
 test: back-test front-test
 
-## Run backend tests
-back-test: ## Run Python tests with pytest
-	cd backend && pip install pytest pytest-asyncio httpx pytest-httpx asgi-lifespan -q 2>/dev/null; python3 -m pytest tests/ -v --tb=short
+## Create the test PostgreSQL database (requires running Postgres)
+test-db-setup: ## Create toopset_test database for integration tests
+	@PGPASSWORD=$${POSTGRES_PASSWORD:-toopset_secret} \
+		psql -h $${POSTGRES_HOST:-localhost} -p $${POSTGRES_PORT:-5432} \
+		-U $${POSTGRES_USER:-toopset} -d postgres \
+		-c "CREATE DATABASE toopset_test" 2>/dev/null || \
+		echo "  $(YELLOW)ℹ$(RESET) Database 'toopset_test' may already exist"
+	@echo "  $(GREEN)✓$(RESET) Test database ready"
+
+## Run backend tests (starts Postgres if not running)
+back-test: test-db-setup ## Run Python tests with pytest
+	@cd backend && pip install pytest pytest-asyncio httpx pytest-httpx asgi-lifespan -q 2>/dev/null; python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
 
 ## Run frontend tests
 front-test: ## Run Vitest tests
