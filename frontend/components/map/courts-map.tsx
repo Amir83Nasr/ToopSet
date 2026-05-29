@@ -4,7 +4,12 @@ import { useEffect, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import { toPersianDigits } from "@/lib/utils"
-import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM, CLOSE_ZOOM } from "@/lib/map-utils"
+import {
+  QOM_BOUNDS,
+  QOM_CENTER,
+  DEFAULT_ZOOM,
+} from "@/lib/map-utils"
+import { createCourtIcon, createUserLocationIcon } from "@/lib/map-utils"
 
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
@@ -32,47 +37,10 @@ interface CourtsMapProps {
   userLocation?: { latitude: number; longitude: number } | null
 }
 
-const sportSvgPaths: Record<string, string> = {
-  volleyball:
-    "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-3.5l6-4.5-6-4.5v9z",
-  basketball:
-    "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15L17 14.23l-4-2.37V7z",
-  futsal:
-    "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v-2h-2v2zm0-4h2V7h-2v4z",
-  handball:
-    "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v2h-2zm0 4h2v6h-2z",
-}
-
-const sportColors: Record<string, string> = {
-  volleyball: "#3b82f6",
-  basketball: "#f97316",
-  futsal: "#22c55e",
-  handball: "#a855f7",
-}
-
-const createSportIcon = (sportType: string) => {
-  const color = sportColors[sportType] || "#6b7280"
-  const path = sportSvgPaths[sportType] || sportSvgPaths.volleyball
-  return L.divIcon({
-    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color: ${color}">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0.5">
-        <path d="${path}"/>
-      </svg>
-    </div>`,
-    className: "",
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -40],
-  })
-}
-
 const starIcon =
   '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15" stroke-width="1"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>'
 
-const renderStars = (rating: number) => {
-  const full = Math.floor(rating)
-  return starIcon.repeat(full)
-}
+const renderStars = (rating: number) => starIcon.repeat(Math.floor(rating))
 
 function MapController({
   courts,
@@ -91,7 +59,6 @@ function MapController({
       ? `${userLocation.latitude},${userLocation.longitude}`
       : ""
 
-    // Only re-fit if courts changed
     if (ids !== prevIdsRef.current) {
       prevIdsRef.current = ids
       if (courts.length > 0) {
@@ -108,18 +75,17 @@ function MapController({
             map.fitBounds(bounds.pad(0.15))
           }
         } catch {
-          // ignore fitBounds errors (e.g. invalid coordinates)
+          // ignore fitBounds errors
         }
       }
     }
 
-    // Center on user if they just appeared
     if (userLocation && userKey !== prevUserRef.current) {
       prevUserRef.current = userKey
-        map.setView(
-          [userLocation.latitude, userLocation.longitude],
-          map.getZoom() || DEFAULT_ZOOM
-        )
+      map.setView(
+        [userLocation.latitude, userLocation.longitude],
+        map.getZoom() || DEFAULT_ZOOM
+      )
     }
   }, [courts, map, userLocation])
 
@@ -159,19 +125,6 @@ function LocateButton() {
   return null
 }
 
-const createUserIcon = () => {
-  return L.divIcon({
-    html: `<div class="relative flex items-center justify-center w-8 h-8">
-      <div class="absolute inset-0 rounded-full bg-blue-500 opacity-20 animate-ping"></div>
-      <div class="absolute inset-1 rounded-full bg-blue-500 opacity-40 animate-pulse"></div>
-      <div class="absolute inset-2 rounded-full bg-blue-600 border-2 border-white shadow-lg"></div>
-    </div>`,
-    className: "",
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  })
-}
-
 function UserMarker({
   location,
 }: {
@@ -180,7 +133,7 @@ function UserMarker({
   return (
     <Marker
       position={[location.latitude, location.longitude]}
-      icon={createUserIcon()}
+      icon={createUserLocationIcon()}
       zIndexOffset={1000}
     >
       <Popup>
@@ -229,11 +182,9 @@ export function CourtsMap({
         maxBoundsViscosity={1.0}
         minZoom={10}
         maxZoom={18}
+        attributionControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapController courts={courts} userLocation={userLocation} />
         <LocateButton />
         {userLocation && <UserMarker location={userLocation} />}
@@ -241,7 +192,7 @@ export function CourtsMap({
           <Marker
             key={court.id}
             position={[court.latitude, court.longitude]}
-            icon={createSportIcon(court.sport_types?.[0] || "volleyball")}
+            icon={createCourtIcon(court.sport_types?.[0])}
           >
             <Popup>
               <div

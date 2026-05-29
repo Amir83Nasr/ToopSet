@@ -10,25 +10,19 @@ import {
 } from "react-leaflet"
 import L from "leaflet"
 import { Loader2, MapPin } from "lucide-react"
-import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM, CLOSE_ZOOM } from "@/lib/map-utils"
+import {
+  QOM_BOUNDS,
+  QOM_CENTER,
+  DEFAULT_ZOOM,
+  CLOSE_ZOOM,
+} from "@/lib/map-utils"
+import { createDefaultPinIcon } from "@/lib/map-utils"
 
 interface LocationPickerProps {
   latitude: number | null
   longitude: number | null
   onLocationChange: (lat: number, lng: number, address?: string) => void
 }
-
-const DEFAULT_ICON = L.divIcon({
-  html: `<div class="flex items-center justify-center w-9 h-9 rounded-full bg-primary shadow-lg border-2 border-white">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-      <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2C20 17.5 12 22 12 22z"/>
-      <circle cx="12" cy="10" r="3"/>
-    </svg>
-  </div>`,
-  className: "",
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-})
 
 function ClickHandler({
   onPlace,
@@ -90,7 +84,6 @@ export function LocationPicker({
 
   const handlePlace = useCallback(
     async (lat: number, lng: number) => {
-      // Avoid duplicate reverse-geocode for same coords
       const key = `${lat.toFixed(5)},${lng.toFixed(5)}`
       if (key === lastGeocodeRef.current) {
         onLocationChange(lat, lng)
@@ -134,16 +127,14 @@ export function LocationPicker({
             maxBoundsViscosity={1.0}
             minZoom={10}
             maxZoom={18}
+            attributionControl={false}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <ClickHandler onPlace={handlePlace} enabled />
             {hasLocation && markerPosition && (
               <Marker
                 position={markerPosition}
-                icon={DEFAULT_ICON}
+                icon={createDefaultPinIcon()}
                 draggable={true}
                 eventHandlers={{ dragend: handleDragEnd }}
               />
