@@ -25,14 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
@@ -62,7 +54,6 @@ import {
   Building2,
   Star,
   MapPin,
-  SlidersHorizontal,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -328,55 +319,25 @@ function HomePageContent() {
                 زمین ورزشی مورد نظر خود را پیدا کنید
               </p>
             </div>
-            <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 md:p-6">
-              <div className="min-w-50 flex-1">
-                <Label
-                  htmlFor="search"
-                  className="mb-1.5 block text-xs text-muted-foreground"
-                >
-                  جستجو
-                </Label>
-                <div className="relative">
-                  <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="نام زمین، آدرس..."
-                    value={searchText}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                      setPage(0)
-                    }}
-                    className="pr-9"
-                  />
+
+            <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
+              {/* Row 1: Search + Sort + Near Me */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="relative">
+                    <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="جستجوی نام زمین، آدرس..."
+                      value={searchText}
+                      onChange={(e) => {
+                        setSearchText(e.target.value)
+                        setPage(0)
+                      }}
+                      className="pr-9"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="w-35">
-                <Label className="mb-1.5 block text-xs text-muted-foreground">
-                  ورزش
-                </Label>
-                <Select
-                  value={sportFilter}
-                  onValueChange={(v) => {
-                    setSportFilter(v)
-                    setPage(0)
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">همه</SelectItem>
-                    <SelectItem value="volleyball">والیبال</SelectItem>
-                    <SelectItem value="basketball">بسکتبال</SelectItem>
-                    <SelectItem value="futsal">فوتسال</SelectItem>
-                    <SelectItem value="handball">هندبال</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-35">
-                <Label className="mb-1.5 block text-xs text-muted-foreground">
-                  مرتب‌سازی
-                </Label>
+
                 <Select
                   value={sortBy}
                   onValueChange={(v) => {
@@ -384,86 +345,159 @@ function HomePageContent() {
                     setPage(0)
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-35">
+                    <SelectValue placeholder="مرتب‌سازی" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="default">پیش‌فرض</SelectItem>
                     <SelectItem value="price_asc">قیمت: کم به زیاد</SelectItem>
                     <SelectItem value="price_desc">قیمت: زیاد به کم</SelectItem>
                     <SelectItem value="rating">امتیاز</SelectItem>
-                    <SelectItem value="distance">نزدیک‌ترین به من</SelectItem>
+                    <SelectItem value="distance">نزدیک‌ترین</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Button
+                  variant={userLocation ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    setLocating(true)
+                    setSortBy("distance")
+                    setPage(0)
+                    if (!userLocation) geo.requestLocation()
+                    setTimeout(() => setLocating(false), 3000)
+                  }}
+                  disabled={locating}
+                >
+                  <Navigation
+                    className={`size-4 ${locating ? "animate-spin" : ""}`}
+                  />
+                  {userLocation ? "نزدیک به من" : "موقعیت من"}
+                </Button>
               </div>
-              <Button
-                variant={userLocation ? "default" : "outline"}
-                size="sm"
-                className="gap-1.5 self-end"
-                onClick={() => {
-                  setLocating(true)
-                  setSortBy("distance")
-                  setPage(0)
-                  // If location never requested, trigger it now
-                  if (!userLocation) {
-                    geo.requestLocation()
-                  }
-                  setTimeout(() => setLocating(false), 3000)
-                }}
-                disabled={locating}
-              >
-                <Navigation
-                  className={`size-4 ${locating ? "animate-spin" : ""}`}
-                />
-                {userLocation ? "نزدیک به من" : "موقعیت من"}
-              </Button>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <SlidersHorizontal className="size-4" />
-                    فیلترهای بیشتر
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-75">
-                  <SheetHeader>
-                    <SheetTitle>فیلترها</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-6">
-                    <div className="space-y-2">
-                      <Label>محدوده قیمت (تومان)</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          placeholder="حداقل"
-                          value={priceMin}
-                          onChange={(e) => {
-                            setPriceMin(e.target.value)
-                            setPage(0)
-                          }}
-                        />
-                        <span className="text-muted-foreground">—</span>
-                        <Input
-                          type="number"
-                          placeholder="حداکثر"
-                          value={priceMax}
-                          onChange={(e) => {
-                            setPriceMax(e.target.value)
-                            setPage(0)
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={clearFilters}
+
+              {/* Row 2: Sport type pills */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(["all", "volleyball", "basketball", "futsal", "handball"] as const).map(
+                  (type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setSportFilter(type)
+                        setPage(0)
+                      }}
+                      className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                        sportFilter === type
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      }`}
                     >
-                      <X className="ml-2 size-4" />
-                      پاک کردن فیلترها
+                      {type === "all" ? "همه" : sportLabels[type]}
+                    </button>
+                  )
+                )}
+              </div>
+
+              {/* Row 3: Price range + active filters */}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  محدوده قیمت:
+                </span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="حداقل"
+                    value={priceMin}
+                    onChange={(e) => {
+                      setPriceMin(e.target.value)
+                      setPage(0)
+                    }}
+                    className="h-9 w-24 text-sm"
+                  />
+                  <span className="text-muted-foreground">—</span>
+                  <Input
+                    type="number"
+                    placeholder="حداکثر"
+                    value={priceMax}
+                    onChange={(e) => {
+                      setPriceMax(e.target.value)
+                      setPage(0)
+                    }}
+                    className="h-9 w-24 text-sm"
+                  />
+                </div>
+
+                <div className="mr-auto flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
+                    >
+                      <X className="size-3.5" />
+                      حذف فیلترها
                     </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter chips */}
+              {hasActiveFilters && (
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
+                  {searchText && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      <Search className="size-3" />
+                      {searchText}
+                      <button
+                        type="button"
+                        onClick={() => setSearchText("")}
+                        className="mr-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  )}
+                  {sportFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      {sportLabels[sportFilter] || sportFilter}
+                      <button
+                        type="button"
+                        onClick={() => setSportFilter("all")}
+                        className="mr-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  )}
+                  {priceMin && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      از {toPersianDigits(priceMin)}
+                      <button
+                        type="button"
+                        onClick={() => setPriceMin("")}
+                        className="mr-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  )}
+                  {priceMax && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      تا {toPersianDigits(priceMax)}
+                      <button
+                        type="button"
+                        onClick={() => setPriceMax("")}
+                        className="mr-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
