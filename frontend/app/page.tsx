@@ -15,9 +15,11 @@ import { useGeolocation } from "@/hooks/use-geolocation"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { FavoriteButton } from "@/components/courts/favorite-button"
 import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 import {
   Select,
   SelectContent,
@@ -35,6 +37,8 @@ import { HeroSection } from "@/components/public/hero-section"
 import { AboutSection } from "@/components/public/about-section"
 import { RolesSection } from "@/components/public/roles-section"
 import { HowItWorks } from "@/components/public/how-it-works"
+import { StatsBanner } from "@/components/public/stats-banner"
+import { SportsShowcase } from "@/components/public/sports-showcase"
 
 const CourtsMap = dynamic(
   () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
@@ -284,26 +288,40 @@ function HomePageContent() {
         {/* Hero Section */}
         <HeroSection />
 
-        {/* Horizontal separator */}
-        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+        {/* Stats Section */}
+        <StatsBanner />
+
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        </div>
 
         {/* About Section */}
         <AboutSection />
 
-        {/* Horizontal separator */}
-        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
+        </div>
+
+        {/* Sports Showcase — NEW */}
+        <SportsShowcase />
+
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        </div>
 
         {/* How It Works */}
         <HowItWorks />
 
-        {/* Horizontal separator */}
-        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        </div>
 
         {/* Roles Section */}
         <RolesSection />
 
-        {/* Horizontal separator */}
-        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
+        </div>
 
         {/* Search & Filters */}
         <section
@@ -406,48 +424,61 @@ function HomePageContent() {
                 ))}
               </div>
 
-              {/* Row 3: Price range + active filters */}
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  محدوده قیمت:
-                </span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="حداقل"
-                    value={priceMin}
-                    onChange={(e) => {
-                      setPriceMin(e.target.value)
-                      setPage(0)
-                    }}
-                    className="h-9 w-24 text-sm"
-                  />
-                  <span className="text-muted-foreground">—</span>
-                  <Input
-                    type="number"
-                    placeholder="حداکثر"
-                    value={priceMax}
-                    onChange={(e) => {
-                      setPriceMax(e.target.value)
-                      setPage(0)
-                    }}
-                    className="h-9 w-24 text-sm"
-                  />
+              {/* Row 3: Price range slider */}
+              <div className="mt-4 px-1">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    محدوده قیمت
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {toPersianDigits(
+                      new Intl.NumberFormat("fa-IR").format(
+                        Number(priceMin) || 0
+                      )
+                    )}{" "}
+                    —{" "}
+                    {toPersianDigits(
+                      new Intl.NumberFormat("fa-IR").format(
+                        Number(priceMax) || 500000
+                      )
+                    )}{" "}
+                    تومان
+                  </span>
                 </div>
+                <Slider
+                  min={0}
+                  max={500000}
+                  step={10000}
+                  value={[
+                    Number(priceMin) || 0,
+                    Number(priceMax) || 500000,
+                  ]}
+                  onValueChange={([min, max]) => {
+                    setPriceMin(String(min))
+                    setPriceMax(String(max))
+                    setPage(0)
+                  }}
+                  className="w-full"
+                />
+                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/50">
+                  <span>صفر</span>
+                  <span>{toPersianDigits("۵۰۰")} هزار</span>
+                </div>
+              </div>
 
-                <div className="mr-auto flex items-center gap-2">
-                  {hasActiveFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
-                    >
-                      <X className="size-3.5" />
-                      حذف فیلترها
-                    </Button>
-                  )}
-                </div>
+              {/* Row 4: Active filters */}
+              <div className="mr-auto mt-2 flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
+                  >
+                    <X className="size-3.5" />
+                    حذف فیلترها
+                  </Button>
+                )}
               </div>
 
               {/* Filter chips */}
@@ -508,8 +539,9 @@ function HomePageContent() {
           </div>
         </section>
 
-        {/* Horizontal separator */}
-        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        </div>
 
         {/* Map */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
@@ -560,8 +592,9 @@ function HomePageContent() {
           </ScrollReveal>
         </section>
 
-        {/* Horizontal separator */}
-        <div className="mx-auto h-px max-w-5xl bg-border/30 px-4" />
+        <div className="relative mx-auto max-w-5xl px-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
+        </div>
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">

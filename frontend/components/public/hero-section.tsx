@@ -1,143 +1,202 @@
 "use client"
 
-import { motion } from "framer-motion"
-
-const orbs = [
-  {
-    size: 300,
-    color: "bg-primary/8",
-    blur: "blur-[100px]",
-    x: "-15%",
-    y: "-20%",
-    delay: 0,
-  },
-  {
-    size: 200,
-    color: "bg-blue-500/6",
-    blur: "blur-[80px]",
-    x: "55%",
-    y: "-10%",
-    delay: 1.2,
-  },
-  {
-    size: 180,
-    color: "bg-teal-400/6",
-    blur: "blur-[70px]",
-    x: "20%",
-    y: "45%",
-    delay: 0.6,
-  },
-]
+import { motion, useScroll, useTransform } from "framer-motion"
+import { Search, Zap, Activity, Timer } from "lucide-react"
 
 export function HeroSection() {
-  return (
-    <section className="relative overflow-hidden px-4 pt-24 pb-20 md:pt-32 md:pb-28">
-      <div className="bg-grid absolute inset-0" />
+  const { scrollYProgress } = useScroll({
+    offset: ["start start", "end start"],
+  })
 
-      {/* Glow behind headline */}
-      <div className="absolute inset-0 flex items-start justify-center pt-32 md:pt-44">
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "40%"])
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"])
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.6, 1], [1, 0.3, 0])
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.9])
+
+  return (
+    <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden md:min-h-[calc(100vh-5rem)]">
+      {/* Background layers */}
+      <motion.div className="bg-mesh absolute inset-0" style={{ y: bgY }} />
+      <motion.div
+        className="bg-grid absolute inset-0"
+        style={{ y: useTransform(scrollYProgress, [0, 1], ["0%", "30%"]) }}
+      />
+
+      {/* Large background watermark text */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center select-none"
+        style={{ y: bgY }}
+      >
+        <span className="text-[clamp(8rem,20vw,20rem)] font-black tracking-tighter text-foreground/[0.015]">
+          توپ‌سِت
+        </span>
+      </motion.div>
+
+      {/* Central glow */}
+      <div className="absolute inset-0 flex items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.6 }}
+          initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
-          className="size-[500px] rounded-full bg-primary/10 blur-[120px]"
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className="size-[700px] rounded-full bg-primary/8 blur-[140px]"
         />
       </div>
 
-      {/* Floating orbs */}
-      {orbs.map((orb, i) => (
-        <motion.div
-          key={i}
-          aria-hidden
-          className="pointer-events-none absolute rounded-full"
-          style={{
-            width: orb.size,
-            height: orb.size,
-            left: orb.x,
-            top: orb.y,
-            marginLeft: -(orb.size / 2),
-            marginTop: -(orb.size / 2),
-          }}
-          initial={{ opacity: 0 }}
-          animate={{
-            opacity: 1,
-            x: [0, 15, 0, -12, 0],
-            y: [0, -12, -24, -10, 0],
-          }}
-          transition={{
-            opacity: { duration: 0.8, delay: 0.4 + orb.delay },
-            x: {
-              duration: 7 + i * 0.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: orb.delay,
-            },
-            y: {
-              duration: 6 + i * 0.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: orb.delay,
-            },
-          }}
-        >
-          <div className={`size-full rounded-full ${orb.color} ${orb.blur}`} />
-        </motion.div>
-      ))}
-
+      {/* Main content */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-6 text-center"
+        style={{ y: contentY, opacity: contentOpacity, scale }}
+        className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col items-center justify-center gap-6 px-4 text-center md:min-h-[calc(100vh-5rem)]"
+      >
+          {/* Live badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground"
+          >
+            <span className="size-2 rounded-full bg-primary/40" />
+            آنلاین — آماده رزرو
+          </motion.div>
+
+        {/* Headline — big and bold */}
+        <h1 className="flex flex-wrap items-baseline justify-center gap-x-4 text-5xl font-bold tracking-tight md:text-7xl lg:text-8xl">
+          {"توپ‌".split("").map((char, i) => (
+            <motion.span
+              key={`toop-${i}`}
+              custom={i}
+              variants={{
+                hidden: { opacity: 0, y: 80, rotateX: -30 },
+                visible: (i: number) => ({
+                  opacity: 1,
+                  y: 0,
+                  rotateX: 0,
+                  transition: {
+                    type: "spring" as const,
+                    stiffness: 180,
+                    damping: 18,
+                    delay: 0.3 + i * 0.15,
+                  },
+                }),
+              }}
+              initial="hidden"
+              animate="visible"
+              className="inline-block"
+            >
+              {char}
+            </motion.span>
+          ))}
+          <motion.span
+            initial={{ opacity: 0, scale: 0, rotate: -15 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 300,
+              damping: 12,
+              delay: 0.7,
+            }}
+            className="inline-block text-primary"
+          >
+            سِت
+          </motion.span>
+        </h1>
+
+        {/* Animated divider */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8, delay: 0.9 }}
+          className="h-px w-32 bg-gradient-to-r from-transparent via-primary/50 to-transparent"
+        />
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 1 }}
+          className="max-w-md text-muted-foreground"
+        >
+          سامانه هوشمند رزرو آنلاین زمین‌های ورزشی
+        </motion.p>
+
+        {/* Mock search bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+          className="flex w-full max-w-md items-center gap-3 rounded-2xl border bg-card/80 p-3 backdrop-blur-sm"
+        >
+          <Search className="size-5 text-muted-foreground/50" />
+          <div className="flex-1 text-right text-sm text-muted-foreground/60">
+            جستجوی سالن، ورزش، یا منطقه...
+          </div>
+          <motion.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+          >
+            <Zap className="size-3.5" />
+            رزرو سریع
+          </motion.div>
+        </motion.div>
+
+        {/* Sport badges */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          className="flex flex-wrap items-center justify-center gap-3"
+        >
+          {[
+            { label: "والیبال", icon: Activity },
+            { label: "بسکتبال", icon: Timer },
+            { label: "فوتسال", icon: Zap },
+            { label: "هندبال", icon: Activity },
+          ].map((sport, i) => {
+            const Icon = sport.icon
+            return (
+              <motion.div
+                key={sport.label}
+                custom={i}
+                variants={{
+                  hidden: { opacity: 0, y: 20, scale: 0.8 },
+                  visible: (i: number) => ({
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    transition: {
+                      type: "spring" as const,
+                      stiffness: 200,
+                      damping: 16,
+                      delay: 1.4 + i * 0.12,
+                    },
+                  }),
+                }}
+                className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-2 text-sm text-muted-foreground"
+              >
+                <Icon className="size-4 text-primary/50" />
+                {sport.label}
+              </motion.div>
+            )
+          })}
+        </motion.div>
+      </motion.div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        className="absolute inset-x-0 bottom-8 z-10 flex justify-center"
+        style={{
+          opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]),
+        }}
       >
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="rounded-full border bg-muted/50 px-3.5 py-1 text-xs text-muted-foreground"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center gap-2"
         >
-          سامانه هوشمند رزرو زمین ورزشی
+          <span className="text-[10px] text-muted-foreground/40">
+            اسکرول
+          </span>
+          <div className="h-10 w-px bg-gradient-to-b from-primary/30 to-transparent" />
         </motion.div>
-
-        <div className="space-y-5">
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl"
-          >
-            توپ‌
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.4,
-                delay: 0.2,
-                type: "spring" as const,
-                stiffness: 200,
-              }}
-              className="text-primary"
-            >
-              سِت
-            </motion.span>
-          </motion.h1>
-
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.4, delay: 0.35 }}
-            className="mx-auto h-px w-12 origin-center bg-primary/40"
-          />
-
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mx-auto max-w-xl text-lg text-muted-foreground md:text-xl"
-          >
-            والیبال، بسکتبال، فوتسال و هندبال
-          </motion.p>
-        </div>
       </motion.div>
     </section>
   )
