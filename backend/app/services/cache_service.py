@@ -9,6 +9,7 @@ import json
 from typing import Any
 
 from app.core.redis_client import get_redis
+from app.core.metrics import toopset_cache_hits_total, toopset_cache_misses_total
 
 # ── TTLs (seconds) ───────────────────────────────────────────────────────────
 
@@ -51,7 +52,10 @@ async def get_cached_slot_list(
         key = _slot_list_key(court_id, date)
         raw = await r.get(key)
         if raw is not None:
+            toopset_cache_hits_total.inc()
             return json.loads(raw)
+
+        toopset_cache_misses_total.inc()
     except Exception:
         pass
     return None

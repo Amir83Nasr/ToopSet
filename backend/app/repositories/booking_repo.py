@@ -9,6 +9,8 @@ from sqlalchemy.orm import selectinload
 from app.models.booking import Booking, BookingStatus
 from app.models.time_slot import TimeSlot
 
+_BOOKING_STATUSES = [s.value for s in BookingStatus]
+
 
 class BookingRepo:
     def __init__(self, db: AsyncSession) -> None:
@@ -86,6 +88,14 @@ class BookingRepo:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_by_status(self) -> dict[str, int]:
+        """Return a dict mapping each status to its total count (e.g. ``{"confirmed": 42}``)."""
+        result: dict[str, int] = {}
+        for status in _BOOKING_STATUSES:
+            query = select(func.count(Booking.id)).where(Booking.status == status)
+            result[status] = (await self.db.execute(query)).scalar_one()
+        return result
 
     async def count_today(self, reference: datetime | None = None) -> int:
         """Number of bookings created since the start of *reference* day (UTC)."""
