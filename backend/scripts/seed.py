@@ -8,10 +8,14 @@ from passlib.context import CryptContext
 from app.core.database import async_session_factory
 from app.models.booking import Booking, BookingStatus
 from app.models.court import Court, SportType
+from app.models.favorite import Favorite
+from app.models.notification import Notification
+from app.models.penalty import Penalty
 from app.models.review import Review
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
 from app.models.wallet import Wallet
+from app.models.wallet_transaction import WalletTransaction
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -22,6 +26,17 @@ def hash_password(password: str) -> str:
 
 async def seed():
     async with async_session_factory() as db:
+        # Clear existing data in FK-safe order
+        await db.execute(Penalty.__table__.delete())
+        await db.execute(Notification.__table__.delete())
+        await db.execute(Review.__table__.delete())
+        await db.execute(WalletTransaction.__table__.delete())
+        await db.execute(Booking.__table__.delete())
+        await db.execute(Wallet.__table__.delete())
+        await db.execute(TimeSlot.__table__.delete())
+        await db.execute(Court.__table__.delete())
+        await db.execute(User.__table__.delete())
+        await db.commit()
         # Users
         users = [
             User(
