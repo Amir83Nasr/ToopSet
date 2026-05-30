@@ -46,13 +46,13 @@ async def seed():
                 role=UserRole.ADMIN,
             ),
             User(
-                full_name="مدیر زمین ۱",
+                full_name="مدیر مجموعه ۱",
                 phone="09120000002",
                 password_hash=hash_password("manager123"),
                 role=UserRole.MANAGER,
             ),
             User(
-                full_name="مدیر زمین ۲",
+                full_name="مدیر مجموعه ۲",
                 phone="09120000003",
                 password_hash=hash_password("manager123"),
                 role=UserRole.MANAGER,

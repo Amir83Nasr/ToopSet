@@ -23,7 +23,7 @@ interface UserDetail {
 
 const roleLabels: Record<string, string> = {
   user: "کاربر",
-  manager: "مدیر زمین",
+  manager: "مدیر مجموعه",
   admin: "مدیر سیستم",
 }
 

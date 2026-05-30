@@ -66,7 +66,7 @@ const statusOptions = [
 
 const roleOptions = [
   { value: "user", label: "کاربر" },
-  { value: "manager", label: "مدیر زمین" },
+  { value: "manager", label: "مدیر مجموعه" },
   { value: "admin", label: "مدیر سیستم" },
 ]
 
