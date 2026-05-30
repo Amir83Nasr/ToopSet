@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toEnglishDigits, toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -173,7 +173,8 @@ export default function UsersPage() {
     e.preventDefault()
     if (!createName.trim() || !createPhone.trim() || !createPassword.trim()) return
 
-    if (!/^09\d{9}$/.test(createPhone.trim())) {
+    const normalizedPhone = toEnglishDigits(createPhone.trim())
+    if (!/^09\d{9}$/.test(normalizedPhone)) {
       setPhoneError("شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود")
       return
     }
@@ -185,7 +186,7 @@ export default function UsersPage() {
         method: "POST",
         body: JSON.stringify({
           full_name: createName,
-          phone: createPhone,
+          phone: normalizedPhone,
           password: createPassword,
           role: createRole,
         }),
