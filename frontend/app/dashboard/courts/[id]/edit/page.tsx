@@ -24,6 +24,7 @@ const LocationPicker = dynamic(
   { ssr: false }
 )
 import { ArrowRight, Loader2 } from "lucide-react"
+import { PersianInput } from "@/components/ui/persian-input"
 
 const sportTypes = [
   { value: "volleyball", label: "والیبال" },
@@ -87,7 +88,7 @@ export default function EditCourtPage() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
         } else {
-          toast.error("خطا در دریافت اطلاعات زمین")
+          toast.error("خطا در دریافت اطلاعات مجموعه")
         }
       })
       .finally(() => setLoading(false))
@@ -99,10 +100,10 @@ export default function EditCourtPage() {
         method: "PATCH",
         body: JSON.stringify({ ...data, images: courtImages }),
       })
-      toast.success("زمین با موفقیت ویرایش شد")
+      toast.success("مجموعه با موفقیت ویرایش شد")
       router.push(`/dashboard/courts/${courtId}`)
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "خطا در ویرایش زمین"
+      const msg = err instanceof ApiError ? err.message : "خطا در ویرایش مجموعه"
       toast.error(msg)
     }
   }
@@ -119,7 +120,7 @@ export default function EditCourtPage() {
   if (notFound || !courtData) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
-        <p className="text-xl text-muted-foreground">زمین مورد نظر یافت نشد</p>
+        <p className="text-xl text-muted-foreground">مجموعه مورد نظر یافت نشد</p>
         <Button
           variant="outline"
           onClick={() => router.push("/dashboard/courts")}
@@ -139,12 +140,12 @@ export default function EditCourtPage() {
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle>ویرایش زمین</CardTitle>
+          <CardTitle>ویرایش مجموعه</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">نام زمین</Label>
+              <Label htmlFor="name">نام مجموعه</Label>
               <Input id="name" {...register("name")} />
               {errors.name && (
                 <p className="text-sm text-destructive">
@@ -245,14 +246,13 @@ export default function EditCourtPage() {
               )}
             />
             <div className="space-y-2">
-              <Label>تصاویر زمین</Label>
+              <Label>تصاویر مجموعه</Label>
               <ImageUpload images={courtImages} onChange={setCourtImages} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
-              <Input
+              <PersianInput
                 id="capacity"
-                type="number"
                 min="1"
                 {...register("capacity")}
               />

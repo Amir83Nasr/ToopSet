@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -8,6 +8,7 @@ import {
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { usePathname } from "next/navigation"
 
@@ -83,17 +84,22 @@ export function SiteHeader() {
     >
       <div className="flex items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
+        <span className="flex items-center mr-2">
+          <Separator orientation="vertical" className="h-4" />
+        </span>
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbs.map((crumb, i) => (
-              <BreadcrumbItem key={crumb.href}>
-                {i < breadcrumbs.length - 1 ? (
-                  <span className="text-muted-foreground">{crumb.label}</span>
-                ) : (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                )}
-              </BreadcrumbItem>
+              <Fragment key={crumb.href}>
+                <BreadcrumbItem>
+                  {i < breadcrumbs.length - 1 ? (
+                    <span className="text-muted-foreground">{crumb.label}</span>
+                  ) : (
+                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
+                {i < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+              </Fragment>
             ))}
           </BreadcrumbList>
         </Breadcrumb>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -64,6 +64,8 @@ import {
   Star,
   Users,
 } from "lucide-react"
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker"
+import { PersianInput } from "@/components/ui/persian-input"
 
 interface Court {
   id: number
@@ -156,6 +158,11 @@ export default function CourtDetailPage() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
   const [recentReviews, setRecentReviews] = useState<Review[]>([])
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
+  const [slotDate, setSlotDate] = useState("")
+  const slotDateObj = useMemo(
+    () => (slotDate ? new Date(slotDate + "T12:00:00") : undefined),
+    [slotDate]
+  )
 
   const canManage = user?.role === "manager" || user?.role === "admin"
 
@@ -288,7 +295,7 @@ export default function CourtDetailPage() {
   if (notFound || !court) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
-        <p className="text-xl text-muted-foreground">زمین مورد نظر یافت نشد</p>
+        <p className="text-xl text-muted-foreground">مجموعه مورد نظر یافت نشد</p>
         <Button
           variant="outline"
           onClick={() => router.push("/dashboard/courts")}
@@ -308,7 +315,7 @@ export default function CourtDetailPage() {
         onClick={() => router.push("/dashboard/courts")}
       >
         <ArrowRight className="ml-2 size-4" />
-        بازگشت به لیست زمین‌ها
+        بازگشت به لیست مجموعه‌ها
       </Button>
 
       {/* Court info card */}
@@ -393,7 +400,7 @@ export default function CourtDetailPage() {
       {court.images && court.images.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>تصاویر زمین</CardTitle>
+            <CardTitle>تصاویر مجموعه</CardTitle>
           </CardHeader>
           <CardContent>
             <Carousel className="mx-auto max-w-xl">
@@ -508,13 +515,51 @@ export default function CourtDetailPage() {
                 <DialogHeader>
                   <DialogTitle>افزودن زمان جدید</DialogTitle>
                   <DialogDescription>
-                    برای زمین {court.name} یک زمان جدید ثبت کنید
+                    برای مجموعه {court.name} یک زمان جدید ثبت کنید
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleCreateSlot} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date">تاریخ</Label>
-                    <Input id="date" name="date" type="date" required />
+                    <Label>تاریخ</Label>
+                    <JalaliDatePicker
+                      value={slotDateObj}
+                      onChange={(d) => {
+                        if (d) {
+                          const y = d.getFullYear()
+                          const m = String(d.getMonth() + 1).padStart(2, "0")
+                          const dd = String(d.getDate()).padStart(2, "0")
+                          setSlotDate(`${y}-${m}-${dd}`)
+                        } else {
+                          setSlotDate("")
+                        }
+                      }}
+                    />
+                    <input type="hidden" name="date" value={slotDate} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start_time">ساعت شروع</Label>
+                      <Input
+                        id="start_time"
+                        name="start_time"
+                        type="time"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end_time">ساعت پایان</Label>
+                      <Input id="end_time" name="end_time" type="time" required />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="base_price">قیمت (تومان)</Label>
+                    <PersianInput
+                      id="base_price"
+                      name="base_price"
+                      min="0"
+                      placeholder="۵۰۰۰۰۰"
+                      required
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -560,7 +605,7 @@ export default function CourtDetailPage() {
         <CardContent>
           {slots.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              هنوز زمانی برای این زمین ثبت نشده است
+              هنوز زمانی برای این مجموعه ثبت نشده است
             </p>
           ) : (
             <Table>

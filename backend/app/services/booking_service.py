@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.logger import log_action
 from app.models.booking import BookingStatus
 from app.models.user import User
 from app.repositories.booking_repo import BookingRepo
@@ -114,6 +115,54 @@ class BookingService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Participants count exceeds court capacity",
             )
+
+        existing = await self.booking_repo.get_by_slot(data.slot_id)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already has a booking"
+            )
+
+        booking = await self.booking_repo.create(
+            {
+                "user_id": self.current_user.id,
+                "slot_id": data.slot_id,
+                "status": BookingStatus.PENDING_PAYMENT,
+                "price_paid": float(slot.base_price),
+                "participants_count": data.participants_count,
+                "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+            }
+        )
+
+        # Notify manager about new booking
+        if court:
+            await self.notify_repo.create(
+                user_id=court.manager_id,
+                type_="booking_created",
+                message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
+            )
+
+        await log_action(
+            self.booking_repo.db, self.current_user.id, "booking_created",
+            f"Booking (id={booking.id}) for slot #{data.slot_id}",
+        )
+
+        return BookingDetailResponse(
+            id=booking.id,
+            user_id=booking.user_id,
+            slot_id=booking.slot_id,
+            status=booking.status,
+            price_paid=float(booking.price_paid),
+            participants_count=booking.participants_count,
+            penalty_amount=None,
+            created_at=booking.created_at,
+            updated_at=booking.updated_at,
+            expires_at=booking.expires_at,
+            court_name=court.name if court else "",
+            court_address=court.address if court else "",
+            slot_start_time=slot.start_time if slot else None,
+            slot_end_time=slot.end_time if slot else None,
+            payment=None,
+        )
 
         existing = await self.booking_repo.get_by_slot(data.slot_id)
         if existing:
@@ -248,6 +297,11 @@ class BookingService:
             message=f"رزرو شما برای {court.name if court else 'زمین'} تایید شد",
         )
 
+        await log_action(
+            self.booking_repo.db, self.current_user.id, "booking_confirmed",
+            f"Booking (id={booking_id}) paid and confirmed, amount={booking.price_paid}",
+        )
+
         return BookingDetailResponse(
             id=booking.id,
             user_id=booking.user_id,
@@ -331,6 +385,12 @@ class BookingService:
                 type_="booking_cancelled",
                 message=f"رزرو {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
             )
+
+        await log_action(
+            self.booking_repo.db, self.current_user.id, "booking_cancelled",
+            f"Booking (id={booking_id}) cancelled, refund={refund_amount}",
+        )
+
         payment = await self.payment_repo.get_by_booking(booking_id)
         return BookingDetailResponse(
             id=booking.id,

@@ -32,6 +32,13 @@ def create_refresh_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
 
 
+def tokens_for_user(user_id: int, role: str, token_version: int) -> tuple[str, str]:
+    claims = {"sub": str(user_id), "role": role, "ver": token_version}
+    access_token = create_access_token(claims.copy())
+    refresh_token = create_refresh_token(claims.copy())
+    return access_token, refresh_token
+
+
 def decode_token(token: str) -> dict | None:
     try:
         return jwt.decode(token, settings.secret_key, algorithms=["HS256"])

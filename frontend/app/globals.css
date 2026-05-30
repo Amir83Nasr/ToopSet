@@ -517,5 +517,61 @@
   background-clip: text;
 }
 
+/* ══════════════════════════════════════════════════
+   Leaflet Map — Styled Zoom Controls
+   ══════════════════════════════════════════════════ */
+
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12) !important;
+  overflow: hidden !important;
+}
+
+.leaflet-control-zoom a {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: hsl(var(--foreground)) !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  transition: all 0.15s ease !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: hsl(var(--accent)) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+.leaflet-control-zoom a.leaflet-control-zoom-in {
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom: none !important;
+}
+
+.leaflet-control-zoom a.leaflet-control-zoom-out {
+  border-radius: 0 0 12px 12px !important;
+}
+
+/* Remove Leaflet's default focus outline */
+.leaflet-control-zoom a:focus {
+  outline: none !important;
+}
+
+/* Smooth map tiles */
+.map-tiles {
+  filter: brightness(1.02) saturate(0.98);
+}
+
+.dark .map-tiles {
+  filter: brightness(0.85) saturate(0.9) hue-rotate(5deg);
+}
+
+/* Hide Leaflet attribution */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 
 

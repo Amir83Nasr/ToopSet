@@ -10,7 +10,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Building2,
@@ -53,10 +52,10 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "زمین‌ها",
+    label: "مجموعه‌ها",
     roles: ["admin", "manager"],
     items: [
-      { title: "همه زمین‌ها", url: "/dashboard/courts", icon: Building2 },
+      { title: "همه مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
       {
         title: "مدیریت زمان",
         url: "/dashboard/courts/schedule",
@@ -68,8 +67,7 @@ const navGroups: NavGroup[] = [
     label: "خدمات",
     roles: ["user"],
     items: [
-      { title: "زمین‌ها", url: "/dashboard/courts", icon: Building2 },
-      { title: "کیف پول", url: "/dashboard/wallet", icon: Wallet },
+      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
       { title: "جریمه‌ها", url: "/dashboard/penalties", icon: Gavel },
     ],
   },
@@ -77,7 +75,7 @@ const navGroups: NavGroup[] = [
     label: "مدیریت",
     roles: ["manager"],
     items: [
-      { title: "زمین‌ها", url: "/dashboard/courts", icon: Building2 },
+      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
       {
         title: "مدیریت زمان",
         url: "/dashboard/courts/schedule",
@@ -116,6 +114,12 @@ const navGroups: NavGroup[] = [
         url: "/dashboard/admin/bookings",
         icon: CalendarCheck,
       },
+      {
+        title: "تایید سالن‌ها",
+        url: "/dashboard/admin/courts",
+        icon: Building2,
+      },
+      { title: "تنظیمات سیستم", url: "/dashboard/admin/settings", icon: Settings },
       { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
       { title: "نظرات", url: "/dashboard/reviews", icon: Star },
       { title: "لاگ سیستم", url: "/dashboard/admin/logs", icon: History },
@@ -133,7 +137,6 @@ const navGroups: NavGroup[] = [
 
 export function NavMain() {
   const pathname = usePathname()
-  const router = useRouter()
   const { user, loading, logout } = useAuth()
 
   if (loading) {
@@ -190,10 +193,7 @@ export function NavMain() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="خروج"
-                onClick={() => {
-                  logout()
-                  router.push("/")
-                }}
+                onClick={() => logout()}
                 className="text-destructive hover:text-destructive data-[active=true]:bg-destructive/10"
               >
                 <LogOut />

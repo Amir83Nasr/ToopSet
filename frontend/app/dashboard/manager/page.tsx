@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
@@ -94,20 +95,16 @@ export default function ManagerDashboardPage() {
   ]
 
   return (
-    <div className="relative flex flex-1 flex-col gap-6 overflow-hidden px-4 py-6">
-      {/* Neon orbs + mesh background */}
-      <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
-      <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />
-      <div className="bg-mesh pointer-events-none absolute inset-0" />
-      <div className="bg-dots pointer-events-none absolute inset-0" />
-
-      <div className="relative z-10">
+    <div className="flex flex-1 flex-col gap-6 px-4 py-6">
+      <div>
         <ScrollReveal>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              داشبورد <span className="text-gradient-primary">مدیر مجموعه</span>
+            <h1 className="text-2xl font-bold tracking-tight text-primary">
+              داشبورد مدیر مجموعه
             </h1>
-            <p className="text-muted-foreground">مدیریت زمین‌های شما و درآمد</p>
+            <p className="text-muted-foreground">
+              مدیریت زمین‌های شما و درآمد
+            </p>
           </div>
         </ScrollReveal>
 
@@ -115,7 +112,7 @@ export default function ManagerDashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="glass-card rounded-2xl p-6">
+                  <div key={i} className="rounded-xl border bg-card p-6">
                     <Skeleton className="size-12 rounded-lg" />
                     <div className="mt-4 space-y-2">
                       <Skeleton className="h-4 w-24" />
@@ -127,7 +124,7 @@ export default function ManagerDashboardPage() {
               : statCards.map((stat) => (
                   <div
                     key={stat.title}
-                    className="glass-card neon-border-hover rounded-2xl p-6"
+                    className="rounded-xl border bg-card p-6 transition-shadow hover:shadow-md"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
@@ -154,55 +151,59 @@ export default function ManagerDashboardPage() {
 
         {error && (
           <ScrollReveal>
-            <div className="glass-card rounded-2xl p-4 text-center">
-              <div className="mb-2 flex items-center justify-center gap-2 text-destructive">
-                <AlertCircle className="size-5" />
-                <span>{error}</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={fetchStats}>
-                <RefreshCw className="ml-1 size-4" />
-                تلاش مجدد
-              </Button>
-            </div>
+            <Card className="mt-6">
+              <CardContent className="p-4 text-center">
+                <div className="mb-2 flex items-center justify-center gap-2 text-destructive">
+                  <AlertCircle className="size-5" />
+                  <span>{error}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchStats}>
+                  <RefreshCw className="ml-1 size-4" />
+                  تلاش مجدد
+                </Button>
+              </CardContent>
+            </Card>
           </ScrollReveal>
         )}
 
         {!loading && !error && stats && (
-          <ScrollReveal>
-            <div className="glass-card neon-border-hover rounded-2xl p-6">
-              <h2 className="mb-4 text-lg font-semibold">رزروهای اخیر</h2>
-              {stats.recent_bookings && stats.recent_bookings.length > 0 ? (
-                <div className="space-y-3">
-                  {stats.recent_bookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="flex items-center justify-between rounded-xl border bg-background/40 p-3 transition-colors hover:bg-background/60"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
-                          <CalendarCheck className="size-5 text-primary" />
+          <ScrollReveal className="mt-6">
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="mb-4 text-lg font-semibold">رزروهای اخیر</h2>
+                {stats.recent_bookings && stats.recent_bookings.length > 0 ? (
+                  <div className="space-y-3">
+                    {stats.recent_bookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="flex items-center justify-between rounded-lg border bg-background/40 p-3 transition-colors hover:bg-background/60"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                            <CalendarCheck className="size-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {booking.court_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(booking.start_time)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {booking.court_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatTime(booking.start_time)}
-                          </p>
-                        </div>
+                        <span className="text-sm font-medium">
+                          {formatPersianNumber(booking.price_paid)} تومان
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">
-                        {formatPersianNumber(booking.price_paid)} تومان
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-12 text-muted-foreground">
-                  رزروی وجود ندارد
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    رزروی وجود ندارد
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </ScrollReveal>
         )}
       </div>

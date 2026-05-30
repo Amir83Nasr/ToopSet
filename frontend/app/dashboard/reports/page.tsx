@@ -13,9 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { BarChart3 } from "lucide-react"
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker"
 
 interface RevenueRow {
   date: string
@@ -118,18 +118,20 @@ export default function ReportsPage() {
       <div className="flex gap-4">
         <div className="space-y-1">
           <Label>از تاریخ</Label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+          <JalaliDatePicker
+            value={dateFrom ? new Date(dateFrom + "T12:00:00") : undefined}
+            onChange={(d) =>
+              setDateFrom(d ? d.toISOString().split("T")[0] : "")
+            }
           />
         </div>
         <div className="space-y-1">
           <Label>تا تاریخ</Label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+          <JalaliDatePicker
+            value={dateTo ? new Date(dateTo + "T12:00:00") : undefined}
+            onChange={(d) =>
+              setDateTo(d ? d.toISOString().split("T")[0] : "")
+            }
           />
         </div>
       </div>

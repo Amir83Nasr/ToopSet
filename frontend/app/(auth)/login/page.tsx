@@ -11,6 +11,13 @@ function LoginPageContent() {
   const { login } = useAuth()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || undefined
+  const reason = searchParams.get("reason")
+
+  const reasonMessages: Record<string, string> = {
+    session_expired: "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",
+    login_required: "برای دسترسی به این بخش باید وارد شوید.",
+  }
+  const reasonMessage = reason ? reasonMessages[reason] : null
 
   return (
     <div className="grid min-h-svh lg:grid-cols-[1fr_2fr]">
@@ -29,6 +36,11 @@ function LoginPageContent() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
+            {reasonMessage && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/50 dark:text-amber-200">
+                {reasonMessage}
+              </div>
+            )}
             <LoginForm login={login} redirect={redirect} />
           </div>
         </div>

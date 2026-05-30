@@ -25,7 +25,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { PersianInput } from "@/components/ui/persian-input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
@@ -455,9 +455,8 @@ export default function ReviewsPage() {
               {/* Booking ID input (simplified MVP) */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="booking-id">شناسه رزرو</Label>
-                <Input
+                <PersianInput
                   id="booking-id"
-                  type="number"
                   placeholder="شناسه رزرو را وارد کنید"
                   value={newBookingId}
                   onChange={(e) => setNewBookingId(e.target.value)}

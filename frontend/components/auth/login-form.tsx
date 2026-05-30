@@ -29,6 +29,7 @@ export function LoginForm({ login, redirect, className, ...props }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    mode: "onChange",
     defaultValues: { phone: "", password: "" },
   })
 
@@ -67,6 +68,7 @@ export function LoginForm({ login, redirect, className, ...props }: Props) {
                 dir="ltr"
                 placeholder="09120000000"
                 className="bg-background text-left"
+                maxLength={11}
                 value={toPersianDigits(field.value || "")}
                 onChange={(e) => {
                   field.onChange(toEnglishDigits(e.target.value))

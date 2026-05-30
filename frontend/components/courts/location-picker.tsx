@@ -7,6 +7,7 @@ import {
   Marker,
   useMapEvents,
   useMap,
+  ZoomControl,
 } from "react-leaflet"
 import L from "leaflet"
 import { Loader2, MapPin } from "lucide-react"
@@ -16,7 +17,6 @@ import {
   DEFAULT_ZOOM,
   CLOSE_ZOOM,
 } from "@/lib/map-utils"
-import { createDefaultPinIcon } from "@/lib/map-utils"
 
 interface LocationPickerProps {
   latitude: number | null
@@ -72,6 +72,23 @@ async function reverseGeocode(
   }
 }
 
+function createStyledPinIcon(): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="
+      width: 32px;
+      height: 32px;
+      background: hsl(var(--primary));
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      transform: translate(-50%, -100%);
+    "></div>`,
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  })
+}
+
 export function LocationPicker({
   latitude,
   longitude,
@@ -80,7 +97,7 @@ export function LocationPicker({
   const [geocoding, setGeocoding] = useState(false)
   const lastGeocodeRef = useRef("")
 
-  const hasLocation = latitude !== null && longitude !== null
+  const hasLocation = latitude != null && longitude != null
 
   const handlePlace = useCallback(
     async (lat: number, lng: number) => {
@@ -115,72 +132,62 @@ export function LocationPicker({
   )
 
   return (
-    <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-xl border">
-        <div style={{ height: 300 }}>
-          <MapContainer
-            center={QOM_CENTER}
-            zoom={DEFAULT_ZOOM}
-            style={{ height: "100%", width: "100%" }}
-            scrollWheelZoom={true}
-            maxBounds={QOM_BOUNDS}
-            maxBoundsViscosity={1.0}
-            minZoom={10}
-            maxZoom={18}
-            attributionControl={false}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <ClickHandler onPlace={handlePlace} enabled />
-            {hasLocation && markerPosition && (
-              <Marker
-                position={markerPosition}
-                icon={createDefaultPinIcon()}
-                draggable={true}
-                eventHandlers={{ dragend: handleDragEnd }}
-              />
-            )}
-            {hasLocation && markerPosition && (
-              <FlyTo
-                lat={markerPosition[0]}
-                lng={markerPosition[1]}
-                zoom={CLOSE_ZOOM}
-              />
-            )}
-          </MapContainer>
+    <div className="relative">
+      {/* Geocoding indicator */}
+      {geocoding && (
+        <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+          <Loader2 className="size-3 animate-spin" />
+          در حال تشخیص آدرس...
         </div>
+      )}
 
-        {/* Click hint */}
-        {!hasLocation && (
-          <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
-            <MapPin className="size-3.5" />
-            روی نقشه کلیک کنید تا موقعیت را مشخص کنید
-          </div>
-        )}
-
-        {/* Geocoding indicator */}
-        {geocoding && (
-          <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
-            <Loader2 className="size-3 animate-spin" />
-            در حال تشخیص آدرس...
-          </div>
-        )}
+      <div
+        style={{ height: 450 }}
+        className="overflow-hidden rounded-xl border shadow-sm"
+      >
+        <MapContainer
+          center={QOM_CENTER}
+          zoom={DEFAULT_ZOOM}
+          style={{ height: "100%", width: "100%" }}
+          scrollWheelZoom={true}
+          maxBounds={QOM_BOUNDS}
+          maxBoundsViscosity={1.0}
+          minZoom={10}
+          maxZoom={18}
+          attributionControl={false}
+          zoomControl={false}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            className="map-tiles"
+          />
+          <ZoomControl position="bottomleft" />
+          <ClickHandler onPlace={handlePlace} enabled />
+          {hasLocation && markerPosition && (
+            <Marker
+              position={markerPosition}
+              icon={createStyledPinIcon()}
+              draggable={true}
+              eventHandlers={{ dragend: handleDragEnd }}
+            />
+          )}
+          {hasLocation && markerPosition && (
+            <FlyTo
+              lat={markerPosition[0]}
+              lng={markerPosition[1]}
+              zoom={CLOSE_ZOOM}
+            />
+          )}
+        </MapContainer>
       </div>
 
-      {/* Lat/Lng display */}
-      <div className="flex gap-3 text-xs text-muted-foreground">
-        <span>
-          عرض جغرافیایی:{" "}
-          <span dir="ltr" className="font-mono font-medium text-foreground">
-            {hasLocation ? latitude!.toFixed(5) : "—"}
-          </span>
-        </span>
-        <span>
-          طول جغرافیایی:{" "}
-          <span dir="ltr" className="font-mono font-medium text-foreground">
-            {hasLocation ? longitude!.toFixed(5) : "—"}
-          </span>
-        </span>
-      </div>
+      {/* Click hint */}
+      {!hasLocation && (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+          <MapPin className="size-3.5" />
+          روی نقشه کلیک کنید تا موقعیت را مشخص کنید
+        </div>
+      )}
     </div>
   )
 }

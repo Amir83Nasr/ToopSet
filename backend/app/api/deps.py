@@ -29,6 +29,9 @@ async def get_current_user_optional(
     user = await repo.get_by_id(int(user_id))
     if user is None or not user.is_active:
         return None
+    token_ver = payload.get("ver")
+    if token_ver is not None and token_ver != user.token_version:
+        return None
     return user
 
 
@@ -55,6 +58,14 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
+
+    # Single-device check: reject if token_version in JWT doesn't match
+    token_ver = payload.get("ver")
+    if token_ver is not None and token_ver != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired — logged in from another device",
+        )
 
     return user
 

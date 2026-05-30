@@ -32,6 +32,7 @@ export function RegisterForm({
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange",
   })
 
   async function onSubmit(data: RegisterInput) {
@@ -91,6 +92,7 @@ export function RegisterForm({
                 dir="ltr"
                 placeholder="09120000000"
                 className="bg-background text-left"
+                maxLength={11}
                 value={toPersianDigits(field.value || "")}
                 onChange={(e) => {
                   field.onChange(toEnglishDigits(e.target.value))

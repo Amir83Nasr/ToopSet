@@ -60,6 +60,7 @@ import {
   Building2,
   Plus,
 } from "lucide-react"
+import { PersianInput } from "@/components/ui/persian-input"
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -171,7 +172,7 @@ export default function SchedulePage() {
       )
       setCourts(res.courts)
     } catch {
-      toast.error("خطا در دریافت لیست زمین‌ها")
+      toast.error("خطا در دریافت لیست مجموعه‌ها")
     } finally {
       setLoading(false)
     }
@@ -332,7 +333,7 @@ export default function SchedulePage() {
         <ShieldAlert className="size-12 text-muted-foreground" />
         <p className="text-xl text-muted-foreground">دسترسی محدود</p>
         <p className="max-w-sm text-center text-sm text-muted-foreground">
-          فقط مدیران و اپراتورها می‌توانند زمان‌بندی زمین‌ها را مدیریت کنند
+          فقط مدیران و اپراتورها می‌توانند زمان‌بندی مجموعه‌ها را مدیریت کنند
         </p>
       </div>
     )
@@ -377,11 +378,11 @@ export default function SchedulePage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20">
         <Building2 className="size-12 text-muted-foreground" />
-        <p className="text-xl text-muted-foreground">هنوز زمینی ثبت نشده است</p>
+        <p className="text-xl text-muted-foreground">هنوز مجموعه‌ای ثبت نشده است</p>
         <Button asChild>
           <Link href="/dashboard/courts/create">
             <Plus className="ml-2 size-4" />
-            ثبت زمین جدید
+            ثبت مجموعه جدید
           </Link>
         </Button>
       </div>
@@ -400,7 +401,7 @@ export default function SchedulePage() {
             مدیریت زمان‌بندی
           </h1>
           <p className="text-muted-foreground">
-            مشاهده و مدیریت زمان‌های زمین‌ها
+            مشاهده و مدیریت زمان‌های مجموعه‌ها
           </p>
         </div>
 
@@ -410,7 +411,7 @@ export default function SchedulePage() {
             onValueChange={(v) => setSelectedCourtId(Number(v))}
           >
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="انتخاب زمین" />
+              <SelectValue placeholder="انتخاب مجموعه" />
             </SelectTrigger>
             <SelectContent>
               {courts.map((court) => (
@@ -494,10 +495,9 @@ export default function SchedulePage() {
                 {/* price */}
                 <div className="space-y-2">
                   <Label htmlFor="base_price">قیمت پایه (تومان)</Label>
-                  <Input
+                  <PersianInput
                     id="base_price"
                     name="base_price"
-                    type="number"
                     min="0"
                     placeholder="۵۰۰۰۰۰"
                     required
@@ -538,7 +538,7 @@ export default function SchedulePage() {
                 <CardDescription>
                   {slotsTotal > 0
                     ? `${slotsTotal} زمان ثبت شده`
-                    : "این زمین هنوز زمانی ندارد"}
+                    : "این مجموعه هنوز زمانی ندارد"}
                 </CardDescription>
               </div>
               <Button
@@ -570,7 +570,7 @@ export default function SchedulePage() {
               <div className="flex flex-col items-center justify-center gap-4 py-12">
                 <CalendarDays className="size-12 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  هیچ زمانی برای این زمین تعریف نشده
+                  هیچ زمانی برای این مجموعه تعریف نشده
                 </p>
                 <Button variant="outline" onClick={() => setDialogOpen(true)}>
                   <CalendarPlus className="ml-2 size-4" />

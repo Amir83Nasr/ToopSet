@@ -30,6 +30,7 @@ class User(Base, SoftDeleteMixin):
         default=UserRole.USER,
         server_default="user",
     )
+    token_version: Mapped[int] = mapped_column(default=0, server_default="0")
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

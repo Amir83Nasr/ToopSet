@@ -1,5 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
+import { setCookie, getCookie, removeCookie } from "./cookies"
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -10,34 +12,25 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(key: string): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(key)
-}
-
 export function setTokens(access: string, refresh: string) {
-  localStorage.setItem("access_token", access)
-  localStorage.setItem("refresh_token", refresh)
+  setCookie("access_token", access)
+  setCookie("refresh_token", refresh)
 }
 
 export function clearTokens() {
-  localStorage.removeItem("access_token")
-  localStorage.removeItem("refresh_token")
+  removeCookie("access_token")
+  removeCookie("refresh_token")
 }
 
 let isRefreshing = false
 let refreshPromise: Promise<boolean> | null = null
 
-/**
- * Attempt to refresh the access token using the stored refresh token.
- * Uses a singleton promise to prevent multiple simultaneous refresh calls.
- */
 async function tryRefreshToken(): Promise<boolean> {
   if (isRefreshing && refreshPromise) return refreshPromise
 
   isRefreshing = true
   refreshPromise = (async () => {
-    const refreshToken = getToken("refresh_token")
+    const refreshToken = getCookie("refresh_token")
     if (!refreshToken) {
       clearTokens()
       return false
@@ -74,7 +67,7 @@ export async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken("access_token")
+  const token = getCookie("access_token")
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -91,17 +84,17 @@ export async function api<T>(
   })
 
   if (res.status === 401) {
-    // Don't retry the refresh endpoint itself
     if (path === "/api/v1/auth/refresh") {
       clearTokens()
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:expired"))
+      }
       throw new ApiError(401, "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.")
     }
 
-    // Try to refresh the token
     const refreshed = await tryRefreshToken()
     if (refreshed) {
-      // Retry the original request with new token
-      const newToken = getToken("access_token")
+      const newToken = getCookie("access_token")
       const retryRes = await fetch(`${API_BASE}${path}`, {
         ...options,
         headers: {
@@ -119,8 +112,10 @@ export async function api<T>(
       return retryRes.json()
     }
 
-    // Refresh failed — session expired
     clearTokens()
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth:expired"))
+    }
     throw new ApiError(401, "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.")
   }
 
@@ -133,7 +128,7 @@ export async function api<T>(
 }
 
 export async function uploadFile(file: File): Promise<string> {
-  const token = getToken("access_token")
+  const token = getCookie("access_token")
   const formData = new FormData()
   formData.append("file", file)
 

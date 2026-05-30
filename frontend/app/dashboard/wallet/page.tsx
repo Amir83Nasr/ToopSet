@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PersianInput } from "@/components/ui/persian-input"
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -154,9 +155,8 @@ function TransactionForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="amount">مبلغ (تومان)</Label>
-        <Input
+        <PersianInput
           id="amount"
-          type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="مثلاً 50000"

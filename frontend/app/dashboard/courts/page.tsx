@@ -42,6 +42,8 @@ import {
   ToggleLeft,
   ToggleRight,
 } from "lucide-react"
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker"
+import { PersianInput } from "@/components/ui/persian-input"
 import dynamic from "next/dynamic"
 
 const CourtsMap = dynamic(
@@ -169,15 +171,15 @@ export default function CourtsPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">زمین‌ها</h1>
+          <h1 className="text-2xl font-bold tracking-tight">مجموعه‌ها</h1>
           <p className="text-muted-foreground">
-            مدیریت و مشاهده زمین‌های ورزشی
+            مدیریت و مشاهده مجموعه‌های ورزشی
           </p>
         </div>
         <Button asChild>
           <Link href="/dashboard/courts/create">
             <Plus className="ml-2 size-4" />
-            زمین جدید
+            مجموعه جدید
           </Link>
         </Button>
       </div>
@@ -187,7 +189,7 @@ export default function CourtsPage() {
         <div className="relative flex-1">
           <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="جستجوی زمین..."
+            placeholder="جستجوی مجموعه..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pr-10"
@@ -227,28 +229,25 @@ export default function CourtsPage() {
             <SelectItem value="false">غیرفعال</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => {
-            setDateFrom(e.target.value)
+        <JalaliDatePicker
+          value={dateFrom ? new Date(dateFrom + "T12:00:00") : undefined}
+          onChange={(d) => {
+            setDateFrom(d ? d.toISOString().split("T")[0] : "")
             setPage(0)
           }}
           className="w-full sm:w-40"
           placeholder="از تاریخ"
         />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => {
-            setDateTo(e.target.value)
+        <JalaliDatePicker
+          value={dateTo ? new Date(dateTo + "T12:00:00") : undefined}
+          onChange={(d) => {
+            setDateTo(d ? d.toISOString().split("T")[0] : "")
             setPage(0)
           }}
           className="w-full sm:w-40"
           placeholder="تا تاریخ"
         />
-        <Input
-          type="number"
+        <PersianInput
           value={priceMin}
           onChange={(e) => {
             setPriceMin(e.target.value)
@@ -257,8 +256,7 @@ export default function CourtsPage() {
           className="w-full sm:w-28"
           placeholder="حداقل قیمت"
         />
-        <Input
-          type="number"
+        <PersianInput
           value={priceMax}
           onChange={(e) => {
             setPriceMax(e.target.value)
@@ -267,8 +265,7 @@ export default function CourtsPage() {
           className="w-full sm:w-28"
           placeholder="حداکثر قیمت"
         />
-        <Input
-          type="number"
+        <PersianInput
           step="any"
           value={refLat}
           onChange={(e) => {
@@ -278,8 +275,7 @@ export default function CourtsPage() {
           className="w-full sm:w-24"
           placeholder="عرض موقعیت"
         />
-        <Input
-          type="number"
+        <PersianInput
           step="any"
           value={refLon}
           onChange={(e) => {
@@ -289,8 +285,7 @@ export default function CourtsPage() {
           className="w-full sm:w-24"
           placeholder="طول موقعیت"
         />
-        <Input
-          type="number"
+        <PersianInput
           value={maxDistance}
           onChange={(e) => {
             setMaxDistance(e.target.value)
@@ -358,16 +353,16 @@ export default function CourtsPage() {
                   <Building2 className="size-10 text-muted-foreground" />
                 </div>
                 <h3 className="mb-1 text-lg font-semibold">
-                  هنوز زمینی ثبت نشده
+                  هنوز مجموعه‌ای ثبت نشده
                 </h3>
                 <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-                  اولین زمین ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز
+                  اولین مجموعه ورزشی را ثبت کنید و مدیریت زمان‌های آن را آغاز
                   کنید.
                 </p>
                 <Button asChild>
                   <Link href="/dashboard/courts/create">
                     <Plus className="ml-2 size-4" />
-                    ایجاد زمین جدید
+                    ایجاد مجموعه جدید
                   </Link>
                 </Button>
               </CardContent>
@@ -464,8 +459,8 @@ export default function CourtsPage() {
                                     )
                                     toast.success(
                                       court.is_active
-                                        ? "زمین غیرفعال شد"
-                                        : "زمین فعال شد"
+                                        ? "مجموعه غیرفعال شد"
+                                        : "مجموعه فعال شد"
                                     )
                                     fetchCourts()
                                   } catch (err) {
@@ -497,7 +492,7 @@ export default function CourtsPage() {
                                     await api(`/api/v1/courts/${court.id}`, {
                                       method: "DELETE",
                                     })
-                                    toast.success("زمین حذف شد")
+                                    toast.success("مجموعه حذف شد")
                                     fetchCourts()
                                   } catch (err) {
                                     toast.error(
@@ -523,8 +518,8 @@ export default function CourtsPage() {
                 <div className="flex items-center justify-between border-t px-4 py-3">
                   <p className="text-sm text-muted-foreground">
                     صفحه {toPersianDigits(page + 1)} از{" "}
-                    {toPersianDigits(totalPages)} — {toPersianDigits(total)}{" "}
-                    زمین
+                    {toPersianDigits(totalPages)} —                     {toPersianDigits(total)}{" "}
+                    مجموعه
                   </p>
                   <div className="flex gap-2">
                     <Button

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_manager, get_current_user_optional
 from app.core.database import get_db
+from app.core.logger import log_action
 from app.models.court import SportType
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
@@ -68,7 +69,13 @@ class CourtService:
         return CourtResponse.model_validate(court)
 
     async def create_court(self, data: CourtCreate) -> CourtResponse:
-        court = await self.repo.create(data.model_dump() | {"manager_id": self.current_user.id})
+        court = await self.repo.create(
+            data.model_dump() | {"manager_id": self.current_user.id, "is_active": False}
+        )
+        await log_action(
+            self.repo.db, self.current_user.id, "court_created",
+            f"Court '{court.name}' (id={court.id}) created",
+        )
         return CourtResponse.model_validate(court)
 
     async def update_court(self, court_id: int, data: CourtUpdate) -> CourtResponse:
@@ -78,6 +85,10 @@ class CourtService:
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
         updated = await self.repo.update(court, data.model_dump(exclude_none=True))
+        await log_action(
+            self.repo.db, self.current_user.id, "court_updated",
+            f"Court '{updated.name}' (id={court_id}) updated",
+        )
         return CourtResponse.model_validate(updated)
 
     async def delete_court(self, court_id: int) -> None:
@@ -87,6 +98,10 @@ class CourtService:
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
         await self.repo.delete(court)
+        await log_action(
+            self.repo.db, self.current_user.id, "court_deleted",
+            f"Court '{court.name}' (id={court_id}) deleted",
+        )
 
     async def toggle_court_status(self, court_id: int, is_active: bool) -> CourtResponse:
         court = await self.repo.get_by_id(court_id)
@@ -97,6 +112,11 @@ class CourtService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="You don't manage this court"
             )
         updated = await self.repo.update(court, {"is_active": is_active})
+        status_label = "activated" if is_active else "deactivated"
+        await log_action(
+            self.repo.db, self.current_user.id, "court_toggled",
+            f"Court '{court.name}' (id={court_id}) {status_label}",
+        )
         return CourtResponse.model_validate(updated)
 
 

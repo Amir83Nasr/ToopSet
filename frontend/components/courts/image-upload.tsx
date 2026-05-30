@@ -9,12 +9,14 @@ interface ImageUploadProps {
   images: string[]
   onChange: (images: string[]) => void
   maxImages?: number
+  minImages?: number
 }
 
 export function ImageUpload({
   images,
   onChange,
   maxImages = 5,
+  minImages = 3,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
 
@@ -93,6 +95,12 @@ export function ImageUpload({
       {images.length > 0 && (
         <p className="text-xs text-muted-foreground">
           {images.length} از {maxImages} تصویر
+        </p>
+      )}
+      {minImages && images.length < minImages && (
+        <p className="text-xs text-destructive">
+          حداقل {minImages} تصویر الزامی است ({minImages - images.length} تصویر
+          دیگر)
         </p>
       )}
     </div>

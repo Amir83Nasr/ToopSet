@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { api, clearTokens, setTokens } from "@/lib/api"
+import { getCookie } from "@/lib/cookies"
 import type {
   AuthResponse,
   LoginRequest,
@@ -16,32 +17,37 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("access_token")
-        : null
-    const timer = setTimeout(() => {
-      if (token) {
-        api<{
-          id: number
-          phone: string
-          full_name: string
-          role: string
-          is_active: boolean
-          created_at: string
-        }>("/api/v1/auth/me")
-          .then((data) => {
-            setUser({ ...data, role: data.role as User["role"] })
-          })
-          .catch(() => {
-            clearTokens()
-          })
-          .finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    }, 0)
-    return () => clearTimeout(timer)
+    const token = getCookie("access_token")
+    if (!token) {
+      setLoading(false)
+      return
+    }
+    api<{
+      id: number
+      phone: string
+      full_name: string
+      role: string
+      is_active: boolean
+      created_at: string
+    }>("/api/v1/auth/me")
+      .then((data) => {
+        setUser({ ...data, role: data.role as User["role"] })
+      })
+      .catch(() => {
+        clearTokens()
+        setUser(null)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      clearTokens()
+      setUser(null)
+      setLoading(false)
+    }
+    window.addEventListener("auth:expired", handler)
+    return () => window.removeEventListener("auth:expired", handler)
   }, [])
 
   const login = useCallback(

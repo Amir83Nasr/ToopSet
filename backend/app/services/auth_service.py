@@ -5,6 +5,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
     hash_password,
+    tokens_for_user,
     verify_password,
 )
 from app.models.user import User
@@ -30,8 +31,7 @@ class AuthService:
 
         user = await self.repo.create(phone=phone, password_hash=password_hash, full_name=full_name)
 
-        access_token = create_access_token({"sub": str(user.id), "role": user.role})
-        refresh_token = create_refresh_token({"sub": str(user.id), "role": user.role})
+        access_token, refresh_token = tokens_for_user(user.id, user.role, user.token_version)
 
         return user, access_token, refresh_token
 
@@ -45,8 +45,10 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
-        access_token = create_access_token({"sub": str(user.id), "role": user.role})
-        refresh_token = create_refresh_token({"sub": str(user.id), "role": user.role})
+        user.token_version += 1
+        await self.repo.update_user(user.id, {"token_version": user.token_version})
+
+        access_token, refresh_token = tokens_for_user(user.id, user.role, user.token_version)
 
         return user, access_token, refresh_token
 
@@ -59,16 +61,27 @@ class AuthService:
 
         user_id = payload.get("sub")
         role = payload.get("role")
+        ver = payload.get("ver")
 
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
             )
 
-        new_access = create_access_token({"sub": user_id, "role": role})
-        new_refresh = create_refresh_token({"sub": user_id, "role": role})
+        user = await self.repo.get_by_id(int(user_id))
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        return new_access, new_refresh
+        # Reject refresh if token version doesn't match (logged in elsewhere)
+        if ver is not None and ver != user.token_version:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired — logged in from another device",
+            )
+
+        access_token, refresh_token = tokens_for_user(user.id, user.role, user.token_version)
+
+        return access_token, refresh_token
 
     async def update_profile(self, current_user: User, data: UpdateProfileRequest) -> User:
         update_data: dict[str, str] = {}
