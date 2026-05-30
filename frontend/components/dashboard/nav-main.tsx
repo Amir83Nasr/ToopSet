@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Building2,
@@ -25,6 +26,7 @@ import {
   Heart,
   History,
   MessageSquare,
+  LogOut,
   type LucideIcon,
 } from "lucide-react"
 
@@ -131,7 +133,8 @@ const navGroups: NavGroup[] = [
 
 export function NavMain() {
   const pathname = usePathname()
-  const { user, loading } = useAuth()
+  const router = useRouter()
+  const { user, loading, logout } = useAuth()
 
   if (loading) {
     return (
@@ -180,6 +183,25 @@ export function NavMain() {
           </SidebarMenu>
         </SidebarGroup>
       ))}
+
+        {/* Logout */}
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="خروج"
+                onClick={() => {
+                  logout()
+                  router.push("/")
+                }}
+                className="text-destructive hover:text-destructive data-[active=true]:bg-destructive/10"
+              >
+                <LogOut />
+                <span>خروج</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
     </>
   )
 }

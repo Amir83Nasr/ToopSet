@@ -9,7 +9,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { NavMain } from "./nav-main"
-import { NavUser } from "./nav-user"
 import Image from "next/image"
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
@@ -39,9 +38,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
