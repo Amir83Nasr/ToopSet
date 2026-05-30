@@ -36,6 +36,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  RefreshCw,
   Search,
   ShieldCheck,
   ShieldX,
@@ -240,10 +241,16 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold tracking-tight">مدیریت کاربران</h1>
           <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="ml-1.5 size-4" />
-          کاربر جدید
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => fetchUsers()}>
+            <RefreshCw className="ml-1.5 size-4" />
+            رفرش
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="ml-1.5 size-4" />
+            کاربر جدید
+          </Button>
+        </div>
       </div>
 
       {/* Search & filter bar */}
