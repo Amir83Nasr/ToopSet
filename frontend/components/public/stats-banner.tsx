@@ -67,28 +67,11 @@ function Counter({ to, suffix }: { to: number; suffix: string }) {
   )
 }
 
-const container = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.18 },
-  },
-}
-
-const item = {
-  hidden: { opacity: 0, y: 40, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { type: "spring" as const, stiffness: 160, damping: 16 },
-  },
-}
-
 export function StatsBanner() {
   return (
     <section className="relative overflow-hidden border-t px-4 py-16 md:py-24">
       {/* Background */}
-      <div className="bg-grid absolute inset-0 opacity-[0.03]" />
+      <div className="bg-grid absolute inset-0 opacity-15 dark:opacity-[0.03]" />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="size-[500px] rounded-full bg-primary/3 blur-[100px]" />
       </div>
@@ -96,7 +79,7 @@ export function StatsBanner() {
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.5 }}
@@ -121,22 +104,19 @@ export function StatsBanner() {
         </motion.div>
 
         {/* Stats grid */}
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.4 }}
-          className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
-        >
-          {stats.map((stat) => {
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+          {stats.map((stat, i) => {
             const Icon = stat.icon
             return (
               <motion.div
                 key={stat.label}
-                variants={item}
-                className="group flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-sm md:p-8"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 text-center md:p-8"
               >
-                <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors duration-300 group-hover:bg-primary/10 group-hover:text-primary">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                   <Icon className="size-5" />
                 </div>
 
@@ -157,7 +137,7 @@ export function StatsBanner() {
               </motion.div>
             )
           })}
-        </motion.div>
+        </div>
       </div>
     </section>
   )

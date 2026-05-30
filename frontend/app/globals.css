@@ -426,8 +426,8 @@
 .bg-grid {
   background-image: repeating-linear-gradient(
     315deg,
-    oklch(from var(--color-border) l c h / 0.15) 0,
-    oklch(from var(--color-border) l c h / 0.15) 1px,
+    oklch(from var(--color-border) l c h / 0.3) 0,
+    oklch(from var(--color-border) l c h / 0.3) 1px,
     transparent 1px,
     transparent 50%
   );

@@ -1,7 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform, useSpring } from "framer-motion"
-import { useRef } from "react"
+import { motion } from "framer-motion"
 import { Search, CalendarCheck, CreditCard, Play } from "lucide-react"
 import { toPersianDigits } from "@/lib/utils"
 
@@ -28,51 +27,20 @@ const steps = [
   },
 ]
 
-const stepVariants = {
-  hidden: (isLeft: boolean) => ({
-    opacity: 0,
-    x: isLeft ? -60 : 60,
-    scale: 0.95,
-  }),
-  visible: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    transition: {
-      type: "spring" as const,
-      stiffness: 160,
-      damping: 18,
-    },
-  },
-}
-
 export function HowItWorks() {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end end"],
-  })
-
-  const lineHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"])
-  const dotPosition = useTransform(scrollYProgress, [0, 0.95], ["0%", "100%"])
-  const springDot = useSpring(dotPosition, { stiffness: 80, damping: 25 })
-
   return (
-    <section
-      ref={sectionRef}
-      className="relative overflow-hidden border-t px-4 py-16 md:py-24"
-    >
-      <div className="bg-grid absolute inset-0 opacity-50" />
+    <section className="relative overflow-hidden border-t px-4 py-16 md:py-24">
+      <div className="bg-grid absolute inset-0 opacity-15 dark:opacity-[0.03]" />
       <div className="pointer-events-none absolute left-1/2 top-0 size-[400px] -translate-x-1/2 rounded-full bg-primary/3 blur-[100px]" />
 
-      <div className="relative z-10 mx-auto max-w-4xl">
+      <div className="relative z-10 mx-auto max-w-5xl">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.5 }}
-          className="mb-16 text-center md:mb-20"
+          className="mb-14 text-center"
         >
           <motion.div
             initial={{ opacity: 0, y: -8 }}
@@ -92,106 +60,34 @@ export function HowItWorks() {
           </p>
         </motion.div>
 
-        {/* Timeline */}
-        <div className="relative">
-          {/* Center connector line */}
-          <div className="absolute right-[50%] top-0 hidden h-full w-px translate-x-[calc(50%+0.5px)] md:block">
-            <div className="absolute inset-0 bg-border/10" />
-            <motion.div
-              className="absolute inset-x-0 top-0 bg-gradient-to-b from-primary/50 via-primary/30 to-primary/10"
-              style={{ height: lineHeight }}
-            />
-            {/* Glowing progress dot */}
-            <motion.div
-              className="absolute right-1/2 z-20 size-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary shadow-[0_0_14px_4px_hsl(var(--primary)/0.35)]"
-              style={{ top: springDot }}
-              animate={{
-                scale: [1, 1.25, 1],
-                opacity: [0.8, 1, 0.8],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            {/* Step nodes on the line */}
-            {steps.map((_, i) => (
+        {/* Steps grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, i) => {
+            const Icon = step.icon
+            return (
               <motion.div
-                key={i}
-                className="absolute right-1/2 size-2 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary/20"
-                style={{ top: `${(i / (steps.length - 1)) * 100}%` }}
-                initial={{ scale: 0 }}
-                whileInView={{ scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15, type: "spring", stiffness: 300, damping: 15 }}
-              />
-            ))}
-          </div>
-
-          <div className="relative flex flex-col gap-12 md:gap-16">
-            {steps.map((step, i) => {
-              const Icon = step.icon
-              const isLeft = i % 2 === 0
-
-              return (
-                <motion.div
-                  key={step.title}
-                  custom={isLeft}
-                  variants={stepVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, amount: 0.3 }}
-                  transition={{
-                    ...stepVariants.visible.transition,
-                    delay: i * 0.12,
-                  }}
-                  className={`group relative flex flex-col items-center gap-5 md:flex-row md:gap-8 ${
-                    isLeft ? "md:flex-row" : "md:flex-row-reverse"
-                  }`}
-                >
-                  {/* Content card */}
-                  <div className="flex-1">
-                    <div className="group relative overflow-hidden rounded-2xl border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_0_30px_-8px_hsl(var(--primary)/0.1)] md:p-8">
-                      {/* Hover glow */}
-                      <div className="pointer-events-none absolute -left-20 -top-20 size-40 rounded-full bg-primary/[0.02] blur-[50px] transition-all duration-500 group-hover:bg-primary/[0.06]" />
-
-                      <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                        <Icon className="size-6" />
-                      </div>
-                      <h3 className="mb-2 text-lg font-semibold">
-                        {step.title}
-                      </h3>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Step circle — prominent */}
-                  <div className="relative z-10 flex size-14 shrink-0 items-center justify-center rounded-full border-2 border-border bg-background shadow-sm transition-colors duration-300 group-hover:border-primary/30">
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      whileInView={{ scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{
-                        type: "spring" as const,
-                        stiffness: 300,
-                        damping: 12,
-                        delay: i * 0.1,
-                      }}
-                      className="text-lg font-bold text-foreground"
-                    >
-                      {toPersianDigits(i + 1)}
-                    </motion.span>
-                  </div>
-
-                  {/* Spacer */}
-                  <div className="flex-1 max-md:hidden" />
-                </motion.div>
-              )
-            })}
-          </div>
+                key={step.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="group rounded-2xl border bg-card p-6 text-center transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-sm"
+              >
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full border-2 border-border bg-background">
+                  <span className="text-sm font-bold text-foreground">
+                    {toPersianDigits(i + 1)}
+                  </span>
+                </div>
+                <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                  <Icon className="size-6" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {step.description}
+                </p>
+              </motion.div>
+            )
+          })}
         </div>
       </div>
     </section>

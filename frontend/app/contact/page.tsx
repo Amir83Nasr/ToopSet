@@ -13,20 +13,25 @@ import {
   Send,
   CheckCircle2,
   Loader2,
-  MapPin,
   Phone,
   Mail,
+  MessageCircle,
   Clock,
 } from "lucide-react"
 
 const contactInfo = [
+  { icon: Phone, label: "تلفن", value: "۰۹۳۰-۶۸۵۳۳۶۳", dir: "ltr" as const },
   {
-    icon: MapPin,
-    label: "آدرس",
-    value: "تهران، خیابان ولیعصر، مجتمع ورزشی توپ‌سِت",
+    icon: Mail,
+    label: "ایمیل",
+    value: "amirhossein.nasrollahi.main@gmail.com",
   },
-  { icon: Phone, label: "تلفن", value: "۰۲۱-۱۲۳۴۵۶۷۸", dir: "ltr" as const },
-  { icon: Mail, label: "ایمیل", value: "info@toopset.com" },
+  {
+    icon: MessageCircle,
+    label: "پیام‌رسان بله",
+    value: "@Amir83Nasr",
+    href: "https://ble.ir/Amir83Nasr",
+  },
   { icon: Clock, label: "ساعت کاری", value: "همه‌روزه ۸ صبح تا ۱۲ شب" },
 ]
 
@@ -104,27 +109,38 @@ export default function ContactPage() {
                 animate="visible"
                 className="space-y-6 md:col-span-1"
               >
-                {contactInfo.map((info) => {
-                  const Icon = info.icon
-                  return (
-                    <motion.div
-                      key={info.label}
-                      variants={item}
-                      className="flex items-start gap-3"
-                    >
-                      <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
-                      <div>
-                        <h4 className="text-sm font-medium">{info.label}</h4>
-                        <p
-                          className="text-sm text-muted-foreground"
-                          dir={info.dir}
-                        >
-                          {info.value}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )
-                })}
+                  {contactInfo.map((info) => {
+                    const Icon = info.icon
+                    return (
+                      <motion.div
+                        key={info.label}
+                        variants={item}
+                        className="flex items-start gap-3"
+                      >
+                        <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
+                        <div>
+                          <h4 className="text-sm font-medium">{info.label}</h4>
+                          {"href" in info ? (
+                            <a
+                              href={info.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              {info.value}
+                            </a>
+                          ) : (
+                            <p
+                              className="text-sm text-muted-foreground"
+                              dir={info.dir}
+                            >
+                              {info.value}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
               </motion.div>
 
               {/* Contact Form */}

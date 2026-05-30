@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
+from app.models.user import User, UserRole
 
 
 class UserRepository:
@@ -20,11 +20,14 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
-    async def create(self, phone: str, password_hash: str, full_name: str) -> User:
+    async def create(
+        self, phone: str, password_hash: str, full_name: str, role: str = "user"
+    ) -> User:
         user = User(
             phone=phone,
             password_hash=password_hash,
             full_name=full_name,
+            role=UserRole(role),
         )
         self.db.add(user)
         await self.db.flush()

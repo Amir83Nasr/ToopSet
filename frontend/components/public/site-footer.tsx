@@ -1,36 +1,26 @@
 "use client"
 
 import Link from "next/link"
-import { Mail, Phone, MapPin, ArrowUp } from "lucide-react"
+import { Mail, Phone, MessageCircle, ArrowUp } from "lucide-react"
 import Image from "next/image"
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/#about", label: "معرفی" },
   { href: "/#courts", label: "جستجوی سالن‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
-const legalLinks = [
+const pageLinks = [
+  { href: "/#about", label: "درباره توپ‌سِت" },
   { href: "/terms", label: "قوانین و مقررات" },
   { href: "/privacy", label: "حریم خصوصی" },
-]
-
-const sportsLinks = [
-  { href: "/courts?sport=volleyball", label: "والیبال" },
-  { href: "/courts?sport=basketball", label: "بسکتبال" },
-  { href: "/courts?sport=futsal", label: "فوتسال" },
-  { href: "/courts?sport=handball", label: "هندبال" },
 ]
 
 export function SiteFooter() {
   return (
     <footer className="relative overflow-hidden border-t">
-      {/* Background layers */}
-      <div className="bg-grid pointer-events-none absolute inset-0 opacity-50" />
-      <div className="pointer-events-none absolute -left-32 bottom-0 size-96 rounded-full bg-primary/5 blur-[120px]" />
-      <div className="pointer-events-none absolute -right-32 top-1/2 size-80 rounded-full bg-primary/5 blur-[100px]" />
-      <div className="absolute inset-0 bg-card/60 backdrop-blur-[10px] dark:bg-card/40" />
+      {/* Background */}
+      <div className="bg-grid pointer-events-none absolute inset-0 opacity-15 dark:opacity-[0.03]" />
 
       {/* Top accent gradient */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
@@ -69,11 +59,11 @@ export function SiteFooter() {
             </div>
           </div>
 
-          {/* Sports */}
+          {/* Pages */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold">رشته‌های ورزشی</h4>
+            <h4 className="mb-4 text-sm font-semibold">صفحات</h4>
             <ul className="space-y-2.5">
-              {sportsLinks.map((link) => (
+              {pageLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -109,15 +99,22 @@ export function SiteFooter() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
                 <Phone className="size-4 shrink-0 text-primary/60" />
-                <span dir="ltr">۰۲۵-۱۲۳۴۵۶۷۸</span>
+                <span dir="ltr">۰۹۳۰-۶۸۵۳۳۶۳</span>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
                 <Mail className="size-4 shrink-0 text-primary/60" />
-                <span>info@toopset.ir</span>
+                <span>amirhossein.nasrollahi.main@gmail.com</span>
               </li>
-              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <MapPin className="size-4 shrink-0 text-primary/60" />
-                <span>قم، بلوار امین، مجتمع ورزشی تختی</span>
+              <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                <MessageCircle className="size-4 shrink-0 text-primary/60" />
+                <a
+                  href="https://ble.ir/Amir83Nasr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-foreground"
+                >
+                  @Amir83Nasr
+                </a>
               </li>
             </ul>
           </div>

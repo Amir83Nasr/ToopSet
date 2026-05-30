@@ -8,12 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
+from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
 from app.repositories.log_repo import LogRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
+from app.schemas.user import AdminCreateUserRequest, AdminCreateUserResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -60,6 +62,30 @@ async def list_logs(
     repo = LogRepo(db)
     logs, total = await repo.list(skip=skip, limit=limit, action=action, user_id=user_id)
     return LogListResponse(logs=[LogResponse.model_validate(log) for log in logs], total=total)
+
+
+# ── User management ────────────────────────────────────────────────
+
+
+@router.post("/users", response_model=AdminCreateUserResponse, status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    data: AdminCreateUserRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    repo = UserRepository(db)
+    existing = await repo.get_by_phone(data.phone)
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="کاربر با این شماره وجود دارد")
+
+    password_hash = hash_password(data.password)
+    user = await repo.create(
+        phone=data.phone,
+        password_hash=password_hash,
+        full_name=data.full_name,
+        role=data.role.value,
+    )
+    return user
 
 
 # ── Soft-delete endpoints ───────────────────────────────────────────

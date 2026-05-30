@@ -23,6 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 import {
   ChevronLeft,
@@ -32,6 +40,8 @@ import {
   ShieldCheck,
   ShieldX,
   UserCog,
+  Plus,
+  Trash2,
 } from "lucide-react"
 
 interface AdminUser {
@@ -76,6 +86,19 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const limit = 20
+
+  // Create user dialog
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState("")
+  const [createPhone, setCreatePhone] = useState("")
+  const [createPassword, setCreatePassword] = useState("")
+  const [createRole, setCreateRole] = useState("user")
+  const [creating, setCreating] = useState(false)
+  const [phoneError, setPhoneError] = useState("")
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Debounce search input — 400ms
   useEffect(() => {
@@ -146,6 +169,58 @@ export default function UsersPage() {
 
   const totalPages = Math.ceil(total / limit)
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!createName.trim() || !createPhone.trim() || !createPassword.trim()) return
+
+    if (!/^09\d{9}$/.test(createPhone.trim())) {
+      setPhoneError("شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود")
+      return
+    }
+    setPhoneError("")
+
+    setCreating(true)
+    try {
+      await api("/api/v1/admin/users", {
+        method: "POST",
+        body: JSON.stringify({
+          full_name: createName,
+          phone: createPhone,
+          password: createPassword,
+          role: createRole,
+        }),
+      })
+      toast.success("کاربر با موفقیت ساخته شد")
+      setCreateOpen(false)
+      setCreateName("")
+      setCreatePhone("")
+      setCreatePassword("")
+      setCreateRole("user")
+      fetchUsers()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ساخت کاربر"
+      toast.error(msg)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api(`/api/v1/admin/users/${deleteTarget.id}`, { method: "DELETE" })
+      toast.success("کاربر با موفقیت حذف شد")
+      setDeleteTarget(null)
+      fetchUsers()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در حذف کاربر"
+      toast.error(msg)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   // ---- Access denied for non-admin users ----
   if (user && user.role !== "admin") {
     return (
@@ -159,9 +234,15 @@ export default function UsersPage() {
   return (
     <div className="flex flex-1 flex-col gap-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">مدیریت کاربران</h1>
-        <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">مدیریت کاربران</h1>
+          <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="ml-1.5 size-4" />
+          کاربر جدید
+        </Button>
       </div>
 
       {/* Search & filter bar */}
@@ -307,6 +388,15 @@ export default function UsersPage() {
                           )}
                           {u.is_active ? "غیرفعال" : "فعال"}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          disabled={updatingId === u.id || u.id === user?.id}
+                          onClick={() => setDeleteTarget(u)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -345,6 +435,125 @@ export default function UsersPage() {
           )}
         </Card>
       )}
+
+      {/* Create user dialog */}
+      <Dialog open={createOpen} onOpenChange={(open) => {
+        setCreateOpen(open)
+        if (!open) { setPhoneError("") }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>کاربر جدید</DialogTitle>
+            <DialogDescription>
+              اطلاعات کاربر جدید را وارد کنید
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreate}>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-name" className="text-sm font-medium">
+                  نام و نام خانوادگی
+                </label>
+                <Input
+                  id="create-name"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  placeholder="مثال: کاربر تست"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-phone" className="text-sm font-medium">
+                  شماره موبایل
+                </label>
+                <Input
+                  id="create-phone"
+                  dir="ltr"
+                  value={createPhone}
+                  onChange={(e) => {
+                    setCreatePhone(e.target.value)
+                    if (phoneError) setPhoneError("")
+                  }}
+                  placeholder="09120000000"
+                  aria-invalid={!!phoneError}
+                  required
+                />
+                {phoneError && (
+                  <p className="text-sm text-destructive">{phoneError}</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-password" className="text-sm font-medium">
+                  رمز عبور
+                </label>
+                <Input
+                  id="create-password"
+                  type="password"
+                  dir="ltr"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  placeholder="حداقل ۴ کاراکتر"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-role" className="text-sm font-medium">
+                  نقش
+                </label>
+                <Select value={createRole} onValueChange={setCreateRole}>
+                  <SelectTrigger id="create-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roleOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={creating}>
+                {creating ? "در حال ساخت..." : "ساخت کاربر"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>حذف کاربر</DialogTitle>
+            <DialogDescription>
+              آیا از حذف کاربر «{deleteTarget?.full_name}» اطمینان دارید؟ این
+              کاربر به صورت نرم حذف می‌شود و قابل بازیابی است.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              انصراف
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "در حال حذف..." : "حذف کاربر"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

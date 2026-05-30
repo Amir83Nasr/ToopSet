@@ -1,7 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform } from "framer-motion"
-import { useRef } from "react"
+import { motion } from "framer-motion"
 import {
   CircleDot,
   Crosshair,
@@ -34,43 +33,16 @@ const sports = [
   },
 ]
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 40, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring" as const,
-      stiffness: 160,
-      damping: 16,
-    },
-  },
-}
-
 export function SportsShowcase() {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  })
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"])
-
   return (
-    <section
-      ref={sectionRef}
-      className="relative overflow-hidden border-t px-4 py-16 md:py-24"
-    >
-      <motion.div
-        className="bg-grid absolute inset-0 opacity-[0.03]"
-        style={{ y: bgY }}
-      />
+    <section className="relative overflow-hidden border-t px-4 py-16 md:py-24">
+      <div className="bg-grid absolute inset-0 opacity-15 dark:opacity-[0.03]" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 size-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/3 blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.5 }}
@@ -95,51 +67,31 @@ export function SportsShowcase() {
         </motion.div>
 
         {/* Sports grid */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
-        >
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {sports.map((sport, i) => {
             const Icon = sport.icon
             return (
               <motion.div
                 key={sport.name}
-                variants={cardVariants}
-                transition={{
-                  ...cardVariants.visible.transition,
-                  delay: i * 0.1,
-                }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="group rounded-2xl border bg-card p-6 text-center transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-sm"
               >
-                <div className="group relative overflow-hidden rounded-2xl border bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-sm">
-                  {/* Corner glow */}
-                  <div className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-primary/5 blur-[50px] opacity-0 transition-opacity duration-500 group-hover:opacity-60" />
-
-                  {/* Icon */}
-                  <motion.div
-                    className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary"
-                    whileHover={{
-                      rotate: [0, -8, 8, -4, 0],
-                      scale: 1.12,
-                      transition: { duration: 0.4 },
-                    }}
-                  >
-                    <Icon className="size-8" />
-                  </motion.div>
-
-                  <h3 className="mb-2 text-lg font-bold">{sport.name}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {sport.desc}
-                  </p>
-
-                  {/* Bottom accent line */}
-                  <div className="mx-auto mt-4 h-0.5 w-0 rounded-full bg-primary/20 transition-all duration-300 group-hover:w-12" />
+                {/* Icon */}
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                  <Icon className="size-7" />
                 </div>
+
+                <h3 className="mb-2 text-lg font-bold">{sport.name}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {sport.desc}
+                </p>
               </motion.div>
             )
           })}
-        </motion.div>
+        </div>
 
         {/* Bottom link */}
         <motion.div

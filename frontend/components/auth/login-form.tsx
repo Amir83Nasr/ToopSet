@@ -29,6 +29,7 @@ export function LoginForm({ login, redirect, className, ...props }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { phone: "", password: "" },
   })
 
   async function onSubmit(data: LoginInput) {

@@ -291,37 +291,17 @@ function HomePageContent() {
         {/* Stats Section */}
         <StatsBanner />
 
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-        </div>
-
         {/* About Section */}
         <AboutSection />
 
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
-        </div>
-
-        {/* Sports Showcase — NEW */}
+        {/* Sports Showcase */}
         <SportsShowcase />
-
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-        </div>
 
         {/* How It Works */}
         <HowItWorks />
 
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-        </div>
-
         {/* Roles Section */}
         <RolesSection />
-
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
-        </div>
 
         {/* Search & Filters */}
         <section
@@ -591,10 +571,6 @@ function HomePageContent() {
             </div>
           </ScrollReveal>
         </section>
-
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
-        </div>
 
         {/* Courts Grid */}
         <section className="relative overflow-hidden px-4 py-16 md:py-20">
