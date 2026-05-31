@@ -75,7 +75,7 @@ export function useAuth() {
       })
       setTokens(res.access_token, res.refresh_token)
       setUser(res.user)
-      router.push("/")
+      router.push("/dashboard")
     },
     [router]
   )

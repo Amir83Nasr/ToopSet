@@ -33,6 +33,11 @@ export function RegisterForm({
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     mode: "onChange",
+    defaultValues: {
+      full_name: "",
+      phone: "",
+      password: "",
+    },
   })
 
   async function onSubmit(data: RegisterInput) {
