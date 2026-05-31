@@ -15,6 +15,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import {
@@ -64,6 +71,7 @@ export default function AdminLogsPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [actionFilter, setActionFilter] = useState("")
+  const [userFilter, setUserFilter] = useState("")
   const [loading, setLoading] = useState(true)
   const limit = 50
 
@@ -74,6 +82,7 @@ export default function AdminLogsPage() {
       params.set("skip", String(page * limit))
       params.set("limit", String(limit))
       if (actionFilter) params.set("action", actionFilter)
+      if (userFilter) params.set("user_id", userFilter)
       const res = await api<{ logs: LogEntry[]; total: number }>(
         `/api/v1/admin/logs?${params}`
       )
@@ -84,7 +93,7 @@ export default function AdminLogsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, actionFilter])
+  }, [page, actionFilter, userFilter])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchLogs(), 0)
@@ -134,14 +143,33 @@ export default function AdminLogsPage() {
           <p className="text-muted-foreground">رویدادهای اخیر سیستم</p>
         </div>
         <div className="flex gap-2">
-          <Input
-            placeholder="فیلتر بر اساس عملیات..."
+          <Select
             value={actionFilter}
-            onChange={(e) => {
-              setActionFilter(e.target.value)
+            onValueChange={(val) => {
+              setActionFilter(val === "all" ? "" : val)
               setPage(0)
             }}
-            className="w-48"
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="همه عملیات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه عملیات</SelectItem>
+              {Object.entries(actionLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="فیلتر شناسه کاربر..."
+            value={userFilter}
+            onChange={(e) => {
+              setUserFilter(e.target.value)
+              setPage(0)
+            }}
+            className="w-40"
           />
           <Button variant="outline" size="icon" onClick={fetchLogs} disabled={loading}>
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
@@ -158,7 +186,8 @@ export default function AdminLogsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>زمان</TableHead>
+                <TableHead>تاریخ</TableHead>
+                <TableHead>ساعت</TableHead>
                 <TableHead>کاربر</TableHead>
                 <TableHead>عملیات</TableHead>
                 <TableHead>جزئیات</TableHead>
@@ -168,7 +197,7 @@ export default function AdminLogsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 5 }).map((_, j) => (
+                  {Array.from({ length: 6 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
@@ -190,7 +219,8 @@ export default function AdminLogsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>زمان</TableHead>
+                <TableHead>تاریخ</TableHead>
+                <TableHead>ساعت</TableHead>
                 <TableHead>کاربر</TableHead>
                 <TableHead>عملیات</TableHead>
                 <TableHead>جزئیات</TableHead>
@@ -201,7 +231,10 @@ export default function AdminLogsPage() {
               {logs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
-                    {formatDate(log.created_at)} {formatTime(log.created_at)}
+                    {formatDate(log.created_at)}
+                  </TableCell>
+                  <TableCell className="text-sm whitespace-nowrap text-muted-foreground" dir="ltr">
+                    {formatTime(log.created_at)}
                   </TableCell>
                   <TableCell>
                     {log.user_id ? toPersianDigits(log.user_id) : "سیستم"}
