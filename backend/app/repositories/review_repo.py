@@ -58,6 +58,19 @@ class ReviewRepo:
         )
         return result.scalar_one_or_none()
 
+    async def list_recent(
+        self,
+        *,
+        limit: int = 5,
+    ) -> list[Review]:
+        query = (
+            select(Review)
+            .where(Review.is_deleted == False)
+            .order_by(Review.created_at.desc())
+        )
+        result = await self.db.execute(query.limit(limit))
+        return list(result.scalars().all())
+
     async def get_by_booking(self, booking_id: int) -> Review | None:
         result = await self.db.execute(
             select(Review).where(Review.booking_id == booking_id, Review.is_deleted == False)

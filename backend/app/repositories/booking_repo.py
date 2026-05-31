@@ -107,7 +107,7 @@ class BookingRepo:
         """Number of bookings created since the start of *reference* day (UTC)."""
 
         ref = reference or datetime.now()
-        day_start = ref.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_start = ref.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         query = select(func.count(Booking.id)).where(Booking.created_at >= day_start)
         result = await self.db.execute(query)
         return result.scalar_one()
@@ -116,7 +116,7 @@ class BookingRepo:
         """Total ``price_paid`` for confirmed bookings created today (UTC)."""
 
         ref = reference or datetime.now()
-        day_start = ref.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_start = ref.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         query = select(func.coalesce(func.sum(Booking.price_paid), 0)).where(
             Booking.created_at >= day_start,
             Booking.status == BookingStatus.CONFIRMED,

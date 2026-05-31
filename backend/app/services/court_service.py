@@ -3,15 +3,24 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_manager, get_current_user_optional
 from app.core.database import get_db
 from app.core.logger import log_action
-from app.models.court import SportType
+from app.core.redis_client import get_redis
+from app.models.court import Court, SportType
+from app.models.court_image import CourtImage
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
-from app.schemas.court import CourtCreate, CourtListResponse, CourtResponse, CourtUpdate
+from app.schemas.court import (
+    CourtCreate,
+    CourtImageResponse,
+    CourtListResponse,
+    CourtResponse,
+    CourtUpdate,
+)
 
 
 class CourtService:
@@ -26,7 +35,7 @@ class CourtService:
         limit: int = 20,
         sport_type: SportType | None = None,
         search: str | None = None,
-        is_active: bool | None = None,
+        is_active: bool | None = None,  # Changed default from None to allow explicit control
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         price_min: float | None = None,
@@ -36,8 +45,14 @@ class CourtService:
         max_distance_km: float | None = None,
         sort: str = "default",
     ) -> CourtListResponse:
-        if self.current_user is None or self.current_user.role not in ("admin", "manager"):
+        # If user is admin/manager, default to showing all courts (active=None)
+        if self.current_user and self.current_user.role in ("admin", "manager"):
+            if is_active is None:
+                is_active = None
+        else:
+            # Public user: force active=True
             is_active = True
+            
         courts, total = await self.repo.list(
             skip=skip,
             limit=limit,
@@ -54,7 +69,7 @@ class CourtService:
             max_distance_km=max_distance_km,
         )
         return CourtListResponse(
-            courts=[CourtResponse.model_validate(c) for c in courts],
+            courts=[self._to_response(c) for c in courts],
             total=total,
         )
 
@@ -66,17 +81,44 @@ class CourtService:
             self.current_user is None or self.current_user.role not in ("admin", "manager")
         ):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
-        return CourtResponse.model_validate(court)
+        return self._to_response(court)
 
     async def create_court(self, data: CourtCreate) -> CourtResponse:
         court = await self.repo.create(
-            data.model_dump() | {"manager_id": self.current_user.id, "is_active": False}
+            data.model_dump(exclude={"images", "temp_ids"}) | {"manager_id": self.current_user.id, "is_active": False}
         )
+        urls: list[str] = []
+        if data.temp_ids:
+            r = await get_redis()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Attempting to retrieve temp_ids: {data.temp_ids}")
+            for tid in data.temp_ids:
+                url = await r.get(f"temp_upload:{tid}")
+                logger.info(f"Retrieved URL for {tid}: {url}")
+                if not url:
+                    logger.error(f"Failed to retrieve URL for {tid}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"تصویر با شناسه {tid} منقضی شده است. لطفاً دوباره آپلود کنید.",
+                    )
+                urls.append(url)
+                await r.delete(f"temp_upload:{tid}")
+        elif data.images:
+            urls = data.images
+        if urls:
+            for idx, url in enumerate(urls):
+                self.repo.db.add(CourtImage(court_id=court.id, url=url, order=idx))
+            await self.repo.db.commit()
+        
+        # Reload court with images to avoid MissingGreenlet error
+        court = await self.repo.get_by_id_with_images(court.id)
+        
         await log_action(
             self.repo.db, self.current_user.id, "court_created",
             f"Court '{court.name}' (id={court.id}) created",
         )
-        return CourtResponse.model_validate(court)
+        return self._to_response(court)
 
     async def update_court(self, court_id: int, data: CourtUpdate) -> CourtResponse:
         court = await self.repo.get_by_id(court_id)
@@ -84,12 +126,30 @@ class CourtService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
-        updated = await self.repo.update(court, data.model_dump(exclude_none=True))
+        update_data = data.model_dump(exclude_none=True, exclude={"images", "image_ids_to_remove"})
+        updated = await self.repo.update(court, update_data)
+        if data.image_ids_to_remove:
+            result = await self.repo.db.execute(
+                select(CourtImage).where(
+                    CourtImage.id.in_(data.image_ids_to_remove),
+                    CourtImage.court_id == court_id,
+                )
+            )
+            for img in result.scalars().all():
+                await self.repo.db.delete(img)
+        if data.images:
+            existing = (await self.repo.db.execute(
+                select(CourtImage).where(CourtImage.court_id == court_id).order_by(CourtImage.order)
+            )).scalars().all()
+            next_order = max((img.order for img in existing), default=-1) + 1
+            for idx, url in enumerate(data.images):
+                self.repo.db.add(CourtImage(court_id=court_id, url=url, order=next_order + idx))
+        await self.repo.db.commit()
         await log_action(
             self.repo.db, self.current_user.id, "court_updated",
             f"Court '{updated.name}' (id={court_id}) updated",
         )
-        return CourtResponse.model_validate(updated)
+        return self._to_response(updated)
 
     async def delete_court(self, court_id: int) -> None:
         court = await self.repo.get_by_id(court_id)
@@ -117,7 +177,17 @@ class CourtService:
             self.repo.db, self.current_user.id, "court_toggled",
             f"Court '{court.name}' (id={court_id}) {status_label}",
         )
-        return CourtResponse.model_validate(updated)
+        return self._to_response(updated)
+
+    def _to_response(self, court: Court) -> CourtResponse:
+        resp = CourtResponse.model_validate(court)
+        if court.court_images:
+            ordered = sorted(court.court_images, key=lambda x: x.order)
+            resp.images = [img.url for img in ordered]
+            resp.court_images = [CourtImageResponse.model_validate(img) for img in ordered]
+        elif court.images:
+            resp.images = court.images
+        return resp
 
 
 async def get_court_service(

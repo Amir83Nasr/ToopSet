@@ -17,7 +17,7 @@ from app.repositories.log_repo import LogRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
-from app.schemas.court import CourtListResponse, CourtResponse
+from app.schemas.court import CourtResponse
 from app.schemas.setting import SettingResponse, SettingUpdateRequest
 from app.schemas.user import AdminCreateUserRequest, AdminCreateUserResponse
 

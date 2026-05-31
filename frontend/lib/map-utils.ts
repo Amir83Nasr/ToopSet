@@ -29,7 +29,7 @@ function pinSvg(fill: string): string {
         <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.25"/>
       </filter>
     </defs>
-    <path d="M18 2C9.72 2 3 9.16 3 18c0 11.6 15 24 15 24s15-12.4 15-24C33 9.16 26.28 2 18 2z" fill="${fill}" filter="url(#s)"/>
+    <path d="M18 2C9.72 2 3 9.16 3 18c0 11.6 15 24 15 24s15-12.4 15-24C33 9.16 26.28 2 18 2z" style="fill:${fill}" filter="url(#s)"/>
     <circle cx="18" cy="18" r="5" fill="#fff" opacity="0.2"/>
   </svg>`
 }
@@ -89,7 +89,7 @@ export function createUserLocationIcon(): L.DivIcon {
  */
 export function createDefaultPinIcon(): L.DivIcon {
   return L.divIcon({
-    html: pinSvg("hsl(var(--primary))"),
+    html: pinSvg("var(--primary)"),
     className: "",
     iconSize: [36, 44],
     iconAnchor: [18, 44],

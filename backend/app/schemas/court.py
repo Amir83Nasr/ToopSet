@@ -7,6 +7,15 @@ from pydantic import BaseModel, Field
 from app.models.court import SportType
 
 
+class CourtImageResponse(BaseModel):
+    id: int
+    url: str
+    order: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class CourtBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     sport_types: list[SportType] = Field(..., min_length=1)
@@ -19,6 +28,7 @@ class CourtBase(BaseModel):
 
 class CourtCreate(CourtBase):
     images: list[str] | None = None
+    temp_ids: list[str] | None = None
 
 
 class CourtUpdate(BaseModel):
@@ -31,12 +41,14 @@ class CourtUpdate(BaseModel):
     is_active: bool | None = None
     amenities: dict | None = None
     images: list[str] | None = None
+    image_ids_to_remove: list[int] | None = None
 
 
 class CourtResponse(CourtBase):
     id: int
     manager_id: int
     images: list[str] | None = None
+    court_images: list[CourtImageResponse] | None = None
     is_active: bool
     average_rating: float
     created_at: datetime

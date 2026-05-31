@@ -36,9 +36,12 @@ function JalaliDatePicker({
 
   const selectedDate: Date | undefined = React.useMemo(() => {
     if (!valueProp) return undefined
-    if (valueProp instanceof Date) return valueProp
-    const d = new Date(valueProp)
-    return isNaN(d.getTime()) ? undefined : d
+    if (valueProp instanceof Date && !isNaN(valueProp.getTime())) return valueProp
+    if (typeof valueProp === "string") {
+      const d = new Date(valueProp)
+      if (!isNaN(d.getTime())) return d
+    }
+    return undefined
   }, [valueProp])
 
   const [viewDate, setViewDate] = React.useState<Date>(
@@ -149,7 +152,7 @@ function JalaliDatePicker({
           {JALALI_WEEKDAYS.map((name) => (
             <div
               key={name}
-              className="flex size-8 items-center justify-center text-xs font-medium text-muted-foreground"
+              className="flex h-8 w-full items-center justify-center text-xs font-medium text-muted-foreground"
             >
               {name}
             </div>
@@ -174,7 +177,7 @@ function JalaliDatePicker({
                 return (
                   <div
                     key={`${wi}-${di}`}
-                    className="size-8"
+                    className="h-8 w-full"
                   />
                 )
               }
@@ -183,9 +186,8 @@ function JalaliDatePicker({
                 <Button
                   key={`${wi}-${di}`}
                   variant="ghost"
-                  size="icon"
                   className={cn(
-                    "size-8 rounded-md p-0 text-sm font-normal",
+                    "flex h-8 w-full items-center justify-center rounded-md p-0 text-sm font-normal",
                     isSelected &&
                       "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                     !isSelected &&

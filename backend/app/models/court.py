@@ -6,8 +6,8 @@ from datetime import datetime
 from sqlalchemy import ARRAY, JSON, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.mixins import SoftDeleteMixin
 from app.core.database import Base
+from app.models.mixins import SoftDeleteMixin
 
 _values_callable = lambda x: [e.value for e in x]  # noqa: E731
 
@@ -42,4 +42,7 @@ class Court(Base, SoftDeleteMixin):
     )
     reviews: Mapped[list["Review"]] = relationship(
         back_populates="court", cascade="all, delete-orphan"
+    )
+    court_images: Mapped[list["CourtImage"]] = relationship(
+        back_populates="court", cascade="all, delete-orphan", order_by="CourtImage.order"
     )

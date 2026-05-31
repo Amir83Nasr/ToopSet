@@ -30,13 +30,21 @@ import {
   CheckCircle2,
   XCircle,
   ChevronLeft,
+  ChevronRight,
   Wifi,
   Car,
   ShowerHead,
   Thermometer,
   Sofa,
   Building2,
+  Maximize2,
+  X,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@/components/ui/dialog"
 import dynamic from "next/dynamic"
 
 const CourtLocationMap = dynamic(
@@ -198,6 +206,7 @@ export default function PublicCourtDetailPage() {
   const [recentReviews, setRecentReviews] = useState<Review[]>([])
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const getDates = useCallback(() => {
     const dates: string[] = []
@@ -370,26 +379,36 @@ export default function PublicCourtDetailPage() {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* ── Main Content ── */}
           <div className="space-y-8 lg:col-span-2">
-            {/* Images */}
+            {/* Images - Improved Gallery */}
             {court.images && court.images.length > 0 && (
               <div className="overflow-hidden rounded-xl border">
-                <div className="relative aspect-[21/9]">
+                <div
+                  className="group relative aspect-[21/9] cursor-pointer"
+                  onClick={() => setLightboxIndex(0)}
+                >
                   <Image
                     src={court.images[0]}
                     alt={court.name}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                     unoptimized
                   />
-                  {/* Gradient overlay for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-xs font-medium opacity-0 backdrop-blur-xs transition-opacity group-hover:opacity-100">
+                    <Maximize2 className="size-3" />
+                    مشاهده کامل
+                  </div>
+                  <div className="absolute bottom-3 right-3 rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium backdrop-blur-xs">
+                    {toPersianDigits(1)}/{toPersianDigits(court.images.length)}
+                  </div>
                 </div>
                 {court.images.length > 1 && (
                   <div className="flex gap-2 overflow-x-auto border-t bg-muted/30 p-2">
-                    {court.images.slice(1, 5).map((img, i) => (
-                      <div
+                    {court.images.slice(1).map((img, i) => (
+                      <button
                         key={i}
-                        className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-lg"
+                        onClick={() => setLightboxIndex(i + 1)}
+                        className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-lg ring-offset-2 transition-all hover:ring-2 hover:ring-primary"
                       >
                         <Image
                           src={img}
@@ -398,17 +417,63 @@ export default function PublicCourtDetailPage() {
                           className="object-cover"
                           unoptimized
                         />
-                      </div>
+                      </button>
                     ))}
-                    {court.images.length > 5 && (
-                      <div className="flex aspect-video w-24 shrink-0 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
-                        +{court.images.length - 5}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             )}
+
+            {/* Lightbox */}
+            <Dialog
+              open={lightboxIndex !== null}
+              onOpenChange={(open) => {
+                if (!open) setLightboxIndex(null)
+              }}
+            >
+              <DialogContent
+                className="max-w-[90vw] border-0 bg-black/95 p-0 sm:max-w-4xl"
+                showCloseButton={false}
+              >
+                <div className="relative flex aspect-video items-center justify-center">
+                  {lightboxIndex !== null && court.images && (
+                    <Image
+                      src={court.images[lightboxIndex]}
+                      alt={`${court.name} - ${lightboxIndex + 1}`}
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  )}
+                  <DialogClose asChild>
+                    <button className="absolute left-3 top-3 flex size-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white">
+                      <X className="size-4" />
+                    </button>
+                  </DialogClose>
+                  {court.images && lightboxIndex !== null && lightboxIndex > 0 && (
+                    <button
+                      onClick={() => setLightboxIndex(lightboxIndex - 1)}
+                      className="absolute right-3 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                    >
+                      <ChevronRight className="size-5" />
+                    </button>
+                  )}
+                  {court.images && lightboxIndex !== null && lightboxIndex < court.images.length - 1 && (
+                    <button
+                      onClick={() => setLightboxIndex(lightboxIndex + 1)}
+                      className="absolute left-3 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                    >
+                      <ChevronLeft className="size-5" />
+                    </button>
+                  )}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-xs text-white/80 backdrop-blur-xs">
+                    {lightboxIndex !== null && court.images
+                      ? `${toPersianDigits(lightboxIndex + 1)} / ${toPersianDigits(court.images.length)}`
+                      : ""}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Map */}
             {court.latitude != null && court.longitude != null && (
@@ -484,7 +549,7 @@ export default function PublicCourtDetailPage() {
                       {rev.response && (
                         <div className="mr-10 mt-3 rounded-lg border-r-2 border-primary/30 bg-primary/5 px-4 py-3 text-sm">
                           <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                            پاسخ مدیر:
+                            پاسخ مدیریت:
                           </span>
                           {rev.response}
                         </div>
@@ -502,8 +567,69 @@ export default function PublicCourtDetailPage() {
             )}
           </div>
 
-          {/* ── Sidebar — Booking ── */}
-          <div className="lg:sticky lg:top-6 lg:self-start">
+          {/* ── Sidebar — Info + Booking ── */}
+          <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+            {/* Sidebar — Court Info */}
+            <div className="rounded-xl border bg-card shadow-sm">
+              <div className="border-b px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="size-5 text-primary" />
+                  <h3 className="font-semibold">اطلاعات مجموعه</h3>
+                </div>
+              </div>
+              <div className="space-y-3 p-5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">ظرفیت</span>
+                  <span className="font-medium">{toPersianDigits(court.capacity)} نفر</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">امتیاز</span>
+                  <div className="flex items-center gap-1.5">
+                    <Stars rating={court.average_rating} size={14} />
+                    <span className="font-medium">{toPersianDigits(court.average_rating.toFixed(1))}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">ورزش‌ها</span>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {court.sport_types?.map((st) => (
+                      <Badge key={st} variant="secondary" className="text-[10px]">
+                        {sportLabels[st] || st}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                {court.amenities && Object.keys(court.amenities).length > 0 && (
+                  <>
+                    <div className="h-px bg-border/50" />
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">امکانات موجود</span>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {Object.entries(court.amenities)
+                          .filter(([, val]) => val)
+                          .slice(0, 4)
+                          .map(([key]) => (
+                            <span
+                              key={key}
+                              className="inline-flex items-center gap-1 rounded-full border bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
+                            >
+                              {amenityIcons[key]}
+                              {amenityLabels[key] || key}
+                            </span>
+                          ))}
+                        {Object.entries(court.amenities).filter(([, val]) => val).length > 4 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            +{Object.entries(court.amenities).filter(([, val]) => val).length - 4}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Sidebar — Booking */}
             <div className="rounded-xl border bg-card shadow-sm">
               <div className="border-b px-5 py-4">
                 <div className="flex items-center gap-2">

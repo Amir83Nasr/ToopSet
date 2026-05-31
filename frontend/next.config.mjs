@@ -5,6 +5,24 @@ const analyzer = withBundleAnalyzer({
 })
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8000",
+        pathname: "/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: process.env.NEXT_PUBLIC_API_URL
+          ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname
+          : "**",
+        pathname: "/uploads/**",
+      },
+    ],
+  },
+}
 
 export default analyzer(nextConfig)

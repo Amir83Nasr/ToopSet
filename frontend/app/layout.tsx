@@ -22,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <body>
+        <link rel="preconnect" href="https://tile.openstreetmap.org" />
         <ThemeProvider>
           <Providers>{children}</Providers>
         </ThemeProvider>

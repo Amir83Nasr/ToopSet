@@ -5,6 +5,7 @@ from math import asin, cos, radians, sin, sqrt
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.court import Court, SportType
 from app.models.time_slot import TimeSlot
@@ -40,7 +41,7 @@ class CourtRepo:
         max_distance_km: float | None = None,
         sort: str = "default",
     ) -> tuple[list[Court], int]:
-        query = select(Court).where(Court.is_deleted == False)
+        query = select(Court).options(selectinload(Court.court_images)).where(Court.is_deleted == False)
         count_query = select(Court.id).where(Court.is_deleted == False)
 
         if sport_type:
@@ -139,6 +140,14 @@ class CourtRepo:
     async def get_by_id(self, court_id: int) -> Court | None:
         result = await self.db.execute(
             select(Court).where(Court.id == court_id, Court.is_deleted == False)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_id_with_images(self, court_id: int) -> Court | None:
+        result = await self.db.execute(
+            select(Court)
+            .options(selectinload(Court.court_images))
+            .where(Court.id == court_id, Court.is_deleted == False)
         )
         return result.scalar_one_or_none()
 

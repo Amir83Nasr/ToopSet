@@ -12,7 +12,7 @@ from app.schemas.review import ReviewCreate, ReviewDetailResponse, ReviewListRes
 
 
 class ReviewService:
-    def __init__(self, db: AsyncSession, current_user: User) -> None:
+    def __init__(self, db: AsyncSession, current_user: User | None) -> None:
         self.review_repo = ReviewRepo(db)
         self.booking_repo = BookingRepo(db)
         self.slot_repo = TimeSlotRepo(db)
@@ -54,6 +54,22 @@ class ReviewService:
             item.user_name = user_name
             items.append(item)
         return ReviewListResponse(reviews=items, total=total)
+
+    async def list_recent(
+        self,
+        *,
+        limit: int = 5,
+    ) -> ReviewListResponse:
+        reviews = await self.review_repo.list_recent(limit=limit)
+        items = []
+        for review in reviews:
+            court_name = review.court.name if review.court else ""
+            user_name = review.user.full_name if review.user else ""
+            item = ReviewDetailResponse.model_validate(review)
+            item.court_name = court_name
+            item.user_name = user_name
+            items.append(item)
+        return ReviewListResponse(reviews=items, total=len(items))
 
     async def create(self, data: ReviewCreate) -> ReviewDetailResponse:
         booking = await self.booking_repo.get_by_id(data.booking_id)

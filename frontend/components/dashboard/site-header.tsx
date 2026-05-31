@@ -1,6 +1,7 @@
 "use client"
 
 import { Fragment, useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -103,6 +104,12 @@ export function SiteHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
+      </div>
+      <div className="flex-1" />
+      <div className="px-4">
+        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+          بازگشت به سایت
+        </Link>
       </div>
     </header>
   )

@@ -83,7 +83,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     clearTokens()
     setUser(null)
-    router.push("/login")
+    router.push("/")
   }, [router])
 
   return { user, loading, login, register, logout, isAuthenticated: !!user }

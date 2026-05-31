@@ -2,14 +2,23 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, get_current_manager
 from app.core.database import get_db
-from app.models.court import SportType
+from app.core.date_utils import parse_date_filter
+from app.models.court import Court, SportType
+from app.models.court_image import CourtImage
 from app.models.user import User
-from app.schemas.court import CourtCreate, CourtListResponse, CourtResponse, CourtUpdate
+from app.schemas.court import (
+    CourtCreate,
+    CourtImageResponse,
+    CourtListResponse,
+    CourtResponse,
+    CourtUpdate,
+)
 from app.schemas.review import ReviewListResponse
 from app.services.court_service import CourtService, get_court_service, get_court_service_public
 from app.services.review_service import ReviewService
@@ -24,8 +33,8 @@ async def list_courts(
     sport_type: SportType | None = None,
     search: str | None = None,
     is_active: bool | None = None,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
     price_min: float | None = None,
     price_max: float | None = None,
     ref_lat: float | None = None,
@@ -40,15 +49,16 @@ async def list_courts(
         sport_type=sport_type,
         search=search,
         is_active=is_active,
-        date_from=date_from,
-        date_to=date_to,
+        date_from=parse_date_filter(date_from) if date_from else None,
+        date_to=parse_date_filter(date_to) if date_to else None,
         price_min=price_min,
         price_max=price_max,
         ref_lat=ref_lat,
         ref_lon=ref_lon,
         max_distance_km=max_distance_km,
-        sort=sort,
+        sort=sort or "default",
     )
+
 
 
 @router.get("/{court_id}/reviews", response_model=ReviewListResponse)
@@ -94,3 +104,70 @@ async def delete_court(
     _: User = Depends(get_current_admin),
 ):
     await service.delete_court(court_id)
+
+
+# ── Image management ─────────────────────────────────────────────
+
+
+@router.post("/{court_id}/images", response_model=CourtImageResponse, status_code=201)
+async def upload_court_image(
+    court_id: int,
+    url: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_manager),
+):
+    court = await db.get(Court, court_id)
+    if not court:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Court not found")
+    if court.manager_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
+    max_order = await db.scalar(
+        select(CourtImage.order).where(CourtImage.court_id == court_id).order_by(CourtImage.order.desc()).limit(1)
+    )
+    next_order = (max_order or -1) + 1
+    img = CourtImage(court_id=court_id, url=url, order=next_order)
+    db.add(img)
+    await db.commit()
+    await db.refresh(img)
+    return CourtImageResponse.model_validate(img)
+
+
+@router.delete("/{court_id}/images/{image_id}", status_code=204)
+async def delete_court_image(
+    court_id: int,
+    image_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_manager),
+):
+    court = await db.get(Court, court_id)
+    if not court:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Court not found")
+    if court.manager_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
+    img = await db.get(CourtImage, image_id)
+    if not img or img.court_id != court_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Image not found")
+    await db.delete(img)
+    await db.commit()
+
+
+@router.put("/{court_id}/images/reorder", status_code=204)
+async def reorder_court_images(
+    court_id: int,
+    ordered_ids: list[int],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_manager),
+):
+    court = await db.get(Court, court_id)
+    if not court:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Court not found")
+    if court.manager_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
+    for idx, img_id in enumerate(ordered_ids):
+        await db.execute(
+            select(CourtImage).where(CourtImage.id == img_id, CourtImage.court_id == court_id)
+        )
+        img = await db.get(CourtImage, img_id)
+        if img and img.court_id == court_id:
+            img.order = idx
+    await db.commit()

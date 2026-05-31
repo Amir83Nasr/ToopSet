@@ -6,8 +6,8 @@ from datetime import datetime
 from sqlalchemy import Enum, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.mixins import SoftDeleteMixin
 from app.core.database import Base
+from app.models.mixins import SoftDeleteMixin
 
 _values_callable = lambda x: [e.value for e in x]  # noqa: E731
 

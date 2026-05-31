@@ -2,12 +2,15 @@
 
 import { useCallback, useState } from "react"
 import Image from "next/image"
-import { uploadFile } from "@/lib/api"
+import { toast } from "sonner"
+import { uploadFile, type UploadResult, ApiError } from "@/lib/api"
 import { ImagePlus, Loader2, Trash2 } from "lucide-react"
 
 interface ImageUploadProps {
   images: string[]
   onChange: (images: string[]) => void
+  tempIds?: string[]
+  onTempIdsChange?: (ids: string[]) => void
   maxImages?: number
   minImages?: number
 }
@@ -15,6 +18,8 @@ interface ImageUploadProps {
 export function ImageUpload({
   images,
   onChange,
+  tempIds,
+  onTempIdsChange,
   maxImages = 5,
   minImages = 3,
 }: ImageUploadProps) {
@@ -27,24 +32,36 @@ export function ImageUpload({
 
       setUploading(true)
       try {
-        const url = await uploadFile(file)
-        onChange([...images, url])
-      } catch {
-        // toast is handled by the parent form
+        const result: UploadResult = await uploadFile(file)
+        onChange([...images, result.url])
+        if (onTempIdsChange && tempIds) {
+          onTempIdsChange([...tempIds, result.temp_id])
+        }
+      } catch (err) {
+        console.error("Upload error:", err)
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof TypeError
+              ? "خطا در اتصال به سرور"
+              : "خطا در آپلود تصویر"
+        toast.error(message)
       } finally {
         setUploading(false)
-        // Reset the input
         e.target.value = ""
       }
     },
-    [images, onChange]
+    [images, onChange, tempIds, onTempIdsChange]
   )
 
   const removeImage = useCallback(
     (index: number) => {
       onChange(images.filter((_, i) => i !== index))
+      if (onTempIdsChange && tempIds) {
+        onTempIdsChange(tempIds.filter((_, i) => i !== index))
+      }
     },
-    [images, onChange]
+    [images, onChange, tempIds, onTempIdsChange]
   )
 
   const canUpload = images.length < maxImages

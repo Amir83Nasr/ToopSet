@@ -39,6 +39,7 @@ import { RolesSection } from "@/components/public/roles-section"
 import { HowItWorks } from "@/components/public/how-it-works"
 import { StatsBanner } from "@/components/public/stats-banner"
 import { SportsShowcase } from "@/components/public/sports-showcase"
+import { RecentReviews } from "@/components/public/recent-reviews"
 
 const CourtsMap = dynamic(
   () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
@@ -153,21 +154,17 @@ function HomePageContent() {
     if (searchText) params.set("search", searchText)
     if (sportFilter && sportFilter !== "all")
       params.set("sport_type", sportFilter)
-    if (priceMin) params.set("price_min", priceMin)
-    if (priceMax) params.set("price_max", priceMax)
+    if (priceMin && Number(priceMin) > 0) params.set("price_min", priceMin)
+    if (priceMax && Number(priceMax) < 500000) params.set("price_max", priceMax)
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
-    // Nearby courts: pass user location if granted
-    if (userLocation && maxDistance) {
+    // Nearby courts: only filter by distance when user explicitly clicked "نزدیک به من"
+    if (sortBy === "distance" && userLocation) {
       params.set("ref_lat", String(userLocation.latitude))
       params.set("ref_lon", String(userLocation.longitude))
-      params.set("max_distance_km", maxDistance)
-    } else if (userLocation) {
-      params.set("ref_lat", String(userLocation.latitude))
-      params.set("ref_lon", String(userLocation.longitude))
-      params.set("max_distance_km", "20") // default 20km
+      if (maxDistance) params.set("max_distance_km", maxDistance)
     }
     return params.toString()
   }, [
@@ -217,9 +214,9 @@ function HomePageContent() {
   }, [authLoading, isAuthenticated, fetchCourts])
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      router.replace("/dashboard")
-    }
+    // if (!authLoading && isAuthenticated) {
+    //   router.replace("/dashboard")
+    // }
   }, [authLoading, isAuthenticated, router])
 
   function clearFilters() {
@@ -256,16 +253,16 @@ function HomePageContent() {
     )
   }
 
-  if (isAuthenticated)
-    return (
-      <div className="flex min-h-svh flex-col">
-        <SiteHeader />
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-muted-foreground">در حال انتقال به داشبورد...</p>
-        </div>
-        <SiteFooter />
-      </div>
-    )
+  // if (isAuthenticated)
+  //   return (
+  //     <div className="flex min-h-svh flex-col">
+  //       <SiteHeader />
+  //       <div className="flex flex-1 items-center justify-center">
+  //         <p className="text-muted-foreground">در حال انتقال به داشبورد...</p>
+  //       </div>
+  //       <SiteFooter />
+  //     </div>
+  //   )
 
   const totalPages = Math.ceil(total / limit)
 
@@ -303,6 +300,9 @@ function HomePageContent() {
         {/* Roles Section */}
         <RolesSection />
 
+        {/* Recent Reviews */}
+        <RecentReviews />
+
         {/* Search & Filters */}
         <section
           className="relative overflow-hidden px-4 py-16 md:py-20"
@@ -318,7 +318,11 @@ function HomePageContent() {
               </p>
             </div>
 
-            <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
+            <div className={`rounded-xl border bg-card p-4 shadow-sm transition-all md:p-6 ${
+                hasActiveFilters
+                  ? "border-primary/30 ring-1 ring-primary/10"
+                  : ""
+              }`}>
               {/* Row 1: Search + Sort + Near Me */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">

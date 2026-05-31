@@ -42,6 +42,17 @@ import {
   ToggleLeft,
   ToggleRight,
 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker"
 import { PersianInput } from "@/components/ui/persian-input"
 import dynamic from "next/dynamic"
@@ -108,6 +119,8 @@ export default function CourtsPage() {
   const [refLat, setRefLat] = useState("")
   const [refLon, setRefLon] = useState("")
   const [maxDistance, setMaxDistance] = useState("")
+  const [deleteCourt, setDeleteCourt] = useState<Court | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const limit = 20
 
   // Debounce search input — 300ms
@@ -164,6 +177,27 @@ export default function CourtsPage() {
     const timer = setTimeout(() => fetchCourts(), 0)
     return () => clearTimeout(timer)
   }, [fetchCourts])
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteCourt) return
+    setDeleting(true)
+    try {
+      await api(`/api/v1/courts/${deleteCourt.id}`, {
+        method: "DELETE",
+      })
+      toast.success("مجموعه حذف شد")
+      setDeleteCourt(null)
+      fetchCourts()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "خطا در حذف"
+      )
+    } finally {
+      setDeleting(false)
+    }
+  }, [deleteCourt, fetchCourts])
 
   const totalPages = Math.ceil(total / limit)
 
@@ -478,33 +512,34 @@ export default function CourtsPage() {
                                   <ToggleLeft className="size-4 text-muted-foreground" />
                                 )}
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={async () => {
-                                  if (
-                                    !confirm(
-                                      `آیا از حذف "${court.name}" مطمئن هستید؟`
-                                    )
-                                  )
-                                    return
-                                  try {
-                                    await api(`/api/v1/courts/${court.id}`, {
-                                      method: "DELETE",
-                                    })
-                                    toast.success("مجموعه حذف شد")
-                                    fetchCourts()
-                                  } catch (err) {
-                                    toast.error(
-                                      err instanceof ApiError
-                                        ? err.message
-                                        : "خطا در حذف"
-                                    )
-                                  }
-                                }}
-                              >
-                                <Trash2 className="size-4 text-destructive" />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <Trash2 className="size-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>حذف مجموعه</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      آیا از حذف &quot;{court.name}&quot; مطمئن هستید؟
+                                      این عمل قابل بازگشت نیست.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      variant="destructive"
+                                      onClick={() => {
+                                        setDeleteCourt(court)
+                                        setTimeout(() => handleDelete(), 0)
+                                      }}
+                                    >
+                                      حذف
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </>
                           )}
                         </div>

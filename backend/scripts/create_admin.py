@@ -1,6 +1,8 @@
 import asyncio
-from sqlalchemy import select
+
 from passlib.context import CryptContext
+from sqlalchemy import select
+
 from app.core.database import async_session_factory
 from app.models.user import User, UserRole
 from app.models.wallet import Wallet

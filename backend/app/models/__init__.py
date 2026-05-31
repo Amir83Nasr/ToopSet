@@ -1,6 +1,7 @@
 from app.models.booking import Booking
 from app.models.contact import ContactMessage
 from app.models.court import Court
+from app.models.court_image import CourtImage
 from app.models.favorite import Favorite
 from app.models.log import Log
 from app.models.notification import Notification
@@ -16,6 +17,7 @@ from app.models.wallet_transaction import WalletTransaction
 __all__ = [
     "User",
     "Court",
+    "CourtImage",
     "TimeSlot",
     "Booking",
     "Payment",

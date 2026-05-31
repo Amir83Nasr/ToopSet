@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.api.deps import get_current_manager
+from app.core.redis_client import get_redis
 from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, save_upload
 from app.models.user import User
 
@@ -23,4 +26,7 @@ async def upload_court_image(
         raise HTTPException(status_code=400, detail=f"Invalid file type: .{ext}")
 
     url = save_upload(content, file.filename or "image.jpg")
-    return {"url": url}
+    temp_id = uuid.uuid4().hex
+    r = await get_redis()
+    await r.setex(f"temp_upload:{temp_id}", 3600, url)
+    return {"temp_id": temp_id, "url": url}
