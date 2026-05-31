@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.log import Log
@@ -16,6 +16,14 @@ class LogRepo:
         await self.db.commit()
         await self.db.refresh(log)
         return log
+
+    async def delete_by_id(self, log_id: int) -> None:
+        await self.db.execute(delete(Log).where(Log.id == log_id))
+        await self.db.commit()
+
+    async def clear_all(self) -> None:
+        await self.db.execute(delete(Log))
+        await self.db.commit()
 
     async def list(
         self,

@@ -69,6 +69,26 @@ async def list_logs(
     return LogListResponse(logs=[LogResponse.model_validate(log) for log in logs], total=total)
 
 
+@router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_log(
+    log_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    repo = LogRepo(db)
+    await repo.delete_by_id(log_id)
+
+
+@router.delete("/logs/clear", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_logs(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    repo = LogRepo(db)
+    await repo.clear_all()
+
+
+
 # ── User management ────────────────────────────────────────────────
 
 

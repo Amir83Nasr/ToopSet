@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 import {
   ChevronLeft,
   ChevronRight,
   ShieldX,
   History,
   RefreshCw,
+  Trash2,
 } from "lucide-react"
 
 interface LogEntry {
@@ -78,7 +80,7 @@ export default function AdminLogsPage() {
       setLogs(res.logs)
       setTotal(res.total)
     } catch {
-      // not admin
+      toast.error("خطا در بارگذاری لاگ‌ها")
     } finally {
       setLoading(false)
     }
@@ -88,6 +90,30 @@ export default function AdminLogsPage() {
     const timer = setTimeout(() => fetchLogs(), 0)
     return () => clearTimeout(timer)
   }, [fetchLogs])
+
+  const handleDelete = async (logId: number) => {
+    try {
+      await api(`/api/v1/admin/logs/${logId}`, { method: "DELETE" })
+      toast.success("لاگ با موفقیت حذف شد")
+      fetchLogs()
+    } catch (err) {
+      console.error("Failed to delete log:", err)
+      toast.error("خطا در حذف لاگ")
+    }
+  }
+
+  const handleClearAll = async () => {
+    if (!confirm("آیا از پاکسازی تمام لاگ‌ها اطمینان دارید؟")) return
+    try {
+      await api("/api/v1/admin/logs/clear", { method: "DELETE" })
+      toast.success("لاگ‌ها با موفقیت پاک شدند")
+      setPage(0)
+      fetchLogs()
+    } catch (err) {
+      console.error("Failed to clear logs:", err)
+      toast.error("خطا در پاکسازی لاگ‌ها")
+    }
+  }
 
   const totalPages = Math.ceil(total / limit)
 
@@ -117,13 +143,12 @@ export default function AdminLogsPage() {
             }}
             className="w-48"
           />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={fetchLogs}
-            disabled={loading}
-          >
+          <Button variant="outline" size="icon" onClick={fetchLogs} disabled={loading}>
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+          <Button variant="destructive" onClick={handleClearAll}>
+            <Trash2 className="ml-1.5 size-4" />
+            پاکسازی همه
           </Button>
         </div>
       </div>
@@ -137,12 +162,13 @@ export default function AdminLogsPage() {
                 <TableHead>کاربر</TableHead>
                 <TableHead>عملیات</TableHead>
                 <TableHead>جزئیات</TableHead>
+                <TableHead>عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 4 }).map((_, j) => (
+                  {Array.from({ length: 5 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
@@ -156,9 +182,7 @@ export default function AdminLogsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <History className="mb-4 size-12 text-muted-foreground" />
-            <p className="text-lg text-muted-foreground">
-              رویدادی ثبت نشده است
-            </p>
+            <p className="text-lg text-muted-foreground">رویدادی ثبت نشده است</p>
           </CardContent>
         </Card>
       ) : (
@@ -170,6 +194,7 @@ export default function AdminLogsPage() {
                 <TableHead>کاربر</TableHead>
                 <TableHead>عملیات</TableHead>
                 <TableHead>جزئیات</TableHead>
+                <TableHead>عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -189,6 +214,11 @@ export default function AdminLogsPage() {
                   <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
                     {log.details || "-"}
                   </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(log.id)}>
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -196,8 +226,7 @@ export default function AdminLogsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از{" "}
-                {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
                 <Button
