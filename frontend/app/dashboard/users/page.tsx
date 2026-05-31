@@ -212,10 +212,18 @@ export default function UsersPage() {
     setDeleting(true)
     try {
       await api(`/api/v1/admin/users/${deleteTarget.id}`, { method: "DELETE" })
+      
+      // Update local state immediately for better UI response
+      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
+      setTotal((prev) => prev - 1)
+      
       toast.success("کاربر با موفقیت حذف شد")
       setDeleteTarget(null)
-      fetchUsers()
+      
+      // Refresh to ensure synchronization with server
+      await fetchUsers()
     } catch (err) {
+      console.error("Delete error:", err)
       const msg = err instanceof ApiError ? err.message : "خطا در حذف کاربر"
       toast.error(msg)
     } finally {

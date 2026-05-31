@@ -124,10 +124,19 @@ export async function api<T>(
     throw new ApiError(res.status, body.detail || "Request failed")
   }
 
+  if (res.status === 204) {
+    return null as T
+  }
+
   return res.json()
 }
 
-export async function uploadFile(file: File): Promise<string> {
+export interface UploadResult {
+  temp_id: string
+  url: string
+}
+
+export async function uploadFile(file: File): Promise<UploadResult> {
   const token = getCookie("access_token")
   const formData = new FormData()
   formData.append("file", file)
@@ -137,17 +146,21 @@ export async function uploadFile(file: File): Promise<string> {
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_BASE}/api/v1/uploads/court-image`, {
-    method: "POST",
-    headers,
-    body: formData,
-  })
+  const url = `${API_BASE}/api/v1/uploads/court-image`
+  console.log("Uploading to:", url, "file:", file.name, "size:", file.size, "type:", file.type)
+
+  let res: Response
+  try {
+    res = await fetch(url, { method: "POST", headers, body: formData })
+  } catch (err) {
+    console.error("Fetch failed:", err)
+    throw new ApiError(0, `Network error: ${err instanceof Error ? err.message : "unknown"}`)
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Upload failed" }))
     throw new ApiError(res.status, body.detail || "Upload failed")
   }
 
-  const data = await res.json()
-  return data.url
+  return res.json()
 }
