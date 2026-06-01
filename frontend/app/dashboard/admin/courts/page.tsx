@@ -1,14 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -48,6 +44,7 @@ function formatPersianNumber(num: number): string {
 }
 
 export default function AdminPendingCourtsPage() {
+  const router = useRouter()
   const [courts, setCourts] = useState<PendingCourt[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -62,7 +59,7 @@ export default function AdminPendingCourtsPage() {
       setCourts(res.courts)
       setTotal(res.total)
     } catch {
-      toast.error("خطا در دریافت لیست سالن‌های در انتظار تایید")
+      toast.error("خطا در دریافت لیست مجموعه‌های در انتظار تایید")
     } finally {
       setLoading(false)
     }
@@ -80,12 +77,10 @@ export default function AdminPendingCourtsPage() {
         await api(`/api/v1/admin/courts/${courtId}/approve`, {
           method: "POST",
         })
-        toast.success("سالن با موفقیت تایید شد")
+        toast.success("مجموعه با موفقیت تایید شد")
         fetchCourts()
       } catch (err) {
-        toast.error(
-          err instanceof ApiError ? err.message : "خطا در تایید سالن"
-        )
+        toast.error(err instanceof ApiError ? err.message : "خطا در تایید مجموعه")
       } finally {
         setActionLoading(null)
       }
@@ -100,12 +95,10 @@ export default function AdminPendingCourtsPage() {
         await api(`/api/v1/admin/courts/${courtId}/reject`, {
           method: "POST",
         })
-        toast.success("سالن رد شد")
+        toast.success("مجموعه رد شد")
         fetchCourts()
       } catch (err) {
-        toast.error(
-          err instanceof ApiError ? err.message : "خطا در رد سالن"
-        )
+        toast.error(err instanceof ApiError ? err.message : "خطا در رد مجموعه")
       } finally {
         setActionLoading(null)
       }
@@ -118,14 +111,21 @@ export default function AdminPendingCourtsPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">
-            تایید سالن‌ها
+            تایید مجموعه‌ها
           </h1>
           <p className="text-muted-foreground">
-            سالن‌های در انتظار تایید مدیریت
+            مجموعه‌های در انتظار تایید مدیریت
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchCourts} disabled={loading}>
-          <RefreshCw className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchCourts}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`}
+          />
           بروزرسانی
         </Button>
       </div>
@@ -148,10 +148,10 @@ export default function AdminPendingCourtsPage() {
           <CardContent className="flex flex-col items-center justify-center py-16">
             <CheckCircle className="mb-4 size-12 text-muted-foreground" />
             <p className="text-lg text-muted-foreground">
-              هیچ سالنی در انتظار تایید نیست
+              هیچ مجموعه‌ای در انتظار تایید نیست
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              تمام سالن‌ها تایید شده‌اند
+              تمام مجموعه‌ها تایید شده‌اند
             </p>
           </CardContent>
         </Card>
@@ -161,14 +161,14 @@ export default function AdminPendingCourtsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <ShieldAlert className="size-4" />
-                {formatPersianNumber(total)} سالن در انتظار تایید
+                {formatPersianNumber(total)} مجموعه در انتظار تایید
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>نام سالن</TableHead>
+                    <TableHead>نام مجموعه</TableHead>
                     <TableHead>مدیر</TableHead>
                     <TableHead>ورزش‌ها</TableHead>
                     <TableHead>ظرفیت</TableHead>
@@ -178,7 +178,11 @@ export default function AdminPendingCourtsPage() {
                 </TableHeader>
                 <TableBody>
                   {courts.map((court) => (
-                    <TableRow key={court.id}>
+                    <TableRow
+                      key={court.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/dashboard/courts/${court.id}`)}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Building2 className="size-4 shrink-0 text-muted-foreground" />
@@ -189,7 +193,11 @@ export default function AdminPendingCourtsPage() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {court.sport_types.map((sport) => (
-                            <Badge key={sport} variant="secondary" className="text-xs">
+                            <Badge
+                              key={sport}
+                              variant="secondary"
+                              className="text-xs"
+                            >
                               {sport}
                             </Badge>
                           ))}
@@ -201,7 +209,7 @@ export default function AdminPendingCourtsPage() {
                       <TableCell className="text-muted-foreground">
                         {court.created_at ? formatDate(court.created_at) : "-"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-2">
                           <Button
                             variant="default"

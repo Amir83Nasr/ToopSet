@@ -4,11 +4,7 @@ import { useEffect, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import { toPersianDigits } from "@/lib/utils"
-import {
-  QOM_BOUNDS,
-  QOM_CENTER,
-  DEFAULT_ZOOM,
-} from "@/lib/map-utils"
+import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM } from "@/lib/map-utils"
 import { createCourtIcon, createUserLocationIcon } from "@/lib/map-utils"
 
 const sportLabels: Record<string, string> = {
@@ -164,7 +160,7 @@ export function CourtsMap({
         style={{ height }}
       >
         <p className="text-sm text-muted-foreground">
-          هیچ زمینی برای نمایش وجود ندارد
+          هیچ مجموعهی برای نمایش وجود ندارد
         </p>
       </div>
     )
@@ -220,7 +216,7 @@ export function CourtsMap({
                   href={`/courts/${court.id}`}
                   className="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
                 >
-                  مشاهده زمین
+                  مشاهده مجموعه
                 </a>
               </div>
             </Popup>

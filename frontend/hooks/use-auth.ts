@@ -61,7 +61,7 @@ export function useAuth() {
       if (redirect && redirect.startsWith("/")) {
         router.push(redirect)
       } else {
-        router.push("/")
+        router.push("/dashboard")
       }
     },
     [router]

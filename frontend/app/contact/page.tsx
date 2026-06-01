@@ -109,38 +109,38 @@ export default function ContactPage() {
                 animate="visible"
                 className="space-y-6 md:col-span-1"
               >
-                  {contactInfo.map((info) => {
-                    const Icon = info.icon
-                    return (
-                      <motion.div
-                        key={info.label}
-                        variants={item}
-                        className="flex items-start gap-3"
-                      >
-                        <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
-                        <div>
-                          <h4 className="text-sm font-medium">{info.label}</h4>
-                          {"href" in info ? (
-                            <a
-                              href={info.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                            >
-                              {info.value}
-                            </a>
-                          ) : (
-                            <p
-                              className="text-sm text-muted-foreground"
-                              dir={info.dir}
-                            >
-                              {info.value}
-                            </p>
-                          )}
-                        </div>
-                      </motion.div>
-                    )
-                  })}
+                {contactInfo.map((info) => {
+                  const Icon = info.icon
+                  return (
+                    <motion.div
+                      key={info.label}
+                      variants={item}
+                      className="flex items-start gap-3"
+                    >
+                      <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
+                      <div>
+                        <h4 className="text-sm font-medium">{info.label}</h4>
+                        {"href" in info ? (
+                          <a
+                            href={info.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            {info.value}
+                          </a>
+                        ) : (
+                          <p
+                            className="text-sm text-muted-foreground"
+                            dir={info.dir}
+                          >
+                            {info.value}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )
+                })}
               </motion.div>
 
               {/* Contact Form */}

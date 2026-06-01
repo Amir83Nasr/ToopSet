@@ -181,7 +181,7 @@ export default function AdminBookingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>کاربر</TableHead>
-                <TableHead>زمین</TableHead>
+                <TableHead>مجموعه</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>
@@ -220,7 +220,7 @@ export default function AdminBookingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>کاربر</TableHead>
-                <TableHead>زمین</TableHead>
+                <TableHead>مجموعه</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>

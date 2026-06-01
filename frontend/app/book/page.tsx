@@ -303,7 +303,7 @@ function BookPageContent() {
       <Button variant="ghost" className="mb-4 w-fit" asChild>
         <Link href={`/courts/${courtId}`}>
           <ArrowRight className="ml-2 size-4" />
-          بازگشت به صفحه زمین
+          بازگشت به صفحه مجموعه
         </Link>
       </Button>
 
@@ -443,7 +443,7 @@ function BookPageContent() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">زمین</span>
+                <span className="text-muted-foreground">مجموعه</span>
                 <span>{booking.court_name}</span>
               </div>
               <div className="flex justify-between">
@@ -505,7 +505,7 @@ function BookPageContent() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">زمین</span>
+                <span className="text-muted-foreground">مجموعه</span>
                 <span>{booking.court_name}</span>
               </div>
               <div className="flex justify-between">

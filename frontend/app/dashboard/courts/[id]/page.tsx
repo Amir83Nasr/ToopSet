@@ -63,8 +63,9 @@ import {
   MapPin,
   Star,
   Users,
+  UserCircle,
 } from "lucide-react"
-import { JalaliDatePicker } from "@/components/ui/jalali-date-picker"
+import { DatePicker } from "@/components/ui/date-picker"
 import { PersianInput } from "@/components/ui/persian-input"
 
 interface Court {
@@ -80,6 +81,7 @@ interface Court {
   created_at: string
   amenities?: Record<string, boolean>
   images?: string[]
+  manager_name?: string
 }
 
 interface TimeSlot {
@@ -295,7 +297,9 @@ export default function CourtDetailPage() {
   if (notFound || !court) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
-        <p className="text-xl text-muted-foreground">مجموعه مورد نظر یافت نشد</p>
+        <p className="text-xl text-muted-foreground">
+          مجموعه مورد نظر یافت نشد
+        </p>
         <Button
           variant="outline"
           onClick={() => router.push("/dashboard/courts")}
@@ -318,6 +322,42 @@ export default function CourtDetailPage() {
         بازگشت به لیست مجموعه‌ها
       </Button>
 
+      {/* Management Card */}
+      {canManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle>مدیریت مجموعه</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/dashboard/courts/${courtId}/edit`}>
+                <Pencil className="ml-2 size-4" />
+                ویرایش اطلاعات
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await api(`/api/v1/courts/${courtId}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ is_active: !court.is_active }),
+                  })
+                  toast.success(
+                    court.is_active ? "مجموعه غیرفعال شد" : "مجموعه فعال شد"
+                  )
+                  fetchData()
+                } catch (err) {
+                  toast.error("خطا در تغییر وضعیت")
+                }
+              }}
+            >
+              {court.is_active ? "غیرفعال‌سازی" : "فعال‌سازی"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Court info card */}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
@@ -337,17 +377,8 @@ export default function CourtDetailPage() {
               </div>
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            {canManage && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/dashboard/courts/${courtId}/edit`}>
-                  <Pencil className="ml-1 size-4" />
-                  ویرایش
-                </Link>
-              </Button>
-            )}
-          </div>
         </CardHeader>
+
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="flex items-center gap-2 text-sm">
@@ -358,6 +389,12 @@ export default function CourtDetailPage() {
               <Users className="size-4 text-muted-foreground" />
               <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
             </div>
+            {court.manager_name && (
+              <div className="flex items-center gap-2 text-sm">
+                <UserCircle className="size-4 text-muted-foreground" />
+                <span>مدیر: {court.manager_name}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-sm">
               <div className="flex items-center gap-0.5" dir="ltr">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -521,7 +558,7 @@ export default function CourtDetailPage() {
                 <form onSubmit={handleCreateSlot} className="space-y-4">
                   <div className="space-y-2">
                     <Label>تاریخ</Label>
-                    <JalaliDatePicker
+                    <DatePicker
                       value={slotDateObj}
                       onChange={(d) => {
                         if (d) {
@@ -548,31 +585,6 @@ export default function CourtDetailPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="end_time">ساعت پایان</Label>
-                      <Input id="end_time" name="end_time" type="time" required />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="base_price">قیمت (تومان)</Label>
-                    <PersianInput
-                      id="base_price"
-                      name="base_price"
-                      min="0"
-                      placeholder="۵۰۰۰۰۰"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="start_time">ساعت شروع</Label>
-                      <Input
-                        id="start_time"
-                        name="start_time"
-                        type="time"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="end_time">ساعت پایان</Label>
                       <Input
                         id="end_time"
                         name="end_time"
@@ -583,10 +595,9 @@ export default function CourtDetailPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="base_price">قیمت (تومان)</Label>
-                    <Input
+                    <PersianInput
                       id="base_price"
                       name="base_price"
-                      type="number"
                       min="0"
                       placeholder="۵۰۰۰۰۰"
                       required

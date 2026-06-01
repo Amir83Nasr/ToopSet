@@ -7,7 +7,6 @@ from sqlalchemy import Enum, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.mixins import SoftDeleteMixin
 
 _values_callable = lambda x: [e.value for e in x]  # noqa: E731
 
@@ -18,7 +17,7 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
 
 
-class User(Base, SoftDeleteMixin):
+class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)

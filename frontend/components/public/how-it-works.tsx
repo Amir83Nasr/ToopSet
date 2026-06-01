@@ -8,7 +8,7 @@ const steps = [
   {
     icon: Search,
     title: "جستجو",
-    description: "ورزش مورد نظر خود را انتخاب کنید و زمین‌های موجود را ببینید",
+    description: "ورزش مورد نظر خود را انتخاب کنید و مجموعه‌های موجود را ببینید",
   },
   {
     icon: CalendarCheck,
@@ -23,7 +23,7 @@ const steps = [
   {
     icon: Play,
     title: "بازی",
-    description: "در ساعت مقرر در زمین حاضر شوید و از ورزش لذت ببرید",
+    description: "در ساعت مقرر در مجموعه حاضر شوید و از ورزش لذت ببرید",
   },
 ]
 
@@ -31,7 +31,7 @@ export function HowItWorks() {
   return (
     <section className="relative overflow-hidden border-t px-4 py-16 md:py-24">
       <div className="bg-grid absolute inset-0 opacity-15 dark:opacity-[0.03]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 size-[400px] -translate-x-1/2 rounded-full bg-primary/3 blur-[100px]" />
+      <div className="pointer-events-none absolute top-0 left-1/2 size-[400px] -translate-x-1/2 rounded-full bg-primary/3 blur-[100px]" />
 
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Header */}
@@ -56,7 +56,7 @@ export function HowItWorks() {
             توپ‌سِت چطور کار می‌کند
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            تنها با {toPersianDigits(4)} قدم ساده، زمین ورزشی خود را رزرو کنید
+            تنها با {toPersianDigits(4)} قدم ساده، مجموعه ورزشی خود را رزرو کنید
           </p>
         </motion.div>
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,12 +55,30 @@ class TimeSlotRepo:
         )
         return list(result.scalars().all())
 
+    async def get_existing_start_times(
+        self, court_id: int, date_from: datetime, date_to: datetime
+    ) -> set[datetime]:
+        result = await self.db.execute(
+            select(TimeSlot.start_time).where(
+                TimeSlot.court_id == court_id,
+                TimeSlot.start_time >= date_from,
+                TimeSlot.start_time < date_to + timedelta(days=1),
+            )
+        )
+        return set(result.scalars().all())
+
     async def create(self, data: dict) -> TimeSlot:
         slot = TimeSlot(**data)
         self.db.add(slot)
         await self.db.commit()
         await self.db.refresh(slot)
         return slot
+
+    async def create_batch(self, slots_data: list[dict]) -> list[TimeSlot]:
+        slots = [TimeSlot(**data) for data in slots_data]
+        self.db.add_all(slots)
+        await self.db.commit()
+        return slots
 
     async def update(self, slot: TimeSlot, data: dict) -> TimeSlot:
         for key, value in data.items():

@@ -232,7 +232,7 @@ export default function BookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>زمین</TableHead>
+                <TableHead>مجموعه</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>
@@ -278,12 +278,12 @@ export default function BookingsPage() {
             </div>
             <h3 className="mb-1 text-lg font-semibold">هنوز رزروی ندارید</h3>
             <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-              زمین مورد علاقه خود را انتخاب کنید و رزرو نمایید.
+              مجموعه مورد علاقه خود را انتخاب کنید و رزرو نمایید.
             </p>
             <Button asChild>
               <Link href="/dashboard/courts">
                 <CalendarCheck className="ml-2 size-4" />
-                مشاهده زمین‌ها
+                مشاهده مجموعه‌ها
               </Link>
             </Button>
           </CardContent>
@@ -293,7 +293,7 @@ export default function BookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>زمین</TableHead>
+                <TableHead>مجموعه</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>

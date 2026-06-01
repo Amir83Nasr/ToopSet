@@ -2,224 +2,343 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Label } from "@/components/ui/label"
-import { BarChart3 } from "lucide-react"
-import { JalaliDatePicker } from "@/components/ui/jalali-date-picker"
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts"
+import {
+  TrendingUp,
+  Users,
+  Building2,
+  CalendarCheck,
+  DollarSign,
+} from "lucide-react"
 
-interface RevenueRow {
-  date: string
-  bookings_count: number
-  revenue: number
-  penalties: number
+interface ChartData {
+  user_growth: { date: string; count: number }[]
+  court_growth: { date: string; count: number }[]
+  booking_trends: { date: string; count: number }[]
+  revenue_trends: { date: string; revenue: number; penalties: number }[]
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("fa-IR")
+}
+
+function formatPersianNumber(num: number): string {
+  return new Intl.NumberFormat("fa-IR").format(Math.round(num))
 }
 
 export default function ReportsPage() {
-  const [rows, setRows] = useState<RevenueRow[]>([])
+  const [data, setData] = useState<ChartData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState("")
 
-  const fetchReport = useCallback(async () => {
+  const fetchCharts = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (dateFrom) params.set("date_from", new Date(dateFrom).toISOString())
-      if (dateTo) params.set("date_to", new Date(dateTo).toISOString())
-
-      const res = await api<RevenueRow[]>(
-        `/api/v1/dashboard/manager/revenue?${params}`
-      )
-      setRows(res)
+      const res = await api<ChartData>("/api/v1/dashboard/admin/charts")
+      setData(res)
     } catch {
       // not authenticated
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo])
+  }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchReport(), 0)
+    const timer = setTimeout(() => fetchCharts(), 0)
     return () => clearTimeout(timer)
-  }, [fetchReport])
+  }, [fetchCharts])
 
-  const totalRevenue = rows.reduce((sum, r) => sum + r.revenue, 0)
-  const totalPenalties = rows.reduce((sum, r) => sum + r.penalties, 0)
-  const totalBookings = rows.reduce((sum, r) => sum + r.bookings_count, 0)
+  const summary = data
+    ? {
+        totalUsers: data.user_growth.reduce((s, r) => s + r.count, 0),
+        totalCourts: data.court_growth.reduce((s, r) => s + r.count, 0),
+        totalBookings: data.booking_trends.reduce((s, r) => s + r.count, 0),
+        totalRevenue: data.revenue_trends.reduce(
+          (s, r) => s + r.revenue + r.penalties,
+          0
+        ),
+      }
+    : null
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">گزارشات درآمد</h1>
-          <p className="text-muted-foreground">
-            گزارش روزانه رزروها و درآمد زمین‌های شما
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">گزارشات سیستم</h1>
+        <p className="text-muted-foreground">آمار و نمودارهای ۳۰ روز اخیر</p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              مجموع رزروها
+              کاربران جدید
             </CardTitle>
+            <Users className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">
-              {toPersianDigits(totalBookings)}
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-bold">
+                {formatPersianNumber(summary?.totalUsers ?? 0)}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              مجموع درآمد
+              مجموعه‌های جدید
             </CardTitle>
+            <Building2 className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">
-              {toPersianDigits(
-                Math.round(totalRevenue).toLocaleString("fa-IR")
-              )}{" "}
-              تومان
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-bold">
+                {formatPersianNumber(summary?.totalCourts ?? 0)}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              مجموع جریمه‌ها
+              رزروها
             </CardTitle>
+            <CalendarCheck className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-red-600">
-              {toPersianDigits(
-                Math.round(totalPenalties).toLocaleString("fa-IR")
-              )}{" "}
-              تومان
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-bold">
+                {formatPersianNumber(summary?.totalBookings ?? 0)}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              گردش مالی
+            </CardTitle>
+            <DollarSign className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-bold text-green-600">
+                {formatPersianNumber(summary?.totalRevenue ?? 0)}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  تومان
+                </span>
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Date filters */}
-      <div className="flex gap-4">
-        <div className="space-y-1">
-          <Label>از تاریخ</Label>
-          <JalaliDatePicker
-            value={dateFrom ? new Date(dateFrom + "T12:00:00") : undefined}
-            onChange={(d) =>
-              setDateFrom(d ? d.toISOString().split("T")[0] : "")
-            }
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>تا تاریخ</Label>
-          <JalaliDatePicker
-            value={dateTo ? new Date(dateTo + "T12:00:00") : undefined}
-            onChange={(d) =>
-              setDateTo(d ? d.toISOString().split("T")[0] : "")
-            }
-          />
-        </div>
-      </div>
-
-      {/* Report table */}
+      {/* Charts 2x2 grid */}
       {loading ? (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>تعداد رزرو</TableHead>
-                <TableHead>درآمد</TableHead>
-                <TableHead>جریمه</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      ) : rows.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="mb-4 rounded-full bg-muted p-4">
-              <BarChart3 className="size-10 text-muted-foreground" />
-            </div>
-            <h3 className="mb-1 text-lg font-semibold">
-              داده‌ای برای نمایش وجود ندارد
-            </h3>
-            <p className="max-w-sm text-center text-sm text-muted-foreground">
-              پس از ثبت رزروها و انجام تراکنش‌ها، گزارشات در اینجا نمایش داده
-              می‌شوند.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>تعداد رزرو</TableHead>
-                <TableHead>درآمد</TableHead>
-                <TableHead>جریمه</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.date}>
-                  <TableCell>
-                    {toPersianDigits(
-                      new Date(row.date).toLocaleDateString("fa-IR")
-                    )}
-                  </TableCell>
-                  <TableCell>{toPersianDigits(row.bookings_count)}</TableCell>
-                  <TableCell className="font-medium text-green-600">
-                    {toPersianDigits(
-                      Math.round(row.revenue).toLocaleString("fa-IR")
-                    )}{" "}
-                    تومان
-                  </TableCell>
-                  <TableCell className="font-medium text-red-600">
-                    {toPersianDigits(
-                      Math.round(row.penalties).toLocaleString("fa-IR")
-                    )}{" "}
-                    تومان
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Chart 1: User Growth */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="size-4 text-blue-500" />
+                رشد کاربران
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data?.user_growth}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(d) => formatDate(d)}
+                      fontSize={11}
+                    />
+                    <YAxis allowDecimals={false} fontSize={11} />
+                    <Tooltip
+                      labelFormatter={(d) => formatDate(d as string)}
+                      formatter={(value) => [
+                        formatPersianNumber(Number(value) || 0),
+                        "کاربر جدید",
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
+                      name="کاربران جدید"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Chart 2: Court Growth */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Building2 className="size-4 text-orange-500" />
+                رشد ثبت مجموعه‌ها
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data?.court_growth}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(d) => formatDate(d)}
+                      fontSize={11}
+                    />
+                    <YAxis allowDecimals={false} fontSize={11} />
+                    <Tooltip
+                      labelFormatter={(d) => formatDate(d as string)}
+                      formatter={(value) => [
+                        formatPersianNumber(Number(value) || 0),
+                        "مجموعه جدید",
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#f97316"
+                      strokeWidth={2}
+                      dot={false}
+                      name="مجموعه‌های جدید"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Chart 3: Bookings Trends */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CalendarCheck className="size-4 text-green-500" />
+                روند رزروها
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data?.booking_trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(d) => formatDate(d)}
+                      fontSize={11}
+                    />
+                    <YAxis allowDecimals={false} fontSize={11} />
+                    <Tooltip
+                      labelFormatter={(d) => formatDate(d as string)}
+                      formatter={(value) => [
+                        formatPersianNumber(Number(value) || 0),
+                        "رزرو",
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      dot={false}
+                      name="رزروها"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Chart 4: Revenue / Financial Turnover */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TrendingUp className="size-4 text-purple-500" />
+                گردش مالی
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data?.revenue_trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(d) => formatDate(d)}
+                      fontSize={11}
+                    />
+                    <YAxis fontSize={11} />
+                    <Tooltip
+                      labelFormatter={(d) => formatDate(d as string)}
+                      formatter={(value, name) => [
+                        formatPersianNumber(Number(value) || 0) + " تومان",
+                        name === "revenue" ? "درآمد" : "جریمه",
+                      ]}
+                    />
+                    <Legend
+                      formatter={(value: string) =>
+                        value === "revenue" ? "درآمد" : "جریمه"
+                      }
+                    />
+                    <Bar
+                      dataKey="revenue"
+                      fill="#22c55e"
+                      radius={[4, 4, 0, 0]}
+                      name="revenue"
+                    />
+                    <Bar
+                      dataKey="penalties"
+                      fill="#ef4444"
+                      radius={[4, 4, 0, 0]}
+                      name="penalties"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )

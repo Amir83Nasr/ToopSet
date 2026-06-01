@@ -41,7 +41,9 @@ class ToggleActiveResponse(BaseModel):
 
 
 class AdminCreateUserRequest(BaseModel):
-    phone: str = Field(..., min_length=11, max_length=11, pattern=r"^09\d{9}$", examples=["09120000000"])
+    phone: str = Field(
+        ..., min_length=11, max_length=11, pattern=r"^09\d{9}$", examples=["09120000000"]
+    )
     password: str = Field(..., min_length=4, max_length=128, examples=["123456"])
     full_name: str = Field(..., min_length=1, max_length=128, examples=["کاربر جدید"])
     role: UserRoleEnum = Field(default=UserRoleEnum.USER)

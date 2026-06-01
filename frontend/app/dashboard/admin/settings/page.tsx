@@ -3,18 +3,14 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { toast } from "sonner"
-import { RefreshCw, Settings2, Save } from "lucide-react"
+import { RefreshCw, Settings2, Save, Type } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Setting {
   id: number
@@ -31,6 +27,8 @@ const settingLabels: Record<string, string> = {
   support_email: "ایمیل پشتیبانی",
   commission_percent: "درصد کمیسیون",
   cancel_window_hours: "مهلت کنسل کردن (ساعت)",
+  rules_text: "متن قوانین و مقررات",
+  faq_text: "متن سوالات متداول",
 }
 
 export default function AdminSettingsPage() {
@@ -75,13 +73,9 @@ export default function AdminSettingsPage() {
         setSettings((prev) =>
           prev.map((s) => (s.id === updated.id ? updated : s))
         )
-        toast.success(
-          `${settingLabels[setting.key] || setting.key} ذخیره شد`
-        )
+        toast.success(`${settingLabels[setting.key] || setting.key} ذخیره شد`)
       } catch (err) {
-        toast.error(
-          err instanceof ApiError ? err.message : "خطا در ذخیره"
-        )
+        toast.error(err instanceof ApiError ? err.message : "خطا در ذخیره")
       } finally {
         setSavingId(null)
       }
@@ -91,10 +85,9 @@ export default function AdminSettingsPage() {
 
   const handleSeed = useCallback(async () => {
     try {
-      const res = await api<{ seeded: number }>(
-        "/api/v1/admin/settings/seed",
-        { method: "POST" }
-      )
+      const res = await api<{ seeded: number }>("/api/v1/admin/settings/seed", {
+        method: "POST",
+      })
       toast.success(`${res.seeded} تنظیم پیش‌فرض اضافه شد`)
       fetchSettings()
     } catch {
@@ -109,9 +102,7 @@ export default function AdminSettingsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-primary">
             تنظیمات سیستم
           </h1>
-          <p className="text-muted-foreground">
-            مدیریت تنظیمات سراسری پلتفرم
-          </p>
+          <p className="text-muted-foreground">مدیریت تنظیمات سراسری پلتفرم</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleSeed}>
@@ -175,16 +166,30 @@ export default function AdminSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex gap-2">
-                    <Input
-                      value={values[setting.id] ?? ""}
-                      onChange={(e) =>
-                        setValues((prev) => ({
-                          ...prev,
-                          [setting.id]: e.target.value,
-                        }))
-                      }
-                      placeholder="مقدار..."
-                    />
+                    {setting.key.endsWith("_text") ? (
+                      <Textarea
+                        value={values[setting.id] ?? ""}
+                        onChange={(e) =>
+                          setValues((prev) => ({
+                            ...prev,
+                            [setting.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="مقدار..."
+                        className="min-h-[150px]"
+                      />
+                    ) : (
+                      <Input
+                        value={values[setting.id] ?? ""}
+                        onChange={(e) =>
+                          setValues((prev) => ({
+                            ...prev,
+                            [setting.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="مقدار..."
+                      />
+                    )}
                     <Button
                       variant="default"
                       size="icon"

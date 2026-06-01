@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
@@ -49,10 +49,12 @@ async def get_manager_revenue(
 
 @router.get("/admin-stats", response_model=AdminStats)
 async def get_admin_stats(
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_admin),
 ):
-    return await service.get_admin_stats()
+    return await service.get_admin_stats(date_from=date_from, date_to=date_to)
 
 
 @router.get("/manager-stats", response_model=ManagerStats)
@@ -75,6 +77,14 @@ async def get_monthly_recap(
     _: User = Depends(get_current_admin),
 ):
     return await service.get_monthly_recap()
+
+
+@router.get("/admin/charts")
+async def get_admin_charts(
+    service: DashboardService = Depends(get_dashboard_service),
+    _: User = Depends(get_current_admin),
+):
+    return await service.get_admin_charts()
 
 
 @router.get("/user-stats", response_model=UserStats)

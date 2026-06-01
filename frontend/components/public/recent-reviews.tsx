@@ -181,7 +181,7 @@ export function RecentReviews() {
                     href={`/courts/${review.court_id}`}
                     className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100"
                   >
-                    مشاهده زمین
+                    مشاهده مجموعه
                     <ChevronLeft className="size-3" />
                   </Link>
                 </motion.div>

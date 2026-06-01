@@ -20,7 +20,6 @@ async def create_admin():
             existing.full_name = "امیرحسین نصراللهی"
             existing.password_hash = pwd_context.hash("Amir83Nasr")
             existing.role = UserRole.ADMIN
-            existing.is_deleted = False
             existing.is_active = True
             print(f"✅ Admin updated: {existing.full_name} ({existing.phone})")
         else:

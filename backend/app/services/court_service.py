@@ -46,18 +46,22 @@ class CourtService:
         sort: str = "default",
     ) -> CourtListResponse:
         # If user is admin/manager, default to showing all courts (active=None)
+        manager_id: int | None = None
         if self.current_user and self.current_user.role in ("admin", "manager"):
             if is_active is None:
                 is_active = None
+            if self.current_user.role == "manager":
+                manager_id = self.current_user.id
         else:
             # Public user: force active=True
             is_active = True
-            
+
         courts, total = await self.repo.list(
             skip=skip,
             limit=limit,
             sport_type=sport_type,
             is_active=is_active,
+            manager_id=manager_id,
             search=search,
             date_from=date_from,
             date_to=date_to,
@@ -84,13 +88,26 @@ class CourtService:
         return self._to_response(court)
 
     async def create_court(self, data: CourtCreate) -> CourtResponse:
+        if self.current_user.role != "manager":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only managers can create courts",
+            )
+        existing_count = await self.repo.count_by_manager(self.current_user.id)
+        if existing_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="شما قبلاً یک مجموعه ثبت کرده‌اید. هر مدیر فقط می‌تواند یک مجموعه داشته باشد.",
+            )
         court = await self.repo.create(
-            data.model_dump(exclude={"images", "temp_ids"}) | {"manager_id": self.current_user.id, "is_active": False}
+            data.model_dump(exclude={"images", "temp_ids"})
+            | {"manager_id": self.current_user.id, "is_active": False}
         )
         urls: list[str] = []
         if data.temp_ids:
             r = await get_redis()
             import logging
+
             logger = logging.getLogger(__name__)
             logger.info(f"Attempting to retrieve temp_ids: {data.temp_ids}")
             for tid in data.temp_ids:
@@ -110,13 +127,15 @@ class CourtService:
             for idx, url in enumerate(urls):
                 self.repo.db.add(CourtImage(court_id=court.id, url=url, order=idx))
             await self.repo.db.commit()
-        
+
         # Reload court with images to avoid MissingGreenlet error
         court = await self.repo.get_by_id_with_images(court.id)
-        
+
         await log_action(
-            self.repo.db, self.current_user.id, "court_created",
-            f"Court '{court.name}' (id={court.id}) created",
+            self.repo.db,
+            self.current_user.id,
+            "court_created",
+            f"ایجاد مجموعه | '{court.name}' (id={court.id}) - {len(urls)} تصویر",
         )
         return self._to_response(court)
 
@@ -137,17 +156,29 @@ class CourtService:
             )
             for img in result.scalars().all():
                 await self.repo.db.delete(img)
+            await self.repo.db.commit()
         if data.images:
-            existing = (await self.repo.db.execute(
-                select(CourtImage).where(CourtImage.court_id == court_id).order_by(CourtImage.order)
-            )).scalars().all()
+            existing = (
+                (
+                    await self.repo.db.execute(
+                        select(CourtImage)
+                        .where(CourtImage.court_id == court_id)
+                        .order_by(CourtImage.order)
+                    )
+                )
+                .scalars()
+                .all()
+            )
             next_order = max((img.order for img in existing), default=-1) + 1
             for idx, url in enumerate(data.images):
                 self.repo.db.add(CourtImage(court_id=court_id, url=url, order=next_order + idx))
-        await self.repo.db.commit()
+            await self.repo.db.commit()
+        await self.repo.db.refresh(updated, ["court_images", "manager"])
         await log_action(
-            self.repo.db, self.current_user.id, "court_updated",
-            f"Court '{updated.name}' (id={court_id}) updated",
+            self.repo.db,
+            self.current_user.id,
+            "court_updated",
+            f"ویرایش مجموعه | '{updated.name}' (id={court_id}) - {len(data.images or [])} تصویر جدید",
         )
         return self._to_response(updated)
 
@@ -159,8 +190,10 @@ class CourtService:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
         await self.repo.delete(court)
         await log_action(
-            self.repo.db, self.current_user.id, "court_deleted",
-            f"Court '{court.name}' (id={court_id}) deleted",
+            self.repo.db,
+            self.current_user.id,
+            "court_deleted",
+            f"حذف مجموعه | '{court.name}' (id={court_id})",
         )
 
     async def toggle_court_status(self, court_id: int, is_active: bool) -> CourtResponse:
@@ -172,15 +205,20 @@ class CourtService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="You don't manage this court"
             )
         updated = await self.repo.update(court, {"is_active": is_active})
-        status_label = "activated" if is_active else "deactivated"
+        await self.repo.db.refresh(updated, ["court_images", "manager"])
+        status_label = "فعال" if is_active else "غیرفعال"
         await log_action(
-            self.repo.db, self.current_user.id, "court_toggled",
-            f"Court '{court.name}' (id={court_id}) {status_label}",
+            self.repo.db,
+            self.current_user.id,
+            "court_toggled",
+            f"تغییر وضعیت مجموعه | '{court.name}' (id={court_id}) → {status_label}",
         )
         return self._to_response(updated)
 
     def _to_response(self, court: Court) -> CourtResponse:
         resp = CourtResponse.model_validate(court)
+        if court.manager:
+            resp.manager_name = court.manager.full_name
         if court.court_images:
             ordered = sorted(court.court_images, key=lambda x: x.order)
             resp.images = [img.url for img in ordered]

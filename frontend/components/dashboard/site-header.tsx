@@ -18,7 +18,7 @@ const breadcrumbLabels: Record<string, string> = {
   user: "کاربر",
   manager: "مدیر مجموعه",
   admin: "مدیریت سیستم",
-  courts: "زمین‌ها",
+  courts: "مجموعه‌ها",
   create: "ایجاد",
   schedule: "مدیریت زمان",
   bookings: "رزروها",
@@ -79,13 +79,13 @@ export function SiteHeader() {
       className={
         "flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height,ease] duration-200 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 " +
         (scrolled
-          ? "shadow-md bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
+          ? "bg-background/95 shadow-md backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
           : "bg-background")
       }
     >
       <div className="flex items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
-        <span className="flex items-center mr-2">
+        <span className="mr-2 flex items-center">
           <Separator orientation="vertical" className="h-4" />
         </span>
         <Breadcrumb>
@@ -107,7 +107,10 @@ export function SiteHeader() {
       </div>
       <div className="flex-1" />
       <div className="px-4">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
           بازگشت به سایت
         </Link>
       </div>

@@ -86,7 +86,7 @@ export default function AboutPage() {
         {/* Hero */}
         <section className="relative overflow-hidden border-b px-4 py-16 md:py-24">
           <div className="bg-grid pointer-events-none absolute inset-0 opacity-50 dark:opacity-[0.15]" />
-          <div className="pointer-events-none absolute left-1/2 top-1/2 size-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
+          <div className="pointer-events-none absolute top-1/2 left-1/2 size-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
 
           <div className="relative z-10 mx-auto max-w-3xl text-center">
             <motion.div
@@ -104,16 +104,22 @@ export default function AboutPage() {
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
               className="text-3xl font-bold tracking-tight md:text-5xl lg:text-6xl"
             >
-              سامانه هوشمند <span className="text-primary">رزرو سانس ورزشی</span>
+              سامانه هوشمند{" "}
+              <span className="text-primary">رزرو سانس ورزشی</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08, type: "spring", stiffness: 200, damping: 20 }}
+              transition={{
+                delay: 0.08,
+                type: "spring",
+                stiffness: 200,
+                damping: 20,
+              }}
               className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground"
             >
-              از سردرگمی تلفنی تا انتخاب هوشمندانه — توپ‌سِت پلconnecting
-              عاشقان والیبال، بسکتبال، فوتسال و هندبال با سالن‌های ورزشی است
+              از سردرگمی تلفنی تا انتخاب هوشمندانه — توپ‌سِت پلconnecting عاشقان
+              والیبال، بسکتبال، فوتسال و هندبال با سالن‌های ورزشی است
             </motion.p>
           </div>
         </section>
@@ -133,7 +139,9 @@ export default function AboutPage() {
                 <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
                   <Smartphone className="size-6" />
                 </div>
-                <h2 className="mb-3 text-xl font-bold">روش سنتی: سردرگمی تلفنی</h2>
+                <h2 className="mb-3 text-xl font-bold">
+                  روش سنتی: سردرگمی تلفنی
+                </h2>
                 <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-destructive/50" />
@@ -165,7 +173,9 @@ export default function AboutPage() {
                 <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <ShieldCheck className="size-6" />
                 </div>
-                <h2 className="mb-3 text-xl font-bold">توپ‌سِت: انتخاب هوشمندانه</h2>
+                <h2 className="mb-3 text-xl font-bold">
+                  توپ‌سِت: انتخاب هوشمندانه
+                </h2>
                 <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/50" />
@@ -181,7 +191,8 @@ export default function AboutPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/50" />
-                    کاربران قبلی با نمرات و نظرات خود آینه تمام‌نمای کیفیت سالن شده‌اند
+                    کاربران قبلی با نمرات و نظرات خود آینه تمام‌نمای کیفیت سالن
+                    شده‌اند
                   </li>
                 </ul>
               </motion.div>
@@ -221,7 +232,9 @@ export default function AboutPage() {
                     <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
                       <Icon className="size-6" />
                     </div>
-                    <h3 className="mb-2 text-base font-semibold">{feature.title}</h3>
+                    <h3 className="mb-2 text-base font-semibold">
+                      {feature.title}
+                    </h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {feature.description}
                     </p>
@@ -249,9 +262,9 @@ export default function AboutPage() {
                   مدیریت هوشمند سالن‌ها
                 </h2>
                 <p className="mb-6 leading-relaxed text-muted-foreground">
-                  مدیر سالن دیگر نیازی به پاسخگویی تلفنی، ثبت دستی رزروها،
-                  یا نگرانی از پر شدن دوگانه سانس‌ها ندارد. همه چیز آنلاین،
-                  خودکار و شفاف است.
+                  مدیر سالن دیگر نیازی به پاسخگویی تلفنی، ثبت دستی رزروها، یا
+                  نگرانی از پر شدن دوگانه سانس‌ها ندارد. همه چیز آنلاین، خودکار
+                  و شفاف است.
                 </p>
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
@@ -283,7 +296,8 @@ export default function AboutPage() {
                   آیا سالن ورزشی دارید؟
                 </h3>
                 <p className="mb-6 text-sm text-muted-foreground">
-                  با توپ‌سِت سالن خود را آنلاین کنید و از مدیریت هوشمند لذت ببرید
+                  با توپ‌سِت سالن خود را آنلاین کنید و از مدیریت هوشمند لذت
+                  ببرید
                 </p>
                 <Button asChild>
                   <Link href="/contact">
@@ -345,7 +359,8 @@ export default function AboutPage() {
                 آماده شروع هستی؟
               </h2>
               <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                دیگر وقت خود را با تماس‌های تلفنی تلف نکن. در چند کلیک سانس مورد نظرت را پیدا کن و رزرو کن.
+                دیگر وقت خود را با تماس‌های تلفنی تلف نکن. در چند کلیک سانس مورد
+                نظرت را پیدا کن و رزرو کن.
               </p>
               <div className="mt-8 flex items-center justify-center gap-4">
                 <Button size="lg" asChild>

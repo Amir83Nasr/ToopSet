@@ -1,6 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react"
 import {
   MapContainer,
   TileLayer,
@@ -8,7 +15,14 @@ import {
   useMapEvents,
   useMap,
 } from "react-leaflet"
-import { Loader2, MapPin, Maximize2, Minimize2, Plus, Minus } from "lucide-react"
+import {
+  Loader2,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Minus,
+} from "lucide-react"
 import {
   QOM_BOUNDS,
   QOM_CENTER,
@@ -221,7 +235,7 @@ export function LocationPicker({
       className={`relative ${fullscreen ? "fixed inset-0 z-[9999] bg-background" : ""}`}
     >
       {geocoding && (
-        <div className="pointer-events-none absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+        <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
           <Loader2 className="size-3 animate-spin" />
           در حال تشخیص آدرس...
         </div>
@@ -243,17 +257,12 @@ export function LocationPicker({
           attributionControl={false}
           zoomControl={false}
         >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ZoomControls />
           <ClickHandler onPlace={handlePlace} />
           <FullscreenWatcher fullscreen={fullscreen} />
           {hasLocation && markerPosition && (
-            <Marker
-              position={markerPosition}
-              icon={createDefaultPinIcon()}
-            />
+            <Marker position={markerPosition} icon={createDefaultPinIcon()} />
           )}
           {hasLocation && markerPosition && (
             <FlyTo
@@ -271,9 +280,13 @@ export function LocationPicker({
           e.stopPropagation()
           toggleFullscreen()
         }}
-        className="absolute bottom-3 right-3 z-[1000] flex size-8 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent"
+        className="absolute right-3 bottom-3 z-[1000] flex size-8 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent"
       >
-        {fullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+        {fullscreen ? (
+          <Minimize2 className="size-4" />
+        ) : (
+          <Maximize2 className="size-4" />
+        )}
       </button>
 
       {!hasLocation && (

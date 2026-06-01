@@ -23,6 +23,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import { LoginModal } from "@/components/login-modal"
+import { RegisterModal } from "@/components/register-modal"
 
 const navLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -34,6 +36,8 @@ const navLinks = [
 export function SiteHeader() {
   const { user, loading, isAuthenticated, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(false)
 
   const initials = user?.full_name
     ? user.full_name
@@ -118,12 +122,26 @@ export function SiteHeader() {
             </DropdownMenu>
           ) : (
             <>
-              <Button asChild variant="outline">
-                <Link href="/register">ثبت‌نام</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/login">ورود</Link>
-              </Button>
+              <RegisterModal
+                open={registerOpen}
+                onOpenChange={setRegisterOpen}
+                onLoginClick={() => {
+                  setRegisterOpen(false)
+                  setLoginOpen(true)
+                }}
+              >
+                <Button variant="outline">ثبت‌نام</Button>
+              </RegisterModal>
+              <LoginModal
+                open={loginOpen}
+                onOpenChange={setLoginOpen}
+                onRegisterClick={() => {
+                  setLoginOpen(false)
+                  setRegisterOpen(true)
+                }}
+              >
+                <Button>ورود</Button>
+              </LoginModal>
             </>
           )}
         </div>
@@ -199,21 +217,37 @@ export function SiteHeader() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 px-3">
-                    <Button
-                      asChild
-                      className="w-full"
-                      onClick={() => setMobileOpen(false)}
+                    <RegisterModal
+                      open={registerOpen}
+                      onOpenChange={setRegisterOpen}
+                      onLoginClick={() => {
+                        setRegisterOpen(false)
+                        setLoginOpen(true)
+                      }}
                     >
-                      <Link href="/login">ورود</Link>
-                    </Button>
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setMobileOpen(false)}
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        ثبت‌نام
+                      </Button>
+                    </RegisterModal>
+                    <LoginModal
+                      open={loginOpen}
+                      onOpenChange={setLoginOpen}
+                      onRegisterClick={() => {
+                        setLoginOpen(false)
+                        setRegisterOpen(true)
+                      }}
                     >
-                      <Link href="/register">ثبت‌نام</Link>
-                    </Button>
+                      <Button
+                        className="w-full"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        ورود
+                      </Button>
+                    </LoginModal>
                   </div>
                 )}
               </div>

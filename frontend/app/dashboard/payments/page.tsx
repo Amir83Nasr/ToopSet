@@ -102,7 +102,7 @@ function LoadingSkeleton() {
         <TableHeader>
           <TableRow>
             <TableHead>تاریخ</TableHead>
-            <TableHead>زمین</TableHead>
+            <TableHead>مجموعه</TableHead>
             <TableHead>مبلغ</TableHead>
             <TableHead>وضعیت</TableHead>
             <TableHead>درگاه</TableHead>
@@ -187,13 +187,13 @@ export default function PaymentsPage() {
             هنوز پرداختی انجام نداده‌اید
           </h3>
           <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-            پس از رزرو زمین و تکمیل فرآیند رزرو، تاریخچه پرداخت‌های شما در این
+            پس از رزرو مجموعه و تکمیل فرآیند رزرو، تاریخچه پرداخت‌های شما در این
             بخش نمایش داده می‌شود.
           </p>
           <Button asChild>
             <Link href="/dashboard/courts">
               <CreditCard className="ml-2 size-4" />
-              رزرو زمین
+              رزرو مجموعه
             </Link>
           </Button>
         </CardContent>
@@ -208,7 +208,7 @@ export default function PaymentsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>تاریخ</TableHead>
-              <TableHead>زمین</TableHead>
+              <TableHead>مجموعه</TableHead>
               <TableHead>مبلغ</TableHead>
               <TableHead>وضعیت</TableHead>
               <TableHead>درگاه</TableHead>

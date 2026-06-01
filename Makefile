@@ -121,7 +121,6 @@ back-lint: ## Lint Python code with ruff
 	@echo "  $(GREEN)✓$(RESET) Ruff checks passed"
 
 back-format: ## Format Python code with ruff
-	@cd $(BACKEND_DIR) && ruff check --fix .
 	@ruff format $(BACKEND_DIR)
 	@echo "  $(GREEN)✓$(RESET) Ruff format applied"
 

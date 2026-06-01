@@ -14,15 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,7 +22,6 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -59,8 +49,16 @@ import {
   Clock,
   Building2,
   Plus,
+  Save,
+  X,
+  ChevronDown,
+  ChevronUp,
+  WandSparkles,
 } from "lucide-react"
 import { PersianInput } from "@/components/ui/persian-input"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { toLocalDateStr } from "@/lib/utils"
+import type { DateRange } from "@daypicker/react"
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -79,6 +77,12 @@ interface TimeSlot {
   base_price: number
   is_reserved: boolean
   version: number
+}
+
+interface TimeSlotTemplate {
+  start_time: string
+  end_time: string
+  base_price: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -114,14 +118,13 @@ function formatPersianDate(date: Date): string {
 }
 
 function getDateKey(date: Date): string {
-  return date.toLocaleDateString("en-CA") // YYYY-MM-DD
+  return date.toLocaleDateString("en-CA")
 }
 
 function getSlotDateKey(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA")
 }
 
-/** Returns Sat–Fri of the current week. */
 function getWeekDays(): Date[] {
   const today = new Date()
   const daysSinceSaturday = (today.getDay() + 1) % 7
@@ -137,6 +140,32 @@ function getWeekDays(): Date[] {
 
 function isSlotPast(slot: TimeSlot): boolean {
   return new Date(slot.end_time) < new Date()
+}
+
+function getThisWeekRange(): DateRange {
+  const today = new Date()
+  const daysSinceSaturday = (today.getDay() + 1) % 7
+  const saturday = new Date(today)
+  saturday.setDate(today.getDate() - daysSinceSaturday)
+  const friday = new Date(saturday)
+  friday.setDate(saturday.getDate() + 6)
+  return { from: saturday, to: friday }
+}
+
+function getNextWeekRange(): DateRange {
+  const thisWeek = getThisWeekRange()
+  const nextSaturday = new Date(thisWeek.from!)
+  nextSaturday.setDate(nextSaturday.getDate() + 7)
+  const nextFriday = new Date(nextSaturday)
+  nextFriday.setDate(nextSaturday.getDate() + 6)
+  return { from: nextSaturday, to: nextFriday }
+}
+
+function getThirtyDayRange(): DateRange {
+  const today = new Date()
+  const end = new Date(today)
+  end.setDate(today.getDate() + 30)
+  return { from: today, to: end }
 }
 
 /* ------------------------------------------------------------------ */
@@ -155,14 +184,41 @@ export default function SchedulePage() {
   const [slotsTotal, setSlotsTotal] = useState(0)
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [slotToDelete, setSlotToDelete] = useState<TimeSlot | null>(null)
+
+  /* generate form state ------------------------------------------- */
+  const [showGenerate, setShowGenerate] = useState(false)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(getThisWeekRange)
   const [selectedDays, setSelectedDays] = useState<boolean[]>(
-    Array.from({ length: 7 }, () => false)
+    Array.from({ length: 7 }, () => true)
   )
+  const [templates, setTemplates] = useState<TimeSlotTemplate[]>([
+    { start_time: "08:00", end_time: "10:00", base_price: "" },
+  ])
+  const [generating, setGenerating] = useState(false)
 
   const weekDays = useMemo(() => getWeekDays(), [])
+
+  /* preview count ------------------------------------------------- */
+  const previewCount = useMemo(() => {
+    const selectedDayCount = selectedDays.filter(Boolean).length
+    if (selectedDayCount === 0 || !dateRange?.from || !dateRange?.to) return 0
+    const from = dateRange.from
+    const to = dateRange.to
+    if (to < from) return 0
+    const diffDays = Math.floor((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const totalDays = new Array(diffDays).fill(0).filter((_, i) => {
+      const d = new Date(from)
+      d.setDate(from.getDate() + i)
+      const jsDay = d.getDay()
+      const persianIdx = (jsDay + 1) % 7
+      return selectedDays[persianIdx]
+    }).length
+    const validTemplates = templates.filter(
+      (t) => t.start_time && t.end_time && t.base_price
+    ).length
+    return totalDays * validTemplates
+  }, [selectedDays, dateRange, templates])
 
   /* fetch courts -------------------------------------------------- */
   const fetchCourts = useCallback(async () => {
@@ -235,76 +291,71 @@ export default function SchedulePage() {
     return groups
   }, [slots, weekDays])
 
-  /* batch create handler ------------------------------------------ */
-  async function handleBatchCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+  /* generate handler ---------------------------------------------- */
+  async function handleGenerate() {
     if (!selectedCourtId) return
-    setCreating(true)
-
-    const form = new FormData(e.currentTarget)
-    const startTime = form.get("start_time") as string
-    const endTime = form.get("end_time") as string
-    const price = form.get("base_price") as string
 
     const selectedDayIndices = selectedDays
       .map((checked, i) => (checked ? i : -1))
       .filter((i) => i !== -1)
 
     if (selectedDayIndices.length === 0) {
-      toast.error("حداقل یک روز را انتخاب کنید")
-      setCreating(false)
+      toast.error("حداقل یک روز هفته را انتخاب کنید")
       return
     }
 
-    let created = 0
-    const errors: string[] = []
-
-    for (const dayIndex of selectedDayIndices) {
-      const dayDate = weekDays[dayIndex]
-
-      const startDateTime = new Date(dayDate)
-      const [sh, sm] = startTime.split(":").map(Number)
-      startDateTime.setHours(sh, sm, 0, 0)
-
-      const endDateTime = new Date(dayDate)
-      const [eh, em] = endTime.split(":").map(Number)
-      endDateTime.setHours(eh, em, 0, 0)
-
-      if (endDateTime <= startDateTime) {
-        errors.push(
-          `${PERSIAN_DAY_NAMES[dayIndex]}: زمان پایان باید بعد از شروع باشد`
-        )
-        continue
-      }
-
-      try {
-        await api(`/api/v1/courts/${selectedCourtId}/slots`, {
-          method: "POST",
-          body: JSON.stringify({
-            court_id: selectedCourtId,
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-            base_price: parseFloat(price),
-          }),
-        })
-        created++
-      } catch (err) {
-        const msg = err instanceof ApiError ? err.message : "خطا در ایجاد زمان"
-        errors.push(`${PERSIAN_DAY_NAMES[dayIndex]}: ${msg}`)
-      }
+    const validTemplates = templates.filter(
+      (t) => t.start_time && t.end_time && t.base_price
+    )
+    if (validTemplates.length === 0) {
+      toast.error("حداقل یک بازه زمانی وارد کنید")
+      return
     }
 
-    if (created > 0) {
-      toast.success(`${created} زمان با موفقیت ایجاد شد`)
-      setDialogOpen(false)
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error("بازه تاریخ را مشخص کنید")
+      return
+    }
+
+    if (dateRange.to < dateRange.from) {
+      toast.error("تاریخ پایان باید بعد از تاریخ شروع باشد")
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const res = await api<{
+        created: number
+        skipped: number
+        total: number
+      }>(`/api/v1/courts/${selectedCourtId}/slots/generate`, {
+        method: "POST",
+        body: JSON.stringify({
+          date_from: toLocalDateStr(dateRange.from),
+          date_to: toLocalDateStr(dateRange.to),
+          days_of_week: selectedDayIndices,
+          templates: validTemplates.map((t) => ({
+            start_time: t.start_time,
+            end_time: t.end_time,
+            base_price: parseFloat(t.base_price),
+          })),
+        }),
+      })
+      if (res.created > 0) {
+        toast.success(`${res.created} زمان با موفقیت ایجاد شد`)
+        if (res.skipped > 0) {
+          toast.info(`${res.skipped} زمان تکراری نادیده گرفته شد`)
+        }
+      } else {
+        toast.info("زمان جدیدی ایجاد نشد (تکرار یا تداخل)")
+      }
       fetchSlots()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ایجاد زمان‌ها"
+      toast.error(msg)
+    } finally {
+      setGenerating(false)
     }
-
-    if (errors.length > 0) {
-      toast.error(errors[0])
-    }
-
-    setCreating(false)
   }
 
   /* delete handler ------------------------------------------------ */
@@ -322,6 +373,30 @@ export default function SchedulePage() {
       const msg = err instanceof ApiError ? err.message : "خطا در حذف زمان"
       toast.error(msg)
     }
+  }
+
+  /* template helpers ---------------------------------------------- */
+  function addTemplate() {
+    setTemplates((prev) => [
+      ...prev,
+      { start_time: "", end_time: "", base_price: "" },
+    ])
+  }
+
+  function removeTemplate(index: number) {
+    setTemplates((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function updateTemplate(
+    index: number,
+    field: keyof TimeSlotTemplate,
+    value: string
+  ) {
+    setTemplates((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], [field]: value }
+      return next
+    })
   }
 
   /* --------------------------------------------------------------- */
@@ -378,7 +453,9 @@ export default function SchedulePage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20">
         <Building2 className="size-12 text-muted-foreground" />
-        <p className="text-xl text-muted-foreground">هنوز مجموعه‌ای ثبت نشده است</p>
+        <p className="text-xl text-muted-foreground">
+          هنوز مجموعه‌ای ثبت نشده است
+        </p>
         <Button asChild>
           <Link href="/dashboard/courts/create">
             <Plus className="ml-2 size-4" />
@@ -421,99 +498,192 @@ export default function SchedulePage() {
               ))}
             </SelectContent>
           </Select>
-
-          <Dialog
-            open={dialogOpen}
-            onOpenChange={(open) => {
-              setDialogOpen(open)
-              if (!open) setSelectedDays(Array.from({ length: 7 }, () => false))
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button>
-                <CalendarPlus className="ml-2 size-4" />
-                ایجاد زمان جدید
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>ایجاد زمان جدید</DialogTitle>
-                <DialogDescription>
-                  برای روزهای انتخاب‌شده در هفته جاری، زمان ثبت کنید
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleBatchCreate} className="space-y-4">
-                {/* day selection */}
-                <div className="space-y-2">
-                  <Label>روزهای هفته</Label>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-                    {weekDays.map((day, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <Checkbox
-                          id={`day_${index}`}
-                          checked={selectedDays[index]}
-                          onCheckedChange={(checked) => {
-                            const next = [...selectedDays]
-                            next[index] = !!checked
-                            setSelectedDays(next)
-                          }}
-                          className="mt-0.5"
-                        />
-                        <Label
-                          htmlFor={`day_${index}`}
-                          className="cursor-pointer text-sm leading-tight"
-                        >
-                          {PERSIAN_DAY_NAMES[index]}
-                          <span className="block text-xs text-muted-foreground">
-                            {formatPersianDate(day)}
-                          </span>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* time range */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="start_time">ساعت شروع</Label>
-                    <Input
-                      id="start_time"
-                      name="start_time"
-                      type="time"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_time">ساعت پایان</Label>
-                    <Input id="end_time" name="end_time" type="time" required />
-                  </div>
-                </div>
-
-                {/* price */}
-                <div className="space-y-2">
-                  <Label htmlFor="base_price">قیمت پایه (تومان)</Label>
-                  <PersianInput
-                    id="base_price"
-                    name="base_price"
-                    min="0"
-                    placeholder="۵۰۰۰۰۰"
-                    required
-                  />
-                </div>
-
-                <DialogFooter>
-                  <Button type="submit" disabled={creating}>
-                    {creating ? "در حال ایجاد..." : "ایجاد زمان‌ها"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
+
+      {/* ---- Generate form ---- */}
+      <Card>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={() => setShowGenerate(!showGenerate)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <WandSparkles className="size-5 text-primary" />
+              <CardTitle>ایجاد زمان‌بندی گروهی</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm">
+              {showGenerate ? (
+                <ChevronUp className="size-4" />
+              ) : (
+                <ChevronDown className="size-4" />
+              )}
+            </Button>
+          </div>
+          <CardDescription>
+            با مشخص کردن بازه تاریخ، روزهای هفته و بازه‌های زمانی، به صورت خودکار
+            زمان‌های مجموعه را ایجاد کنید
+          </CardDescription>
+        </CardHeader>
+
+        {showGenerate && (
+          <CardContent className="space-y-6 border-t pt-6">
+            {/* Date range */}
+            <div className="space-y-2">
+              <Label>بازه تاریخ (شمسی)</Label>
+              <DateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+                placeholder="انتخاب بازه تاریخ"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDateRange(getThisWeekRange())}
+                >
+                  این هفته
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDateRange(getNextWeekRange())}
+                >
+                  هفته آینده
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDateRange(getThirtyDayRange())}
+                >
+                  ۳۰ روز آینده
+                </Button>
+              </div>
+            </div>
+
+            {/* Days of week */}
+            <div className="space-y-2">
+              <Label>روزهای هفته</Label>
+              <div className="flex flex-wrap gap-2">
+                {PERSIAN_DAY_NAMES.map((name, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      const next = [...selectedDays]
+                      next[index] = !next[index]
+                      setSelectedDays(next)
+                    }}
+                    className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all ${
+                      selectedDays[index]
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time templates */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>بازه‌های زمانی</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTemplate}
+                >
+                  <Plus className="ml-1 size-3.5" />
+                  افزودن بازه
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {templates.map((tpl, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-wrap items-end gap-2 rounded-lg border p-3"
+                  >
+                    <div className="space-y-1">
+                      <Label className="text-xs">شروع</Label>
+                      <Input
+                        type="time"
+                        value={tpl.start_time}
+                        onChange={(e) =>
+                          updateTemplate(index, "start_time", e.target.value)
+                        }
+                        className="w-[110px]"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">پایان</Label>
+                      <Input
+                        type="time"
+                        value={tpl.end_time}
+                        onChange={(e) =>
+                          updateTemplate(index, "end_time", e.target.value)
+                        }
+                        className="w-[110px]"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">قیمت (تومان)</Label>
+                      <PersianInput
+                        value={tpl.base_price}
+                        onChange={(e) =>
+                          updateTemplate(index, "base_price", e.target.value)
+                        }
+                        placeholder="۵۰۰۰۰۰"
+                        className="w-full"
+                      />
+                    </div>
+                    {templates.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => removeTemplate(index)}
+                      >
+                        <X className="size-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Preview + submit */}
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-muted/50 p-4">
+              <div className="text-sm text-muted-foreground">
+                {previewCount > 0 ? (
+                  <>
+                    <span className="font-semibold text-foreground">
+                      {previewCount.toLocaleString("fa-IR")}
+                    </span>{" "}
+                    زمان برای ایجاد آماده است
+                  </>
+                ) : (
+                  "لطفاً روزها و بازه‌های زمانی را مشخص کنید"
+                )}
+              </div>
+              <Button
+                onClick={handleGenerate}
+                disabled={generating || previewCount === 0}
+              >
+                <Save className="ml-2 size-4" />
+                {generating ? "در حال ایجاد..." : "ایجاد زمان‌ها"}
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* ---- Error state ---- */}
       {error && (
@@ -572,9 +742,12 @@ export default function SchedulePage() {
                 <p className="text-muted-foreground">
                   هیچ زمانی برای این مجموعه تعریف نشده
                 </p>
-                <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowGenerate(true)}
+                >
                   <CalendarPlus className="ml-2 size-4" />
-                  ایجاد زمان جدید
+                  ایجاد زمان
                 </Button>
               </div>
             ) : (

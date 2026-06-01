@@ -2,13 +2,14 @@
 
 import * as React from "react"
 import {
-  DayPicker,
   getDefaultClassNames,
   type DayButton,
   type Locale,
-} from "react-day-picker"
+} from "@daypicker/react"
+import { DayPicker } from "@daypicker/persian"
 
 import { cn } from "@/lib/utils"
+import { faIR } from "@daypicker/persian"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -23,7 +24,7 @@ function Calendar({
   showOutsideDays = true,
   captionLayout = "label",
   buttonVariant = "ghost",
-  locale,
+  locale = faIR,
   formatters,
   components,
   ...props

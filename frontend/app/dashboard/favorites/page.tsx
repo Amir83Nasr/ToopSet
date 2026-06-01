@@ -107,10 +107,10 @@ export default function FavoritesPage() {
             <div className="flex flex-col items-center gap-4 py-12 text-center">
               <Heart className="size-12 text-muted-foreground" />
               <p className="text-lg text-muted-foreground">
-                هنوز هیچ زمینی به علاقه‌مندی‌ها اضافه نکرده‌اید
+                هنوز هیچ مجموعهی به علاقه‌مندی‌ها اضافه نکرده‌اید
               </p>
               <Button asChild variant="outline">
-                <Link href="/">جستجوی زمین‌ها</Link>
+                <Link href="/">جستجوی مجموعه‌ها</Link>
               </Button>
             </div>
           ) : (

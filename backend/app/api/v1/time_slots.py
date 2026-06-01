@@ -7,6 +7,8 @@ from app.models.user import User
 from app.schemas.time_slot import (
     TimeSlotCreate,
     TimeSlotDetailResponse,
+    TimeSlotGenerate,
+    TimeSlotGenerateResponse,
     TimeSlotListResponse,
     TimeSlotResponse,
     TimeSlotUpdate,
@@ -39,6 +41,16 @@ async def create_slot(
     _: User = Depends(get_current_manager),
 ):
     return await service.create_slot(data)
+
+
+@router.post("/generate", response_model=TimeSlotGenerateResponse, status_code=status.HTTP_201_CREATED)
+async def generate_slots(
+    court_id: int,
+    data: TimeSlotGenerate,
+    service: TimeSlotService = Depends(get_time_slot_service),
+    _: User = Depends(get_current_manager),
+):
+    return await service.generate_slots(court_id, data)
 
 
 @router.patch("/{slot_id}", response_model=TimeSlotResponse)

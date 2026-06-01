@@ -8,7 +8,6 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, SmallInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.mixins import SoftDeleteMixin
 
 _values_callable = lambda x: [e.value for e in x]  # noqa: E731
 
@@ -19,7 +18,7 @@ class BookingStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
-class Booking(Base, SoftDeleteMixin):
+class Booking(Base):
     __tablename__ = "bookings"
 
     id: Mapped[int] = mapped_column(primary_key=True)

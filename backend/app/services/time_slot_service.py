@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timedelta
+
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +13,8 @@ from app.repositories.time_slot_repo import TimeSlotRepo
 from app.schemas.time_slot import (
     TimeSlotCreate,
     TimeSlotDetailResponse,
+    TimeSlotGenerate,
+    TimeSlotGenerateResponse,
     TimeSlotListResponse,
     TimeSlotResponse,
     TimeSlotUpdate,
@@ -20,6 +24,10 @@ from app.services.cache_service import (
     get_cached_slot_list,
     invalidate_slot_list,
 )
+
+# Index in frontend: 0=شنبه(Sat) … 6=جمعه(Fri)
+# Python weekday(): Mon=0 … Sun=6
+_WEEKDAY_MAP = [5, 6, 0, 1, 2, 3, 4]
 
 
 class TimeSlotService:
@@ -112,6 +120,63 @@ class TimeSlotService:
         court_id = slot.court_id
         await self.repo.delete(slot)
         await invalidate_slot_list(court_id)
+
+    async def generate_slots(self, court_id: int, data: TimeSlotGenerate) -> TimeSlotGenerateResponse:
+        court = await self.court_repo.get_by_id(court_id)
+        if not court:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+
+        date_from_dt = datetime.combine(data.date_from, datetime.min.time())
+        date_to_dt = datetime.combine(data.date_to, datetime.max.time())
+
+        existing = await self.repo.get_existing_start_times(court_id, date_from_dt, date_to_dt)
+
+        to_create: list[dict] = []
+        skipped = 0
+        current = data.date_from
+        while current <= data.date_to:
+            py_weekday = current.weekday()
+            try:
+                persian_idx = _WEEKDAY_MAP.index(py_weekday)
+            except ValueError:
+                current += timedelta(days=1)
+                continue
+            if persian_idx not in data.days_of_week:
+                current += timedelta(days=1)
+                continue
+
+            for template in data.templates:
+                start_dt = datetime.combine(current, datetime.strptime(template.start_time, "%H:%M").time())
+                end_dt = datetime.combine(current, datetime.strptime(template.end_time, "%H:%M").time())
+
+                if start_dt >= end_dt:
+                    skipped += 1
+                    continue
+                if start_dt in existing:
+                    skipped += 1
+                    continue
+
+                to_create.append({
+                    "court_id": court_id,
+                    "start_time": start_dt,
+                    "end_time": end_dt,
+                    "base_price": template.base_price,
+                })
+
+            current += timedelta(days=1)
+
+        if not to_create:
+            return TimeSlotGenerateResponse(created=0, skipped=skipped, total=0, slots=[])
+
+        created_slots = await self.repo.create_batch(to_create)
+        await invalidate_slot_list(court_id)
+
+        return TimeSlotGenerateResponse(
+            created=len(created_slots),
+            skipped=skipped,
+            total=len(created_slots),
+            slots=[TimeSlotResponse.model_validate(s) for s in created_slots],
+        )
 
 
 async def get_time_slot_service(

@@ -5,6 +5,7 @@ Revises: 0004
 Create Date: 2026-05-30
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -17,7 +18,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("token_version", sa.Integer(), server_default="0", nullable=False))
+    op.add_column(
+        "users", sa.Column("token_version", sa.Integer(), server_default="0", nullable=False)
+    )
 
 
 def downgrade() -> None:

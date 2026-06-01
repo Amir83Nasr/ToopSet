@@ -46,3 +46,16 @@ export function toPersianDigits(value: string | number): string {
 export function toEnglishDigits(value: string): string {
   return value.replace(/[۰-۹]/g, (d) => englishDigits[d])
 }
+
+/** Convert a Date to YYYY-MM-DD using local timezone (avoids 1-day shift from .toISOString()). */
+export function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
+/** Get today's date as YYYY-MM-DD in local timezone. */
+export function todayStr(): string {
+  return toLocalDateStr(new Date())
+}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, toLocalDateStr, todayStr } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -31,7 +30,20 @@ import {
   History,
   RefreshCw,
   Trash2,
+  X,
 } from "lucide-react"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface LogEntry {
   id: number
@@ -59,10 +71,17 @@ const actionLabels: Record<string, string> = {
   broadcast: "اعلان همگانی",
   user_role_changed: "تغییر نقش کاربر",
   user_toggled: "تغییر وضعیت کاربر",
-  court_created: "ایجاد زمین",
-  court_updated: "ویرایش زمین",
-  court_deleted: "حذف زمین",
-  court_toggled: "تغییر وضعیت زمین",
+  user_created: "ایجاد کاربر",
+  user_deleted: "حذف کاربر",
+  court_created: "ایجاد مجموعه",
+  court_updated: "ویرایش مجموعه",
+  court_deleted: "حذف مجموعه",
+  court_toggled: "تغییر وضعیت مجموعه",
+  court_approved: "تایید مجموعه",
+  court_rejected: "رد مجموعه",
+  review_deleted: "حذف نظر",
+  setting_updated: "ویرایش تنظیمات",
+  user_registered: "ثبت‌نام کاربر",
 }
 
 export default function AdminLogsPage() {
@@ -71,7 +90,9 @@ export default function AdminLogsPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [actionFilter, setActionFilter] = useState("")
-  const [userFilter, setUserFilter] = useState("")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState(todayStr())
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const limit = 50
 
@@ -82,7 +103,10 @@ export default function AdminLogsPage() {
       params.set("skip", String(page * limit))
       params.set("limit", String(limit))
       if (actionFilter) params.set("action", actionFilter)
-      if (userFilter) params.set("user_id", userFilter)
+      if (dateFrom) {
+        params.set("date_from", dateFrom)
+        params.set("date_to", dateTo)
+      }
       const res = await api<{ logs: LogEntry[]; total: number }>(
         `/api/v1/admin/logs?${params}`
       )
@@ -93,7 +117,7 @@ export default function AdminLogsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, actionFilter, userFilter])
+  }, [page, actionFilter, dateFrom, dateTo])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchLogs(), 0)
@@ -112,7 +136,7 @@ export default function AdminLogsPage() {
   }
 
   const handleClearAll = async () => {
-    if (!confirm("آیا از پاکسازی تمام لاگ‌ها اطمینان دارید؟")) return
+    setClearDialogOpen(false)
     try {
       await api("/api/v1/admin/logs/clear", { method: "DELETE" })
       toast.success("لاگ‌ها با موفقیت پاک شدند")
@@ -122,6 +146,15 @@ export default function AdminLogsPage() {
       console.error("Failed to clear logs:", err)
       toast.error("خطا در پاکسازی لاگ‌ها")
     }
+  }
+
+  const hasActiveFilter = actionFilter !== "" || dateFrom !== ""
+
+  function clearFilters() {
+    setActionFilter("")
+    setDateFrom("")
+    setDateTo(todayStr())
+    setPage(0)
   }
 
   const totalPages = Math.ceil(total / limit)
@@ -142,7 +175,7 @@ export default function AdminLogsPage() {
           <h1 className="text-2xl font-bold tracking-tight">لاگ سیستم</h1>
           <p className="text-muted-foreground">رویدادهای اخیر سیستم</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select
             value={actionFilter}
             onValueChange={(val) => {
@@ -162,22 +195,65 @@ export default function AdminLogsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Input
-            placeholder="فیلتر شناسه کاربر..."
-            value={userFilter}
-            onChange={(e) => {
-              setUserFilter(e.target.value)
+
+          <DateRangePicker
+            value={{
+              from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
+              to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+            }}
+            onChange={(range) => {
+              setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
+              setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
               setPage(0)
             }}
-            className="w-40"
+            className="w-64"
           />
-          <Button variant="outline" size="icon" onClick={fetchLogs} disabled={loading}>
-            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+
+          {hasActiveFilter && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="ml-1 size-3.5" />
+              حذف فیلتر
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchLogs}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`ml-1.5 size-4 ${loading ? "animate-spin" : ""}`}
+            />
+            بروزرسانی
           </Button>
-          <Button variant="destructive" onClick={handleClearAll}>
-            <Trash2 className="ml-1.5 size-4" />
-            پاکسازی همه
-          </Button>
+
+          <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="ml-1.5 size-4" />
+                پاکسازی همه
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>پاکسازی لاگ‌ها</AlertDialogTitle>
+                <AlertDialogDescription>
+                  آیا از پاکسازی تمام لاگ‌ها اطمینان دارید؟ این عمل قابل بازگشت
+                  نیست.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearAll}
+                  variant="destructive"
+                >
+                  پاکسازی همه
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -211,55 +287,68 @@ export default function AdminLogsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <History className="mb-4 size-12 text-muted-foreground" />
-            <p className="text-lg text-muted-foreground">رویدادی ثبت نشده است</p>
+            <p className="text-lg text-muted-foreground">
+              رویدادی ثبت نشده است
+            </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>ساعت</TableHead>
-                <TableHead>کاربر</TableHead>
-                <TableHead>عملیات</TableHead>
-                <TableHead>جزئیات</TableHead>
-                <TableHead>عملیات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
-                    {formatDate(log.created_at)}
-                  </TableCell>
-                  <TableCell className="text-sm whitespace-nowrap text-muted-foreground" dir="ltr">
-                    {formatTime(log.created_at)}
-                  </TableCell>
-                  <TableCell>
-                    {log.user_id ? toPersianDigits(log.user_id) : "سیستم"}
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                      {actionLabels[log.action] || log.action}
-                    </span>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                    {log.details || "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(log.id)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </TableCell>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>تاریخ</TableHead>
+                  <TableHead>ساعت</TableHead>
+                  <TableHead>کاربر</TableHead>
+                  <TableHead>عملیات</TableHead>
+                  <TableHead>جزئیات</TableHead>
+                  <TableHead className="w-16">عملیات</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                      {formatDate(log.created_at)}
+                    </TableCell>
+                    <TableCell
+                      className="text-sm whitespace-nowrap text-muted-foreground"
+                      dir="ltr"
+                    >
+                      {formatTime(log.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      {log.user_id ? toPersianDigits(log.user_id) : "سیستم"}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        {actionLabels[log.action] || log.action}
+                      </span>
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                      {log.details || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => handleDelete(log.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
                 <Button

@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 
+from app.core.logger import log_action
 from app.core.security import (
     decode_token,
     hash_password,
@@ -28,6 +29,13 @@ class AuthService:
         print(f"[SMS Mock] Verification code for {phone}: 123456")
 
         user = await self.repo.create(phone=phone, password_hash=password_hash, full_name=full_name)
+
+        await log_action(
+            self.repo.db,
+            user.id,
+            "user_registered",
+            f"ثبت‌نام کاربر | {full_name} با شماره {phone}",
+        )
 
         access_token, refresh_token = tokens_for_user(user.id, user.role, user.token_version)
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select, delete
+from datetime import datetime
+
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.log import Log
@@ -32,6 +34,8 @@ class LogRepo:
         limit: int = 50,
         action: str | None = None,
         user_id: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> tuple[list[Log], int]:
         query = select(Log)
         count_q = select(func.count(Log.id))
@@ -41,6 +45,12 @@ class LogRepo:
         if user_id is not None:
             query = query.where(Log.user_id == user_id)
             count_q = count_q.where(Log.user_id == user_id)
+        if date_from is not None:
+            query = query.where(Log.created_at >= date_from)
+            count_q = count_q.where(Log.created_at >= date_from)
+        if date_to is not None:
+            query = query.where(Log.created_at <= date_to)
+            count_q = count_q.where(Log.created_at <= date_to)
         query = query.order_by(Log.created_at.desc())
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))

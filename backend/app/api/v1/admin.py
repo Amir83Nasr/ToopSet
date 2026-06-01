@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.core.logger import log_action
-from app.core.security import hash_password
 from app.models.court import Court
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
@@ -19,7 +18,6 @@ from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
 from app.schemas.court import CourtResponse
 from app.schemas.setting import SettingResponse, SettingUpdateRequest
-from app.schemas.user import AdminCreateUserRequest, AdminCreateUserResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -37,7 +35,9 @@ async def broadcast_notification(
 ):
     repo = NotificationRepo(db)
     count = await repo.create_for_all_users(type_=data.type, message=data.message)
-    await log_action(db, _.id, "broadcast", f"Broadcast to {count} users: {data.message}")
+    await log_action(
+        db, _.id, "broadcast", f"اعلان همگانی | ارسال به {count} کاربر: {data.message[:100]}"
+    )
     return {"success": True, "count": count}
 
 
@@ -61,22 +61,21 @@ async def list_logs(
     limit: int = Query(50, ge=1, le=200),
     action: str | None = None,
     user_id: int | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
     repo = LogRepo(db)
-    logs, total = await repo.list(skip=skip, limit=limit, action=action, user_id=user_id)
+    logs, total = await repo.list(
+        skip=skip,
+        limit=limit,
+        action=action,
+        user_id=user_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
     return LogListResponse(logs=[LogResponse.model_validate(log) for log in logs], total=total)
-
-
-@router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_log(
-    log_id: int,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
-):
-    repo = LogRepo(db)
-    await repo.delete_by_id(log_id)
 
 
 @router.delete("/logs/clear", status_code=status.HTTP_204_NO_CONTENT)
@@ -88,33 +87,14 @@ async def clear_logs(
     await repo.clear_all()
 
 
-
-# ── User management ────────────────────────────────────────────────
-
-
-@router.post("/users", response_model=AdminCreateUserResponse, status_code=status.HTTP_201_CREATED)
-async def admin_create_user(
-    data: AdminCreateUserRequest,
+@router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_log(
+    log_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    repo = UserRepository(db)
-    existing = await repo.get_by_phone(data.phone)
-    if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="کاربر با این شماره وجود دارد")
-
-    password_hash = hash_password(data.password)
-    user = await repo.create(
-        phone=data.phone,
-        password_hash=password_hash,
-        full_name=data.full_name,
-        role=data.role.value,
-    )
-    await log_action(
-        db, _.id, "user_created",
-        f"User '{data.full_name}' (id={user.id}) role={data.role.value}",
-    )
-    return user
+    repo = LogRepo(db)
+    await repo.delete_by_id(log_id)
 
 
 # ── Court approval (pending courts) ──────────────────────────────────
@@ -137,9 +117,7 @@ async def list_pending_courts(
 ):
     from sqlalchemy import select
 
-    result = await db.execute(
-        select(Court).where(Court.is_active == False, Court.is_deleted == False)
-    )
+    result = await db.execute(select(Court).where(Court.is_active == False))
     courts = result.scalars().all()
 
     courts_data = []
@@ -169,7 +147,9 @@ async def approve_court(
 
     service = CourtService(db=db, current_user=_)
     result = await service.toggle_court_status(court_id, is_active=True)
-    await log_action(db, _.id, "court_approved", f"Court (id={court_id}) approved")
+    await log_action(
+        db, _.id, "court_approved", f"تایید مجموعه | مجموعه (id={court_id}) توسط ادمین تایید شد"
+    )
     return result
 
 
@@ -185,56 +165,104 @@ async def reject_court(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
     name = court.name
     await repo.delete(court)
-    await log_action(db, _.id, "court_rejected", f"Court '{name}' (id={court_id}) rejected")
+    await log_action(
+        db, _.id, "court_rejected", f"رد مجموعه | '{name}' (id={court_id}) توسط ادمین رد شد"
+    )
 
 
-# ── Soft-delete endpoints ───────────────────────────────────────────
+# ── Hard-delete endpoints ───────────────────────────────────────────
 
 
 @router.delete("/courts/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def soft_delete_court(
+async def hard_delete_court(
     court_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    """Soft-delete a court (sets is_deleted = True)."""
+    """Permanently delete a court from the database."""
     repo = CourtRepo(db)
     court = await repo.get_by_id(court_id)
     if not court:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
     await repo.delete(court)
-    await log_action(db, _.id, "court_deleted", f"Court (id={court_id}) soft-deleted")
+    await log_action(
+        db, _.id, "court_deleted", f"حذف دائمی مجموعه | مجموعه (id={court_id}) توسط ادمین حذف شد"
+    )
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def soft_delete_user(
+async def hard_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    """Soft-delete a user (sets is_deleted = True)."""
+    """Permanently delete a user from the database.
+
+    Raises 400 if the user has related data (courts, bookings, etc.).
+    """
+    from sqlalchemy import func, select
+
+    from app.models.booking import Booking
+    from app.models.penalty import Penalty
+    from app.models.review import Review
+
     repo = UserRepository(db)
     user = await repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    user.soft_delete()
+
+    # Pre-check related data to avoid FK violations
+    court_count = (
+        await db.execute(select(func.count()).select_from(Court).where(Court.manager_id == user_id))
+    ).scalar_one()
+    booking_count = (
+        await db.execute(
+            select(func.count()).select_from(Booking).where(Booking.user_id == user_id)
+        )
+    ).scalar_one()
+    review_count = (
+        await db.execute(select(func.count()).select_from(Review).where(Review.user_id == user_id))
+    ).scalar_one()
+    penalty_count = (
+        await db.execute(
+            select(func.count()).select_from(Penalty).where(Penalty.user_id == user_id)
+        )
+    ).scalar_one()
+
+    if court_count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="این کاربر مدیر مجموعه است. ابتدا مجموعه‌ها را حذف کنید.",
+        )
+    if booking_count or review_count or penalty_count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="این کاربر دارای رزرو، نظر یا جریمه است. ابتدا آن‌ها را حذف کنید.",
+        )
+
+    name = user.full_name
+    await db.delete(user)
     await db.commit()
-    await log_action(db, _.id, "user_deleted", f"User (id={user_id}) soft-deleted")
+    await log_action(
+        db, _.id, "user_deleted", f"حذف دائمی کاربر | '{name}' (id={user_id}) توسط ادمین حذف شد"
+    )
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def soft_delete_review(
+async def hard_delete_review(
     review_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    """Soft-delete a review (sets is_deleted = True)."""
+    """Permanently delete a review from the database."""
     repo = ReviewRepo(db)
     review = await repo.get_by_id(review_id)
     if not review:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
     await repo.delete(review)
-    await log_action(db, _.id, "review_deleted", f"Review (id={review_id}) soft-deleted")
+    await log_action(
+        db, _.id, "review_deleted", f"حذف دائمی نظر | نظر (id={review_id}) توسط ادمین حذف شد"
+    )
 
 
 # ── System settings ─────────────────────────────────────────────────
@@ -270,7 +298,9 @@ async def update_setting(
     await db.commit()
     await db.refresh(setting)
     await log_action(
-        db, _.id, "setting_updated",
+        db,
+        _.id,
+        "setting_updated",
         f"Setting '{setting.key}' changed: '{old_value}' → '{data.value}'",
     )
     return setting
@@ -288,9 +318,15 @@ async def seed_default_settings(
     defaults = [
         {"key": "platform_name", "value": "توپ‌سِت", "description": "نام پلتفرم"},
         {"key": "support_phone", "value": "۰۹۳۰-۶۸۵۳۳۶۳", "description": "شماره پشتیبانی"},
-        {"key": "support_email", "value": "amirhossein.nasrollahi.main@gmail.com", "description": "ایمیل پشتیبانی"},
+        {
+            "key": "support_email",
+            "value": "amirhossein.nasrollahi.main@gmail.com",
+            "description": "ایمیل پشتیبانی",
+        },
         {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
         {"key": "cancel_window_hours", "value": "24", "description": "مهلت کنسل کردن (ساعت)"},
+        {"key": "rules_text", "value": "", "description": "متن قوانین و مقررات"},
+        {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
     ]
     count = 0
     for d in defaults:

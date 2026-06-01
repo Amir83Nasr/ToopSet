@@ -59,7 +59,7 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="max-w-md text-muted-foreground"
         >
-          سامانه هوشمند رزرو آنلاین زمین‌های ورزشی
+          سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی
         </motion.p>
 
         {/* Mock search bar */}
@@ -91,9 +91,7 @@ export function HeroSection() {
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="flex flex-col items-center gap-2"
         >
-          <span className="text-[10px] text-muted-foreground/40">
-            اسکرول
-          </span>
+          <span className="text-[10px] text-muted-foreground/40">اسکرول</span>
           <div className="h-10 w-px bg-gradient-to-b from-primary/30 to-transparent" />
         </motion.div>
       </motion.div>

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from fastapi import HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import BookingStatus
+from app.models.court import Court
+from app.models.review import Review
 from app.models.user import User, UserRole
 from app.repositories.booking_repo import BookingRepo
 from app.repositories.review_repo import ReviewRepo
@@ -127,6 +130,10 @@ class ReviewService:
             }
         )
 
+        # Update court's average rating
+        if court_id:
+            await self._recalc_court_rating(court_id)
+
         # Enrich with court_name and user_name
         court_name = slot.court.name if slot.court else ""
         user_name = self.current_user.full_name
@@ -182,7 +189,11 @@ class ReviewService:
                 detail="Review not found",
             )
 
+        court_id = review.court_id
         await self.review_repo.delete(review)
+
+        # Recalculate court's average rating
+        await self._recalc_court_rating(court_id)
 
     async def report(self, review_id: int) -> dict:
         if self.current_user.role != UserRole.ADMIN:
@@ -201,3 +212,18 @@ class ReviewService:
         review.is_reported = True
         await self.review_repo.db.commit()
         return {"success": True}
+
+    async def _recalc_court_rating(self, court_id: int) -> None:
+        """Recalculate and persist the court's average_rating from all active reviews."""
+        result = await self.review_repo.db.execute(
+            select(func.coalesce(func.avg(Review.rating), 0.0)).where(
+                Review.court_id == court_id,
+                Review.is_reported == False,
+            )
+        )
+        avg = float(result.scalar_one())
+        await self.review_repo.db.execute(select(Court).where(Court.id == court_id))
+        court = await self.review_repo.db.get(Court, court_id)
+        if court:
+            court.average_rating = round(avg, 1)
+            await self.review_repo.db.commit()

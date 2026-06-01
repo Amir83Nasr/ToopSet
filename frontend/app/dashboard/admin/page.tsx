@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { toLocalDateStr, todayStr } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -12,11 +12,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { toast } from "sonner"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
 import {
   AlertCircle,
   Building2,
@@ -55,6 +66,10 @@ interface AdminStats {
     court_id: number
     court_name: string
     booking_count: number
+  }>
+  booking_trends: Array<{
+    date: string
+    count: number
   }>
 }
 
@@ -99,6 +114,8 @@ const statusLabels: Record<string, string> = {
 }
 
 export default function AdminDashboardPage() {
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState(todayStr())
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -111,7 +128,13 @@ export default function AdminDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await api<AdminStats>("/api/v1/dashboard/admin-stats")
+      const params = new URLSearchParams()
+      if (dateFrom) params.set("date_from", dateFrom + "T00:00:00")
+      if (dateTo) params.set("date_to", dateTo + "T23:59:59")
+
+      const data = await api<AdminStats>(
+        `/api/v1/dashboard/admin-stats?${params}`
+      )
       setStats(data)
     } catch (err) {
       const msg =
@@ -120,7 +143,7 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [dateFrom, dateTo])
 
   const fetchMonthlyRecap = useCallback(async () => {
     setRecapLoading(true)
@@ -155,10 +178,10 @@ export default function AdminDashboardPage() {
       href: "/dashboard/users",
     },
     {
-      title: "کل زمین‌ها",
+      title: "کل مجموعه‌ها",
       value: stats?.total_courts,
       icon: Building2,
-      description: "زمین فعال در سیستم",
+      description: "مجموعه فعال در سیستم",
       href: "/dashboard/courts",
     },
     {
@@ -192,22 +215,27 @@ export default function AdminDashboardPage() {
   ]
 
   return (
-    <div className="flex flex-1 flex-col gap-6 px-4 py-6">
-      <div>
+    <div className="bg-mesh relative min-h-screen px-4 py-6">
+      {/* Ambient background orbs for depth */}
+      <div className="neon-orb neon-orb-1" />
+      <div className="neon-orb neon-orb-2" />
+
+      <div className="relative z-10 mx-auto max-w-7xl">
         {/* Header */}
         <ScrollReveal>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-primary">
+              <h1 className="text-gradient-primary text-3xl font-bold tracking-tight">
                 داشبورد مدیریت سیستم
               </h1>
-              <p className="text-muted-foreground">
-                نمای کلی و کنترل کامل سیستم
+              <p className="mt-1 text-muted-foreground">
+                نمای کلی و تحلیل عملکرد پلتفرم
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
+              className="glass-card"
               onClick={fetchStats}
               disabled={loading}
             >
@@ -217,40 +245,52 @@ export default function AdminDashboardPage() {
               بروزرسانی
             </Button>
           </div>
+          <div className="mt-6">
+            <DateRangePicker
+              value={{
+                from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
+                to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+              }}
+              onChange={(range) => {
+                setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
+                setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
+              }}
+              className="glass-card w-full sm:w-72"
+            />
+          </div>
         </ScrollReveal>
 
         {/* Stats grid */}
-        <ScrollReveal className="mt-6">
+        <ScrollReveal className="mt-8">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {loading
               ? Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="rounded-xl border bg-card p-5">
+                  <div
+                    key={i}
+                    className="rounded-xl border bg-card/60 p-5 backdrop-blur-md"
+                  >
                     <Skeleton className="size-10 rounded-lg" />
                     <Skeleton className="mt-3 h-4 w-20" />
                     <Skeleton className="mt-1 h-7 w-16" />
-                    <Skeleton className="mt-1 h-3 w-12" />
                   </div>
                 ))
               : statCards.map((stat) => (
                   <Link
                     key={stat.title}
                     href={stat.href}
-                    className="block transition-all hover:-translate-y-0.5"
+                    className="block transition-all hover:-translate-y-1"
                   >
-                    <div className="h-full rounded-xl border bg-card p-5 transition-shadow hover:shadow-md">
+                    <div className="h-full rounded-2xl border bg-card/60 p-5 backdrop-blur-md transition-shadow hover:shadow-xl hover:shadow-primary/5">
                       <div className="inline-flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <stat.icon className="size-5" />
                       </div>
-                      <p className="mt-3 text-sm text-muted-foreground">
+                      <p className="mt-3 text-sm font-medium text-muted-foreground">
                         {stat.title}
                       </p>
                       <p className="mt-1 text-2xl font-bold">
                         {stat.value != null
                           ? formatPersianNumber(stat.value)
                           : "-"}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {stat.description}
                       </p>
                     </div>
                   </Link>
@@ -279,23 +319,20 @@ export default function AdminDashboardPage() {
 
         {/* Monthly Recap */}
         {!recapLoading && monthlyRecap && (
-          <ScrollReveal className="mt-6">
-            <Card>
+          <ScrollReveal className="mt-8">
+            <Card className="glass-card rounded-2xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold">
+                    <h2 className="text-xl font-semibold">
                       خلاصه {monthlyRecap.current_month.label}
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       مقایسه با {monthlyRecap.last_month.label}
                     </p>
                   </div>
-                  <div className="rounded-full border bg-muted/50 px-3.5 py-1 text-xs text-muted-foreground">
-                    گزارش ماهانه
-                  </div>
                 </div>
-                <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div className="mt-6 grid gap-4 sm:grid-cols-3">
                   {[
                     {
                       label: "رزروها",
@@ -316,30 +353,28 @@ export default function AdminDashboardPage() {
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-lg border bg-background/40 p-4"
+                      className="rounded-xl border bg-background/50 p-5"
                     >
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm font-medium text-muted-foreground">
                         {item.label}
                       </p>
-                      <p className="mt-1 text-2xl font-bold">
+                      <p className="mt-2 text-3xl font-bold">
                         {formatPersianNumber(item.current)}
                         {item.isCurrency && (
-                          <span className="mr-1 text-xs font-normal text-muted-foreground">
+                          <span className="mr-1 text-sm font-normal text-muted-foreground">
                             تومان
                           </span>
                         )}
                       </p>
                       <div
-                        className={`mt-1 flex items-center gap-1 text-xs ${
-                          item.change >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
+                        className={`mt-2 flex items-center gap-1 text-sm font-medium ${
+                          item.change >= 0 ? "text-green-600" : "text-red-600"
                         }`}
                       >
                         {item.change >= 0 ? (
-                          <ArrowUp className="size-3" />
+                          <ArrowUp className="size-4" />
                         ) : (
-                          <ArrowDown className="size-3" />
+                          <ArrowDown className="size-4" />
                         )}
                         <span>
                           {item.change >= 0 ? "+" : ""}
@@ -357,69 +392,57 @@ export default function AdminDashboardPage() {
         {!loading && !error && stats && (
           <>
             {/* Today's overview */}
-            <ScrollReveal className="mt-6">
+            <ScrollReveal className="mt-8">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardContent className="p-5">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      درآمد امروز
-                    </p>
-                    <p className="mt-1 text-3xl font-bold text-primary">
-                      {formatPersianNumber(Math.round(stats.today_revenue))}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">تومان</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-5">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      رزروهای امروز
-                    </p>
-                    <p className="mt-1 text-3xl font-bold">
-                      {formatPersianNumber(stats.today_bookings)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">رزرو</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-5">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      در انتظار پرداخت
-                    </p>
-                    <p className="mt-1 text-3xl font-bold">
-                      {formatPersianNumber(stats.pending_bookings)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      رزرو نیازمند پیگیری
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-5">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      مدیران فعال
-                    </p>
-                    <p className="mt-1 text-3xl font-bold">
-                      {formatPersianNumber(stats.active_managers)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      از {formatPersianNumber(stats.total_managers)} مدیر
-                    </p>
-                  </CardContent>
-                </Card>
+                {[
+                  {
+                    label: "درآمد امروز",
+                    value: Math.round(stats.today_revenue),
+                    unit: "تومان",
+                  },
+                  {
+                    label: "رزروهای امروز",
+                    value: stats.today_bookings,
+                    unit: "رزرو",
+                  },
+                  {
+                    label: "در انتظار پرداخت",
+                    value: stats.pending_bookings,
+                    unit: "رزرو نیازمند پیگیری",
+                  },
+                  {
+                    label: "مدیران فعال",
+                    value: stats.active_managers,
+                    unit: `از ${stats.total_managers} مدیر`,
+                  },
+                ].map((item, i) => (
+                  <Card key={i} className="glass-card rounded-2xl">
+                    <CardContent className="p-5">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-1 text-3xl font-bold">
+                        {formatPersianNumber(item.value)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.unit}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </ScrollReveal>
 
-            {/* Recent bookings */}
-            <div className="mt-6">
-              <ScrollReveal>
-                <Card>
+            {/* Recent bookings & Chart */}
+            <div className="mt-8 grid gap-6 lg:grid-cols-3">
+              <ScrollReveal className="lg:col-span-2">
+                <Card className="glass-card h-full rounded-2xl">
                   <CardContent className="p-6">
-                    <h2 className="text-lg font-semibold">آخرین رزروها</h2>
+                    <h2 className="text-xl font-semibold">آخرین رزروها</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       ۱۰ رزرو آخر سیستم
                     </p>
-                    <div className="mt-4">
+                    <div className="mt-6">
                       {stats.recent_bookings.length === 0 ? (
                         <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
                           رزروی ثبت نشده است
@@ -428,7 +451,7 @@ export default function AdminDashboardPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>زمین</TableHead>
+                              <TableHead>مجموعه</TableHead>
                               <TableHead>کاربر</TableHead>
                               <TableHead>تاریخ</TableHead>
                               <TableHead>مبلغ</TableHead>
@@ -469,34 +492,82 @@ export default function AdminDashboardPage() {
                   </CardContent>
                 </Card>
               </ScrollReveal>
+
+              <ScrollReveal>
+                <Card className="glass-card h-full rounded-2xl">
+                  <CardContent className="p-6">
+                    <h2 className="text-xl font-semibold">
+                      روند رزروها (۷ روز اخیر)
+                    </h2>
+                    <div className="mt-6 h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stats.booking_trends}>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="hsl(var(--border) / 0.3)"
+                          />
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={(date) => formatDate(date)}
+                            stroke="hsl(var(--muted-foreground))"
+                            fontSize={12}
+                          />
+                          <YAxis
+                            stroke="hsl(var(--muted-foreground))"
+                            fontSize={12}
+                          />
+                          <Tooltip
+                            labelFormatter={(date) =>
+                              formatDate(date as string)
+                            }
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--card))",
+                              borderColor: "hsl(var(--border))",
+                              borderRadius: "12px",
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="count"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={3}
+                            dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </ScrollReveal>
             </div>
 
             {/* Popular courts */}
             {stats.popular_courts.length > 0 && (
-              <ScrollReveal className="mt-6">
-                <Card>
+              <ScrollReveal className="mt-8">
+                <Card className="glass-card rounded-2xl">
                   <CardContent className="p-6">
-                    <h2 className="text-lg font-semibold">
-                      محبوب‌ترین زمین‌ها
+                    <h2 className="text-xl font-semibold">
+                      محبوب‌ترین مجموعه‌ها
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      زمین‌های با بیشترین رزرو
+                      مجموعه‌های با بیشترین رزرو
                     </p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                       {stats.popular_courts.map((court, idx) => (
                         <Link
                           key={court.court_id}
                           href={`/dashboard/courts/${court.court_id}`}
-                          className="flex items-center gap-3 rounded-lg border bg-background/40 p-3 transition-all hover:-translate-y-0.5 hover:bg-background/60"
+                          className="flex items-center gap-4 rounded-xl border bg-background/50 p-4 transition-all hover:-translate-y-1 hover:bg-background/80"
                         >
-                          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
                             {idx + 1}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">
+                            <p className="truncate font-medium">
                               {court.court_name}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                               {formatPersianNumber(court.booking_count)} رزرو
                             </p>
                           </div>
@@ -509,10 +580,10 @@ export default function AdminDashboardPage() {
             )}
 
             {/* Broadcast Notification */}
-            <ScrollReveal className="mt-6">
-              <Card>
+            <ScrollReveal className="mt-8">
+              <Card className="glass-card rounded-2xl">
                 <CardContent className="p-6">
-                  <h2 className="text-lg font-semibold">اعلان همگانی</h2>
+                  <h2 className="text-xl font-semibold">اعلان همگانی</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     ارسال پیام به تمام کاربران
                   </p>
@@ -533,25 +604,27 @@ export default function AdminDashboardPage() {
                         setBroadcastMessage("")
                       } catch (err) {
                         toast.error(
-                          err instanceof ApiError
-                            ? err.message
-                            : "خطا در ارسال"
+                          err instanceof ApiError ? err.message : "خطا در ارسال"
                         )
                       } finally {
                         setBroadcasting(false)
                       }
                     }}
                   >
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-6 flex gap-2">
                       <Input
                         name="message"
                         placeholder="متن اعلان..."
                         value={broadcastMessage}
                         onChange={(e) => setBroadcastMessage(e.target.value)}
                         required
-                        className="flex-1"
+                        className="flex-1 rounded-xl"
                       />
-                      <Button type="submit" disabled={broadcasting}>
+                      <Button
+                        type="submit"
+                        disabled={broadcasting}
+                        className="rounded-xl px-6"
+                      >
                         <Send className="ml-2 size-4" />
                         {broadcasting ? "در حال ارسال..." : "ارسال"}
                       </Button>

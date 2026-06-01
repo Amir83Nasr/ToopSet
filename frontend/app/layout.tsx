@@ -5,7 +5,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "توپ‌سِت | ToopSet",
-  description: "سامانه رزرو آنلاین زمین‌های ورزشی",
+  description: "سامانه رزرو آنلاین مجموعه‌های ورزشی",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -12,6 +12,13 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { FavoriteButton } from "@/components/courts/favorite-button"
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -20,13 +27,18 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   ArrowLeft,
   MapPin,
   Star,
   Users,
   Clock,
   Calendar,
-  Loader2,
   CheckCircle2,
   XCircle,
   ChevronLeft,
@@ -37,14 +49,11 @@ import {
   Thermometer,
   Sofa,
   Building2,
-  Maximize2,
   X,
+  Phone,
+  UserCircle,
+  CalendarDays,
 } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogClose,
-} from "@/components/ui/dialog"
 import dynamic from "next/dynamic"
 
 const CourtLocationMap = dynamic(
@@ -71,6 +80,7 @@ interface Court {
   average_rating: number
   amenities?: Record<string, boolean>
   images?: string[]
+  manager_name?: string
 }
 
 interface TimeSlot {
@@ -89,6 +99,7 @@ interface Review {
   rating: number
   comment?: string
   response?: string
+  created_at: string
 }
 
 /* ── Constants ── */
@@ -97,6 +108,13 @@ const sportLabels: Record<string, string> = {
   basketball: "بسکتبال",
   futsal: "فوتسال",
   handball: "هندبال",
+}
+
+const sportColors: Record<string, string> = {
+  volleyball: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  basketball: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  futsal: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  handball: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
 }
 
 const amenityIcons: Record<string, React.ReactNode> = {
@@ -119,22 +137,31 @@ const amenityLabels: Record<string, string> = {
   locker_room: "رختکن",
 }
 
+const PERSIAN_DAY_NAMES = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
+
 function formatTime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+  return new Date(iso).toLocaleTimeString("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
 }
 
-function formatDate(dateStr: string): { dayName: string; dayNum: string; month: string } {
+function formatDate(dateStr: string): { dayName: string; dayNum: string; month: string; full: string } {
   const d = new Date(dateStr + "T12:00:00")
   return {
     dayName: d.toLocaleDateString("fa-IR", { weekday: "short" }),
     dayNum: d.toLocaleDateString("fa-IR", { day: "numeric" }),
     month: d.toLocaleDateString("fa-IR", { month: "short" }),
+    full: d.toLocaleDateString("fa-IR"),
   }
+}
+
+function formatPersianDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("fa-IR")
 }
 
 /* ── Stars Component ── */
@@ -157,12 +184,13 @@ function Stars({ rating, size = 16 }: { rating: number; size?: number }) {
 }
 
 /* ── Section Heading ── */
-function SectionHeading({ icon, title }: { icon?: React.ReactNode; title: string }) {
+function SectionHeading({ icon, title, action }: { icon?: React.ReactNode; title: string; action?: React.ReactNode }) {
   return (
     <div className="mb-5 flex items-center gap-2.5">
       {icon && <span className="text-primary">{icon}</span>}
       <h2 className="text-lg font-semibold">{title}</h2>
       <div className="mr-auto h-px flex-1 bg-gradient-to-l from-border/60 to-transparent" />
+      {action}
     </div>
   )
 }
@@ -170,20 +198,21 @@ function SectionHeading({ icon, title }: { icon?: React.ReactNode; title: string
 /* ── Loading State ── */
 function LoadingSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="mx-auto max-w-6xl px-4 py-6">
       <Skeleton className="h-4 w-28 rounded-md" />
-      <Skeleton className="mt-6 h-64 w-full rounded-2xl" />
+      <Skeleton className="mt-6 h-[320px] w-full rounded-2xl" />
       <div className="mt-8 space-y-2">
         <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-5 w-72" />
       </div>
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Skeleton className="h-40 rounded-xl" />
-          <Skeleton className="h-56 rounded-xl" />
+      <div className="mt-8 grid gap-8 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-56 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
         </div>
-        <div>
+        <div className="space-y-4">
+          <Skeleton className="h-40 rounded-xl" />
           <Skeleton className="h-96 rounded-xl" />
         </div>
       </div>
@@ -203,39 +232,39 @@ export default function PublicCourtDetailPage() {
   const [loading, setLoading] = useState(true)
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
-  const [recentReviews, setRecentReviews] = useState<Review[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewsTotal, setReviewsTotal] = useState(0)
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const getDates = useCallback(() => {
-    const dates: string[] = []
+  const dates = useMemo(() => {
+    const result: string[] = []
     for (let i = 0; i < 7; i++) {
       const d = new Date()
       d.setDate(d.getDate() + i)
-      dates.push(d.toISOString().split("T")[0])
+      result.push(d.toLocaleDateString("en-CA"))
     }
-    return dates
+    return result
   }, [])
 
-  const today = new Date().toISOString().split("T")[0]
-  const dates = getDates()
+  const today = dates[0]
 
-  // Fetch court + reviews
+  /* Fetch court + reviews */
   useEffect(() => {
     async function init() {
       try {
-        const courtRes = await api<Court>(`/api/v1/courts/${courtId}`)
+        const [courtRes, revRes] = await Promise.all([
+          api<Court>(`/api/v1/courts/${courtId}`),
+          api<{ reviews: Review[]; total: number }>(
+            `/api/v1/courts/${courtId}/reviews?limit=5`
+          ).catch(() => ({ reviews: [], total: 0 })),
+        ])
         setCourt(courtRes)
         setSelectedDate(today)
-        try {
-          const revRes = await api<{ reviews: Review[]; total: number }>(
-            `/api/v1/courts/${courtId}/reviews?limit=5`
-          )
-          setRecentReviews(revRes.reviews || [])
-        } catch {
-          // reviews may not be available
-        }
+        setReviews(revRes.reviews || [])
+        setReviewsTotal(revRes.total || 0)
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
@@ -247,7 +276,7 @@ export default function PublicCourtDetailPage() {
     init()
   }, [courtId, today])
 
-  // Fetch slots
+  /* Fetch slots */
   const fetchSlots = useCallback(
     async (date: string) => {
       setSlotsLoading(true)
@@ -272,6 +301,22 @@ export default function PublicCourtDetailPage() {
     return () => clearTimeout(timer)
   }, [selectedDate, fetchSlots])
 
+  /* Prices */
+  const minPrice = useMemo(
+    () => (slots.length > 0 ? Math.min(...slots.map((s) => s.base_price)) : null),
+    [slots]
+  )
+
+  /* Reviews stats */
+  const reviewDistribution = useMemo(() => {
+    const dist = [0, 0, 0, 0, 0]
+    reviews.forEach((r) => {
+      if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++
+    })
+    return dist
+  }, [reviews])
+
+  /* Actions */
   function handleBookSlot(slot: TimeSlot) {
     if (!isAuthenticated) {
       router.push(
@@ -282,6 +327,11 @@ export default function PublicCourtDetailPage() {
     router.push(`/book?slot_id=${slot.id}&court_id=${courtId}`)
   }
 
+  function openLightbox(index: number) {
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
+
   if (loading) return <LoadingSkeleton />
 
   if (notFound || !court) {
@@ -289,7 +339,9 @@ export default function PublicCourtDetailPage() {
       <div className="relative flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4">
         <div className="flex flex-col items-center gap-2 text-center">
           <Building2 className="size-12 text-muted-foreground/40" />
-          <p className="text-lg text-muted-foreground">زمین مورد نظر یافت نشد</p>
+          <p className="text-lg text-muted-foreground">
+            مجموعه مورد نظر یافت نشد
+          </p>
           <Button variant="outline" onClick={() => router.push("/")}>
             <ArrowLeft className="ml-2 size-4" />
             بازگشت به صفحه اصلی
@@ -301,7 +353,7 @@ export default function PublicCourtDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="mx-auto max-w-5xl px-4 pb-16 pt-6">
+      <div className="mx-auto max-w-6xl px-4 pt-6 pb-16">
         {/* ── Breadcrumb ── */}
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
@@ -315,63 +367,113 @@ export default function PublicCourtDetailPage() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* ── Hero Section ── */}
-        <div className="relative mb-10 overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-chart-1/5">
-          {/* Subtle background pattern */}
-          <div className="bg-grid pointer-events-none absolute inset-0 opacity-[0.03]" />
-
-          <div className="relative z-10 flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex-1">
-              {/* Sport badges + Favorite */}
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                {court.sport_types?.map((st) => (
-                    <Badge
-                      key={st}
-                      variant="secondary"
-                      className="bg-secondary/60 px-3 py-1 text-xs font-medium"
+        {/* ── Image Gallery Carousel ── */}
+        {court.images && court.images.length > 0 && (
+          <div className="group relative mb-8 overflow-hidden rounded-2xl border">
+            <Carousel className="w-full">
+              <CarouselContent>
+                {court.images.map((img, i) => (
+                  <CarouselItem key={i}>
+                    <div
+                      className="relative aspect-[21/9] cursor-pointer"
+                      onClick={() => openLightbox(i)}
                     >
-                      {sportLabels[st] || st}
-                    </Badge>
-                  ))}
-                <FavoriteButton courtId={court.id} size="sm" />
+                      <Image
+                        src={img}
+                        alt={`${court.name} - ${i + 1}`}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        priority={i === 0}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {court.images.length > 1 && (
+                <>
+                  <CarouselPrevious className="absolute right-4 top-1/2 size-10 -translate-y-1/2 border-0 bg-white/20 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-white/30 group-hover:opacity-100" />
+                  <CarouselNext className="absolute left-4 top-1/2 size-10 -translate-y-1/2 border-0 bg-white/20 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-white/30 group-hover:opacity-100" />
+                </>
+              )}
+              {/* Image counter */}
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
+                {court.images.map((_, i) => (
+                  <div
+                    key={i}
+                    className="size-1.5 rounded-full bg-white/60 transition-all data-[active=true]:w-4 data-[active=true]:bg-white"
+                    data-active={i === lightboxIndex}
+                  />
+                ))}
               </div>
+            </Carousel>
+          </div>
+        )}
 
-              {/* Court name */}
-              <h1 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+        {/* ── Court Info Hero ── */}
+        <div className="mb-10">
+          {/* Sport badges + Favorite */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {court.sport_types?.map((st) => (
+              <Badge
+                key={st}
+                className={sportColors[st] || ""}
+                variant="secondary"
+              >
+                {sportLabels[st] || st}
+              </Badge>
+            ))}
+            <div className="mr-auto">
+              <FavoriteButton courtId={court.id} size="sm" />
+            </div>
+          </div>
+
+          {/* Court name + rating */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 {court.name}
               </h1>
-
-              {/* Quick stats row */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="size-4 shrink-0 text-primary/60" />
-                  <span className="truncate max-w-[260px]">{court.address}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Users className="size-4 shrink-0 text-primary/60" />
-                  <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Star className="size-4 shrink-0 text-amber-400" />
-                  <span className="font-semibold text-foreground">
-                    {toPersianDigits(court.average_rating.toFixed(1))}
+              <div className="mt-2 flex items-center gap-3">
+                <Stars rating={court.average_rating} size={16} />
+                <span className="text-sm font-semibold">
+                  {toPersianDigits(court.average_rating.toFixed(1))}
+                </span>
+                {reviewsTotal > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    ({toPersianDigits(reviewsTotal)} نظر)
                   </span>
-                  <Stars rating={court.average_rating} size={14} />
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Price range badge */}
-            <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
-              <div className="rounded-xl border bg-background/60 px-4 py-2.5 text-center backdrop-blur-sm">
+            {minPrice && (
+              <div className="shrink-0 rounded-xl border bg-background/60 px-5 py-3 text-center backdrop-blur-sm">
                 <p className="text-xs text-muted-foreground">قیمت هر سانس از</p>
-                <p className="text-lg font-bold text-primary">
-                  {slots.length > 0
-                    ? formatPrice(Math.min(...slots.map((s) => s.base_price)))
-                    : "—"}
+                <p className="text-xl font-bold text-primary">
+                  {formatPrice(minPrice)}
                 </p>
               </div>
+            )}
+          </div>
+
+          {/* Quick info strip */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="size-4 shrink-0 text-primary/60" />
+              <span className="max-w-[300px] truncate">{court.address}</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <Users className="size-4 shrink-0 text-primary/60" />
+              <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
+            </div>
+            {court.manager_name && (
+              <div className="flex items-center gap-1.5">
+                <UserCircle className="size-4 shrink-0 text-primary/60" />
+                <span>مدیر: {court.manager_name}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -379,64 +481,15 @@ export default function PublicCourtDetailPage() {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* ── Main Content ── */}
           <div className="space-y-8 lg:col-span-2">
-            {/* Images - Improved Gallery */}
-            {court.images && court.images.length > 0 && (
-              <div className="overflow-hidden rounded-xl border">
-                <div
-                  className="group relative aspect-[21/9] cursor-pointer"
-                  onClick={() => setLightboxIndex(0)}
-                >
-                  <Image
-                    src={court.images[0]}
-                    alt={court.name}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-xs font-medium opacity-0 backdrop-blur-xs transition-opacity group-hover:opacity-100">
-                    <Maximize2 className="size-3" />
-                    مشاهده کامل
-                  </div>
-                  <div className="absolute bottom-3 right-3 rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium backdrop-blur-xs">
-                    {toPersianDigits(1)}/{toPersianDigits(court.images.length)}
-                  </div>
-                </div>
-                {court.images.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto border-t bg-muted/30 p-2">
-                    {court.images.slice(1).map((img, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setLightboxIndex(i + 1)}
-                        className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-lg ring-offset-2 transition-all hover:ring-2 hover:ring-primary"
-                      >
-                        <Image
-                          src={img}
-                          alt={`${court.name} - ${i + 2}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Lightbox */}
-            <Dialog
-              open={lightboxIndex !== null}
-              onOpenChange={(open) => {
-                if (!open) setLightboxIndex(null)
-              }}
-            >
+            <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
               <DialogContent
                 className="max-w-[90vw] border-0 bg-black/95 p-0 sm:max-w-4xl"
                 showCloseButton={false}
               >
+                <DialogTitle className="sr-only">تصاویر {court.name}</DialogTitle>
                 <div className="relative flex aspect-video items-center justify-center">
-                  {lightboxIndex !== null && court.images && (
+                  {court.images && court.images[lightboxIndex] && (
                     <Image
                       src={court.images[lightboxIndex]}
                       alt={`${court.name} - ${lightboxIndex + 1}`}
@@ -446,11 +499,11 @@ export default function PublicCourtDetailPage() {
                     />
                   )}
                   <DialogClose asChild>
-                    <button className="absolute left-3 top-3 flex size-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white">
+                    <button className="absolute top-3 left-3 flex size-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white">
                       <X className="size-4" />
                     </button>
                   </DialogClose>
-                  {court.images && lightboxIndex !== null && lightboxIndex > 0 && (
+                  {court.images && lightboxIndex > 0 && (
                     <button
                       onClick={() => setLightboxIndex(lightboxIndex - 1)}
                       className="absolute right-3 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
@@ -458,7 +511,7 @@ export default function PublicCourtDetailPage() {
                       <ChevronRight className="size-5" />
                     </button>
                   )}
-                  {court.images && lightboxIndex !== null && lightboxIndex < court.images.length - 1 && (
+                  {court.images && lightboxIndex < court.images.length - 1 && (
                     <button
                       onClick={() => setLightboxIndex(lightboxIndex + 1)}
                       className="absolute left-3 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
@@ -467,18 +520,22 @@ export default function PublicCourtDetailPage() {
                     </button>
                   )}
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-xs text-white/80 backdrop-blur-xs">
-                    {lightboxIndex !== null && court.images
-                      ? `${toPersianDigits(lightboxIndex + 1)} / ${toPersianDigits(court.images.length)}`
-                      : ""}
+                    {toPersianDigits(lightboxIndex + 1)} / {toPersianDigits(court.images?.length || 0)}
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
 
-            {/* Map */}
+            {/* Location & Map */}
             {court.latitude != null && court.longitude != null && (
               <div className="rounded-xl border bg-card p-5">
-                <SectionHeading icon={<MapPin className="size-5" />} title="موقعیت روی نقشه" />
+                <SectionHeading
+                  icon={<MapPin className="size-5" />}
+                  title="موقعیت روی نقشه"
+                />
+                <p className="mb-3 text-sm text-muted-foreground">
+                  {court.address}
+                </p>
                 <CourtLocationMap
                   latitude={court.latitude}
                   longitude={court.longitude}
@@ -492,7 +549,10 @@ export default function PublicCourtDetailPage() {
             {/* Amenities */}
             {court.amenities && Object.keys(court.amenities).length > 0 && (
               <div className="rounded-xl border bg-card p-5">
-                <SectionHeading icon={<Building2 className="size-5" />} title="امکانات" />
+                <SectionHeading
+                  icon={<Building2 className="size-5" />}
+                  title="امکانات"
+                />
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {Object.entries(court.amenities).map(([key, val]) => (
                     <div
@@ -518,36 +578,75 @@ export default function PublicCourtDetailPage() {
             )}
 
             {/* Reviews */}
-            {recentReviews.length > 0 && (
+            {reviews.length > 0 && (
               <div className="rounded-xl border bg-card p-5">
                 <SectionHeading
                   icon={<Star className="size-5 text-amber-400" />}
                   title="نظرات کاربران"
                 />
+
+                {/* Rating summary */}
+                <div className="mb-6 flex flex-wrap items-start gap-6 rounded-lg bg-muted/30 p-4">
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-4xl font-bold">
+                      {toPersianDigits(court.average_rating.toFixed(1))}
+                    </span>
+                    <Stars rating={court.average_rating} size={14} />
+                    <span className="text-xs text-muted-foreground">
+                      {toPersianDigits(reviewsTotal)} نظر
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count = reviewDistribution[star - 1]
+                      const pct = reviewsTotal > 0 ? (count / reviewsTotal) * 100 : 0
+                      return (
+                        <div key={star} className="flex items-center gap-2 text-xs">
+                          <span className="w-4 text-left font-medium">{toPersianDigits(star)}</span>
+                          <Star className="size-3 fill-amber-400 text-amber-400" />
+                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted-foreground/20">
+                            <div
+                              className="h-full rounded-full bg-amber-400 transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-5 text-muted-foreground">{toPersianDigits(count)}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Review list */}
                 <div className="space-y-4">
-                  {recentReviews.map((rev) => (
+                  {reviews.map((rev) => (
                     <div
                       key={rev.id}
                       className="rounded-lg border bg-muted/20 p-4 transition-colors hover:bg-muted/30"
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
                             {(rev.user_name || "ک")[0]}
                           </div>
-                          <span className="text-sm font-medium">
-                            {rev.user_name || "کاربر"}
-                          </span>
+                          <div>
+                            <span className="text-sm font-medium">
+                              {rev.user_name || "کارگر"}
+                            </span>
+                            <span className="mr-2 text-xs text-muted-foreground">
+                              {formatPersianDate(rev.created_at)}
+                            </span>
+                          </div>
                         </div>
                         <Stars rating={rev.rating} size={14} />
                       </div>
                       {rev.comment && (
-                        <p className="pr-10 text-sm leading-relaxed text-muted-foreground">
+                        <p className="pr-11 text-sm leading-relaxed text-muted-foreground">
                           {rev.comment}
                         </p>
                       )}
                       {rev.response && (
-                        <div className="mr-10 mt-3 rounded-lg border-r-2 border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+                        <div className="mt-3 mr-11 rounded-lg border-r-2 border-primary/30 bg-primary/5 px-4 py-3 text-sm">
                           <span className="mb-1 block text-xs font-medium text-muted-foreground">
                             پاسخ مدیریت:
                           </span>
@@ -557,77 +656,51 @@ export default function PublicCourtDetailPage() {
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" className="mt-4 w-full" asChild>
-                  <Link href={`/courts/${courtId}/reviews`}>
-                    مشاهده همه نظرات
-                    <ChevronLeft className="mr-2 size-4" />
-                  </Link>
-                </Button>
+
+                {reviewsTotal > 5 && (
+                  <Button variant="outline" className="mt-4 w-full" asChild>
+                    <Link href={`/courts/${courtId}/reviews`}>
+                      مشاهده همه {toPersianDigits(reviewsTotal)} نظر
+                      <ChevronLeft className="mr-2 size-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             )}
           </div>
 
-          {/* ── Sidebar — Info + Booking ── */}
+          {/* ── Sidebar ── */}
           <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-            {/* Sidebar — Court Info */}
-            <div className="rounded-xl border bg-card shadow-sm">
-              <div className="border-b px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <Building2 className="size-5 text-primary" />
-                  <h3 className="font-semibold">اطلاعات مجموعه</h3>
-                </div>
-              </div>
-              <div className="space-y-3 p-5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">ظرفیت</span>
-                  <span className="font-medium">{toPersianDigits(court.capacity)} نفر</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">امتیاز</span>
-                  <div className="flex items-center gap-1.5">
-                    <Stars rating={court.average_rating} size={14} />
-                    <span className="font-medium">{toPersianDigits(court.average_rating.toFixed(1))}</span>
+            {/* Sidebar — Manager Info */}
+            {court.manager_name && (
+              <div className="rounded-xl border bg-card shadow-sm">
+                <div className="flex items-center gap-3 border-b px-5 py-4">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                    <UserCircle className="size-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold leading-tight truncate">
+                      {court.manager_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">مدیر مجموعه</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">ورزش‌ها</span>
-                  <div className="flex flex-wrap justify-end gap-1">
-                    {court.sport_types?.map((st) => (
-                      <Badge key={st} variant="secondary" className="text-[10px]">
-                        {sportLabels[st] || st}
-                      </Badge>
-                    ))}
+                <div className="divide-y">
+                  <div className="flex items-center gap-3 px-5 py-3 text-sm text-muted-foreground">
+                    <Phone className="size-4 shrink-0" />
+                    <span>برای هماهنگی با مجموعه تماس بگیرید</span>
+                  </div>
+                  <div className="flex items-center gap-3 px-5 py-3 text-sm text-muted-foreground">
+                    <MapPin className="size-4 shrink-0" />
+                    <span className="truncate">{court.address}</span>
+                  </div>
+                  <div className="flex items-center gap-3 px-5 py-3 text-sm text-muted-foreground">
+                    <Users className="size-4 shrink-0" />
+                    <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
                   </div>
                 </div>
-                {court.amenities && Object.keys(court.amenities).length > 0 && (
-                  <>
-                    <div className="h-px bg-border/50" />
-                    <div>
-                      <span className="text-xs font-medium text-muted-foreground">امکانات موجود</span>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {Object.entries(court.amenities)
-                          .filter(([, val]) => val)
-                          .slice(0, 4)
-                          .map(([key]) => (
-                            <span
-                              key={key}
-                              className="inline-flex items-center gap-1 rounded-full border bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
-                            >
-                              {amenityIcons[key]}
-                              {amenityLabels[key] || key}
-                            </span>
-                          ))}
-                        {Object.entries(court.amenities).filter(([, val]) => val).length > 4 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            +{Object.entries(court.amenities).filter(([, val]) => val).length - 4}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
-            </div>
+            )}
 
             {/* Sidebar — Booking */}
             <div className="rounded-xl border bg-card shadow-sm">
@@ -642,16 +715,16 @@ export default function PublicCourtDetailPage() {
               </div>
 
               <div className="p-5">
-                {/* Date picker */}
-                <div className="mb-5 flex gap-1.5 overflow-x-auto pb-1">
+                {/* Date picker strip */}
+                <div className="mb-5 flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {dates.map((date) => {
-                    const { dayName, dayNum } = formatDate(date)
+                    const { dayName, dayNum, month } = formatDate(date)
                     const isToday = date === today
                     return (
                       <button
                         key={date}
                         onClick={() => setSelectedDate(date)}
-                        className={`flex min-w-[64px] shrink-0 flex-col items-center gap-0.5 rounded-lg border py-2.5 text-sm transition-all ${
+                        className={`flex min-w-[68px] shrink-0 flex-col items-center gap-0.5 rounded-lg border py-2.5 text-sm transition-all ${
                           selectedDate === date
                             ? "border-primary bg-primary text-primary-foreground shadow-sm"
                             : "border-border/60 bg-background/40 hover:border-muted-foreground/30 hover:bg-muted/30"
@@ -661,11 +734,9 @@ export default function PublicCourtDetailPage() {
                           {dayName}
                         </span>
                         <span className="text-base font-bold">{dayNum}</span>
-                        {isToday && (
-                          <span className="text-[9px] font-medium opacity-70">
-                            امروز
-                          </span>
-                        )}
+                        <span className="text-[9px] font-medium opacity-70">
+                          {isToday ? "امروز" : month}
+                        </span>
                       </button>
                     )
                   })}
@@ -680,7 +751,7 @@ export default function PublicCourtDetailPage() {
                   </div>
                 ) : slots.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-6 text-center text-muted-foreground">
-                    <Calendar className="size-8 opacity-40" />
+                    <CalendarDays className="size-8 opacity-40" />
                     <p className="text-sm">سانسی موجود نیست</p>
                     <p className="text-xs">تاریخ دیگری انتخاب کنید</p>
                   </div>
@@ -699,8 +770,8 @@ export default function PublicCourtDetailPage() {
                             slot.is_reserved
                               ? "border-red-200/50 bg-red-50/30 opacity-60 dark:border-red-900/20 dark:bg-red-950/5"
                               : isSelected
-                                ? "border-primary bg-primary/5 shadow-sm"
-                                : "border-border/60 bg-background/40 hover:border-primary/30 hover:bg-muted/20"
+                                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/30"
+                                : "border-border/60 bg-background/40 hover:border-primary/30 hover:bg-muted/20 hover:shadow-sm"
                           }`}
                         >
                           <div className="flex items-center gap-3">

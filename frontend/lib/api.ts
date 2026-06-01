@@ -105,7 +105,9 @@ export async function api<T>(
       })
 
       if (!retryRes.ok) {
-        const body = await retryRes.json().catch(() => ({ detail: "Request failed" }))
+        const body = await retryRes
+          .json()
+          .catch(() => ({ detail: "Request failed" }))
         throw new ApiError(retryRes.status, body.detail || "Request failed")
       }
 
@@ -147,14 +149,26 @@ export async function uploadFile(file: File): Promise<UploadResult> {
   }
 
   const url = `${API_BASE}/api/v1/uploads/court-image`
-  console.log("Uploading to:", url, "file:", file.name, "size:", file.size, "type:", file.type)
+  console.log(
+    "Uploading to:",
+    url,
+    "file:",
+    file.name,
+    "size:",
+    file.size,
+    "type:",
+    file.type
+  )
 
   let res: Response
   try {
     res = await fetch(url, { method: "POST", headers, body: formData })
   } catch (err) {
     console.error("Fetch failed:", err)
-    throw new ApiError(0, `Network error: ${err instanceof Error ? err.message : "unknown"}`)
+    throw new ApiError(
+      0,
+      `Network error: ${err instanceof Error ? err.message : "unknown"}`
+    )
   }
 
   if (!res.ok) {

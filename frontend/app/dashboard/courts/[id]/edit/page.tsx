@@ -120,7 +120,9 @@ export default function EditCourtPage() {
   if (notFound || !courtData) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
-        <p className="text-xl text-muted-foreground">مجموعه مورد نظر یافت نشد</p>
+        <p className="text-xl text-muted-foreground">
+          مجموعه مورد نظر یافت نشد
+        </p>
         <Button
           variant="outline"
           onClick={() => router.push("/dashboard/courts")}
@@ -251,11 +253,7 @@ export default function EditCourtPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">ظرفیت (تعداد نفر)</Label>
-              <PersianInput
-                id="capacity"
-                min="1"
-                {...register("capacity")}
-              />
+              <PersianInput id="capacity" min="1" {...register("capacity")} />
               {errors.capacity && (
                 <p className="text-sm text-destructive">
                   {errors.capacity.message}

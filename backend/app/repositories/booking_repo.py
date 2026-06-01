@@ -26,12 +26,10 @@ class BookingRepo:
         query = (
             select(Booking)
             .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
-            .where(Booking.user_id == user_id, Booking.is_deleted == False)
+            .where(Booking.user_id == user_id)
             .order_by(Booking.created_at.desc())
         )
-        count_q = select(func.count(Booking.id)).where(
-            Booking.user_id == user_id, Booking.is_deleted == False
-        )
+        count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
 
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))
@@ -39,15 +37,11 @@ class BookingRepo:
         return bookings, total
 
     async def get_by_id(self, booking_id: int) -> Booking | None:
-        result = await self.db.execute(
-            select(Booking).where(Booking.id == booking_id, Booking.is_deleted == False)
-        )
+        result = await self.db.execute(select(Booking).where(Booking.id == booking_id))
         return result.scalar_one_or_none()
 
     async def get_by_slot(self, slot_id: int) -> Booking | None:
-        result = await self.db.execute(
-            select(Booking).where(Booking.slot_id == slot_id, Booking.is_deleted == False)
-        )
+        result = await self.db.execute(select(Booking).where(Booking.slot_id == slot_id))
         return result.scalar_one_or_none()
 
     async def create(self, data: dict) -> Booking:
@@ -75,8 +69,8 @@ class BookingRepo:
         query = select(Booking).options(
             selectinload(Booking.slot).selectinload(TimeSlot.court),
             selectinload(Booking.user),
-        ).where(Booking.is_deleted == False)
-        count_q = select(func.count(Booking.id)).where(Booking.is_deleted == False)
+        )
+        count_q = select(func.count(Booking.id))
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
@@ -111,6 +105,32 @@ class BookingRepo:
         query = select(func.count(Booking.id)).where(Booking.created_at >= day_start)
         result = await self.db.execute(query)
         return result.scalar_one()
+
+    async def list_completed_by_user(
+        self,
+        user_id: int,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[Booking], int]:
+        """List confirmed/completed bookings for a user (for review creation)."""
+        query = (
+            select(Booking)
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
+            .where(
+                Booking.user_id == user_id,
+                Booking.status == BookingStatus.CONFIRMED,
+            )
+            .order_by(Booking.updated_at.desc())
+        )
+        count_q = select(func.count(Booking.id)).where(
+            Booking.user_id == user_id,
+            Booking.status == BookingStatus.CONFIRMED,
+        )
+        total = (await self.db.execute(count_q)).scalar_one()
+        result = await self.db.execute(query.offset(skip).limit(limit))
+        bookings = list(result.scalars().all())
+        return bookings, total
 
     async def sum_today_revenue(self, reference: datetime | None = None) -> float:
         """Total ``price_paid`` for confirmed bookings created today (UTC)."""

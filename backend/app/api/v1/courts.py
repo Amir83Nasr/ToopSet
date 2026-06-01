@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_manager
+from app.api.deps import get_current_manager
 from app.core.database import get_db
 from app.core.date_utils import parse_date_filter
 from app.models.court import Court, SportType
@@ -60,7 +58,6 @@ async def list_courts(
     )
 
 
-
 @router.get("/{court_id}/reviews", response_model=ReviewListResponse)
 async def list_court_reviews(
     court_id: int,
@@ -101,7 +98,7 @@ async def update_court(
 async def delete_court(
     court_id: int,
     service: CourtService = Depends(get_court_service),
-    _: User = Depends(get_current_admin),
+    _: User = Depends(get_current_manager),
 ):
     await service.delete_court(court_id)
 
@@ -122,7 +119,10 @@ async def upload_court_image(
     if court.manager_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
     max_order = await db.scalar(
-        select(CourtImage.order).where(CourtImage.court_id == court_id).order_by(CourtImage.order.desc()).limit(1)
+        select(CourtImage.order)
+        .where(CourtImage.court_id == court_id)
+        .order_by(CourtImage.order.desc())
+        .limit(1)
     )
     next_order = (max_order or -1) + 1
     img = CourtImage(court_id=court_id, url=url, order=next_order)

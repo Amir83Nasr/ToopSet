@@ -11,21 +11,30 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import {
-  LayoutDashboard,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Building2,
-  CalendarCheck,
   CreditCard,
-  Star,
   Users,
-  Wallet,
   Settings,
   Bell,
   BarChart3,
-  Gavel,
-  Heart,
   History,
   MessageSquare,
+  UserCircle,
   LogOut,
+  LayoutDashboard,
+  Calendar,
   type LucideIcon,
 } from "lucide-react"
 
@@ -43,86 +52,48 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    label: "اصلی",
-    roles: ["admin", "manager", "user"],
+    label: "داشبورد",
+    roles: ["manager"],
     items: [
-      { title: "داشبورد", url: "/dashboard", icon: LayoutDashboard },
-      { title: "رزروها", url: "/dashboard/bookings", icon: CalendarCheck },
-      { title: "علاقه‌مندی‌ها", url: "/dashboard/favorites", icon: Heart },
+      { title: "داشبورد مدیر", url: "/dashboard/manager", icon: LayoutDashboard },
     ],
   },
   {
-    label: "مجموعه‌ها",
-    roles: ["admin", "manager"],
-    items: [
-      { title: "همه مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
-      {
-        title: "مدیریت زمان",
-        url: "/dashboard/courts/schedule",
-        icon: CalendarCheck,
-      },
-    ],
-  },
-  {
-    label: "خدمات",
-    roles: ["user"],
-    items: [
-      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
-      { title: "جریمه‌ها", url: "/dashboard/penalties", icon: Gavel },
-    ],
-  },
-  {
-    label: "مدیریت",
+    label: "مدیریت مجموعه",
     roles: ["manager"],
     items: [
       { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
-      {
-        title: "مدیریت زمان",
-        url: "/dashboard/courts/schedule",
-        icon: CalendarCheck,
-      },
-      { title: "نظرات", url: "/dashboard/reviews", icon: Star },
+      { title: "زمان‌بندی", url: "/dashboard/courts/schedule", icon: Calendar },
     ],
   },
   {
     label: "گزارشات",
-    roles: ["manager", "admin"],
-    items: [{ title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 }],
-  },
-  {
-    label: "مالی",
-    roles: ["admin", "manager", "user"],
+    roles: ["admin"],
     items: [
-      { title: "کیف پول", url: "/dashboard/wallet", icon: Wallet },
-      { title: "جریمه‌ها", url: "/dashboard/penalties", icon: Gavel },
+      { title: "داشبورد ادمین", url: "/dashboard/admin", icon: BarChart3 },
+      { title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 },
     ],
   },
   {
-    label: "امور مالی",
+    label: "مدیریت",
     roles: ["admin"],
     items: [
-      { title: "پرداخت‌ها", url: "/dashboard/payments", icon: CreditCard },
-    ],
-  },
-  {
-    label: "مدیریت سیستم",
-    roles: ["admin"],
-    items: [
+      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
       { title: "کاربران", url: "/dashboard/users", icon: Users },
       {
-        title: "مدیریت رزروها",
-        url: "/dashboard/admin/bookings",
-        icon: CalendarCheck,
+        title: "پرداخت‌ها",
+        url: "/dashboard/admin/payments",
+        icon: CreditCard,
       },
-      {
-        title: "تایید سالن‌ها",
-        url: "/dashboard/admin/courts",
-        icon: Building2,
-      },
-      { title: "تنظیمات سیستم", url: "/dashboard/admin/settings", icon: Settings },
       { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
-      { title: "نظرات", url: "/dashboard/reviews", icon: Star },
-      { title: "لاگ سیستم", url: "/dashboard/admin/logs", icon: History },
+    ],
+  },
+  {
+    label: "تنظیمات سیستم",
+    roles: ["admin"],
+    items: [
+      { title: "تنظیمات", url: "/dashboard/admin/settings", icon: Settings },
+      { title: "لاگ‌ها", url: "/dashboard/admin/logs", icon: History },
     ],
   },
   {
@@ -130,7 +101,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "manager", "user"],
     items: [
       { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
-      { title: "تنظیمات", url: "/dashboard/settings", icon: Settings },
+      { title: "پروفایل", url: "/dashboard/settings", icon: UserCircle },
     ],
   },
 ]
@@ -187,21 +158,44 @@ export function NavMain() {
         </SidebarGroup>
       ))}
 
-        {/* Logout */}
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip="خروج"
-                onClick={() => logout()}
-                className="text-destructive hover:text-destructive data-[active=true]:bg-destructive/10"
-              >
-                <LogOut />
-                <span>خروج</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+      {/* Logout */}
+      <SidebarGroup>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <SidebarMenuButton
+                  tooltip="خروج"
+                  className="text-destructive hover:text-destructive data-[active=true]:bg-destructive/10"
+                >
+                  <LogOut />
+                  <span>خروج</span>
+                </SidebarMenuButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogMedia>
+                    <LogOut className="text-destructive" />
+                  </AlertDialogMedia>
+                  <AlertDialogTitle>خروج از حساب</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>انصراف</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    onClick={() => logout()}
+                  >
+                    خروج
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
     </>
   )
 }

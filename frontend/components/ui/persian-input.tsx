@@ -4,8 +4,10 @@ import * as React from "react"
 import { Input } from "@/components/ui/input"
 import { toPersianDigits, toEnglishDigits } from "@/lib/utils"
 
-interface PersianInputProps
-  extends Omit<React.ComponentProps<typeof Input>, "onChange"> {
+interface PersianInputProps extends Omit<
+  React.ComponentProps<typeof Input>,
+  "onChange"
+> {
   value?: string | number
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
@@ -19,9 +21,7 @@ function PersianInput({
   const [local, setLocal] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const displayValue = isControlled
-    ? toPersianDigits(valueProp ?? "")
-    : local
+  const displayValue = isControlled ? toPersianDigits(valueProp ?? "") : local
 
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

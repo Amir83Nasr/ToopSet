@@ -46,9 +46,24 @@ class PaymentRepo:
         result = await self.db.execute(select(Payment).where(Payment.booking_id == booking_id))
         return result.scalar_one_or_none()
 
-    async def create(self, data: dict) -> Payment:
-        payment = Payment(**data)
-        self.db.add(payment)
-        await self.db.commit()
-        await self.db.refresh(payment)
-        return payment
+    async def list_all(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[Payment], int]:
+        query = (
+            select(Payment)
+            .options(
+                selectinload(Payment.booking)
+                .selectinload(Booking.slot)
+                .selectinload(TimeSlot.court)
+            )
+            .order_by(Payment.created_at.desc())
+        )
+        count_q = select(func.count(Payment.id))
+
+        total = (await self.db.execute(count_q)).scalar_one()
+        result = await self.db.execute(query.offset(skip).limit(limit))
+        payments = list(result.scalars().all())
+        return payments, total

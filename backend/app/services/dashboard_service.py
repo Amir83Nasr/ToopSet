@@ -37,6 +37,7 @@ class AdminStats(BaseModel):
     recent_bookings: list[dict] = []
     popular_courts: list[dict] = []
     user_growth: list[dict] = []
+    booking_trends: list[dict] = []
 
 
 class ManagerStats(BaseModel):
@@ -187,18 +188,34 @@ class DashboardService:
             popular_courts=popular_courts,
         )
 
-    async def get_admin_stats(self) -> AdminStats:
+    async def get_admin_stats(
+        self, date_from: datetime | None = None, date_to: datetime | None = None
+    ) -> AdminStats:
         now = datetime.now(timezone.utc)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Use provided date range or default to today
+        start_date = date_from or now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = date_to or now
 
         total_courts_result = await self.db.execute(select(func.count(Court.id)))
         total_users_result = await self.db.execute(select(func.count(User.id)))
-        total_bookings_result = await self.db.execute(select(func.count(Booking.id)))
-        total_revenue_result = await self.db.execute(
-            select(func.coalesce(func.sum(Booking.price_paid), 0)).where(
-                Booking.status == BookingStatus.CONFIRMED
-            )
+
+        # Apply date range to bookings and revenue
+        booking_query = select(func.count(Booking.id))
+        revenue_query = select(func.coalesce(func.sum(Booking.price_paid), 0)).where(
+            Booking.status == BookingStatus.CONFIRMED
         )
+
+        if date_from:
+            booking_query = booking_query.where(Booking.created_at >= start_date)
+            revenue_query = revenue_query.where(Booking.created_at >= start_date)
+        if date_to:
+            booking_query = booking_query.where(Booking.created_at <= end_date)
+            revenue_query = revenue_query.where(Booking.created_at <= end_date)
+
+        total_bookings_result = await self.db.execute(booking_query)
+        total_revenue_result = await self.db.execute(revenue_query)
+
         active_managers_result = await self.db.execute(
             select(func.count(User.id)).where(
                 User.role == UserRole.MANAGER, User.is_active.is_(True)
@@ -207,7 +224,8 @@ class DashboardService:
         pending_bookings_result = await self.db.execute(
             select(func.count(Booking.id)).where(Booking.status == BookingStatus.PENDING_PAYMENT)
         )
-        # Today stats
+        # Today stats (keep as is for now)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         today_bookings_result = await self.db.execute(
             select(func.count(Booking.id)).where(
                 Booking.created_at >= today_start,
@@ -274,6 +292,21 @@ class DashboardService:
             for row in popular_courts_result
         ]
 
+        # 7-day booking trends
+        from datetime import timedelta
+
+        seven_days_ago = now - timedelta(days=7)
+        trends_result = await self.db.execute(
+            select(
+                func.date(Booking.created_at).label("date"),
+                func.count(Booking.id).label("count"),
+            )
+            .where(Booking.created_at >= seven_days_ago)
+            .group_by(func.date(Booking.created_at))
+            .order_by(func.date(Booking.created_at).asc())
+        )
+        booking_trends = [{"date": str(row.date), "count": row.count} for row in trends_result]
+
         return AdminStats(
             total_courts=total_courts_result.scalar() or 0,
             total_users=total_users_result.scalar() or 0,
@@ -286,6 +319,7 @@ class DashboardService:
             total_managers=total_managers_result.scalar() or 0,
             recent_bookings=recent_bookings,
             popular_courts=popular_courts,
+            booking_trends=booking_trends,
         )
 
     async def get_manager_stats(self, user_id: int) -> ManagerStats:
@@ -362,7 +396,9 @@ class DashboardService:
         now = datetime.now(timezone.utc)
         current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if current_month_start.month == 1:
-            last_month_start = current_month_start.replace(year=current_month_start.year - 1, month=12)
+            last_month_start = current_month_start.replace(
+                year=current_month_start.year - 1, month=12
+            )
         else:
             last_month_start = current_month_start.replace(month=current_month_start.month - 1)
         last_month_end = current_month_start
@@ -420,6 +456,77 @@ class DashboardService:
                 "revenue_pct": pct_change(current["revenue"], last["revenue"]),
                 "users_pct": pct_change(current["new_users"], last["new_users"]),
             },
+        }
+
+    async def get_admin_charts(self) -> dict:
+        from datetime import timedelta
+
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        # a. User growth - daily registrations, last 30 days
+        user_result = await self.db.execute(
+            select(
+                func.date(User.created_at).label("date"),
+                func.count(User.id).label("count"),
+            )
+            .where(User.created_at >= thirty_days_ago)
+            .group_by(func.date(User.created_at))
+            .order_by(func.date(User.created_at).asc())
+        )
+        user_growth = [{"date": str(row.date), "count": row.count} for row in user_result]
+
+        # b. Court growth - daily registrations, last 30 days
+        court_result = await self.db.execute(
+            select(
+                func.date(Court.created_at).label("date"),
+                func.count(Court.id).label("count"),
+            )
+            .where(Court.created_at >= thirty_days_ago)
+            .group_by(func.date(Court.created_at))
+            .order_by(func.date(Court.created_at).asc())
+        )
+        court_growth = [{"date": str(row.date), "count": row.count} for row in court_result]
+
+        # c. Booking trends - daily confirmed booking counts, last 30 days
+        booking_result = await self.db.execute(
+            select(
+                func.date(Booking.created_at).label("date"),
+                func.count(Booking.id).label("count"),
+            )
+            .where(Booking.created_at >= thirty_days_ago)
+            .where(Booking.status == BookingStatus.CONFIRMED)
+            .group_by(func.date(Booking.created_at))
+            .order_by(func.date(Booking.created_at).asc())
+        )
+        booking_trends = [{"date": str(row.date), "count": row.count} for row in booking_result]
+
+        # d. Revenue trends - daily revenue + penalties, last 30 days
+        revenue_result = await self.db.execute(
+            select(
+                func.date(Booking.created_at).label("date"),
+                func.coalesce(func.sum(Booking.price_paid), 0).label("revenue"),
+                func.coalesce(func.sum(Booking.penalty_amount), 0).label("penalties"),
+            )
+            .where(Booking.created_at >= thirty_days_ago)
+            .where(Booking.status == BookingStatus.CONFIRMED)
+            .group_by(func.date(Booking.created_at))
+            .order_by(func.date(Booking.created_at).asc())
+        )
+        revenue_trends = [
+            {
+                "date": str(row.date),
+                "revenue": float(row.revenue),
+                "penalties": float(row.penalties),
+            }
+            for row in revenue_result
+        ]
+
+        return {
+            "user_growth": user_growth,
+            "court_growth": court_growth,
+            "booking_trends": booking_trends,
+            "revenue_trends": revenue_trends,
         }
 
     async def get_user_stats(self, user_id: int) -> UserStats:

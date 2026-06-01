@@ -4,10 +4,12 @@ import { z } from "zod"
 // Auth
 // ---------------------------------------------------------------------------
 
-const phoneSchema = z.string().refine(
-  (val) => val.length < 11 || /^09[0-9]{9}$/.test(val),
-  "شماره تلفن باید با ۰۹ شروع شود و ۱۱ رقم باشد"
-)
+const phoneSchema = z
+  .string()
+  .refine(
+    (val) => val.length < 11 || /^09[0-9]{9}$/.test(val),
+    "شماره تلفن باید با ۰۹ شروع شود و ۱۱ رقم باشد"
+  )
 
 export const loginSchema = z.object({
   phone: phoneSchema,

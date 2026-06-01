@@ -46,7 +46,7 @@ export function SiteFooter() {
               <span>توپ‌سِت</span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              سامانه هوشمند رزرو آنلاین زمین‌های ورزشی. به راحتی سالن مورد نظر
+              سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی. به راحتی سالن مورد نظر
               خود را پیدا کنید و سانس دلخواه را رزرو نمایید.
             </p>
             {/* Social / trust badge */}

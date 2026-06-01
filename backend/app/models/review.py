@@ -6,10 +6,9 @@ from sqlalchemy import Boolean, ForeignKey, SmallInteger, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.mixins import SoftDeleteMixin
 
 
-class Review(Base, SoftDeleteMixin):
+class Review(Base):
     __tablename__ = "reviews"
 
     id: Mapped[int] = mapped_column(primary_key=True)

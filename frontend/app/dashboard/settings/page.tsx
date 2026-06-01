@@ -4,12 +4,10 @@ import { useCallback, useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   Loader2,
@@ -18,9 +16,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  Check,
   Phone,
-  IdCard,
+  ShieldCheck,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -46,28 +43,27 @@ const themeOptions = [
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
-
   const [user, setUser] = useState<UserProfile | null>(null)
-  const [pageLoading, setPageLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
-  const [fullName, setFullName] = useState("")
-  const [savingName, setSavingName] = useState(false)
+  const [name, setName] = useState("")
+  const [saving, setSaving] = useState(false)
 
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmNewPassword, setConfirmNewPassword] = useState("")
-  const [changingPassword, setChangingPassword] = useState(false)
+  const [curPass, setCurPass] = useState("")
+  const [newPass, setNewPass] = useState("")
+  const [confirmPass, setConfirmPass] = useState("")
+  const [changingPass, setChangingPass] = useState(false)
 
   const fetchUser = useCallback(async () => {
-    setPageLoading(true)
+    setLoading(true)
     try {
       const data = await api<UserProfile>("/api/v1/auth/me")
       setUser(data)
-      setFullName(data.full_name)
+      setName(data.full_name)
     } catch {
       toast.error("خطا در دریافت اطلاعات کاربر")
     } finally {
-      setPageLoading(false)
+      setLoading(false)
     }
   }, [])
 
@@ -76,95 +72,63 @@ export default function SettingsPage() {
     return () => clearTimeout(timer)
   }, [fetchUser])
 
-  const handleSaveName = useCallback(async () => {
-    if (!fullName.trim()) {
-      toast.error("نام نمی‌تواند خالی باشد")
-      return
-    }
-    setSavingName(true)
+  const saveName = useCallback(async () => {
+    if (!name.trim()) return toast.error("نام نمی‌تواند خالی باشد")
+    setSaving(true)
     try {
       const updated = await api<UserProfile>("/api/v1/auth/profile", {
         method: "PATCH",
-        body: JSON.stringify({ full_name: fullName.trim() }),
+        body: JSON.stringify({ full_name: name.trim() }),
       })
       setUser(updated)
-      toast.success("نام با موفقیت به‌روزرسانی شد")
+      toast.success("نام به‌روزرسانی شد")
     } catch (err) {
-      const msg =
-        err instanceof ApiError ? err.message : "خطا در به‌روزرسانی نام"
-      toast.error(msg)
+      toast.error(err instanceof ApiError ? err.message : "خطا در به‌روزرسانی")
     } finally {
-      setSavingName(false)
+      setSaving(false)
     }
-  }, [fullName])
+  }, [name])
 
-  const handleChangePassword = useCallback(async () => {
-    if (!currentPassword) {
-      toast.error("لطفاً رمز عبور فعلی را وارد کنید")
-      return
-    }
-    if (!newPassword) {
-      toast.error("لطفاً رمز عبور جدید را وارد کنید")
-      return
-    }
-    if (newPassword.length < 6) {
-      toast.error("رمز عبور جدید باید حداقل ۶ کاراکتر باشد")
-      return
-    }
-    if (newPassword !== confirmNewPassword) {
-      toast.error("رمز عبور جدید و تکرار آن مطابقت ندارند")
-      return
-    }
-    setChangingPassword(true)
+  const changePassword = useCallback(async () => {
+    if (!curPass) return toast.error("رمز فعلی را وارد کنید")
+    if (!newPass) return toast.error("رمز جدید را وارد کنید")
+    if (newPass.length < 6) return toast.error("حداقل ۶ کاراکتر")
+    if (newPass !== confirmPass) return toast.error("تکرار رمز مطابقت ندارد")
+    setChangingPass(true)
     try {
       await api("/api/v1/auth/profile", {
         method: "PATCH",
         body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
+          current_password: curPass,
+          new_password: newPass,
         }),
       })
-      toast.success("رمز عبور با موفقیت تغییر کرد")
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmNewPassword("")
+      toast.success("رمز عبور تغییر کرد")
+      setCurPass("")
+      setNewPass("")
+      setConfirmPass("")
     } catch (err) {
-      const msg =
-        err instanceof ApiError ? err.message : "خطا در تغییر رمز عبور"
-      toast.error(msg)
+      toast.error(err instanceof ApiError ? err.message : "خطا در تغییر رمز")
     } finally {
-      setChangingPassword(false)
+      setChangingPass(false)
     }
-  }, [currentPassword, newPassword, confirmNewPassword])
+  }, [curPass, newPass, confirmPass])
 
   /* ── Loading ── */
-  if (pageLoading) {
+  if (loading) {
     return (
-      <div className="flex flex-1 flex-col gap-6 px-4 py-6">
-        <Skeleton className="h-7 w-24" />
-        <Skeleton className="h-4 w-44" />
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-4 w-36" />
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-24" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-28" />
-            </CardContent>
-          </Card>
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="h-3 w-40" />
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="space-y-3 rounded-lg border p-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -172,11 +136,9 @@ export default function SettingsPage() {
 
   if (!user) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20">
-        <p className="text-muted-foreground">
-          امکان بارگذاری اطلاعات وجود ندارد
-        </p>
-        <Button variant="outline" onClick={fetchUser}>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+        <p className="text-sm text-muted-foreground">خطا در بارگذاری اطلاعات</p>
+        <Button variant="outline" size="sm" onClick={fetchUser}>
           تلاش مجدد
         </Button>
       </div>
@@ -184,165 +146,158 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8 px-4 py-6">
+    <div className="flex flex-1 flex-col gap-5 p-4">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">تنظیمات حساب</h1>
-        <p className="text-muted-foreground">
-          مدیریت اطلاعات کاربری، تم و رمز عبور
+        <h1 className="text-lg font-bold tracking-tight">تنظیمات حساب</h1>
+        <p className="text-xs text-muted-foreground">
+          مدیریت اطلاعات شخصی، تم و رمز عبور
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* ── Profile ── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <User className="size-4" />
-              اطلاعات حساب
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <Phone className="size-5 shrink-0 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">شماره تلفن</p>
-                <p className="text-sm font-medium" dir="ltr">
-                  {toPersianDigits(user.phone)}
-                </p>
-              </div>
-            </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* ── Profile Card ── */}
+        <section className="space-y-3 rounded-lg border p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <User className="size-3.5" />
+            اطلاعات حساب
+          </div>
 
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <IdCard className="size-5 shrink-0 text-muted-foreground" />
-              <div className="flex flex-1 items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">نقش کاربری</p>
-                  <Badge variant="outline" className="mt-0.5 text-xs">
-                    {roleLabels[user.role] || user.role}
-                  </Badge>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2.5 rounded-md bg-muted/40 px-3 py-2 text-xs">
+            <Phone className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="text-muted-foreground">تلفن:</span>
+            <span dir="ltr" className="font-medium">
+              {toPersianDigits(user.phone)}
+            </span>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="fullName">نام و نام خانوادگی</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="نام خود را وارد کنید"
-                />
-                <Button
-                  onClick={handleSaveName}
-                  disabled={savingName || fullName === user.full_name}
-                  size="icon"
-                  className="shrink-0"
-                  title="ذخیره"
-                >
-                  {savingName ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Check className="size-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="flex items-center gap-2.5 rounded-md bg-muted/40 px-3 py-2 text-xs">
+            <ShieldCheck className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="text-muted-foreground">نقش:</span>
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+              {roleLabels[user.role] || user.role}
+            </Badge>
+          </div>
 
-        {/* ── Theme ── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sun className="size-4" />
-              تم
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-3">
-              {themeOptions.map(({ value, label, icon: Icon }) => {
-                const isActive = theme === value
-                return (
-                  <button
-                    key={value}
-                    onClick={() => setTheme(value)}
-                    className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-all ${
-                      isActive
-                        ? "border-primary bg-primary/10 text-primary shadow-xs"
-                        : "border-border hover:border-primary/50 hover:bg-accent"
-                    }`}
-                  >
-                    <Icon className="size-5" />
-                    <span className="text-xs font-medium">{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <p className="mt-4 text-xs text-muted-foreground">
-              همچنین می‌توانید با دکمه{" "}
-              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px]">
-                D
-              </kbd>{" "}
-              روی صفحه‌کلید تم را سریع切换 کنید.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Change Password ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Lock className="size-4" />
-            تغییر رمز عبور
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-5 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs">
+              نام و نام خانوادگی
+            </Label>
+            <div className="flex gap-1.5">
               <Input
-                id="currentPassword"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="نام خود را وارد کنید"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">رمز عبور جدید</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="حداقل ۶ کاراکتر"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmNewPassword">تکرار رمز عبور جدید</Label>
-              <Input
-                id="confirmNewPassword"
-                type="password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                placeholder="تکرار رمز جدید"
-              />
+              <Button
+                size="sm"
+                onClick={saveName}
+                disabled={saving || name === user.full_name}
+                className="h-8 shrink-0 px-3 text-xs"
+              >
+                {saving ? <Loader2 className="size-3 animate-spin" /> : "ذخیره"}
+              </Button>
             </div>
           </div>
-          <Button
-            onClick={handleChangePassword}
-            disabled={changingPassword}
-            className="mt-5"
-          >
-            {changingPassword && (
-              <Loader2 className="ml-1 size-4 animate-spin" />
-            )}
-            {changingPassword ? "در حال تغییر..." : "تغییر رمز عبور"}
-          </Button>
-        </CardContent>
-      </Card>
+        </section>
+
+        {/* ── Theme Card ── */}
+        <section className="space-y-3 rounded-lg border p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Sun className="size-3.5" />
+            تم
+          </div>
+
+          <div className="flex gap-2">
+            {themeOptions.map(({ value, label, icon: Icon }) => {
+              const active = theme === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  className={`flex flex-1 flex-col items-center gap-1.5 rounded-lg border py-3 text-xs transition-all ${
+                    active
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/40 hover:bg-accent"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          <p className="text-[10px] text-muted-foreground">
+            میانبر کیبورد:{" "}
+            <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">
+              D
+            </kbd>
+          </p>
+        </section>
+      </div>
+
+      {/* ── Password Card ── */}
+      <section className="space-y-3 rounded-lg border p-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Lock className="size-3.5" />
+          تغییر رمز عبور
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="space-y-1">
+            <Label htmlFor="curPass" className="text-xs">
+              رمز فعلی
+            </Label>
+            <Input
+              id="curPass"
+              type="password"
+              value={curPass}
+              onChange={(e) => setCurPass(e.target.value)}
+              className="h-8 text-xs"
+              placeholder="••••••"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="newPass" className="text-xs">
+              رمز جدید
+            </Label>
+            <Input
+              id="newPass"
+              type="password"
+              value={newPass}
+              onChange={(e) => setNewPass(e.target.value)}
+              className="h-8 text-xs"
+              placeholder="حداقل ۶ کاراکتر"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="confirmPass" className="text-xs">
+              تکرار رمز جدید
+            </Label>
+            <Input
+              id="confirmPass"
+              type="password"
+              value={confirmPass}
+              onChange={(e) => setConfirmPass(e.target.value)}
+              className="h-8 text-xs"
+              placeholder="تکرار"
+            />
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          onClick={changePassword}
+          disabled={changingPass}
+          className="text-xs"
+        >
+          {changingPass && <Loader2 className="ml-1 size-3 animate-spin" />}
+          {changingPass ? "در حال تغییر..." : "تغییر رمز عبور"}
+        </Button>
+      </section>
     </div>
   )
 }

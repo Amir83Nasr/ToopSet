@@ -314,22 +314,24 @@ function HomePageContent() {
                 جستجوی <span className="text-primary">سالن‌ها</span>
               </h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-                زمین ورزشی مورد نظر خود را پیدا کنید
+                مجموعه ورزشی مورد نظر خود را پیدا کنید
               </p>
             </div>
 
-            <div className={`rounded-xl border bg-card p-4 shadow-sm transition-all md:p-6 ${
+            <div
+              className={`rounded-xl border bg-card p-4 shadow-sm transition-all md:p-6 ${
                 hasActiveFilters
                   ? "border-primary/30 ring-1 ring-primary/10"
                   : ""
-              }`}>
+              }`}
+            >
               {/* Row 1: Search + Sort + Near Me */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="relative">
                     <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="جستجوی نام زمین، آدرس..."
+                      placeholder="جستجوی نام مجموعه، آدرس..."
                       value={searchText}
                       onChange={(e) => {
                         setSearchText(e.target.value)
@@ -433,10 +435,7 @@ function HomePageContent() {
                   min={0}
                   max={500000}
                   step={10000}
-                  value={[
-                    Number(priceMin) || 0,
-                    Number(priceMax) || 500000,
-                  ]}
+                  value={[Number(priceMin) || 0, Number(priceMax) || 500000]}
                   onValueChange={([min, max]) => {
                     setPriceMin(String(min))
                     setPriceMax(String(max))
@@ -451,7 +450,7 @@ function HomePageContent() {
               </div>
 
               {/* Row 4: Active filters */}
-              <div className="mr-auto mt-2 flex items-center gap-2">
+              <div className="mt-2 mr-auto flex items-center gap-2">
                 {hasActiveFilters && (
                   <Button
                     variant="ghost"
@@ -535,7 +534,7 @@ function HomePageContent() {
                 موقعیت <span className="text-primary">سالن‌ها</span>
               </h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-                نزدیک‌ترین زمین‌های ورزشی به خود را پیدا کنید
+                نزدیک‌ترین مجموعه‌های ورزشی به خود را پیدا کنید
               </p>
             </div>
             {/* Location status */}
@@ -550,7 +549,7 @@ function HomePageContent() {
                 <div className="flex items-center gap-2">
                   <MapPin className="size-4 shrink-0" />
                   <span>
-                    موقعیت‌یابی غیرفعال است — زمین‌های نزدیک نمایش داده نمی‌شوند
+                    موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده نمی‌شوند
                   </span>
                 </div>
                 {geo.permissionState === "denied" && (
@@ -563,7 +562,7 @@ function HomePageContent() {
             {userLocation && (
               <div className="mb-3 flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-green-700 dark:text-green-300">
                 <MapPin className="size-4 shrink-0" />
-                <span>نمایش زمین‌های نزدیک به موقعیت شما</span>
+                <span>نمایش مجموعه‌های نزدیک به موقعیت شما</span>
               </div>
             )}
             <div className="overflow-hidden rounded-xl border bg-card">
@@ -585,7 +584,7 @@ function HomePageContent() {
                   <span className="text-primary">سالن‌های</span> موجود
                 </h2>
                 <p className="mt-2 text-muted-foreground">
-                  {toPersianDigits(total)} زمین پیدا شد
+                  {toPersianDigits(total)} مجموعه پیدا شد
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
@@ -614,7 +613,7 @@ function HomePageContent() {
                   <Building2 className="size-8 text-muted-foreground" />
                 </div>
                 <p className="text-lg text-muted-foreground">
-                  هیچ زمینی با فیلترهای انتخاب شده یافت نشد
+                  هیچ مجموعهی با فیلترهای انتخاب شده یافت نشد
                 </p>
                 <Button variant="outline" onClick={clearFilters}>
                   پاک کردن فیلترها

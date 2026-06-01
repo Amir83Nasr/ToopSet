@@ -234,7 +234,7 @@ export default function ReviewsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>زمین</TableHead>
+                <TableHead>مجموعه</TableHead>
                 <TableHead>امتیاز</TableHead>
                 <TableHead>نظر</TableHead>
                 <TableHead>تاریخ</TableHead>
@@ -284,7 +284,7 @@ export default function ReviewsPage() {
             </div>
             <h3 className="mb-1 text-lg font-semibold">هنوز نظری ثبت نشده</h3>
             <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-              پس از رزرو و استفاده از زمین‌ها می‌توانید نظر خود را ثبت کنید.
+              پس از رزرو و استفاده از مجموعه‌ها می‌توانید نظر خود را ثبت کنید.
             </p>
             <Button asChild>
               <Link href="/dashboard/bookings">
@@ -302,7 +302,7 @@ export default function ReviewsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>زمین</TableHead>
+              <TableHead>مجموعه</TableHead>
               <TableHead>امتیاز</TableHead>
               <TableHead>نظر</TableHead>
               <TableHead>تاریخ</TableHead>
@@ -422,7 +422,7 @@ export default function ReviewsPage() {
           </div>
           <h3 className="mb-1 text-lg font-semibold">به زودی</h3>
           <p className="max-w-sm text-center text-sm text-muted-foreground">
-            بخش نظرات زمین‌ها به زودی اضافه می‌شود
+            بخش نظرات مجموعه‌ها به زودی اضافه می‌شود
           </p>
         </CardContent>
       </Card>
@@ -437,7 +437,7 @@ export default function ReviewsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">نظرات</h1>
           <p className="text-muted-foreground">
-            مدیریت و ثبت نظرات برای زمین‌های ورزشی
+            مدیریت و ثبت نظرات برای مجموعه‌های ورزشی
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -542,7 +542,7 @@ export default function ReviewsPage() {
               : "text-muted-foreground hover:text-foreground")
           }
         >
-          نظرات زمین‌ها
+          نظرات مجموعه‌ها
         </button>
       </div>
 

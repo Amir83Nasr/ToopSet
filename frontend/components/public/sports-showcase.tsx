@@ -1,13 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import {
-  CircleDot,
-  Crosshair,
-  Goal,
-  Hand,
-  ArrowLeft,
-} from "lucide-react"
+import { CircleDot, Crosshair, Goal, Hand, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 const sports = [
@@ -19,7 +13,7 @@ const sports = [
   {
     icon: Crosshair,
     name: "بسکتبال",
-    desc: "زمین‌های استاندارد بسکتبال با کفپوش مناسب",
+    desc: "مجموعه‌های استاندارد بسکتبال با کفپوش مناسب",
   },
   {
     icon: Goal,
@@ -29,7 +23,7 @@ const sports = [
   {
     icon: Hand,
     name: "هندبال",
-    desc: "زمین‌های استاندارد هندبال برای مسابقات و تمرین",
+    desc: "مجموعه‌های استاندارد هندبال برای مسابقات و تمرین",
   },
 ]
 
@@ -37,7 +31,7 @@ export function SportsShowcase() {
   return (
     <section className="relative overflow-hidden border-t px-4 py-16 md:py-24">
       <div className="bg-grid absolute inset-0 opacity-15 dark:opacity-[0.03]" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 size-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/3 blur-[120px]" />
+      <div className="pointer-events-none absolute top-1/2 left-1/2 size-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/3 blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Header */}

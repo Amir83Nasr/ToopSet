@@ -9,35 +9,20 @@ export default function RegisterPage() {
   const { register } = useAuth()
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-[1fr_2fr]">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <Link href="/" className="flex items-center gap-2 font-medium">
-            <Image
-              src="/favicon.svg"
-              alt="توپ‌سِت"
-              width={24}
-              height={24}
-              className="size-6"
-            />
-            توپ‌سِت
-          </Link>
-        </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            <RegisterForm register={register} />
-          </div>
-        </div>
-      </div>
-      <div className="relative hidden overflow-hidden lg:block">
+    <div className="flex min-h-svh flex-col items-center justify-center bg-gradient-to-b from-background to-muted/50 px-4 py-12">
+      <Link href="/" className="mb-8 flex items-center gap-2">
         <Image
-          src="/futsal.svg"
-          alt=""
-          fill
-          className="object-cover"
-          priority
+          src="/favicon.svg"
+          alt="توپ‌سِت"
+          width={28}
+          height={28}
+          className="size-7"
         />
-        <div className="absolute inset-0 bg-linear-to-br from-black/30 to-transparent" />
+        <span className="text-lg font-bold tracking-tight">توپ‌سِت</span>
+      </Link>
+
+      <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-sm">
+        <RegisterForm register={register} />
       </div>
     </div>
   )

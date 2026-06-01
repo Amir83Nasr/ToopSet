@@ -32,6 +32,7 @@ class CourtRepo:
         sport_type: SportType | None = None,
         is_active: bool | None = True,
         search: str | None = None,
+        manager_id: int | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         price_min: float | None = None,
@@ -41,8 +42,11 @@ class CourtRepo:
         max_distance_km: float | None = None,
         sort: str = "default",
     ) -> tuple[list[Court], int]:
-        query = select(Court).options(selectinload(Court.court_images)).where(Court.is_deleted == False)
-        count_query = select(Court.id).where(Court.is_deleted == False)
+        query = select(Court).options(
+            selectinload(Court.court_images),
+            selectinload(Court.manager),
+        )
+        count_query = select(Court.id)
 
         if sport_type:
             query = query.where(Court.sport_types.any(sport_type.value))
@@ -50,6 +54,9 @@ class CourtRepo:
         if is_active is not None:
             query = query.where(Court.is_active == is_active)
             count_query = count_query.where(Court.is_active == is_active)
+        if manager_id is not None:
+            query = query.where(Court.manager_id == manager_id)
+            count_query = count_query.where(Court.manager_id == manager_id)
         if search:
             pattern = f"%{search}%"
             query = query.where(Court.name.ilike(pattern))
@@ -77,11 +84,13 @@ class CourtRepo:
 
         from sqlalchemy import func as sa_func
 
-        count_q = select(sa_func.count()).select_from(Court).where(Court.is_deleted == False)
+        count_q = select(sa_func.count()).select_from(Court)
         if sport_type:
             count_q = count_q.where(Court.sport_types.any(sport_type.value))
         if is_active is not None:
             count_q = count_q.where(Court.is_active == is_active)
+        if manager_id is not None:
+            count_q = count_q.where(Court.manager_id == manager_id)
         if search:
             count_q = count_q.where(Court.name.ilike(f"%{search}%"))
 
@@ -131,25 +140,27 @@ class CourtRepo:
         from sqlalchemy import func as sa_func
 
         result = await self.db.execute(
-            select(sa_func.count(Court.id)).where(
-                Court.is_active == True, Court.is_deleted == False
-            )
+            select(sa_func.count(Court.id)).where(Court.is_active == True)
         )
         return result.scalar_one()
 
     async def get_by_id(self, court_id: int) -> Court | None:
-        result = await self.db.execute(
-            select(Court).where(Court.id == court_id, Court.is_deleted == False)
-        )
+        result = await self.db.execute(select(Court).where(Court.id == court_id))
         return result.scalar_one_or_none()
 
     async def get_by_id_with_images(self, court_id: int) -> Court | None:
         result = await self.db.execute(
-            select(Court)
-            .options(selectinload(Court.court_images))
-            .where(Court.id == court_id, Court.is_deleted == False)
+            select(Court).options(selectinload(Court.court_images)).where(Court.id == court_id)
         )
         return result.scalar_one_or_none()
+
+    async def count_by_manager(self, manager_id: int) -> int:
+        from sqlalchemy import func as sa_func
+
+        result = await self.db.execute(
+            select(sa_func.count(Court.id)).where(Court.manager_id == manager_id)
+        )
+        return result.scalar_one()
 
     async def create(self, data: dict) -> Court:
         court = Court(**data)
@@ -167,9 +178,5 @@ class CourtRepo:
         return court
 
     async def delete(self, court: Court) -> None:
-        court.soft_delete()
-        await self.db.commit()
-
-    async def hard_delete(self, court: Court) -> None:
         await self.db.delete(court)
         await self.db.commit()

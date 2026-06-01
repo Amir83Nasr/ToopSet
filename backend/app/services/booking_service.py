@@ -58,6 +58,20 @@ class BookingService:
             total=total,
         )
 
+    async def list_completed_bookings(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> BookingListResponse:
+        bookings, total = await self.booking_repo.list_completed_by_user(
+            self.current_user.id, skip=skip, limit=limit
+        )
+        return BookingListResponse(
+            bookings=[BookingResponse.model_validate(b) for b in bookings],
+            total=total,
+        )
+
     async def get_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
         if not booking:
@@ -142,8 +156,10 @@ class BookingService:
             )
 
         await log_action(
-            self.booking_repo.db, self.current_user.id, "booking_created",
-            f"Booking (id={booking.id}) for slot #{data.slot_id}",
+            self.booking_repo.db,
+            self.current_user.id,
+            "booking_created",
+            f"ایجاد رزرو | رزرو {booking.id} برای سانس {data.slot_id} - مجموعه {court.name}",
         )
 
         return BookingDetailResponse(
@@ -164,52 +180,7 @@ class BookingService:
             payment=None,
         )
 
-        existing = await self.booking_repo.get_by_slot(data.slot_id)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already has a booking"
-            )
-
-        booking = await self.booking_repo.create(
-            {
-                "user_id": self.current_user.id,
-                "slot_id": data.slot_id,
-                "status": BookingStatus.PENDING_PAYMENT,
-                "price_paid": float(slot.base_price),
-                "participants_count": data.participants_count,
-                "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
-            }
-        )
-
-        # Notify manager about new booking
-        if court:
-            await self.notify_repo.create(
-                user_id=court.manager_id,
-                type_="booking_created",
-                message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
-            )
-
-        return BookingDetailResponse(
-            id=booking.id,
-            user_id=booking.user_id,
-            slot_id=booking.slot_id,
-            status=booking.status,
-            price_paid=float(booking.price_paid),
-            participants_count=booking.participants_count,
-            penalty_amount=None,
-            created_at=booking.created_at,
-            updated_at=booking.updated_at,
-            expires_at=booking.expires_at,
-            court_name=court.name if court else "",
-            court_address=court.address if court else "",
-            slot_start_time=slot.start_time if slot else None,
-            slot_end_time=slot.end_time if slot else None,
-            payment=None,
-        )
-
-    async def _record_failed_payment(
-        self, booking_id: int, amount: float
-    ) -> None:
+    async def _record_failed_payment(self, booking_id: int, amount: float) -> None:
         await self.payment_repo.create(
             {
                 "booking_id": booking_id,
@@ -238,6 +209,11 @@ class BookingService:
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+        if slot.is_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="این سانس قبلاً رزرو شده است",
+            )
         court = slot.court
 
         # Process mock payment
@@ -298,8 +274,10 @@ class BookingService:
         )
 
         await log_action(
-            self.booking_repo.db, self.current_user.id, "booking_confirmed",
-            f"Booking (id={booking_id}) paid and confirmed, amount={booking.price_paid}",
+            self.booking_repo.db,
+            self.current_user.id,
+            "booking_confirmed",
+            f"تایید رزرو | رزرو {booking_id} به مبلغ {booking.price_paid} تومان پرداخت و تایید شد",
         )
 
         return BookingDetailResponse(
@@ -387,8 +365,10 @@ class BookingService:
             )
 
         await log_action(
-            self.booking_repo.db, self.current_user.id, "booking_cancelled",
-            f"Booking (id={booking_id}) cancelled, refund={refund_amount}",
+            self.booking_repo.db,
+            self.current_user.id,
+            "booking_cancelled",
+            f"لغو رزرو | رزرو {booking_id} لغو شد - {refund_amount} تومان به کیف پول بازگشت",
         )
 
         payment = await self.payment_repo.get_by_booking(booking_id)
