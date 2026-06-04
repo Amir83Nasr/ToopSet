@@ -237,7 +237,9 @@
     cursor: pointer;
     }
   html {
-    @apply font-sans overflow-x-hidden;
+    @apply font-sans;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
     }
 }
 
@@ -245,12 +247,12 @@
    Text Selection — primary-tinted blue glow
    ══════════════════════════════════════════════════ */
 ::selection {
-  background-color: oklch(from var(--color-primary) l c h / 0.35);
+  background-color: oklch(from var(--color-primary) l c h / 0.95);
   color: var(--primary-foreground);
 }
 
 .dark ::selection {
-  background-color: oklch(from var(--color-primary) l c h / 0.4);
+  background-color: oklch(from var(--color-primary) l c h / 0.95);
   color: var(--primary-foreground);
 }
 
@@ -573,5 +575,60 @@
   display: none !important;
 }
 
+/* Scrollbar hide utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
 
 
+
+
+/* ══════════════════════════════════════════════════
+   Sonner Toast — RTL, font, styling overrides
+   ══════════════════════════════════════════════════ */
+
+[data-sonner-toaster] {
+  font-family: "IranYekanX", sans-serif !important;
+}
+
+[data-sonner-toast] {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: "IranYekanX", sans-serif !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-family: "IranYekanX", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+}
+
+[data-sonner-toast] [data-description] {
+  font-family: "IranYekanX", sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  opacity: 0.85 !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  left: 8px !important;
+  right: auto !important;
+}
+
+[data-sonner-toast] [data-icon] {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+[data-sonner-toast] {
+  padding: 14px 16px !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 1px 4px rgba(0, 0, 0, 0.06) !important;
+}

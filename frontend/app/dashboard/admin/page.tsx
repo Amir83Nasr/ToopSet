@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   LineChart,
   Line,
@@ -215,7 +215,7 @@ export default function AdminDashboardPage() {
   ]
 
   return (
-    <div className="bg-mesh relative min-h-screen px-4 py-6">
+    <div className="bg-mesh relative min-h-screen overflow-x-hidden px-4 py-6">
       {/* Ambient background orbs for depth */}
       <div className="neon-orb neon-orb-1" />
       <div className="neon-orb neon-orb-2" />

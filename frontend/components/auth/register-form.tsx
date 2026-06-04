@@ -7,9 +7,21 @@ import { registerSchema, type RegisterInput } from "@/lib/validations"
 import { toEnglishDigits, toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field"
+import {
+  Field,
+  FieldLabel,
+  FieldError,
+  FieldGroup,
+  FieldDescription,
+} from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
-import { toast } from "sonner"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  AiUserIcon,
+  AiPhone01Icon,
+  AiLockIcon,
+} from "@hugeicons/core-free-icons"
+import { toast } from "@/lib/toast"
 import { ApiError } from "@/lib/api"
 import type { UseAuthReturn } from "@/hooks/use-auth"
 
@@ -19,7 +31,11 @@ interface Props {
   onSuccess?: () => void
 }
 
-export function RegisterForm({ register: registerFn, onLoginClick, onSuccess }: Props) {
+export function RegisterForm({
+  register: registerFn,
+  onLoginClick,
+  onSuccess,
+}: Props) {
   const {
     handleSubmit,
     control,
@@ -40,95 +56,130 @@ export function RegisterForm({ register: registerFn, onLoginClick, onSuccess }: 
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="text-center">
-        <h1 className="text-base font-bold">ساخت حساب کاربری</h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          برای ثبت‌نام اطلاعات زیر را وارد کنید
-        </p>
-      </div>
-
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
       <FieldGroup>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-2xl font-bold">ایجاد حساب کاربری</h1>
+          <p className="text-sm text-balance text-muted-foreground">
+            ثبت‌نام رایگان و رزرو آسان سالن‌های ورزشی
+          </p>
+        </div>
+
         <Field>
           <FieldLabel>نام و نام خانوادگی</FieldLabel>
-          <Controller
-            name="full_name"
-            control={control}
-            render={({ field }) => (
-              <Input
-                type="text"
-                placeholder="مثلاً علی محمدی"
-                {...field}
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+              <HugeiconsIcon
+                icon={AiUserIcon}
+                className="size-4 text-muted-foreground"
               />
-            )}
+            </div>
+            <Controller
+              name="full_name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type="text"
+                  placeholder="مثلاً علی محمدی"
+                  className="bg-background pr-8"
+                  autoComplete="name"
+                  {...field}
+                />
+              )}
+            />
+          </div>
+          <FieldError
+            errors={errors.full_name ? [errors.full_name] : undefined}
           />
-          <FieldError errors={errors.full_name ? [errors.full_name] : undefined} />
         </Field>
 
         <Field>
           <FieldLabel>شماره موبایل</FieldLabel>
-          <Controller
-            name="phone"
-            control={control}
-            render={({ field }) => (
-              <Input
-                type="tel"
-                dir="ltr"
-                placeholder="09120000000"
-                className="text-left"
-                maxLength={11}
-                value={toPersianDigits(field.value || "")}
-                onChange={(e) => field.onChange(toEnglishDigits(e.target.value))}
-                onBlur={field.onBlur}
-                ref={field.ref}
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+              <HugeiconsIcon
+                icon={AiPhone01Icon}
+                className="size-4 text-muted-foreground"
               />
-            )}
-          />
+            </div>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type="tel"
+                  dir="ltr"
+                  placeholder="مثلاً ۰۹۱۲۰۰۰۰۰۰۰"
+                  className="bg-background pr-8 text-left"
+                  maxLength={11}
+                  autoComplete="tel"
+                  value={toPersianDigits(field.value || "")}
+                  onChange={(e) =>
+                    field.onChange(toEnglishDigits(e.target.value))
+                  }
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  name={field.name}
+                />
+              )}
+            />
+          </div>
           <FieldError errors={errors.phone ? [errors.phone] : undefined} />
         </Field>
 
         <Field>
           <FieldLabel>رمز عبور</FieldLabel>
-          <Controller
-            name="password"
-            control={control}
-            render={({ field }) => (
-              <Input
-                type="password"
-                dir="ltr"
-                placeholder="حداقل ۴ کاراکتر"
-                {...field}
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+              <HugeiconsIcon
+                icon={AiLockIcon}
+                className="size-4 text-muted-foreground"
               />
-            )}
+            </div>
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type="password"
+                  dir="ltr"
+                  placeholder="حداقل ۴ کاراکتر"
+                  className="bg-background pr-8"
+                  autoComplete="new-password"
+                  {...field}
+                />
+              )}
+            />
+          </div>
+          <FieldError
+            errors={errors.password ? [errors.password] : undefined}
           />
-          <FieldError errors={errors.password ? [errors.password] : undefined} />
         </Field>
+
+        <Field>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+            {isSubmitting ? "در حال ثبت‌نام..." : "ثبت‌نام"}
+          </Button>
+        </Field>
+
+        <FieldDescription className="text-center">
+          قبلاً ثبت‌نام کرده‌اید؟{" "}
+          {onLoginClick ? (
+            <button
+              type="button"
+              onClick={onLoginClick}
+              className="underline underline-offset-4"
+            >
+              ورود
+            </button>
+          ) : (
+            <Link href="/login" className="underline underline-offset-4">
+              ورود
+            </Link>
+          )}
+        </FieldDescription>
       </FieldGroup>
-
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-        {isSubmitting ? "در حال ثبت‌نام..." : "ثبت‌نام"}
-      </Button>
-
-      <p className="text-center text-xs text-muted-foreground">
-        قبلاً ثبت‌نام کرده‌اید؟{" "}
-        {onLoginClick ? (
-          <button
-            type="button"
-            onClick={onLoginClick}
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            ورود
-          </button>
-        ) : (
-          <Link
-            href="/login"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            ورود
-          </Link>
-        )}
-      </p>
     </form>
   )
 }

@@ -13,7 +13,7 @@ class TimeSlot(Base):
     __tablename__ = "time_slots"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    court_id: Mapped[int] = mapped_column(ForeignKey("courts.id"), index=True)
+    court_id: Mapped[int] = mapped_column(ForeignKey("courts.id", ondelete="CASCADE"), index=True)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     base_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))

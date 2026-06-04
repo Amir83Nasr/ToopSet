@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
 import dynamic from "next/dynamic"
@@ -101,7 +101,7 @@ export default function EditCourtPage() {
         body: JSON.stringify({ ...data, images: courtImages }),
       })
       toast.success("مجموعه با موفقیت ویرایش شد")
-      router.push(`/dashboard/courts/${courtId}`)
+      router.push("/dashboard/courts")
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در ویرایش مجموعه"
       toast.error(msg)

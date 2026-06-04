@@ -79,26 +79,26 @@ class ReviewService:
         if not booking:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Booking not found",
+                detail="رزرو یافت نشد",
             )
 
         if booking.user_id != self.current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not your booking",
+                detail="شما به این رزرو دسترسی ندارید",
             )
 
         if booking.status != BookingStatus.CONFIRMED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Booking is not confirmed",
+                detail="این رزرو تایید نشده است",
             )
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Time slot not found",
+                detail="سانس یافت نشد",
             )
 
         from datetime import datetime, timedelta, timezone
@@ -106,15 +106,15 @@ class ReviewService:
         if slot.end_time + timedelta(hours=2) > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Review can only be submitted 2 hours after the session ends",
+                detail="امکان ثبت نظر ۲ ساعت پس از پایان سانس فراهم است",
             )
 
         # Validate no existing review for this booking
         existing = await self.review_repo.get_by_booking(data.booking_id)
         if existing:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Booking already has a review",
+                status_code=status.HTTP_409_CONFLICT,
+                detail="برای این رزرو قبلاً نظر ثبت شده است",
             )
 
         court_id = slot.court.id if slot.court else None
@@ -147,14 +147,14 @@ class ReviewService:
         if self.current_user.role not in ("manager", "admin"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only manager or admin can respond to reviews",
+                detail="فقط مدیر مجموعه یا ادمین می‌توانند به نظرات پاسخ دهند",
             )
 
         review = await self.review_repo.get_by_id(review_id)
         if not review:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Review not found",
+                detail="نظر یافت نشد",
             )
 
         # Verify manager owns the court
@@ -163,7 +163,7 @@ class ReviewService:
             if not court or court.manager_id != self.current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't manage this court",
+                    detail="شما مدیر این مجموعه نیستید",
                 )
 
         review.response = response
@@ -179,14 +179,14 @@ class ReviewService:
         if self.current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admin can delete reviews",
+                detail="فقط ادمین می‌تواند نظرات را حذف کند",
             )
 
         review = await self.review_repo.get_by_id(review_id)
         if not review:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Review not found",
+                detail="نظر یافت نشد",
             )
 
         court_id = review.court_id
@@ -199,14 +199,14 @@ class ReviewService:
         if self.current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admin can report reviews",
+                detail="فقط ادمین می‌تواند نظرات را گزارش کند",
             )
 
         review = await self.review_repo.get_by_id(review_id)
         if not review:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Review not found",
+                detail="نظر یافت نشد",
             )
 
         review.is_reported = True

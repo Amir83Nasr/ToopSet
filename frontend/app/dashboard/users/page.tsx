@@ -31,15 +31,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   ChevronLeft,
   ChevronRight,
   Loader2,
   RefreshCw,
   Search,
-  ShieldCheck,
   ShieldX,
+  ToggleRight,
   UserCog,
   Trash2,
 } from "lucide-react"
@@ -87,7 +87,7 @@ export default function UsersPage() {
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const limit = 20
 
-  // Create user dialog
+  // Delete user dialog
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -164,7 +164,7 @@ export default function UsersPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await api(`/api/v1/admin/users/${deleteTarget.id}`, { method: "DELETE" })
+      await api(`/api/v1/admin/users/${deleteTarget.id}/force`, { method: "DELETE" })
 
       // Update local state immediately for better UI response
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
@@ -177,11 +177,14 @@ export default function UsersPage() {
       await fetchUsers()
     } catch (err) {
       console.error("Delete error:", err)
-      const msg = err instanceof ApiError ? err.message : "خطا در حذف کاربر"
-      toast.error(msg)
+      toast.error(err instanceof ApiError ? err.message : "خطا در حذف کاربر")
     } finally {
       setDeleting(false)
     }
+  }
+
+  function handleDeleteClick(u: AdminUser) {
+    setDeleteTarget(u)
   }
 
   // ---- Access denied for non-admin users ----
@@ -284,28 +287,28 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ردیف</TableHead>
-                <TableHead>نام</TableHead>
-                <TableHead>تلفن</TableHead>
-                <TableHead>نقش</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead>تاریخ ثبت‌نام</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
-              </TableRow>
+                  <TableHead className="text-right">ردیف</TableHead>
+                  <TableHead className="text-right">نام</TableHead>
+                  <TableHead className="text-right">تلفن</TableHead>
+                  <TableHead className="text-right">نقش</TableHead>
+                  <TableHead className="text-right">وضعیت</TableHead>
+                  <TableHead className="text-right">تاریخ ثبت‌نام</TableHead>
+                  <TableHead className="text-right">عملیات</TableHead>
+                </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((u, idx) => {
                 return (
                   <TableRow key={u.id}>
-                    <TableCell className="text-muted-foreground">
-                      {page * limit + idx + 1}
+                    <TableCell className="text-right text-muted-foreground">
+                      {toPersianDigits(page * limit + idx + 1)}
                     </TableCell>
-                    <TableCell className="font-medium">{u.full_name}</TableCell>
-                    <TableCell dir="ltr" className="text-left">
+                    <TableCell className="text-right font-medium">{u.full_name}</TableCell>
+                    <TableCell dir="ltr" className="text-right">
                       {toPersianDigits(u.phone)}
                     </TableCell>
                     {/* Role change select */}
-                    <TableCell>
+                    <TableCell className="text-right">
                       <Select
                         value={u.role}
                         onValueChange={(newRole) =>
@@ -326,39 +329,37 @@ export default function UsersPage() {
                       </Select>
                     </TableCell>
                     {/* Status badge */}
-                    <TableCell>
+                    <TableCell className="text-right">
                       <Badge variant={u.is_active ? "default" : "secondary"}>
                         {u.is_active ? "فعال" : "غیرفعال"}
                       </Badge>
                     </TableCell>
                     {/* Registration date */}
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-right text-muted-foreground">
                       {u.created_at ? formatDate(u.created_at) : "-"}
                     </TableCell>
                     {/* Actions */}
-                    <TableCell>
+                    <TableCell className="text-right">
                       <div className="flex items-center gap-2">
                         <Button
-                          variant={u.is_active ? "outline" : "default"}
+                          variant="outline"
                           size="sm"
                           disabled={updatingId === u.id}
                           onClick={() => handleToggleActive(u.id, u.is_active)}
                         >
                           {updatingId === u.id ? (
                             <Loader2 className="ml-1 size-4 animate-spin" />
-                          ) : u.is_active ? (
-                            <ShieldX className="ml-1 size-4" />
                           ) : (
-                            <ShieldCheck className="ml-1 size-4" />
+                            <ToggleRight data-icon="inline-start" />
                           )}
-                          {u.is_active ? "غیرفعال" : "فعال"}
+                          {u.is_active ? "غیرفعال کردن" : "فعال کردن"}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive"
                           disabled={updatingId === u.id || u.id === user?.id}
-                          onClick={() => setDeleteTarget(u)}
+                          onClick={() => handleDeleteClick(u)}
                         >
                           <Trash2 className="size-4" />
                         </Button>
@@ -374,7 +375,7 @@ export default function UsersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {page + 1} از {totalPages}
+                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -404,14 +405,19 @@ export default function UsersPage() {
       {/* Delete confirmation dialog */}
       <Dialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null)
+          }
+        }}
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>حذف کاربر</DialogTitle>
             <DialogDescription>
-              آیا از حذف کاربر «{deleteTarget?.full_name}» اطمینان دارید؟ این
-              کاربر برای همیشه حذف می‌شود.
+              آیا از حذف کاربر «{deleteTarget?.full_name}» اطمینان دارید؟ تمام
+              اطلاعات مرتبط (مجموعه‌ها، رزروها، نظرات و ...) نیز برای همیشه حذف
+              می‌شوند.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

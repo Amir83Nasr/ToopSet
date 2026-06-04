@@ -47,6 +47,16 @@ export function toEnglishDigits(value: string): string {
   return value.replace(/[۰-۹]/g, (d) => englishDigits[d])
 }
 
+export function getInitials(fullName: string): string {
+  if (!fullName) return "?"
+  return fullName
+    .split(/\s+/)
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
 /** Convert a Date to YYYY-MM-DD using local timezone (avoids 1-day shift from .toISOString()). */
 export function toLocalDateStr(date: Date): string {
   const y = date.getFullYear()

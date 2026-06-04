@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.logger import log_action
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 
@@ -42,6 +43,8 @@ class UserService:
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
 
+        old_role = user.role
+
         # Cannot remove the last admin
         if user.role == "admin" and new_role != "admin":
             admin_count = await self.repo.count_by_role("admin")
@@ -52,6 +55,14 @@ class UserService:
                 )
 
         updated = await self.repo.update_role(target_id, new_role)
+
+        await log_action(
+            self.repo.db,
+            admin_user.id,
+            "user_role_changed",
+            f"تغییر نقش کاربر | '{user.full_name}' (id={target_id}): {old_role} → {new_role}",
+        )
+
         return updated
 
     async def toggle_active(self, admin_user: User, target_id: int):
@@ -75,6 +86,15 @@ class UserService:
                 )
 
         updated = await self.repo.toggle_active(target_id)
+        new_status = "فعال" if updated.is_active else "غیرفعال"
+
+        await log_action(
+            self.repo.db,
+            admin_user.id,
+            "user_toggled",
+            f"تغییر وضعیت کاربر | '{user.full_name}' (id={target_id}) → {new_status}",
+        )
+
         return updated
 
 

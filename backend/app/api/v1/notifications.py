@@ -49,9 +49,9 @@ async def mark_read(
     repo = NotificationRepo(db)
     n = await repo.mark_read(notification_id)
     if not n:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="اعلان یافت نشد")
     if n.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your notification")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این اعلان دسترسی ندارید")
     return NotificationResponse.model_validate(n)
 
 

@@ -22,8 +22,8 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    slot_id: Mapped[int] = mapped_column(ForeignKey("time_slots.id"), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    slot_id: Mapped[int] = mapped_column(ForeignKey("time_slots.id", ondelete="CASCADE"), unique=True)
     status: Mapped[BookingStatus] = mapped_column(
         Enum(BookingStatus, values_callable=_values_callable),
         default=BookingStatus.PENDING_PAYMENT,

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { RefreshCw, Settings2, Save, Type } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 

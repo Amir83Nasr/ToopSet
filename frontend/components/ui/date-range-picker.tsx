@@ -32,7 +32,8 @@ function DateRangePicker({
     if (!value?.from && !value?.to) return null
     const fromStr = value.from?.toLocaleDateString("fa-IR")
     const toStr = value.to?.toLocaleDateString("fa-IR")
-    if (fromStr && toStr) return `از ${fromStr} تا ${toStr}`
+    if (fromStr && toStr && fromStr !== toStr) return `${fromStr} تا ${toStr}`
+    if (fromStr && toStr && fromStr === toStr) return fromStr
     if (fromStr) return `از ${fromStr}`
     return `تا ${toStr}`
   }, [value])
@@ -44,7 +45,7 @@ function DateRangePicker({
           variant="outline"
           data-empty={!rangeText}
           className={cn(
-            "h-8 w-full justify-start gap-2 rounded-lg border border-input bg-transparent px-2.5 text-right text-base font-normal transition-colors md:text-sm",
+            "h-8 w-fit min-w-[160px] justify-start gap-2 rounded-lg border border-input bg-transparent px-2.5 text-right text-base font-normal transition-colors md:text-sm",
             "data-[empty=true]:text-muted-foreground",
             className
           )}
@@ -60,20 +61,23 @@ function DateRangePicker({
       <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
         <div dir="rtl">
           <div className="border-b px-4 py-2 text-xs text-muted-foreground">
-            تاریخ شروع را انتخاب کنید — تاریخ پایان:{" "}
-            {value?.to?.toLocaleDateString("fa-IR") ?? "امروز"}
+            {value?.from
+              ? `انتخاب تاریخ پایان — شروع: ${value.from.toLocaleDateString("fa-IR")}`
+              : "تاریخ شروع را انتخاب کنید"}
           </div>
           <Calendar
             mode="range"
             defaultMonth={value?.from}
-            selected={value?.from ? value : undefined}
+            selected={
+              value?.from
+                ? { from: value.from, to: value.to ?? value.from }
+                : undefined
+            }
             onSelect={(dayPickerRange) => {
               if (!dayPickerRange?.from) {
                 onChange?.(undefined)
                 return
               }
-              // DayPicker auto-fills 'to' = 'from' on first click in range mode.
-              // Preserve current 'to' unless user explicitly set a different one.
               const isAutoFill =
                 !dayPickerRange.to ||
                 dayPickerRange.from.getTime() === dayPickerRange.to.getTime()
@@ -82,9 +86,6 @@ function DateRangePicker({
                 to: isAutoFill ? value?.to : dayPickerRange.to,
               }
               onChange?.(newRange)
-              if (newRange.from && newRange.to) {
-                setOpen(false)
-              }
             }}
             numberOfMonths={2}
           />

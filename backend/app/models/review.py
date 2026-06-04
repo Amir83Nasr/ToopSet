@@ -12,9 +12,9 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    court_id: Mapped[int] = mapped_column(ForeignKey("courts.id"), index=True)
-    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    court_id: Mapped[int] = mapped_column(ForeignKey("courts.id", ondelete="CASCADE"), index=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"), unique=True)
     rating: Mapped[int] = mapped_column(SmallInteger)
     comment: Mapped[str | None] = mapped_column(Text, default=None)
     response: Mapped[str | None] = mapped_column(Text, default=None)

@@ -5,18 +5,16 @@ import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun, Monitor } from "lucide-react"
 
-const themes = ["light", "dark", "system"] as const
+const themes = ["light", "dark"] as const
 
 const icons: Record<string, typeof Sun> = {
   light: Sun,
   dark: Moon,
-  system: Monitor,
 }
 
 const labels: Record<string, string> = {
   light: "روشن",
   dark: "تیره",
-  system: "سیستم",
 }
 
 export function ModeToggle() {
@@ -41,7 +39,7 @@ export function ModeToggle() {
     )
   }
 
-  const current = theme || "system"
+  const current = theme || "light"
   const Icon = icons[current] || Sun
 
   function cycle() {
@@ -55,8 +53,8 @@ export function ModeToggle() {
       size="icon"
       onClick={cycle}
       className="size-9 text-muted-foreground transition-colors hover:text-foreground"
-      aria-label={`تم فعلی: ${labels[current] || "سیستم"}`}
-      title={`تم فعلی: ${labels[current] || "سیستم"}`}
+      aria-label={`تم فعلی: ${labels[current] || "روشن"}`}
+      title={`تم فعلی: ${labels[current] || "روشن"}`}
     >
       <Icon className="size-4" />
     </Button>

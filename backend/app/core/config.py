@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # SMS
     sms_provider: str = "mock"
 
+    # Monitoring
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.2
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @property

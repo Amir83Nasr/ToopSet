@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_manager
 from app.core.database import get_db
-from app.core.date_utils import parse_date_filter
+from app.core.date_utils import parse_date_filter, parse_date_filter_end
 from app.models.court import Court, SportType
 from app.models.court_image import CourtImage
 from app.models.user import User
@@ -48,7 +48,7 @@ async def list_courts(
         search=search,
         is_active=is_active,
         date_from=parse_date_filter(date_from) if date_from else None,
-        date_to=parse_date_filter(date_to) if date_to else None,
+        date_to=parse_date_filter_end(date_to) if date_to else None,
         price_min=price_min,
         price_max=price_max,
         ref_lat=ref_lat,
@@ -115,9 +115,9 @@ async def upload_court_image(
 ):
     court = await db.get(Court, court_id)
     if not court:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Court not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
     if court.manager_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
     max_order = await db.scalar(
         select(CourtImage.order)
         .where(CourtImage.court_id == court_id)
@@ -143,10 +143,10 @@ async def delete_court_image(
     if not court:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Court not found")
     if court.manager_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
     img = await db.get(CourtImage, image_id)
     if not img or img.court_id != court_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Image not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="تصویر یافت نشد")
     await db.delete(img)
     await db.commit()
 
@@ -162,7 +162,7 @@ async def reorder_court_images(
     if not court:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Court not found")
     if court.manager_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not your court")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
     for idx, img_id in enumerate(ordered_ids):
         await db.execute(
             select(CourtImage).where(CourtImage.id == img_id, CourtImage.court_id == court_id)

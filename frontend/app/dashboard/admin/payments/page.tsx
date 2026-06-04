@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { CreditCard, ShieldX, Loader2, RefreshCw } from "lucide-react"
 
 interface AdminPayment {

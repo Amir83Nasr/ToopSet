@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   ChevronLeft,
   ChevronRight,
@@ -48,19 +48,23 @@ import {
 interface LogEntry {
   id: number
   user_id: number | null
+  user_name: string | null
   action: string
   details: string | null
   created_at: string
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  const normalized = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z"
+  return new Date(normalized).toLocaleDateString("fa-IR", { timeZone: "Asia/Tehran" })
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fa-IR", {
+  const normalized = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z"
+  return new Date(normalized).toLocaleTimeString("fa-IR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Tehran",
   })
 }
 
@@ -73,15 +77,25 @@ const actionLabels: Record<string, string> = {
   user_toggled: "تغییر وضعیت کاربر",
   user_created: "ایجاد کاربر",
   user_deleted: "حذف کاربر",
+  user_registered: "ثبت‌نام کاربر",
+  user_login: "ورود کاربر",
   court_created: "ایجاد مجموعه",
   court_updated: "ویرایش مجموعه",
   court_deleted: "حذف مجموعه",
+  court_hard_deleted: "حذف دائمی مجموعه",
   court_toggled: "تغییر وضعیت مجموعه",
   court_approved: "تایید مجموعه",
   court_rejected: "رد مجموعه",
   review_deleted: "حذف نظر",
   setting_updated: "ویرایش تنظیمات",
-  user_registered: "ثبت‌نام کاربر",
+  settings_seeded: "مقداردهی تنظیمات",
+  profile_updated: "ویرایش پروفایل",
+  avatar_updated: "تغییر تصویر پروفایل",
+  avatar_deleted: "حذف تصویر پروفایل",
+  payment_failed: "پرداخت ناموفق",
+  penalty_created: "جریمه لغو رزرو",
+  wallet_credited: "بازگشت وجه به کیف پول",
+  logs_cleared: "پاکسازی لاگ‌ها",
 }
 
 export default function AdminLogsPage() {
@@ -93,6 +107,8 @@ export default function AdminLogsPage() {
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState(todayStr())
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingLogId, setDeletingLogId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const limit = 50
 
@@ -103,10 +119,8 @@ export default function AdminLogsPage() {
       params.set("skip", String(page * limit))
       params.set("limit", String(limit))
       if (actionFilter) params.set("action", actionFilter)
-      if (dateFrom) {
-        params.set("date_from", dateFrom)
-        params.set("date_to", dateTo)
-      }
+      if (dateFrom) params.set("date_from", dateFrom + "T00:00:00")
+      if (dateTo) params.set("date_to", dateTo + "T23:59:59")
       const res = await api<{ logs: LogEntry[]; total: number }>(
         `/api/v1/admin/logs?${params}`
       )
@@ -124,10 +138,13 @@ export default function AdminLogsPage() {
     return () => clearTimeout(timer)
   }, [fetchLogs])
 
-  const handleDelete = async (logId: number) => {
+  const handleDelete = async () => {
+    if (deletingLogId === null) return
+    setDeleteDialogOpen(false)
     try {
-      await api(`/api/v1/admin/logs/${logId}`, { method: "DELETE" })
+      await api(`/api/v1/admin/logs/${deletingLogId}`, { method: "DELETE" })
       toast.success("لاگ با موفقیت حذف شد")
+      setDeletingLogId(null)
       fetchLogs()
     } catch (err) {
       console.error("Failed to delete log:", err)
@@ -206,12 +223,12 @@ export default function AdminLogsPage() {
               setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
               setPage(0)
             }}
-            className="w-64"
+            className="w-fit"
           />
 
           {hasActiveFilter && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="ml-1 size-3.5" />
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <X className="ml-1.5 size-4" />
               حذف فیلتر
             </Button>
           )}
@@ -257,24 +274,41 @@ export default function AdminLogsPage() {
         </div>
       </div>
 
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف لاگ</AlertDialogTitle>
+            <AlertDialogDescription>
+              آیا از حذف این لاگ اطمینان دارید؟ این عمل قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} variant="destructive">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {loading ? (
         <Card>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>ساعت</TableHead>
-                <TableHead>کاربر</TableHead>
-                <TableHead>عملیات</TableHead>
-                <TableHead>جزئیات</TableHead>
-                <TableHead>عملیات</TableHead>
+                <TableHead className="text-right">تاریخ</TableHead>
+                <TableHead className="text-right">ساعت</TableHead>
+                <TableHead className="text-right">کاربر</TableHead>
+                <TableHead className="text-right">عملیات</TableHead>
+                <TableHead className="text-right">جزئیات</TableHead>
+                <TableHead className="text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 6 }).map((_, j) => (
-                    <TableCell key={j}>
+                    <TableCell key={j} className="text-right">
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
                   ))}
@@ -288,8 +322,15 @@ export default function AdminLogsPage() {
           <CardContent className="flex flex-col items-center justify-center py-16">
             <History className="mb-4 size-12 text-muted-foreground" />
             <p className="text-lg text-muted-foreground">
-              رویدادی ثبت نشده است
+              {hasActiveFilter
+                ? "رویدادی با فیلترهای انتخاب شده یافت نشد"
+                : "رویدادی ثبت نشده است"}
             </p>
+            {hasActiveFilter && (
+              <Button variant="link" onClick={clearFilters} className="mt-2">
+                حذف فیلترها
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -298,43 +339,47 @@ export default function AdminLogsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>تاریخ</TableHead>
-                  <TableHead>ساعت</TableHead>
-                  <TableHead>کاربر</TableHead>
-                  <TableHead>عملیات</TableHead>
-                  <TableHead>جزئیات</TableHead>
-                  <TableHead className="w-16">عملیات</TableHead>
+                  <TableHead className="text-right">تاریخ</TableHead>
+                  <TableHead className="text-right">ساعت</TableHead>
+                  <TableHead className="text-right">کاربر</TableHead>
+                  <TableHead className="text-right">عملیات</TableHead>
+                  <TableHead className="text-right">جزئیات</TableHead>
+                  <TableHead className="w-16 text-right">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                    <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground">
                       {formatDate(log.created_at)}
                     </TableCell>
                     <TableCell
-                      className="text-sm whitespace-nowrap text-muted-foreground"
+                      className="text-right text-sm whitespace-nowrap text-muted-foreground"
                       dir="ltr"
                     >
                       {formatTime(log.created_at)}
                     </TableCell>
-                    <TableCell>
-                      {log.user_id ? toPersianDigits(log.user_id) : "سیستم"}
+                    <TableCell className="text-right">
+                      {log.user_name ||
+                        (log.user_id ? toPersianDigits(log.user_id) : "سیستم")}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                         {actionLabels[log.action] || log.action}
                       </span>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                      {log.details || "-"}
+                    <TableCell className="max-w-xs truncate text-right text-sm text-muted-foreground">
+                      {log.details ? toPersianDigits(log.details) : "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-destructive"
-                        onClick={() => handleDelete(log.id)}
+                        onClick={() => {
+                          setDeletingLogId(log.id)
+                          setDeleteDialogOpen(true)
+                        }}
                       >
                         <Trash2 className="size-4" />
                       </Button>

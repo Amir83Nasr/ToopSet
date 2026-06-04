@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   Bell,
   ChevronLeft,

@@ -145,12 +145,24 @@ class CourtRepo:
         return result.scalar_one()
 
     async def get_by_id(self, court_id: int) -> Court | None:
-        result = await self.db.execute(select(Court).where(Court.id == court_id))
+        result = await self.db.execute(
+            select(Court)
+            .options(
+                selectinload(Court.court_images),
+                selectinload(Court.manager),
+            )
+            .where(Court.id == court_id)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_id_with_images(self, court_id: int) -> Court | None:
         result = await self.db.execute(
-            select(Court).options(selectinload(Court.court_images)).where(Court.id == court_id)
+            select(Court)
+            .options(
+                selectinload(Court.court_images),
+                selectinload(Court.manager),
+            )
+            .where(Court.id == court_id)
         )
         return result.scalar_one_or_none()
 

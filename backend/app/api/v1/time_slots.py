@@ -43,7 +43,9 @@ async def create_slot(
     return await service.create_slot(data)
 
 
-@router.post("/generate", response_model=TimeSlotGenerateResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/generate", response_model=TimeSlotGenerateResponse, status_code=status.HTTP_201_CREATED
+)
 async def generate_slots(
     court_id: int,
     data: TimeSlotGenerate,

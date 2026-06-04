@@ -4,6 +4,7 @@ export interface User {
   full_name: string
   role: "user" | "manager" | "admin"
   is_active: boolean
+  avatar_url?: string | null
   created_at: string
 }
 

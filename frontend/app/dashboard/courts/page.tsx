@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits, toLocalDateStr, todayStr } from "@/lib/utils"
+import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,14 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -42,9 +34,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   Plus,
   Building2,
@@ -58,22 +49,7 @@ import {
   ToggleRight,
   Trash2,
 } from "lucide-react"
-import dynamic from "next/dynamic"
-
-const CourtsMap = dynamic(
-  () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="flex items-center justify-center rounded-xl border bg-muted"
-        style={{ height: "400px" }}
-      >
-        <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
-      </div>
-    ),
-  }
-)
+import { sportLabels, sportColors } from "@/components/courts/court-shared"
 
 interface Court {
   id: number
@@ -89,22 +65,6 @@ interface Court {
   manager_name?: string
 }
 
-const sportLabels: Record<string, string> = {
-  volleyball: "والیبال",
-  basketball: "بسکتبال",
-  futsal: "فوتسال",
-  handball: "هندبال",
-}
-
-const sportColors: Record<string, string> = {
-  volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball:
-    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-}
-
 export default function CourtsPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -116,12 +76,10 @@ export default function CourtsPage() {
   const [sportType, setSportType] = useState("all")
   const [isActive, setIsActive] = useState("all")
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("table")
   const [deleteCourt, setDeleteCourt] = useState<Court | null>(null)
   const [deleting, setDeleting] = useState(false)
   const limit = 20
 
-  // Debounce search input — 400ms
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search)
@@ -161,9 +119,7 @@ export default function CourtsPage() {
     if (!deleteCourt) return
     setDeleting(true)
     try {
-      await api(`/api/v1/courts/${deleteCourt.id}`, {
-        method: "DELETE",
-      })
+      await api(`/api/v1/courts/${deleteCourt.id}`, { method: "DELETE" })
       toast.success("مجموعه حذف شد")
       setDeleteCourt(null)
       fetchCourts()
@@ -174,11 +130,26 @@ export default function CourtsPage() {
     }
   }, [deleteCourt, fetchCourts])
 
+  const handleToggleActive = useCallback(
+    async (court: Court) => {
+      try {
+        await api(`/api/v1/courts/${court.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ is_active: !court.is_active }),
+        })
+        toast.success(court.is_active ? "مجموعه غیرفعال شد" : "مجموعه فعال شد")
+        fetchCourts()
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : "خطا")
+      }
+    },
+    [fetchCourts]
+  )
+
   const totalPages = Math.ceil(total / limit)
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -196,7 +167,6 @@ export default function CourtsPage() {
         </div>
       </div>
 
-      {/* Search & filter bar */}
       <Card>
         <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row">
           <div className="relative flex-1">
@@ -247,14 +217,12 @@ export default function CourtsPage() {
         </CardContent>
       </Card>
 
-      {/* Loading state */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="ml-2 size-5 animate-spin" />
           در حال بارگذاری...
         </div>
       ) : courts.length === 0 ? (
-        /* Empty state */
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-4 py-16">
             <Building2 className="size-12 text-muted-foreground" />
@@ -270,36 +238,33 @@ export default function CourtsPage() {
           </CardContent>
         </Card>
       ) : (
-        /* Courts table */
         <Card>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>نام</TableHead>
-                <TableHead>ورزش</TableHead>
-                <TableHead>آدرس</TableHead>
-                <TableHead>امتیاز</TableHead>
-                <TableHead>وضعیت</TableHead>
-                {user?.role === "admin" && <TableHead>مدیر</TableHead>}
-                <TableHead className="text-left">عملیات</TableHead>
-              </TableRow>
+                  <TableHead className="text-right">نام</TableHead>
+                  <TableHead className="text-right">ورزش</TableHead>
+                  <TableHead className="text-right">آدرس</TableHead>
+                  <TableHead className="text-right">امتیاز</TableHead>
+                  <TableHead className="text-right">وضعیت</TableHead>
+                  {user?.role === "admin" && <TableHead className="text-right">مدیر</TableHead>}
+                  <TableHead className="text-right">عملیات</TableHead>
+                </TableRow>
             </TableHeader>
             <TableBody>
               {courts.map((court) => (
                 <TableRow
                   key={court.id}
                   className="cursor-pointer"
-                  onClick={() =>
-                    router.push(`/dashboard/courts/${court.id}`)
-                  }
+                  onClick={() => router.push(`/dashboard/courts/${court.id}`)}
                 >
-                  <TableCell className="font-medium">
+                  <TableCell className="text-right font-medium">
                     <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-muted-foreground" />
+                      <Building2 className="size-4 shrink-0 text-muted-foreground" />
                       {court.name}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <div className="flex flex-wrap gap-1">
                       {court.sport_types?.map((st) => (
                         <Badge
@@ -312,13 +277,13 @@ export default function CourtsPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
+                  <TableCell className="max-w-[200px] truncate text-right">
                     <div className="flex items-center gap-1">
                       <MapPin className="size-3 shrink-0 text-muted-foreground" />
                       <span className="truncate">{court.address}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center gap-1">
                       <Star className="size-3.5 fill-amber-400 text-amber-400" />
                       <span>
@@ -328,7 +293,7 @@ export default function CourtsPage() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <span
                       className={
                         court.is_active
@@ -347,11 +312,9 @@ export default function CourtsPage() {
                     </span>
                   </TableCell>
                   {user?.role === "admin" && (
-                    <TableCell>
-                      {court.manager_name || "—"}
-                    </TableCell>
+                    <TableCell className="text-right">{court.manager_name || "—"}</TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className="text-right">
                     <div
                       className="flex items-center gap-2"
                       onClick={(e) => e.stopPropagation()}
@@ -361,26 +324,7 @@ export default function CourtsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={async () => {
-                              try {
-                                await api(`/api/v1/courts/${court.id}`, {
-                                  method: "PATCH",
-                                  body: JSON.stringify({
-                                    is_active: !court.is_active,
-                                  }),
-                                })
-                                toast.success(
-                                  court.is_active
-                                    ? "مجموعه غیرفعال شد"
-                                    : "مجموعه فعال شد"
-                                )
-                                fetchCourts()
-                              } catch (err) {
-                                toast.error(
-                                  err instanceof ApiError ? err.message : "خطا"
-                                )
-                              }
-                            }}
+                            onClick={() => handleToggleActive(court)}
                           >
                             <ToggleRight data-icon="inline-start" />
                             {court.is_active ? "غیرفعال کردن" : "فعال کردن"}
@@ -388,7 +332,7 @@ export default function CourtsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                            className="border-destructive/30 text-destructive hover:bg-destructive/10"
                             onClick={() => setDeleteCourt(court)}
                           >
                             <Trash2 data-icon="inline-start" />
@@ -403,7 +347,6 @@ export default function CourtsPage() {
             </TableBody>
           </Table>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
@@ -435,7 +378,6 @@ export default function CourtsPage() {
         </Card>
       )}
 
-      {/* Delete confirmation dialog */}
       <AlertDialog
         open={!!deleteCourt}
         onOpenChange={(open) => !open && setDeleteCourt(null)}

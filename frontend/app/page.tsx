@@ -145,6 +145,15 @@ function HomePageContent() {
     }
   }, [searchParams])
 
+  // Prevent browser scroll restoration on page load
+  useEffect(() => {
+    history.scrollRestoration = "manual"
+    window.scrollTo(0, 0)
+    return () => {
+      history.scrollRestoration = "auto"
+    }
+  }, [])
+
   // Build API params
   const apiParams = useMemo(() => {
     const params = new URLSearchParams()
@@ -239,7 +248,7 @@ function HomePageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex flex-1 items-center justify-center">
+        <main className="relative flex flex-1 items-center justify-center overflow-x-hidden">
           {/* Neon orbs */}
           <div className="neon-orb neon-orb-1" />
           <div className="neon-orb neon-orb-cyan max-lg:hidden" />
@@ -271,7 +280,7 @@ function HomePageContent() {
       {/* Site Header */}
       <SiteHeader />
 
-      <main className="relative">
+      <main className="relative overflow-x-hidden">
         {/* Neon orbs — floating ambient glow */}
         <div className="neon-orb neon-orb-1" />
         <div className="neon-orb neon-orb-cyan" />
@@ -549,7 +558,8 @@ function HomePageContent() {
                 <div className="flex items-center gap-2">
                   <MapPin className="size-4 shrink-0" />
                   <span>
-                    موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده نمی‌شوند
+                    موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده
+                    نمی‌شوند
                   </span>
                 </div>
                 {geo.permissionState === "denied" && (

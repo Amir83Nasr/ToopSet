@@ -13,8 +13,8 @@ class Penalty(Base):
     __tablename__ = "penalties"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"))
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     reason: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

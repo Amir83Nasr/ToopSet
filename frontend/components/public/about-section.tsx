@@ -74,9 +74,9 @@ export function AboutSection() {
                 سامانه هوشمند رزرو ورزشی
               </h3>
               <p className="mb-6 leading-relaxed text-muted-foreground">
-                توپ‌سِت یک سامانه آنلاین برای جستجو، مقایسه و رزرو سانس مجموعه‌های
-                ورزشی است. ما به شما کمک می‌کنیم تا در سریع‌ترین زمان ممکن،
-                مناسب‌ترین سالن را پیدا کنید.
+                توپ‌سِت یک سامانه آنلاین برای جستجو، مقایسه و رزرو سانس
+                مجموعه‌های ورزشی است. ما به شما کمک می‌کنیم تا در سریع‌ترین زمان
+                ممکن، مناسب‌ترین سالن را پیدا کنید.
               </p>
               <div className="flex flex-wrap gap-4 border-t pt-5 text-sm text-muted-foreground">
                 <span>{toPersianDigits("۱۵")}+ سالن</span>

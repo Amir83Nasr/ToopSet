@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,8 +13,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Menu, ChevronDown, LayoutDashboard } from "lucide-react"
+import {
+  Menu,
+  ChevronDown,
+  LayoutDashboard,
+  Settings,
+  LogOut,
+} from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +28,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ModeToggle } from "@/components/ui/mode-toggle"
-import { LoginModal } from "@/components/login-modal"
-import { RegisterModal } from "@/components/register-modal"
+import { buildAvatarUrl } from "@/lib/api"
+import { getInitials, toPersianDigits } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -33,22 +49,45 @@ const navLinks = [
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
+const roleLabels: Record<string, string> = {
+  admin: "ادمین",
+  manager: "مدیر مجموعه",
+  user: "کاربر",
+}
+
 export function SiteHeader() {
+  const router = useRouter()
   const { user, loading, isAuthenticated, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [loginOpen, setLoginOpen] = useState(false)
-  const [registerOpen, setRegisterOpen] = useState(false)
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
-  const initials = user?.full_name
-    ? user.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-    : "?"
+  const [isRtl] = useState(true)
+
+  // Fix Radix scroll-lock for RTL: move padding from right to left
+  useEffect(() => {
+    if (!isRtl) return
+
+    function fixRtlPadding() {
+      const pr = document.body.style.paddingRight
+      if (pr && pr !== "" && pr !== "0px") {
+        document.body.style.paddingLeft = pr
+        document.body.style.paddingRight = ""
+      }
+    }
+
+    fixRtlPadding()
+
+    const observer = new MutationObserver(fixRtlPadding)
+    observer.observe(document.body, { attributeFilter: ["style"] })
+
+    return () => {
+      observer.disconnect()
+      document.body.style.paddingLeft = ""
+    }
+  }, [isRtl, logoutDialogOpen, mobileOpen])
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/60 backdrop-blur-lg">
+    <header className="w-full border-b bg-background/60 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
@@ -83,65 +122,98 @@ export function SiteHeader() {
           {loading ? (
             <div className="size-5 animate-spin rounded-full border-2 border-muted border-t-primary" />
           ) : isAuthenticated && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 px-2">
-                  <Avatar className="size-7">
-                    <AvatarFallback className="bg-primary/10 text-xs text-primary">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium">{user.full_name}</span>
-                  <ChevronDown className="size-3.5 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col gap-0.5">
-                    <span>{user.full_name}</span>
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {user.phone}
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-1 px-2">
+                    <span className="text-sm font-medium">
+                      {user.full_name}
                     </span>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="cursor-pointer">
-                    <LayoutDashboard className="ml-2 size-4" />
-                    داشبورد
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="cursor-pointer text-destructive"
+                    <ChevronDown className="size-3.5 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align={isRtl ? "start" : "end"}
+                  side="bottom"
+                  collisionPadding={16}
+                  className="z-[60] w-56 border-2 border-border/30 shadow-xl"
                 >
-                  خروج
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <div dir="rtl">
+                    <DropdownMenuLabel className="pb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/8">
+                          {buildAvatarUrl(user.avatar_url) ? (
+                            <Image
+                              src={buildAvatarUrl(user.avatar_url)!}
+                              alt={user.full_name}
+                              width={36}
+                              height={36}
+                              className="size-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <span className="text-xs font-semibold text-primary">
+                              {getInitials(user.full_name)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="truncate text-sm leading-tight font-semibold">
+                            {user.full_name}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="text-xs text-muted-foreground"
+                              dir="ltr"
+                            >
+                              {toPersianDigits(user.phone)}
+                            </span>
+                            <span className="text-xs text-muted-foreground/30">
+                              •
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {roleLabels[user.role] || user.role}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => router.push("/dashboard")}
+                      className="cursor-pointer"
+                    >
+                      <LayoutDashboard className="me-2 size-4" />
+                      داشبورد
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => router.push("/dashboard/settings")}
+                      className="cursor-pointer"
+                    >
+                      <Settings className="me-2 size-4" />
+                      تنظیمات
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setLogoutDialogOpen(true)}
+                      className="cursor-pointer"
+                      variant="destructive"
+                    >
+                      <LogOut className="me-2 size-4" />
+                      خروج
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <>
-              <RegisterModal
-                open={registerOpen}
-                onOpenChange={setRegisterOpen}
-                onLoginClick={() => {
-                  setRegisterOpen(false)
-                  setLoginOpen(true)
-                }}
-              >
+              <Link href="/register">
                 <Button variant="outline">ثبت‌نام</Button>
-              </RegisterModal>
-              <LoginModal
-                open={loginOpen}
-                onOpenChange={setLoginOpen}
-                onRegisterClick={() => {
-                  setLoginOpen(false)
-                  setRegisterOpen(true)
-                }}
-              >
+              </Link>
+              <Link href="/login">
                 <Button>ورود</Button>
-              </LoginModal>
+              </Link>
             </>
           )}
         </div>
@@ -156,7 +228,7 @@ export function SiteHeader() {
                 <span className="sr-only">منو</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[280px]">
+            <SheetContent side={isRtl ? "left" : "right"} className="w-[280px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Image
@@ -184,16 +256,37 @@ export function SiteHeader() {
               <div className="mt-6 border-t pt-6">
                 {isAuthenticated && user ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 px-3">
-                      <Avatar className="size-10">
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{user.full_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.phone}
+                    <div className="flex items-start gap-3 px-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+                        {buildAvatarUrl(user.avatar_url) ? (
+                          <Image
+                            src={buildAvatarUrl(user.avatar_url)!}
+                            alt={user.full_name}
+                            width={40}
+                            height={40}
+                            className="size-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="text-xs font-semibold text-primary">
+                            {getInitials(user.full_name)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold">
+                            {user.full_name}
+                          </p>
+                          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            {roleLabels[user.role] || user.role}
+                          </span>
+                        </div>
+                        <p
+                          className="mt-0.5 text-xs text-muted-foreground"
+                          dir="ltr"
+                        >
+                          {toPersianDigits(user.phone)}
                         </p>
                       </div>
                     </div>
@@ -205,49 +298,35 @@ export function SiteHeader() {
                       <LayoutDashboard className="size-4" />
                       داشبورد
                     </Link>
+                    <Link
+                      href="/dashboard/settings"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                      <Settings className="size-4" />
+                      تنظیمات
+                    </Link>
                     <button
                       onClick={() => {
-                        logout()
                         setMobileOpen(false)
+                        setLogoutDialogOpen(true)
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                     >
+                      <LogOut className="me-2 size-4" />
                       خروج
                     </button>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 px-3">
-                    <RegisterModal
-                      open={registerOpen}
-                      onOpenChange={setRegisterOpen}
-                      onLoginClick={() => {
-                        setRegisterOpen(false)
-                        setLoginOpen(true)
-                      }}
-                    >
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setMobileOpen(false)}
-                      >
+                    <Link href="/register" onClick={() => setMobileOpen(false)}>
+                      <Button variant="outline" className="w-full">
                         ثبت‌نام
                       </Button>
-                    </RegisterModal>
-                    <LoginModal
-                      open={loginOpen}
-                      onOpenChange={setLoginOpen}
-                      onRegisterClick={() => {
-                        setLoginOpen(false)
-                        setRegisterOpen(true)
-                      }}
-                    >
-                      <Button
-                        className="w-full"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        ورود
-                      </Button>
-                    </LoginModal>
+                    </Link>
+                    <Link href="/login" onClick={() => setMobileOpen(false)}>
+                      <Button className="w-full">ورود</Button>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -255,6 +334,29 @@ export function SiteHeader() {
           </Sheet>
         </div>
       </div>
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>خروج از حساب</AlertDialogTitle>
+            <AlertDialogDescription>
+              آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                logout()
+                setLogoutDialogOpen(false)
+              }}
+            >
+              خروج
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

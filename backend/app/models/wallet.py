@@ -12,7 +12,7 @@ class Wallet(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), unique=True, nullable=False
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
     )
     balance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

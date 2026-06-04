@@ -75,9 +75,9 @@ class BookingService:
     async def get_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
         if not booking:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
         if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your booking")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید")
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         court = slot.court if slot else None
@@ -111,29 +111,29 @@ class BookingService:
     async def create_booking(self, data: BookingCreate) -> BookingDetailResponse:
         slot = await self.slot_repo.get_by_id(data.slot_id)
         if not slot:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         if slot.is_reserved:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already reserved"
+                status_code=status.HTTP_409_CONFLICT, detail="این سانس قبلاً رزرو شده است"
             )
 
         if slot.version != data.version:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Slot has been modified. Please refresh and try again.",
+                detail="این سانس تغییر کرده است. لطفاً صفحه را به‌روز کنید.",
             )
 
         court = slot.court
         if data.participants_count > court.capacity:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Participants count exceeds court capacity",
+                detail="تعداد شرکت‌کنندگان بیش از ظرفیت مجموعه است",
             )
 
         existing = await self.booking_repo.get_by_slot(data.slot_id)
         if existing:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Slot already has a booking"
+                status_code=status.HTTP_409_CONFLICT, detail="این سانس قبلاً رزرو شده است"
             )
 
         booking = await self.booking_repo.create(
@@ -180,7 +180,9 @@ class BookingService:
             payment=None,
         )
 
-    async def _record_failed_payment(self, booking_id: int, amount: float) -> None:
+    async def _record_failed_payment(
+        self, booking_id: int, amount: float, reason: str = "نامشخص"
+    ) -> None:
         await self.payment_repo.create(
             {
                 "booking_id": booking_id,
@@ -192,23 +194,29 @@ class BookingService:
         await self.notify_repo.create(
             user_id=self.current_user.id,
             type_="booking_failed",
-            message="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
+            message=f"پرداخت ناموفق: {reason}",
+        )
+        await log_action(
+            self.booking_repo.db,
+            self.current_user.id,
+            "payment_failed",
+            f"پرداخت ناموفق | رزرو {booking_id} — مبلغ {amount} تومان — دلیل: {reason}",
         )
 
     async def pay_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
         if not booking:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
         if booking.user_id != self.current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your booking")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید")
         if booking.status != BookingStatus.PENDING_PAYMENT:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Booking is not pending payment"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="این رزرو در وضعیت پرداخت نیست"
             )
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         if slot.is_reserved:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -221,26 +229,34 @@ class BookingService:
         try:
             result = await payment_service.process_payment(float(booking.price_paid))
         except InsufficientFundsError:
-            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            await self._record_failed_payment(
+                booking_id, float(booking.price_paid), "موجودی ناکافی"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="موجودی حساب کافی نیست. لطفاً از کارت دیگری استفاده کنید.",
             )
         except GatewayTimeoutError:
-            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            await self._record_failed_payment(
+                booking_id, float(booking.price_paid), "خطای درگاه پرداخت"
+            )
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
                 detail="درگاه پرداخت پاسخگو نیست. لطفاً مجدداً تلاش کنید.",
             )
         except FraudDetectionError:
-            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            await self._record_failed_payment(
+                booking_id, float(booking.price_paid), "مسدود شدن توسط سیستم امنیتی"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="تراکنش توسط سیستم امنیتی مسدود شد. لطفاً با پشتیبانی تماس بگیرید.",
             )
         except PaymentError:
             # Generic / unknown failure
-            await self._record_failed_payment(booking_id, float(booking.price_paid))
+            await self._record_failed_payment(
+                booking_id, float(booking.price_paid), "خطای ناشناخته"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
@@ -301,17 +317,17 @@ class BookingService:
     async def cancel_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
         if not booking:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
         if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your booking")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید")
         if booking.status == BookingStatus.CANCELLED:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Booking already cancelled"
+                status_code=status.HTTP_409_CONFLICT, detail="این رزرو قبلاً لغو شده است"
             )
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         if not slot:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         court = slot.court
 
         was_confirmed = booking.status == BookingStatus.CONFIRMED
@@ -322,7 +338,7 @@ class BookingService:
         if hours_until_slot < 2:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot cancel within 2 hours of the session start time",
+                detail="امکان لغو در ۲ ساعت مانده به شروع سانس وجود ندارد",
             )
 
         if hours_until_slot <= 24:
@@ -337,6 +353,12 @@ class BookingService:
                 booking_id=booking_id,
                 amount=penalty_amount,
                 reason="Cancellation within 2-24 hours of session start",
+            )
+            await log_action(
+                self.booking_repo.db,
+                self.current_user.id,
+                "penalty_created",
+                f"جریمه لغو رزرو | رزرو {booking_id} — مبلغ {penalty_amount} تومان (کنسلی در ۲۴ ساعت پایانی)",
             )
         else:
             refund_amount = float(booking.price_paid)
@@ -356,6 +378,13 @@ class BookingService:
             wallet, refund_amount, f"Refund for cancelled booking #{booking_id}"
         )
 
+        await log_action(
+            self.booking_repo.db,
+            self.current_user.id,
+            "wallet_credited",
+            f"بازگشت وجه به کیف پول | رزرو {booking_id} — مبلغ {refund_amount} تومان",
+        )
+
         # Notify manager about cancellation
         if court:
             await self.notify_repo.create(
@@ -364,11 +393,12 @@ class BookingService:
                 message=f"رزرو {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
             )
 
+        penalty_note = f" (جریمه: {penalty_amount} تومان)" if hours_until_slot <= 24 else ""
         await log_action(
             self.booking_repo.db,
             self.current_user.id,
             "booking_cancelled",
-            f"لغو رزرو | رزرو {booking_id} لغو شد - {refund_amount} تومان به کیف پول بازگشت",
+            f"لغو رزرو | رزرو {booking_id} لغو شد — {refund_amount} تومان به کیف پول بازگشت{penalty_note}",
         )
 
         payment = await self.payment_repo.get_by_booking(booking_id)

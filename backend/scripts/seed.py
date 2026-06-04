@@ -5,10 +5,12 @@ from decimal import Decimal
 
 from passlib.context import CryptContext
 
-from app.core.database import async_session_factory
+from app.core.database import async_session_factory, engine
+from app.core.database import Base
 from app.models.booking import Booking, BookingStatus
 from app.models.court import Court, SportType
 from app.models.favorite import Favorite
+from app.models.log import Log
 from app.models.notification import Notification
 from app.models.penalty import Penalty
 from app.models.review import Review
@@ -25,55 +27,37 @@ def hash_password(password: str) -> str:
 
 
 async def seed():
+    # Recreate all tables with latest schema (cascades, etc.)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
     async with async_session_factory() as db:
-        # Clear existing data in FK-safe order
-        await db.execute(Penalty.__table__.delete())
-        await db.execute(Notification.__table__.delete())
-        await db.execute(Review.__table__.delete())
-        await db.execute(WalletTransaction.__table__.delete())
-        await db.execute(Booking.__table__.delete())
-        await db.execute(Wallet.__table__.delete())
-        await db.execute(TimeSlot.__table__.delete())
-        await db.execute(Court.__table__.delete())
-        await db.execute(User.__table__.delete())
-        await db.commit()
         # Users
         users = [
             User(
-                full_name="مدیر سیستم",
-                phone="09120000001",
-                password_hash=hash_password("admin123"),
+                full_name="امیرحسین نصراللهی",
+                phone="09306853363",
+                password_hash=hash_password("Amir83Nasr"),
                 role=UserRole.ADMIN,
             ),
             User(
-                full_name="مدیر مجموعه ۱",
-                phone="09120000002",
-                password_hash=hash_password("manager123"),
+                full_name="ایمان کربلایی",
+                phone="09962229652",
+                password_hash=hash_password("1234"),
                 role=UserRole.MANAGER,
             ),
             User(
-                full_name="مدیر مجموعه ۲",
-                phone="09120000003",
-                password_hash=hash_password("manager123"),
-                role=UserRole.MANAGER,
-            ),
-            User(
-                full_name="کاربر تست ۱",
-                phone="09120000004",
-                password_hash=hash_password("user123"),
-                role=UserRole.USER,
-            ),
-            User(
-                full_name="کاربر تست ۲",
-                phone="09120000005",
-                password_hash=hash_password("user123"),
+                full_name="مهدی امامی",
+                phone="09129106222",
+                password_hash=hash_password("1234"),
                 role=UserRole.USER,
             ),
         ]
         db.add_all(users)
         await db.flush()
 
-        # Courts — real locations in Qom
+        # Courts — real locations in Qom (all assigned to ایمان کربلایی)
         courts = [
             Court(
                 manager_id=users[1].id,
@@ -103,7 +87,7 @@ async def seed():
                 capacity=14,
             ),
             Court(
-                manager_id=users[2].id,
+                manager_id=users[1].id,
                 name="سالن ورزشی حضرت معصومه",
                 sport_types=[SportType.VOLLEYBALL.value, SportType.HANDBALL.value],
                 address="قم، خیابان دورشهر، جنب حرم مطهر",
@@ -112,7 +96,7 @@ async def seed():
                 capacity=24,
             ),
             Court(
-                manager_id=users[2].id,
+                manager_id=users[1].id,
                 name="مجموعه ورزشی یادگار امام",
                 sport_types=[SportType.FUTSAL.value, SportType.BASKETBALL.value],
                 address="قم، بلوار امین، مجموعه یادگار امام",
@@ -121,7 +105,7 @@ async def seed():
                 capacity=18,
             ),
             Court(
-                manager_id=users[2].id,
+                manager_id=users[1].id,
                 name="زمین والیبال دانشگاه قم",
                 sport_types=[SportType.VOLLEYBALL.value],
                 address="قم، بلوار جمهوری اسلامی، دانشگاه قم",
@@ -138,8 +122,6 @@ async def seed():
             Wallet(user_id=users[0].id, balance=Decimal("150000")),
             Wallet(user_id=users[1].id, balance=Decimal("85000")),
             Wallet(user_id=users[2].id, balance=Decimal("42000")),
-            Wallet(user_id=users[3].id, balance=Decimal("250000")),
-            Wallet(user_id=users[4].id, balance=Decimal("75000")),
         ]
         db.add_all(wallets)
         await db.flush()
@@ -168,13 +150,13 @@ async def seed():
         # Bookings
         bookings = [
             Booking(
-                user_id=users[3].id,
+                user_id=users[2].id,
                 slot_id=slots[0].id,
                 status=BookingStatus.PENDING_PAYMENT,
                 price_paid=slots[0].base_price,
             ),
             Booking(
-                user_id=users[4].id,
+                user_id=users[2].id,
                 slot_id=slots[1].id,
                 status=BookingStatus.CONFIRMED,
                 price_paid=slots[1].base_price,
@@ -190,14 +172,14 @@ async def seed():
         # Reviews
         reviews = [
             Review(
-                user_id=users[3].id,
+                user_id=users[2].id,
                 court_id=courts[0].id,
                 booking_id=bookings[0].id,
                 rating=5,
                 comment="زمین عالی، مناسب برای بازی",
             ),
             Review(
-                user_id=users[4].id,
+                user_id=users[2].id,
                 court_id=courts[0].id,
                 booking_id=bookings[1].id,
                 rating=4,

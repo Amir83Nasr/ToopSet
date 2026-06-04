@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import confetti from "canvas-confetti"
 import {
   AlertTriangle,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,10 +17,11 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   CheckCircle,
   XCircle,
+  ExternalLink,
   Building2,
   RefreshCw,
   ShieldAlert,
@@ -80,7 +82,9 @@ export default function AdminPendingCourtsPage() {
         toast.success("مجموعه با موفقیت تایید شد")
         fetchCourts()
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "خطا در تایید مجموعه")
+        toast.error(
+          err instanceof ApiError ? err.message : "خطا در تایید مجموعه"
+        )
       } finally {
         setActionLoading(null)
       }
@@ -181,7 +185,9 @@ export default function AdminPendingCourtsPage() {
                     <TableRow
                       key={court.id}
                       className="cursor-pointer"
-                      onClick={() => router.push(`/dashboard/courts/${court.id}`)}
+                      onClick={() =>
+                        router.push(`/dashboard/courts/${court.id}`)
+                      }
                     >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -211,6 +217,11 @@ export default function AdminPendingCourtsPage() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-2">
+                          <Button asChild variant="outline" size="icon-sm">
+                            <Link href={`/courts/${court.id}`} target="_blank">
+                              <ExternalLink className="size-4" />
+                            </Link>
+                          </Button>
                           <Button
                             variant="default"
                             size="sm"

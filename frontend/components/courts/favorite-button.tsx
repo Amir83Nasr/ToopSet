@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Heart, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 interface FavoriteButtonProps {
   courtId: number

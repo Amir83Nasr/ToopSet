@@ -61,7 +61,7 @@ export default function PrivacyPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative flex-1">
+      <main className="relative flex-1 overflow-x-hidden">
         {/* Neon orbs */}
         <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
         <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />

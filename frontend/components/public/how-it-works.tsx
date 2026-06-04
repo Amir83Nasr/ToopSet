@@ -8,7 +8,8 @@ const steps = [
   {
     icon: Search,
     title: "جستجو",
-    description: "ورزش مورد نظر خود را انتخاب کنید و مجموعه‌های موجود را ببینید",
+    description:
+      "ورزش مورد نظر خود را انتخاب کنید و مجموعه‌های موجود را ببینید",
   },
   {
     icon: CalendarCheck,

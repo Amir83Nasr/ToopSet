@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.core.logger import log_action
+from app.core.security import hash_password
+from app.core.upload import delete_upload
 from app.models.court import Court
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
@@ -44,6 +46,7 @@ async def broadcast_notification(
 class LogResponse(BaseModel):
     id: int
     user_id: int | None = None
+    user_name: str | None = None
     action: str
     details: str | None = None
     created_at: datetime
@@ -75,7 +78,13 @@ async def list_logs(
         date_from=date_from,
         date_to=date_to,
     )
-    return LogListResponse(logs=[LogResponse.model_validate(log) for log in logs], total=total)
+    log_responses = []
+    for log in logs:
+        resp = LogResponse.model_validate(log)
+        if log.user:
+            resp.user_name = log.user.full_name
+        log_responses.append(resp)
+    return LogListResponse(logs=log_responses, total=total)
 
 
 @router.delete("/logs/clear", status_code=status.HTTP_204_NO_CONTENT)
@@ -85,6 +94,9 @@ async def clear_logs(
 ):
     repo = LogRepo(db)
     await repo.clear_all()
+    await log_action(
+        db, _.id, "logs_cleared", f"پاکسازی لاگ‌ها | تمام لاگ‌ها توسط ادمین '{_.full_name}' پاک شد"
+    )
 
 
 @router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -162,7 +174,7 @@ async def reject_court(
     repo = CourtRepo(db)
     court = await repo.get_by_id(court_id)
     if not court:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
     name = court.name
     await repo.delete(court)
     await log_action(
@@ -183,10 +195,13 @@ async def hard_delete_court(
     repo = CourtRepo(db)
     court = await repo.get_by_id(court_id)
     if not court:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
     await repo.delete(court)
     await log_action(
-        db, _.id, "court_deleted", f"حذف دائمی مجموعه | مجموعه (id={court_id}) توسط ادمین حذف شد"
+        db,
+        _.id,
+        "court_hard_deleted",
+        f"حذف دائمی مجموعه | مجموعه (id={court_id}) توسط ادمین حذف شد",
     )
 
 
@@ -209,7 +224,7 @@ async def hard_delete_user(
     repo = UserRepository(db)
     user = await repo.get_by_id(user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
 
     # Pre-check related data to avoid FK violations
     court_count = (
@@ -232,7 +247,7 @@ async def hard_delete_user(
     if court_count:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="این کاربر مدیر مجموعه است. ابتدا مجموعه‌ها را حذف کنید.",
+            detail=f"این کاربر مدیر {court_count} مجموعه است. ابتدا مجموعه‌ها را حذف کنید.",
         )
     if booking_count or review_count or penalty_count:
         raise HTTPException(
@@ -241,10 +256,82 @@ async def hard_delete_user(
         )
 
     name = user.full_name
+    delete_upload(user.avatar_url)
     await db.delete(user)
     await db.commit()
     await log_action(
         db, _.id, "user_deleted", f"حذف دائمی کاربر | '{name}' (id={user_id}) توسط ادمین حذف شد"
+    )
+
+
+@router.delete("/users/{user_id}/force", status_code=status.HTTP_204_NO_CONTENT)
+async def force_delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Force-delete a user and all their associated data using raw SQL in FK-safe order."""
+    from sqlalchemy import delete, select
+
+    from app.models.booking import Booking
+    from app.models.court_image import CourtImage
+    from app.models.payment import Payment
+    from app.models.penalty import Penalty
+    from app.models.review import Review
+    from app.models.time_slot import TimeSlot
+
+    # Lookup user name first
+    repo = UserRepository(db)
+    user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
+    name = user.full_name
+
+    delete_upload(user.avatar_url)
+
+    # Collect court IDs for this user
+    court_ids = (await db.execute(select(Court.id).where(Court.manager_id == user_id))).scalars().all()
+
+    # 1 ── Delete courts and all data referencing them ───────────────
+    for cid in court_ids:
+        # a) Booking-related data for time slots in this court
+        slot_ids = (await db.execute(select(TimeSlot.id).where(TimeSlot.court_id == cid))).scalars().all()
+        if slot_ids:
+            booking_ids = (await db.execute(select(Booking.id).where(Booking.slot_id.in_(slot_ids)))).scalars().all()
+            if booking_ids:
+                await db.execute(delete(Payment).where(Payment.booking_id.in_(booking_ids)))
+                await db.execute(delete(Penalty).where(Penalty.booking_id.in_(booking_ids)))
+                await db.execute(delete(Review).where(Review.booking_id.in_(booking_ids)))
+                await db.execute(delete(Booking).where(Booking.id.in_(booking_ids)))
+            await db.execute(delete(TimeSlot).where(TimeSlot.court_id == cid))
+
+        # b) Court images and reviews
+        await db.execute(delete(CourtImage).where(CourtImage.court_id == cid))
+        await db.execute(delete(Review).where(Review.court_id == cid))
+
+    # c) The courts themselves
+    await db.execute(delete(Court).where(Court.manager_id == user_id))
+
+    # 2 ── Delete user's own data (as a customer) ──────────────────
+    own_booking_ids = (await db.execute(select(Booking.id).where(Booking.user_id == user_id))).scalars().all()
+    if own_booking_ids:
+        await db.execute(delete(Payment).where(Payment.booking_id.in_(own_booking_ids)))
+        await db.execute(delete(Penalty).where(Penalty.booking_id.in_(own_booking_ids)))
+        await db.execute(delete(Review).where(Review.booking_id.in_(own_booking_ids)))
+        await db.execute(delete(Booking).where(Booking.id.in_(own_booking_ids)))
+
+    await db.execute(delete(Review).where(Review.user_id == user_id))
+    await db.execute(delete(Penalty).where(Penalty.user_id == user_id))
+
+    # 3 ── Delete the user ─────────────────────────────────────────
+    await db.execute(delete(User).where(User.id == user_id))
+    await db.commit()
+
+    await log_action(
+        db,
+        _.id,
+        "user_deleted",
+        f"حذف کاربر | '{name}' (id={user_id}) به همراه تمام اطلاعات مرتبط توسط ادمین حذف شد",
     )
 
 
@@ -258,7 +345,7 @@ async def hard_delete_review(
     repo = ReviewRepo(db)
     review = await repo.get_by_id(review_id)
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="نظر یافت نشد")
     await repo.delete(review)
     await log_action(
         db, _.id, "review_deleted", f"حذف دائمی نظر | نظر (id={review_id}) توسط ادمین حذف شد"
@@ -292,7 +379,7 @@ async def update_setting(
 
     setting = await db.get(Setting, setting_id)
     if not setting:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Setting not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="تنظیمات یافت نشد")
     old_value = setting.value
     setting.value = data.value
     await db.commit()
@@ -301,7 +388,7 @@ async def update_setting(
         db,
         _.id,
         "setting_updated",
-        f"Setting '{setting.key}' changed: '{old_value}' → '{data.value}'",
+        f"ویرایش تنظیمات | '{setting.key}': '{old_value}' → '{data.value}'",
     )
     return setting
 
@@ -335,4 +422,59 @@ async def seed_default_settings(
             db.add(Setting(**d))
             count += 1
     await db.commit()
+    await log_action(db, _.id, "settings_seeded", f"مقداردهی تنظیمات | {count} تنظیم جدید اضافه شد")
     return {"seeded": count}
+
+
+class SeedAdminRequest(BaseModel):
+    phone: str
+    password: str
+    full_name: str = "مدیر سیستم"
+
+
+@router.post("/seed-admin", status_code=status.HTTP_201_CREATED)
+async def seed_admin(
+    data: SeedAdminRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create the first admin user. Only works when no admin exists yet.
+    Once an admin is created, use the admin dashboard to manage users."""
+    from sqlalchemy import func, select
+
+    repo = UserRepository(db)
+    admin_count = (
+        await db.execute(select(func.count(User.id)).where(User.role == "admin"))
+    ).scalar_one()
+
+    if admin_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="یک ادمین قبلاً وجود دارد. از طریق داشبورد ادمین کاربر جدید ایجاد کنید.",
+        )
+
+    existing = await repo.get_by_phone(data.phone)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="این شماره تلفن قبلاً ثبت شده است",
+        )
+
+    from app.models.user import UserRole
+
+    user = User(
+        phone=data.phone,
+        password_hash=hash_password(data.password),
+        full_name=data.full_name,
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "id": user.id,
+        "phone": user.phone,
+        "full_name": user.full_name,
+        "role": user.role.value,
+    }

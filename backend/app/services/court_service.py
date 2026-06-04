@@ -80,18 +80,18 @@ class CourtService:
     async def get_court(self, court_id: int) -> CourtResponse:
         court = await self.repo.get_by_id(court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if not court.is_active and (
             self.current_user is None or self.current_user.role not in ("admin", "manager")
         ):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         return self._to_response(court)
 
     async def create_court(self, data: CourtCreate) -> CourtResponse:
         if self.current_user.role != "manager":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only managers can create courts",
+                detail="فقط مدیران مجموعه می‌توانند مجموعه ثبت کنند",
             )
         existing_count = await self.repo.count_by_manager(self.current_user.id)
         if existing_count > 0:
@@ -142,9 +142,9 @@ class CourtService:
     async def update_court(self, court_id: int, data: CourtUpdate) -> CourtResponse:
         court = await self.repo.get_by_id(court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
         update_data = data.model_dump(exclude_none=True, exclude={"images", "image_ids_to_remove"})
         updated = await self.repo.update(court, update_data)
         if data.image_ids_to_remove:
@@ -174,20 +174,25 @@ class CourtService:
                 self.repo.db.add(CourtImage(court_id=court_id, url=url, order=next_order + idx))
             await self.repo.db.commit()
         await self.repo.db.refresh(updated, ["court_images", "manager"])
+        details_parts = [f"ویرایش مجموعه | '{updated.name}' (id={court_id})"]
+        if data.images:
+            details_parts.append(f"{len(data.images)} تصویر جدید")
+        if data.image_ids_to_remove:
+            details_parts.append(f"{len(data.image_ids_to_remove)} تصویر حذف شده")
         await log_action(
             self.repo.db,
             self.current_user.id,
             "court_updated",
-            f"ویرایش مجموعه | '{updated.name}' (id={court_id}) - {len(data.images or [])} تصویر جدید",
+            " — ".join(details_parts),
         )
         return self._to_response(updated)
 
     async def delete_court(self, court_id: int) -> None:
         court = await self.repo.get_by_id(court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your court")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
         await self.repo.delete(court)
         await log_action(
             self.repo.db,
@@ -199,10 +204,10 @@ class CourtService:
     async def toggle_court_status(self, court_id: int, is_active: bool) -> CourtResponse:
         court = await self.repo.get_by_id(court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="You don't manage this court"
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما مدیر این مجموعه نیستید"
             )
         updated = await self.repo.update(court, {"is_active": is_active})
         await self.repo.db.refresh(updated, ["court_images", "manager"])
@@ -219,6 +224,7 @@ class CourtService:
         resp = CourtResponse.model_validate(court)
         if court.manager:
             resp.manager_name = court.manager.full_name
+            resp.manager_phone = court.manager.phone
         if court.court_images:
             ordered = sorted(court.court_images, key=lambda x: x.order)
             resp.images = [img.url for img in ordered]

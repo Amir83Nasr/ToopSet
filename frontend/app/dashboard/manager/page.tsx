@@ -100,7 +100,8 @@ export default function ManagerDashboardPage() {
       setStats(statsData)
       setRevenue((revenueData || []).reverse().slice(-7))
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "خطا در دریافت اطلاعات"
+      const msg =
+        err instanceof ApiError ? err.message : "خطا در دریافت اطلاعات"
       setError(msg)
     } finally {
       setLoading(false)
@@ -147,8 +148,12 @@ export default function ManagerDashboardPage() {
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">داشبورد مدیر مجموعه</h1>
-        <p className="text-muted-foreground">مدیریت مجموعه‌ها، رزروها و درآمد</p>
+        <h1 className="text-2xl font-bold tracking-tight">
+          داشبورد مدیر مجموعه
+        </h1>
+        <p className="text-muted-foreground">
+          مدیریت مجموعه‌ها، رزروها و درآمد
+        </p>
       </div>
 
       {/* Quick actions */}

@@ -82,7 +82,7 @@ export default function ContactPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-hidden">
         <section className="relative overflow-hidden px-4 py-12 md:py-20">
           <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
           <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />

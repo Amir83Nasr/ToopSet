@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.log import Log
 
@@ -37,22 +38,26 @@ class LogRepo:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
     ) -> tuple[list[Log], int]:
-        query = select(Log)
         count_q = select(func.count(Log.id))
         if action:
-            query = query.where(Log.action == action)
             count_q = count_q.where(Log.action == action)
         if user_id is not None:
-            query = query.where(Log.user_id == user_id)
             count_q = count_q.where(Log.user_id == user_id)
         if date_from is not None:
-            query = query.where(Log.created_at >= date_from)
             count_q = count_q.where(Log.created_at >= date_from)
         if date_to is not None:
-            query = query.where(Log.created_at <= date_to)
             count_q = count_q.where(Log.created_at <= date_to)
-        query = query.order_by(Log.created_at.desc())
         total = (await self.db.execute(count_q)).scalar_one()
+
+        query = select(Log).options(joinedload(Log.user)).order_by(Log.created_at.desc())
+        if action:
+            query = query.where(Log.action == action)
+        if user_id is not None:
+            query = query.where(Log.user_id == user_id)
+        if date_from is not None:
+            query = query.where(Log.created_at >= date_from)
+        if date_to is not None:
+            query = query.where(Log.created_at <= date_to)
         result = await self.db.execute(query.offset(skip).limit(limit))
-        logs = list(result.scalars().all())
+        logs = list(result.unique().scalars().all())
         return logs, total

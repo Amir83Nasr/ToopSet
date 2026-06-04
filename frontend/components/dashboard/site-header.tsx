@@ -4,6 +4,8 @@ import { Fragment, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { ExternalLink } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -39,8 +41,7 @@ export function SiteHeader() {
   const pathname = usePathname()
   const segments = pathname.split("/").filter(Boolean)
   const [scrolled, setScrolled] = useState(false)
-  const observerRef = useRef<IntersectionObserver | null>(null)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const headerRef = useRef<HTMLElement>(null)
 
   const breadcrumbs = segments.map((seg, i) => ({
     label: breadcrumbLabels[seg] || seg,
@@ -48,39 +49,32 @@ export function SiteHeader() {
   }))
 
   useEffect(() => {
-    // Use an IntersectionObserver on a zero-height sentinel at the top of the page.
-    // When the sentinel is not intersecting, the user has scrolled past the header.
-    const sentinel = document.createElement("div")
-    sentinel.style.position = "absolute"
-    sentinel.style.top = "0"
-    sentinel.style.left = "0"
-    sentinel.style.width = "1px"
-    sentinel.style.height = "1px"
-    sentinel.style.pointerEvents = "none"
-    document.body.prepend(sentinel)
-    sentinelRef.current = sentinel
+    const header = headerRef.current
+    if (!header) return
 
-    observerRef.current = new IntersectionObserver(
-      ([entry]) => {
-        setScrolled(!entry.isIntersecting)
-      },
-      { threshold: 0 }
-    )
-    observerRef.current.observe(sentinel)
+    const scrollContainer = header.parentElement
+    if (!scrollContainer) return
+
+    const handleScroll = () => {
+      setScrolled(scrollContainer.scrollTop > 0)
+    }
+
+    handleScroll()
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true })
 
     return () => {
-      observerRef.current?.disconnect()
-      sentinel.remove()
+      scrollContainer.removeEventListener("scroll", handleScroll)
     }
   }, [])
 
   return (
     <header
+      ref={headerRef}
       className={
-        "flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height,ease] duration-200 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 " +
+        "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] duration-200 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 " +
         (scrolled
           ? "bg-background/95 shadow-md backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
-          : "bg-background")
+          : "bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/70")
       }
     >
       <div className="flex items-center gap-2 px-4">
@@ -107,12 +101,12 @@ export function SiteHeader() {
       </div>
       <div className="flex-1" />
       <div className="px-4">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          بازگشت به سایت
-        </Link>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/">
+            <ExternalLink className="ml-1.5 size-4" />
+            بازگشت به صفحه اصلی
+          </Link>
+        </Button>
       </div>
     </header>
   )

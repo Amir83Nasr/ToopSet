@@ -4,25 +4,36 @@ import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { RegisterForm } from "@/components/auth/register-form"
+import { Button } from "@/components/ui/button"
+import { ArrowRight } from "lucide-react"
 
 export default function RegisterPage() {
   const { register } = useAuth()
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-gradient-to-b from-background to-muted/50 px-4 py-12">
-      <Link href="/" className="mb-8 flex items-center gap-2">
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex">
+          <Button variant="ghost" asChild>
+            <Link href="/">
+              <ArrowRight className="ml-2 size-4" />
+              بازگشت به صفحه اصلی
+            </Link>
+          </Button>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <RegisterForm register={register} />
+          </div>
+        </div>
+      </div>
+      <div className="relative hidden bg-muted lg:block">
         <Image
-          src="/favicon.svg"
-          alt="توپ‌سِت"
-          width={28}
-          height={28}
-          className="size-7"
+          src="/futsal.svg"
+          alt=""
+          fill
+          className="absolute inset-0 size-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
-        <span className="text-lg font-bold tracking-tight">توپ‌سِت</span>
-      </Link>
-
-      <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-sm">
-        <RegisterForm register={register} />
       </div>
     </div>
   )

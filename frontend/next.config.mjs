@@ -1,4 +1,5 @@
 import withBundleAnalyzer from "@next/bundle-analyzer"
+import { withSentryConfig } from "@sentry/nextjs"
 
 const analyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -14,15 +15,18 @@ const nextConfig = {
         port: "8000",
         pathname: "/uploads/**",
       },
-      {
-        protocol: "https",
-        hostname: process.env.NEXT_PUBLIC_API_URL
-          ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname
-          : "**",
-        pathname: "/uploads/**",
-      },
     ],
   },
 }
 
-export default analyzer(nextConfig)
+const sentryConfig = {
+  silent: !process.env.NEXT_PUBLIC_SENTRY_DSN,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  disableLogger: true,
+  automaticVercelMonitors: false,
+}
+
+export default process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(analyzer(nextConfig), sentryConfig)
+  : analyzer(nextConfig)

@@ -24,9 +24,14 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     is_active: bool
+    avatar_url: str | None = None
     created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class AvatarUploadResponse(BaseModel):
+    url: str
 
 
 class UpdateProfileRequest(BaseModel):

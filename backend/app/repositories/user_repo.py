@@ -82,12 +82,12 @@ class UserRepository:
         await self.db.flush()
         return user
 
-    async def update_user(self, user_id: int, data: dict) -> User | None:
+    async def update_user(self, user_id: int, data: dict, allow_none: bool = False) -> User | None:
         user = await self.get_by_id(user_id)
         if user is None:
             return None
         for key, value in data.items():
-            if value is not None:
+            if allow_none or value is not None:
                 setattr(user, key, value)
         await self.db.flush()
         return user

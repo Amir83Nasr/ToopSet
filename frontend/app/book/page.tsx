@@ -34,7 +34,7 @@ import {
   Timer,
   XCircle,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 interface SlotDetail {
   id: number

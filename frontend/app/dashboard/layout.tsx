@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { SiteHeader } from "@/components/dashboard/site-header"
@@ -10,6 +11,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <AuthGuard>
+      <ErrorBoundary>
       <SidebarProvider
         style={
           {
@@ -19,13 +21,14 @@ export default function DashboardLayout({
         }
       >
         <AppSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="overflow-y-auto">
           <SiteHeader />
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+          <div className="flex flex-col gap-4 p-4" style={{ minHeight: "calc(100dvh - 5rem)" }}>
             {children}
           </div>
         </SidebarInset>
       </SidebarProvider>
+      </ErrorBoundary>
     </AuthGuard>
   )
 }

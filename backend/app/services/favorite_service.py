@@ -15,13 +15,13 @@ class FavoriteService:
     async def add_favorite(self, court_id: int):
         existing = await self.repo.is_favorited(self.current_user.id, court_id)
         if existing:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already favorited")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="قبلاً به علاقه‌مندی‌ها اضافه شده است")
         return await self.repo.add(self.current_user.id, court_id)
 
     async def remove_favorite(self, court_id: int):
         removed = await self.repo.remove(self.current_user.id, court_id)
         if not removed:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Favorite not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="علاقه‌مندی یافت نشد")
 
     async def list_favorites(self, skip: int = 0, limit: int = 50):
         return await self.repo.list_by_user(self.current_user.id, skip=skip, limit=limit)

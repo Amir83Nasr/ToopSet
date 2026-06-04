@@ -22,7 +22,7 @@ class Court(Base):
     __tablename__ = "courts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    manager_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    manager_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(256))
     sport_types: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, server_default="{}")
     address: Mapped[str] = mapped_column(Text)

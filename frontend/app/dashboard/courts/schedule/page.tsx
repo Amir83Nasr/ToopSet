@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -39,7 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   CalendarPlus,
   Trash2,
@@ -56,6 +55,7 @@ import {
   WandSparkles,
 } from "lucide-react"
 import { PersianInput } from "@/components/ui/persian-input"
+import { TimePicker } from "@/components/ui/time-picker"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { toLocalDateStr } from "@/lib/utils"
 import type { DateRange } from "@daypicker/react"
@@ -188,7 +188,9 @@ export default function SchedulePage() {
 
   /* generate form state ------------------------------------------- */
   const [showGenerate, setShowGenerate] = useState(false)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(getThisWeekRange)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    getThisWeekRange
+  )
   const [selectedDays, setSelectedDays] = useState<boolean[]>(
     Array.from({ length: 7 }, () => true)
   )
@@ -206,7 +208,8 @@ export default function SchedulePage() {
     const from = dateRange.from
     const to = dateRange.to
     if (to < from) return 0
-    const diffDays = Math.floor((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const diffDays =
+      Math.floor((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const totalDays = new Array(diffDays).fill(0).filter((_, i) => {
       const d = new Date(from)
       d.setDate(from.getDate() + i)
@@ -521,8 +524,8 @@ export default function SchedulePage() {
             </Button>
           </div>
           <CardDescription>
-            با مشخص کردن بازه تاریخ، روزهای هفته و بازه‌های زمانی، به صورت خودکار
-            زمان‌های مجموعه را ایجاد کنید
+            با مشخص کردن بازه تاریخ، روزهای هفته و بازه‌های زمانی، به صورت
+            خودکار زمان‌های مجموعه را ایجاد کنید
           </CardDescription>
         </CardHeader>
 
@@ -612,24 +615,20 @@ export default function SchedulePage() {
                   >
                     <div className="space-y-1">
                       <Label className="text-xs">شروع</Label>
-                      <Input
-                        type="time"
+                      <TimePicker
                         value={tpl.start_time}
-                        onChange={(e) =>
-                          updateTemplate(index, "start_time", e.target.value)
+                        onChange={(val) =>
+                          updateTemplate(index, "start_time", val)
                         }
-                        className="w-[110px]"
                       />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">پایان</Label>
-                      <Input
-                        type="time"
+                      <TimePicker
                         value={tpl.end_time}
-                        onChange={(e) =>
-                          updateTemplate(index, "end_time", e.target.value)
+                        onChange={(val) =>
+                          updateTemplate(index, "end_time", val)
                         }
-                        className="w-[110px]"
                       />
                     </div>
                     <div className="flex-1 space-y-1">
@@ -742,10 +741,7 @@ export default function SchedulePage() {
                 <p className="text-muted-foreground">
                   هیچ زمانی برای این مجموعه تعریف نشده
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowGenerate(true)}
-                >
+                <Button variant="outline" onClick={() => setShowGenerate(true)}>
                   <CalendarPlus className="ml-2 size-4" />
                   ایجاد زمان
                 </Button>

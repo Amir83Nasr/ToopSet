@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +46,7 @@ class TimeSlotService:
     ) -> TimeSlotListResponse:
         court = await self.court_repo.get_by_id(court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
 
         # Try Redis cache (first page only for simplicity)
         if skip == 0 and limit <= 50:
@@ -70,7 +70,7 @@ class TimeSlotService:
     async def get_slot(self, slot_id: int) -> TimeSlotDetailResponse:
         slot = await self.repo.get_by_id(slot_id)
         if not slot:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         court = slot.court
         return TimeSlotDetailResponse(
             id=slot.id,
@@ -88,10 +88,10 @@ class TimeSlotService:
     async def create_slot(self, data: TimeSlotCreate) -> TimeSlotResponse:
         court = await self.court_repo.get_by_id(data.court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if data.start_time >= data.end_time:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="زمان شروع باید قبل از زمان پایان باشد"
             )
         slot = await self.repo.create(data.model_dump())
         await invalidate_slot_list(data.court_id)
@@ -100,10 +100,10 @@ class TimeSlotService:
     async def update_slot(self, slot_id: int, data: TimeSlotUpdate) -> TimeSlotResponse:
         slot = await self.repo.get_by_id(slot_id)
         if not slot:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         if slot.is_reserved:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify a reserved slot"
+                status_code=status.HTTP_409_CONFLICT, detail="امکان ویرایش سانس رزرو شده وجود ندارد"
             )
         updated = await self.repo.update(slot, data.model_dump(exclude_none=True))
         await invalidate_slot_list(updated.court_id)
@@ -112,19 +112,21 @@ class TimeSlotService:
     async def delete_slot(self, slot_id: int) -> None:
         slot = await self.repo.get_by_id(slot_id)
         if not slot:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time slot not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         if slot.is_reserved:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a reserved slot"
+                status_code=status.HTTP_409_CONFLICT, detail="امکان حذف سانس رزرو شده وجود ندارد"
             )
         court_id = slot.court_id
         await self.repo.delete(slot)
         await invalidate_slot_list(court_id)
 
-    async def generate_slots(self, court_id: int, data: TimeSlotGenerate) -> TimeSlotGenerateResponse:
+    async def generate_slots(
+        self, court_id: int, data: TimeSlotGenerate
+    ) -> TimeSlotGenerateResponse:
         court = await self.court_repo.get_by_id(court_id)
         if not court:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Court not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
 
         date_from_dt = datetime.combine(data.date_from, datetime.min.time())
         date_to_dt = datetime.combine(data.date_to, datetime.max.time())
@@ -146,8 +148,12 @@ class TimeSlotService:
                 continue
 
             for template in data.templates:
-                start_dt = datetime.combine(current, datetime.strptime(template.start_time, "%H:%M").time())
-                end_dt = datetime.combine(current, datetime.strptime(template.end_time, "%H:%M").time())
+                start_dt = datetime.combine(
+                    current, datetime.strptime(template.start_time, "%H:%M").time()
+                )
+                end_dt = datetime.combine(
+                    current, datetime.strptime(template.end_time, "%H:%M").time()
+                )
 
                 if start_dt >= end_dt:
                     skipped += 1
@@ -156,12 +162,14 @@ class TimeSlotService:
                     skipped += 1
                     continue
 
-                to_create.append({
-                    "court_id": court_id,
-                    "start_time": start_dt,
-                    "end_time": end_dt,
-                    "base_price": template.base_price,
-                })
+                to_create.append(
+                    {
+                        "court_id": court_id,
+                        "start_time": start_dt,
+                        "end_time": end_dt,
+                        "base_price": template.base_price,
+                    }
+                )
 
             current += timedelta(days=1)
 

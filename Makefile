@@ -120,12 +120,12 @@ back-lint: ## Lint Python code with ruff
 	@cd $(BACKEND_DIR) && ruff check --fix .
 	@echo "  $(GREEN)✓$(RESET) Ruff checks passed"
 
-back-format: ## Format Python code with ruff
-	@ruff format $(BACKEND_DIR)
-	@echo "  $(GREEN)✓$(RESET) Ruff format applied"
+back-format: ## Format Python code with isort + black
+	@cd $(BACKEND_DIR) && isort . && black .
+	@echo "  $(GREEN)✓$(RESET) isort + black applied"
 
 back-format-check: ## Check formatting without changing files
-	@cd $(BACKEND_DIR) && ruff format --check .
+	@cd $(BACKEND_DIR) && isort --check-only . && black --check .
 	@echo "  $(GREEN)✓$(RESET) Formatting looks good"
 
 back-typecheck: ## Type-check Python code with mypy

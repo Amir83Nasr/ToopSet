@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
@@ -25,37 +24,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
+import { TimePicker } from "@/components/ui/time-picker"
 import { Skeleton } from "@/components/ui/skeleton"
-import dynamic from "next/dynamic"
-
-const CourtLocationMap = dynamic(
-  () =>
-    import("@/components/map/court-location-map").then(
-      (m) => m.CourtLocationMap
-    ),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-48 w-full rounded-xl" />,
-  }
-)
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   ArrowRight,
   Pencil,
@@ -64,136 +46,127 @@ import {
   Star,
   Users,
   UserCircle,
+  Phone,
+  Loader2,
+  Trash2,
+  ToggleRight,
+  Clock,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  CheckCircle2,
+  XCircle,
+  Timer,
 } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
 import { PersianInput } from "@/components/ui/persian-input"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import type { DateRange } from "@daypicker/react"
+import dynamic from "next/dynamic"
+import { CourtImageGallery } from "@/components/courts/court-image-gallery"
+import { CourtAmenities } from "@/components/courts/court-amenities"
+import { CourtReviews } from "@/components/courts/court-reviews"
+import {
+  sportLabels,
+  sportColors,
+  Stars,
+  formatTime,
+  formatPrice,
+  formatDate,
+  type CourtData,
+  type TimeSlot,
+  type Review,
+} from "@/components/courts/court-shared"
 
-interface Court {
-  id: number
-  name: string
-  sport_types: string[]
-  address: string
-  latitude: number
-  longitude: number
-  capacity: number
-  is_active: boolean
-  average_rating: number
-  created_at: string
-  amenities?: Record<string, boolean>
-  images?: string[]
-  manager_name?: string
-}
+const CourtLocationMap = dynamic(
+  () =>
+    import("@/components/map/court-location-map").then(
+      (m) => m.CourtLocationMap
+    ),
+  { ssr: false, loading: () => <Skeleton className="h-48 w-full rounded-xl" /> }
+)
 
-interface TimeSlot {
-  id: number
-  court_id: number
-  start_time: string
-  end_time: string
-  base_price: number
-  is_reserved: boolean
-  version: number
-}
+const PERSIAN_DAY_NAMES = [
+  "شنبه",
+  "یکشنبه",
+  "دوشنبه",
+  "سه‌شنبه",
+  "چهارشنبه",
+  "پنجشنبه",
+  "جمعه",
+]
 
-const sportLabels: Record<string, string> = {
-  volleyball: "والیبال",
-  basketball: "بسکتبال",
-  futsal: "فوتسال",
-  handball: "هندبال",
-}
-
-const sportColors: Record<string, string> = {
-  volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball:
-    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-}
-
-interface Review {
-  id: number
-  user_name?: string
-  rating: number
-  comment?: string
-  response?: string
-}
-
-const amenityLabels: Record<string, string> = {
-  toilet: "سرویس بهداشتی",
-  water_cooler: "آبسردکن",
-  standard_flooring: "کفپوش استاندارد",
-  spectator_seating: "جایگاه تماشاگر",
-  air_conditioning: "تهویه مطبوع",
-  parking: "پارکینگ",
-  locker_room: "رختکن",
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString("fa-IR")
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
-}
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
-}
-
-export default function CourtDetailPage() {
+export default function DashboardCourtDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const courtId = Number(params.id)
 
-  const [court, setCourt] = useState<Court | null>(null)
-  const [slots, setSlots] = useState<TimeSlot[]>([])
-  const [slotsTotal, setSlotsTotal] = useState(0)
+  const [court, setCourt] = useState<CourtData | null>(null)
+  const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
-  const [bookingParticipants, setBookingParticipants] = useState(1)
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
+  const [createCount, setCreateCount] = useState(0)
+  const [createTotal, setCreateTotal] = useState(0)
   const [recentReviews, setRecentReviews] = useState<Review[]>([])
-  const [bookingSubmitting, setBookingSubmitting] = useState(false)
-  const [slotDate, setSlotDate] = useState("")
-  const slotDateObj = useMemo(
-    () => (slotDate ? new Date(slotDate + "T12:00:00") : undefined),
-    [slotDate]
-  )
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [activeDateIndex, setActiveDateIndex] = useState(0)
+  const [startTime, setStartTime] = useState("")
+  const [endTime, setEndTime] = useState("")
 
   const canManage = user?.role === "manager" || user?.role === "admin"
+  const isAdmin = user?.role === "admin"
+
+  const next7Days = useMemo(() => {
+    const result: string[] = []
+    for (let i = 0; i < 30; i++) {
+      const d = new Date()
+      d.setDate(d.getDate() + i)
+      result.push(d.toLocaleDateString("en-CA"))
+    }
+    return result
+  }, [])
+
+  const activeDate = next7Days[activeDateIndex] || next7Days[0]
+
+  const slotsForDate = useMemo(
+    () => allSlots.filter((s) => s.start_time.startsWith(activeDate)),
+    [allSlots, activeDate]
+  )
+
+  const totalAvailable = useMemo(
+    () => allSlots.filter((s) => !s.is_reserved).length,
+    [allSlots]
+  )
+
+  const totalReserved = useMemo(
+    () => allSlots.filter((s) => s.is_reserved).length,
+    [allSlots]
+  )
 
   const fetchData = useCallback(async () => {
     try {
       const [courtRes, slotsRes] = await Promise.all([
-        api<Court>(`/api/v1/courts/${courtId}`),
+        api<CourtData>(`/api/v1/courts/${courtId}`),
         api<{ slots: TimeSlot[]; total: number }>(
-          `/api/v1/courts/${courtId}/slots?limit=100`
+          `/api/v1/courts/${courtId}/slots?limit=500`
         ),
       ])
       setCourt(courtRes)
-      setSlots(slotsRes.slots)
-      setSlotsTotal(slotsRes.total)
-      // Fetch recent reviews
+      setAllSlots(slotsRes.slots)
       try {
         const revRes = await api<{ reviews: Review[]; total: number }>(
           `/api/v1/courts/${courtId}/reviews?limit=3`
         )
         setRecentReviews(revRes.reviews || [])
-      } catch {
-        // reviews may not be available
-      }
+      } catch {} // reviews optional
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setNotFound(true)
-      } else {
-        toast.error("خطا در دریافت اطلاعات")
-      }
+      if (err instanceof ApiError && err.status === 404) setNotFound(true)
+      else toast.error("خطا در دریافت اطلاعات")
     } finally {
       setLoading(false)
     }
@@ -206,97 +179,118 @@ export default function CourtDetailPage() {
 
   async function handleCreateSlot(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setCreating(true)
-
-    const form = new FormData(e.currentTarget)
-    const date = form.get("date") as string
-    const start = form.get("start_time") as string
-    const end = form.get("end_time") as string
-    const price = form.get("base_price") as string
-
-    const data = {
-      court_id: courtId,
-      start_time: new Date(`${date}T${start}:00`).toISOString(),
-      end_time: new Date(`${date}T${end}:00`).toISOString(),
-      base_price: parseFloat(price),
+    if (!dateRange?.from) {
+      toast.error("لطفاً بازه تاریخ را انتخاب کنید")
+      return
     }
+    if (!startTime || !endTime) {
+      toast.error("لطفاً ساعت شروع و پایان را وارد کنید")
+      return
+    }
+    setCreating(true)
+    const form = new FormData(e.currentTarget)
+    const price = form.get("base_price") as string
+    const dates: string[] = []
+    const from = new Date(dateRange.from)
+    const to = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from)
+    const current = new Date(from)
+    while (current <= to) {
+      dates.push(current.toLocaleDateString("en-CA"))
+      current.setDate(current.getDate() + 1)
+    }
+    setCreateCount(0)
+    setCreateTotal(dates.length)
+    let successCount = 0
+    for (let i = 0; i < dates.length; i++) {
+      try {
+        await api(`/api/v1/courts/${courtId}/slots`, {
+          method: "POST",
+          body: JSON.stringify({
+            date: dates[i],
+            start_time: startTime,
+            end_time: endTime,
+            base_price: Number(price.replace(/,/g, "")),
+          }),
+        })
+        successCount++
+      } catch {} // skip failed
+      setCreateCount(i + 1)
+    }
+    if (successCount > 0) {
+      toast.success(`${toPersianDigits(successCount)} زمان با موفقیت ایجاد شد`)
+      fetchData()
+    } else {
+      toast.error("هیچ زمانی ایجاد نشد")
+    }
+    setCreating(false)
+    setDialogOpen(false)
+    setDateRange(undefined)
+  }
 
+  const handleToggleActive = useCallback(async () => {
+    if (!court) return
     try {
-      await api(`/api/v1/courts/${courtId}/slots`, {
-        method: "POST",
-        body: JSON.stringify(data),
+      await api(`/api/v1/courts/${courtId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !court.is_active }),
       })
-      toast.success("زمان با موفقیت اضافه شد")
-      setDialogOpen(false)
+      toast.success(court.is_active ? "مجموعه غیرفعال شد" : "مجموعه فعال شد")
       fetchData()
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "خطا در ایجاد زمان"
-      toast.error(msg)
-    } finally {
-      setCreating(false)
+      toast.error(err instanceof ApiError ? err.message : "خطا")
     }
-  }
+  }, [court, courtId, fetchData])
+
+  const handleDelete = useCallback(async () => {
+    setDeleting(true)
+    try {
+      await api(`/api/v1/courts/${courtId}`, { method: "DELETE" })
+      toast.success("مجموعه حذف شد")
+      router.push("/dashboard/courts")
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "خطا در حذف")
+    } finally {
+      setDeleting(false)
+    }
+  }, [courtId, router])
+
+  const handleDeleteSlot = useCallback(
+    async (slot: TimeSlot) => {
+      try {
+        await api(`/api/v1/courts/${courtId}/slots/${slot.id}`, {
+          method: "DELETE",
+        })
+        toast.success("زمان حذف شد")
+        fetchData()
+      } catch {
+        toast.error("خطا در حذف زمان")
+      }
+    },
+    [courtId, fetchData]
+  )
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col gap-6">
-        {/* Back button skeleton */}
-        <Skeleton className="h-9 w-32 rounded-md" />
-
-        {/* Court info card skeleton */}
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-7 w-56" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-            </div>
-            {canManage && <Skeleton className="h-8 w-20 rounded-md" />}
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Skeleton className="size-4 rounded-full" />
-                  <Skeleton className="h-4 flex-1" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Time slots card skeleton */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-6 w-28" />
-              <Skeleton className="h-4 w-36" />
-            </div>
-            {canManage && <Skeleton className="h-8 w-28 rounded-md" />}
-          </CardHeader>
-          <CardContent>
-            {/* Table header skeleton */}
-            <div className="flex gap-4 border-b pb-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-4 flex-1" />
-              ))}
-            </div>
-            {/* Table rows skeleton */}
-            {[1, 2, 3, 4].map((row) => (
-              <div key={row} className="flex gap-4 border-b py-3">
-                {[1, 2, 3, 4, 5].map((col) => (
-                  <Skeleton key={col} className="h-4 flex-1" />
-                ))}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="flex flex-1 flex-col gap-6 p-6">
+        <Skeleton className="h-8 w-32" />
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="space-y-6 lg:col-span-3">
+            <Skeleton className="h-[300px] w-full rounded-2xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+          </div>
+          <div className="space-y-4 lg:col-span-2">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-96 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (notFound || !court) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-20">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
         <p className="text-xl text-muted-foreground">
           مجموعه مورد نظر یافت نشد
         </p>
@@ -311,437 +305,419 @@ export default function CourtDetailPage() {
     )
   }
 
+  const { dayName, dayNum, month } = formatDate(activeDate)
+  const activeDateLabel = `${dayName} ${dayNum} ${month}`
+
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <Button
-        variant="ghost"
-        className="w-fit"
-        onClick={() => router.push("/dashboard/courts")}
-      >
-        <ArrowRight className="ml-2 size-4" />
-        بازگشت به لیست مجموعه‌ها
-      </Button>
-
-      {/* Management Card */}
-      {canManage && (
-        <Card>
-          <CardHeader>
-            <CardTitle>مدیریت مجموعه</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/dashboard/courts/${courtId}/edit`}>
-                <Pencil className="ml-2 size-4" />
-                ویرایش اطلاعات
-              </Link>
-            </Button>
+      {/* Top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          className="w-fit"
+          onClick={() => router.push("/dashboard/courts")}
+        >
+          <ArrowRight className="ml-2 size-4" />
+          بازگشت به لیست
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleToggleActive}>
+            <ToggleRight data-icon="inline-start" />
+            {court.is_active ? "غیرفعال‌سازی" : "فعال‌سازی"}
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/courts/${courtId}/edit`}>
+              <Pencil className="ml-1.5 size-4" />
+              ویرایش
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/courts/${courtId}`}>
+              <Eye className="ml-1.5 size-4" />
+              صفحه عمومی
+            </Link>
+          </Button>
+          {isAdmin && (
             <Button
               variant="outline"
-              onClick={async () => {
-                try {
-                  await api(`/api/v1/courts/${courtId}`, {
-                    method: "PATCH",
-                    body: JSON.stringify({ is_active: !court.is_active }),
-                  })
-                  toast.success(
-                    court.is_active ? "مجموعه غیرفعال شد" : "مجموعه فعال شد"
-                  )
-                  fetchData()
-                } catch (err) {
-                  toast.error("خطا در تغییر وضعیت")
-                }
-              }}
+              size="sm"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+              onClick={() => setDeleteDialogOpen(true)}
             >
-              {court.is_active ? "غیرفعال‌سازی" : "فعال‌سازی"}
+              <Trash2 className="ml-1.5 size-4" />
+              حذف
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Court info card */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between">
-          <div>
-            <CardTitle className="text-2xl">{court.name}</CardTitle>
-            <CardDescription>
-              <div className="flex flex-wrap gap-1.5">
-                {court.sport_types?.map((st) => (
-                  <Badge
-                    key={st}
-                    className={sportColors[st] || ""}
-                    variant="secondary"
-                  >
-                    {sportLabels[st] || st}
-                  </Badge>
-                ))}
-              </div>
-            </CardDescription>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="size-4 text-muted-foreground" />
-              <span>{court.address}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Users className="size-4 text-muted-foreground" />
-              <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
-            </div>
-            {court.manager_name && (
-              <div className="flex items-center gap-2 text-sm">
-                <UserCircle className="size-4 text-muted-foreground" />
-                <span>مدیر: {court.manager_name}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm">
-              <div className="flex items-center gap-0.5" dir="ltr">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={14}
-                    className={
-                      star <= Math.round(court.average_rating)
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-muted-foreground/30"
-                    }
-                  />
-                ))}
-              </div>
-              <span className="text-muted-foreground">
-                ({toPersianDigits(court.average_rating.toFixed(1))})
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Badge variant={court.is_active ? "default" : "secondary"}>
-                {court.is_active ? "فعال" : "غیرفعال"}
-              </Badge>
-            </div>
-          </div>
-          {court.amenities && Object.keys(court.amenities).length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {Object.entries(court.amenities)
-                .filter(([, v]) => v)
-                .map(([key]) => (
-                  <Badge key={key} variant="outline" className="text-xs">
-                    {amenityLabels[key] || key}
-                  </Badge>
-                ))}
-            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Image gallery with carousel */}
-      {court.images && court.images.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>تصاویر مجموعه</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Carousel className="mx-auto max-w-xl">
-              <CarouselContent>
-                {court.images.map((img: string, i: number) => (
-                  <CarouselItem key={i}>
-                    <div className="relative aspect-video overflow-hidden rounded-lg border">
-                      <Image
-                        src={img}
-                        alt={`${court.name} - ${i + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {court.images.length > 1 && (
-                <>
-                  <CarouselPrevious />
-                  <CarouselNext />
-                </>
-              )}
-            </Carousel>
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* ====== Left column: Court info ====== */}
+        <div className="space-y-6 lg:col-span-3">
+          {/* Image Gallery */}
+          <CourtImageGallery
+            images={court.images || []}
+            courtName={court.name}
+          />
 
-      {/* Location Map */}
-      {court.latitude != null && court.longitude != null && (
-        <Card>
-          <CardHeader>
-            <CardTitle>موقعیت روی نقشه</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CourtLocationMap
-              latitude={court.latitude}
-              longitude={court.longitude}
-              name={court.name}
-              height="250px"
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recent reviews */}
-      {recentReviews.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>نظرات اخیر</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentReviews.map((rev: Review) => (
-              <div
-                key={rev.id}
-                className="border-b pb-3 last:border-0 last:pb-0"
-              >
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {rev.user_name || "کاربر"}
-                  </span>
-                  <div className="flex items-center gap-0.5" dir="ltr">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={12}
-                        className={
-                          star <= rev.rating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-muted-foreground/30"
-                        }
-                      />
+          {/* Court info card */}
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between pb-3">
+              <div>
+                <CardTitle className="text-xl">{court.name}</CardTitle>
+                <CardDescription className="mt-1">
+                  <div className="flex flex-wrap gap-1.5">
+                    {court.sport_types?.map((st) => (
+                      <Badge
+                        key={st}
+                        className={sportColors[st] || ""}
+                        variant="secondary"
+                      >
+                        {sportLabels[st] || st}
+                      </Badge>
                     ))}
                   </div>
+                </CardDescription>
+              </div>
+              <Stars rating={court.average_rating} size={16} />
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-x-6 gap-y-3 md:grid-cols-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{court.address}</span>
                 </div>
-                {rev.comment && (
-                  <p className="text-sm text-muted-foreground">{rev.comment}</p>
-                )}
-                {rev.response && (
-                  <div className="mt-2 rounded-lg bg-muted p-2 text-sm">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      پاسخ مدیر:{" "}
-                    </span>
-                    {rev.response}
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="size-4 shrink-0 text-muted-foreground" />
+                  <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
+                </div>
+                {court.manager_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <UserCircle className="size-4 shrink-0 text-muted-foreground" />
+                    <span>مدیر: {court.manager_name}</span>
                   </div>
+                )}
+                {court.manager_phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="size-4 shrink-0 text-muted-foreground" />
+                    <a
+                      href={`tel:${court.manager_phone}`}
+                      className="text-primary hover:underline"
+                    >
+                      {court.manager_phone}
+                    </a>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Star className="size-4 fill-amber-400 text-amber-400" />
+                  <span>
+                    {toPersianDigits(court.average_rating.toFixed(1))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Badge variant={court.is_active ? "default" : "secondary"}>
+                    {court.is_active ? "فعال" : "غیرفعال"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Amenities */}
+          {court.amenities && <CourtAmenities amenities={court.amenities} />}
+
+          {/* Map */}
+          {court.latitude != null && court.longitude != null && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">موقعیت روی نقشه</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <CourtLocationMap
+                  latitude={court.latitude}
+                  longitude={court.longitude}
+                  name={court.name}
+                  height="220px"
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Reviews */}
+          {recentReviews.length > 0 && (
+            <CourtReviews
+              reviews={recentReviews}
+              averageRating={court.average_rating}
+              total={recentReviews.length}
+              courtId={courtId}
+            />
+          )}
+        </div>
+
+        {/* ====== Right column: Time slots ====== */}
+        <div className="space-y-4 lg:sticky lg:top-6 lg:col-span-2 lg:self-start">
+          {/* Stats bar */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-around text-center">
+                <div>
+                  <p className="text-2xl font-bold">
+                    {toPersianDigits(allSlots.length)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">کل زمان‌ها</p>
+                </div>
+                <div className="h-10 w-px bg-border" />
+                <div>
+                  <p className="text-2xl font-bold text-green-600">
+                    {toPersianDigits(totalAvailable)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">آزاد</p>
+                </div>
+                <div className="h-10 w-px bg-border" />
+                <div>
+                  <p className="text-2xl font-bold text-red-500">
+                    {toPersianDigits(totalReserved)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">رزرو شده</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Date navigation + Add button */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={activeDateIndex <= 0}
+                    onClick={() =>
+                      setActiveDateIndex((i) => Math.max(0, i - 1))
+                    }
+                  >
+                    <ChevronRight className="size-4" />
+                  </Button>
+                  <div className="min-w-0 text-center">
+                    <p className="text-sm leading-tight font-semibold">
+                      {activeDateLabel}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {toPersianDigits(slotsForDate.length)} سانس
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={activeDateIndex >= next7Days.length - 1}
+                    onClick={() =>
+                      setActiveDateIndex((i) =>
+                        Math.min(next7Days.length - 1, i + 1)
+                      )
+                    }
+                  >
+                    <ChevronLeft className="size-4" />
+                  </Button>
+                </div>
+                {canManage && (
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <CalendarPlus className="ml-1.5 size-4" />
+                        افزودن
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent
+                      onOpenAutoFocus={() => {
+                        setStartTime("")
+                        setEndTime("")
+                      }}
+                    >
+                      <DialogHeader>
+                        <DialogTitle>افزودن زمان جدید</DialogTitle>
+                        <DialogDescription>
+                          برای مجموعه {court.name} زمان جدید ثبت کنید
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleCreateSlot} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>بازه تاریخ</Label>
+                          <DateRangePicker
+                            value={dateRange}
+                            onChange={setDateRange}
+                            placeholder="از تاریخ تا تاریخ"
+                          />
+                          {dateRange?.from && dateRange?.to && (
+                            <p className="text-xs text-muted-foreground">
+                              {dateRange.from.toLocaleDateString("fa-IR")} تا{" "}
+                              {dateRange.to.toLocaleDateString("fa-IR")}
+                              {dateRange.from.toLocaleDateString("en-CA") !==
+                                dateRange.to.toLocaleDateString("en-CA") &&
+                                ` (${toPersianDigits(
+                                  Math.ceil(
+                                    (dateRange.to.getTime() -
+                                      dateRange.from.getTime()) /
+                                      (1000 * 60 * 60 * 24) +
+                                      1
+                                  )
+                                )} روز)`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>ساعت شروع</Label>
+                            <TimePicker
+                              value={startTime}
+                              onChange={setStartTime}
+                              placeholder="--:--"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>ساعت پایان</Label>
+                            <TimePicker
+                              value={endTime}
+                              onChange={setEndTime}
+                              placeholder="--:--"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="base_price">قیمت (تومان)</Label>
+                          <PersianInput
+                            id="base_price"
+                            name="base_price"
+                            min="0"
+                            placeholder="۵۰۰۰۰۰"
+                            required
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" disabled={creating}>
+                            {creating ? (
+                              <>
+                                <Loader2 className="ml-1.5 size-4 animate-spin" />
+                                {toPersianDigits(createCount)}/
+                                {toPersianDigits(createTotal)}
+                              </>
+                            ) : (
+                              "ثبت زمان‌ها"
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 )}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
 
-      {/* Time slots section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>زمان‌بندی</CardTitle>
-            <CardDescription>
-              {toPersianDigits(slotsTotal)} زمان ثبت شده
-            </CardDescription>
-          </div>
-          {canManage && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <CalendarPlus className="ml-2 size-4" />
-                  افزودن زمان
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>افزودن زمان جدید</DialogTitle>
-                  <DialogDescription>
-                    برای مجموعه {court.name} یک زمان جدید ثبت کنید
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateSlot} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>تاریخ</Label>
-                    <DatePicker
-                      value={slotDateObj}
-                      onChange={(d) => {
-                        if (d) {
-                          const y = d.getFullYear()
-                          const m = String(d.getMonth() + 1).padStart(2, "0")
-                          const dd = String(d.getDate()).padStart(2, "0")
-                          setSlotDate(`${y}-${m}-${dd}`)
-                        } else {
-                          setSlotDate("")
-                        }
-                      }}
-                    />
-                    <input type="hidden" name="date" value={slotDate} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="start_time">ساعت شروع</Label>
-                      <Input
-                        id="start_time"
-                        name="start_time"
-                        type="time"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="end_time">ساعت پایان</Label>
-                      <Input
-                        id="end_time"
-                        name="end_time"
-                        type="time"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="base_price">قیمت (تومان)</Label>
-                    <PersianInput
-                      id="base_price"
-                      name="base_price"
-                      min="0"
-                      placeholder="۵۰۰۰۰۰"
-                      required
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={creating}>
-                      {creating ? "در حال ثبت..." : "ثبت زمان"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
-        </CardHeader>
-        <CardContent>
-          {slots.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground">
-              هنوز زمانی برای این مجموعه ثبت نشده است
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>تاریخ</TableHead>
-                  <TableHead>ساعت شروع</TableHead>
-                  <TableHead>ساعت پایان</TableHead>
-                  <TableHead>قیمت</TableHead>
-                  <TableHead>وضعیت</TableHead>
-                  <TableHead className="text-left">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {slots.map((slot) => (
-                  <TableRow key={slot.id}>
-                    <TableCell>{formatDate(slot.start_time)}</TableCell>
-                    <TableCell>{formatTime(slot.start_time)}</TableCell>
-                    <TableCell>{formatTime(slot.end_time)}</TableCell>
-                    <TableCell>{formatPrice(slot.base_price)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={slot.is_reserved ? "secondary" : "outline"}
-                      >
-                        {slot.is_reserved ? "رزرو شده" : "آزاد"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {!slot.is_reserved && !canManage && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setBookingSlot(slot)
-                            setBookingParticipants(1)
-                            setBookingDialogOpen(true)
-                          }}
-                        >
-                          رزرو
-                        </Button>
+          {/* Slot cards */}
+          <div className="space-y-2">
+            {slotsForDate.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                <CalendarDays className="size-10 opacity-30" />
+                <div>
+                  <p className="text-sm font-medium">
+                    سانسی برای این تاریخ ثبت نشده
+                  </p>
+                  <p className="mt-1 text-xs opacity-70">
+                    {canManage
+                      ? "از دکمه افزودن استفاده کنید"
+                      : "تاریخ دیگری انتخاب کنید"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              slotsForDate.map((slot) => (
+                <div
+                  key={slot.id}
+                  className={`group flex items-center justify-between rounded-xl border-2 p-4 transition-all ${
+                    slot.is_reserved
+                      ? "border-red-100 bg-red-50/40 dark:border-red-900/20 dark:bg-red-950/5"
+                      : "border-border/50 bg-card hover:border-primary/30 hover:shadow-sm"
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`flex size-12 items-center justify-center rounded-xl ${
+                        slot.is_reserved
+                          ? "bg-red-100 text-red-500 dark:bg-red-900/20"
+                          : "bg-green-100 text-green-600 dark:bg-green-900/20"
+                      }`}
+                    >
+                      {slot.is_reserved ? (
+                        <XCircle className="size-6" />
+                      ) : (
+                        <CheckCircle2 className="size-6" />
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>رزرو زمان</DialogTitle>
-            <DialogDescription>
-              {bookingSlot
-                ? `${formatDate(bookingSlot.start_time)} - ${formatTime(bookingSlot.start_time)} تا ${formatTime(bookingSlot.end_time)}`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault()
-              if (!bookingSlot) return
-              setBookingSubmitting(true)
-              try {
-                await api("/api/v1/bookings", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    slot_id: bookingSlot.id,
-                    participants_count: bookingParticipants,
-                    version: bookingSlot.version,
-                  }),
-                })
-                toast.success("رزرو با موفقیت انجام شد")
-                setBookingDialogOpen(false)
-                fetchData()
-                router.push("/dashboard/bookings")
-              } catch (err) {
-                if (err instanceof ApiError && err.status === 409) {
-                  toast.error(
-                    "این زمان تغییر کرده است. لطفاً صفحه را بازنشانی کنید."
-                  )
-                  setBookingDialogOpen(false)
-                  fetchData()
-                } else {
-                  const msg =
-                    err instanceof ApiError ? err.message : "خطا در رزرو"
-                  toast.error(msg)
-                }
-              } finally {
-                setBookingSubmitting(false)
-              }
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="participants_count">تعداد شرکت‌کنندگان</Label>
-              <Input
-                id="participants_count"
-                name="participants_count"
-                type="number"
-                min={1}
-                max={court?.capacity ?? 50}
-                value={bookingParticipants}
-                onChange={(e) =>
-                  setBookingParticipants(
-                    Math.max(1, parseInt(e.target.value) || 1)
-                  )
-                }
-                required
-              />
-              {court && (
-                <p className="text-xs text-muted-foreground">
-                  حداکثر ظرفیت: {toPersianDigits(court.capacity)} نفر
-                </p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={bookingSubmitting}>
-                {bookingSubmitting ? "در حال رزرو..." : "تایید رزرو"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                    </div>
+                    <div>
+                      <p className="text-base leading-tight font-bold">
+                        {formatTime(slot.start_time)}
+                        <span className="mx-1.5 text-muted-foreground/40">
+                          —
+                        </span>
+                        {formatTime(slot.end_time)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatPrice(slot.base_price)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={slot.is_reserved ? "secondary" : "outline"}
+                      className={`shrink-0 ${
+                        slot.is_reserved
+                          ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                          : "border-green-300 text-green-600 dark:border-green-700"
+                      }`}
+                    >
+                      {slot.is_reserved ? "رزرو شده" : "آزاد"}
+                    </Badge>
+                    {!slot.is_reserved && canManage && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={() => handleDeleteSlot(slot)}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف مجموعه</AlertDialogTitle>
+            <AlertDialogDescription>
+              آیا از حذف مجموعه «{court.name}» اطمینان دارید؟ این عمل قابل
+              بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "در حال حذف..." : "حذف مجموعه"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

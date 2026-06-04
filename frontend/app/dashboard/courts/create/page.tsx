@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { api, ApiError } from "@/lib/api"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
@@ -32,7 +32,6 @@ import {
   Users,
   Settings2,
   ArrowRight,
-  ExternalLink,
 } from "lucide-react"
 import { PersianInput } from "@/components/ui/persian-input"
 
@@ -158,15 +157,10 @@ export default function CreateCourtPage() {
         </div>
         <div className="flex gap-3">
           <Button asChild>
-            <Link href={`/dashboard/courts/${existingCourtId}`}>
-              <ExternalLink className="ml-2 size-4" />
-              مشاهده مجموعه
-            </Link>
+            <Link href="/dashboard/courts">مشاهده مجموعه‌ها</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/dashboard/courts">
-              بازگشت به لیست
-            </Link>
+            <Link href="/dashboard/courts">بازگشت به لیست</Link>
           </Button>
         </div>
       </div>

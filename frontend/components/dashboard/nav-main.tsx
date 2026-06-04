@@ -55,7 +55,11 @@ const navGroups: NavGroup[] = [
     label: "داشبورد",
     roles: ["manager"],
     items: [
-      { title: "داشبورد مدیر", url: "/dashboard/manager", icon: LayoutDashboard },
+      {
+        title: "داشبورد مدیر",
+        url: "/dashboard/manager",
+        icon: LayoutDashboard,
+      },
     ],
   },
   {
@@ -166,7 +170,7 @@ export function NavMain() {
               <AlertDialogTrigger asChild>
                 <SidebarMenuButton
                   tooltip="خروج"
-                  className="text-destructive hover:text-destructive data-[active=true]:bg-destructive/10"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <LogOut />
                   <span>خروج</span>

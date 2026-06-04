@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react"
 import Image from "next/image"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { uploadFile, type UploadResult, ApiError } from "@/lib/api"
 import { ImagePlus, Loader2, Trash2 } from "lucide-react"
 

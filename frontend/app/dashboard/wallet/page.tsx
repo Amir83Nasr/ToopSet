@@ -32,7 +32,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 interface WalletTransaction {
   id: number

@@ -1,9 +1,49 @@
 "use client"
 
+import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Search } from "lucide-react"
 
+const searchPhrases = [
+  "سانس فوتسال برای روز پنج‌شنبه...",
+  "سالن بسکتبال نزدیک من کجاس...",
+  "سالن ورزشی با قیمت مناسب...",
+]
+
 export function HeroSection() {
+  const [displayText, setDisplayText] = useState("")
+  const [phraseIndex, setPhraseIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const currentPhrase = searchPhrases[phraseIndex]
+
+  const tick = useCallback(() => {
+    if (isDeleting) {
+      setDisplayText(currentPhrase.substring(0, displayText.length - 1))
+    } else {
+      setDisplayText(currentPhrase.substring(0, displayText.length + 1))
+    }
+  }, [currentPhrase, displayText, isDeleting])
+
+  useEffect(() => {
+    if (!isDeleting && displayText === currentPhrase) {
+      const timeout = setTimeout(() => setIsDeleting(true), 2000)
+      return () => clearTimeout(timeout)
+    }
+
+    if (isDeleting && !displayText) {
+      setIsDeleting(false)
+      setPhraseIndex((prev) => (prev + 1) % searchPhrases.length)
+      return
+    }
+
+    const timeout = setTimeout(
+      tick,
+      !displayText && !isDeleting ? 500 : isDeleting ? 40 : 80
+    )
+
+    return () => clearTimeout(timeout)
+  }, [displayText, currentPhrase, isDeleting, tick])
   return (
     <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden md:min-h-[calc(100vh-5rem)]">
       {/* Background layers */}
@@ -71,7 +111,8 @@ export function HeroSection() {
         >
           <Search className="size-5 text-muted-foreground/50" />
           <div className="flex-1 text-right text-sm text-muted-foreground/60">
-            جستجوی سالن، ورزش، یا منطقه...
+            <span>{displayText}</span>
+            <span className="animate-pulse">|</span>
           </div>
           <div className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
             رزرو سریع

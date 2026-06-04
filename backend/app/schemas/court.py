@@ -48,6 +48,7 @@ class CourtResponse(CourtBase):
     id: int
     manager_id: int
     manager_name: str | None = None
+    manager_phone: str | None = None
     images: list[str] | None = None
     court_images: list[CourtImageResponse] | None = None
     is_active: bool

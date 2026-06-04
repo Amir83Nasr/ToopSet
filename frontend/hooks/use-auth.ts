@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { api, clearTokens, setTokens } from "@/lib/api"
+import { ApiError, api, clearTokens, setTokens } from "@/lib/api"
 import { getCookie } from "@/lib/cookies"
 import type {
   AuthResponse,
@@ -16,29 +16,37 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     const token = getCookie("access_token")
     if (!token) {
+      setUser(null)
       setLoading(false)
       return
     }
-    api<{
-      id: number
-      phone: string
-      full_name: string
-      role: string
-      is_active: boolean
-      created_at: string
-    }>("/api/v1/auth/me")
-      .then((data) => {
-        setUser({ ...data, role: data.role as User["role"] })
-      })
-      .catch(() => {
+    try {
+      const data = await api<{
+        id: number
+        phone: string
+        full_name: string
+        role: string
+        is_active: boolean
+        avatar_url?: string | null
+        created_at: string
+      }>("/api/v1/auth/me")
+      setUser({ ...data, role: data.role as User["role"] })
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
         clearTokens()
         setUser(null)
-      })
-      .finally(() => setLoading(false))
+      }
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    refreshUser()
+  }, [refreshUser])
 
   useEffect(() => {
     const handler = () => {
@@ -86,7 +94,15 @@ export function useAuth() {
     router.push("/")
   }, [router])
 
-  return { user, loading, login, register, logout, isAuthenticated: !!user }
+  return {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    refreshUser,
+    isAuthenticated: !!user,
+  }
 }
 
 export type UseAuthReturn = ReturnType<typeof useAuth>

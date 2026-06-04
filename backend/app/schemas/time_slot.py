@@ -46,7 +46,7 @@ class TimeSlotListResponse(BaseModel):
 
 class TimeSlotTemplate(BaseModel):
     start_time: str  # HH:MM
-    end_time: str    # HH:MM
+    end_time: str  # HH:MM
     base_price: Decimal = Field(..., gt=0, decimal_places=2)
 
     @field_validator("start_time", "end_time")
