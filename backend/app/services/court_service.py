@@ -144,7 +144,9 @@ class CourtService:
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
+            )
         update_data = data.model_dump(exclude_none=True, exclude={"images", "image_ids_to_remove"})
         updated = await self.repo.update(court, update_data)
         if data.image_ids_to_remove:
@@ -192,7 +194,9 @@ class CourtService:
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if court.manager_id != self.current_user.id and self.current_user.role != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
+            )
         await self.repo.delete(court)
         await log_action(
             self.repo.db,

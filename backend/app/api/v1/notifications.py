@@ -12,7 +12,7 @@ from app.schemas.notification import NotificationListResponse, NotificationRespo
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
-@router.get("", response_model=NotificationListResponse)
+@router.get("", response_model=NotificationListResponse, summary="لیست اعلان‌ها")
 async def list_notifications(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -30,7 +30,7 @@ async def list_notifications(
     )
 
 
-@router.get("/unread-count")
+@router.get("/unread-count", summary="تعداد اعلان‌های خوانده‌نشده")
 async def unread_count(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -40,7 +40,11 @@ async def unread_count(
     return {"count": count}
 
 
-@router.post("/{notification_id}/read", response_model=NotificationResponse)
+@router.post(
+    "/{notification_id}/read",
+    response_model=NotificationResponse,
+    summary="علامت‌گذاری اعلان به عنوان خوانده‌شده",
+)
 async def mark_read(
     notification_id: int,
     db: AsyncSession = Depends(get_db),
@@ -51,11 +55,13 @@ async def mark_read(
     if not n:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="اعلان یافت نشد")
     if n.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این اعلان دسترسی ندارید")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="شما به این اعلان دسترسی ندارید"
+        )
     return NotificationResponse.model_validate(n)
 
 
-@router.post("/read-all")
+@router.post("/read-all", summary="علامت‌گذاری همه اعلان‌ها به عنوان خوانده‌شده")
 async def mark_all_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-destructive/20 bg-destructive/5 p-8 text-center">
           <AlertTriangle className="h-10 w-10 text-destructive" />
           <div>
-            <h3 className="font-semibold text-lg">خطایی رخ داد</h3>
+            <h3 className="text-lg font-semibold">خطایی رخ داد</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               {this.state.error?.message || "خطای غیرمنتظره"}
             </p>

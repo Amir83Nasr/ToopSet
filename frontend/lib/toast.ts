@@ -41,8 +41,7 @@ export const toast = {
     return sonnerToast.promise(promise, {
       loading: messages.loading,
       success: messages.success,
-      error: (err) =>
-        err instanceof Error ? err.message : messages.error,
+      error: (err) => (err instanceof Error ? err.message : messages.error),
     })
   },
 }

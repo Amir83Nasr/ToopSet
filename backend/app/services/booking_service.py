@@ -77,7 +77,9 @@ class BookingService:
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
         if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
 
         slot = await self.slot_repo.get_by_id(booking.slot_id)
         court = slot.court if slot else None
@@ -208,7 +210,9 @@ class BookingService:
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
         if booking.user_id != self.current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
         if booking.status != BookingStatus.PENDING_PAYMENT:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="این رزرو در وضعیت پرداخت نیست"
@@ -319,7 +323,9 @@ class BookingService:
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
         if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
         if booking.status == BookingStatus.CANCELLED:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="این رزرو قبلاً لغو شده است"

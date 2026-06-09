@@ -23,7 +23,7 @@ def get_dashboard_service(db: AsyncSession = Depends(get_db)) -> DashboardServic
     return DashboardService(db)
 
 
-@router.get("/stats", response_model=DashboardStats)
+@router.get("/stats", response_model=DashboardStats, summary="آمار کلی داشبورد")
 async def get_stats(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_user),
@@ -31,7 +31,7 @@ async def get_stats(
     return await service.get_stats()
 
 
-@router.get("/manager/revenue")
+@router.get("/manager/revenue", summary="گزارش درآمد مدیر مجموعه")
 async def get_manager_revenue(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -47,7 +47,7 @@ async def get_manager_revenue(
     return await service.get_revenue_report(current_user.id, date_from=date_from, date_to=date_to)
 
 
-@router.get("/admin-stats", response_model=AdminStats)
+@router.get("/admin-stats", response_model=AdminStats, summary="آمار ادمین")
 async def get_admin_stats(
     date_from: datetime | None = Query(None),
     date_to: datetime | None = Query(None),
@@ -57,7 +57,7 @@ async def get_admin_stats(
     return await service.get_admin_stats(date_from=date_from, date_to=date_to)
 
 
-@router.get("/manager-stats", response_model=ManagerStats)
+@router.get("/manager-stats", response_model=ManagerStats, summary="آمار مدیر مجموعه")
 async def get_manager_stats(
     service: DashboardService = Depends(get_dashboard_service),
     current_user: User = Depends(get_current_user),
@@ -71,7 +71,7 @@ async def get_manager_stats(
     return await service.get_manager_stats(current_user.id)
 
 
-@router.get("/admin/monthly-recap")
+@router.get("/admin/monthly-recap", summary="خلاصه ماهانه (ادمین)")
 async def get_monthly_recap(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_admin),
@@ -79,7 +79,7 @@ async def get_monthly_recap(
     return await service.get_monthly_recap()
 
 
-@router.get("/admin/charts")
+@router.get("/admin/charts", summary="داده‌های نمودار (ادمین)")
 async def get_admin_charts(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_admin),
@@ -87,7 +87,7 @@ async def get_admin_charts(
     return await service.get_admin_charts()
 
 
-@router.get("/user-stats", response_model=UserStats)
+@router.get("/user-stats", response_model=UserStats, summary="آمار کاربر عادی")
 async def get_user_stats(
     service: DashboardService = Depends(get_dashboard_service),
     current_user: User = Depends(get_current_user),

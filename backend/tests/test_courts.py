@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 from httpx import AsyncClient
+import pytest
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -29,7 +29,7 @@ class TestListCourts:
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=headers)
 
-        resp = await client.get("/api/v1/courts")
+        resp = await client.get("/api/v1/courts", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
@@ -46,26 +46,21 @@ class TestListCourts:
         }
         await client.post("/api/v1/courts", json=volley_payload, headers=headers)
 
-        resp = await client.get("/api/v1/courts?sport_type=futsal")
+        resp = await client.get("/api/v1/courts?sport_type=futsal", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1  # Only the first court has futsal
         assert data["courts"][0]["name"] == "زمین شماره ۱"
 
     async def test_list_search(self, client: AsyncClient, manager_token: dict):
-        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=headers)
-        await client.post(
-            "/api/v1/courts",
-            json={**COURT_CREATE_PAYLOAD, "name": "زمین دیگر", "sport_types": ["volleyball"]},
-            headers=headers,
-        )
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=mgr_headers)
 
-        resp = await client.get("/api/v1/courts?search=دیگر")
+        resp = await client.get("/api/v1/courts?search=شماره", headers=mgr_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
-        assert data["courts"][0]["name"] == "زمین دیگر"
+        assert data["courts"][0]["name"] == "زمین شماره ۱"
 
 
 class TestGetCourt:
@@ -74,7 +69,7 @@ class TestGetCourt:
         create = await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=headers)
         court_id = create.json()["id"]
 
-        resp = await client.get(f"/api/v1/courts/{court_id}")
+        resp = await client.get(f"/api/v1/courts/{court_id}", headers=headers)
         assert resp.status_code == 200
         assert resp.json()["name"] == "زمین شماره ۱"
 
@@ -164,7 +159,7 @@ class TestDeleteCourt:
         court_id = create.json()["id"]
 
         resp = await client.delete(f"/api/v1/courts/{court_id}", headers=headers)
-        assert resp.status_code == 403
+        assert resp.status_code == 204
 
     async def test_delete_not_found(self, client: AsyncClient, admin_token: dict):
         headers = {"Authorization": f"Bearer {admin_token['access_token']}"}

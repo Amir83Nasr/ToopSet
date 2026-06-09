@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import enum
 from datetime import datetime
 from decimal import Decimal
+import enum
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, SmallInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -23,7 +23,9 @@ class Booking(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    slot_id: Mapped[int] = mapped_column(ForeignKey("time_slots.id", ondelete="CASCADE"), unique=True)
+    slot_id: Mapped[int] = mapped_column(
+        ForeignKey("time_slots.id", ondelete="CASCADE"), unique=True
+    )
     status: Mapped[BookingStatus] = mapped_column(
         Enum(BookingStatus, values_callable=_values_callable),
         default=BookingStatus.PENDING_PAYMENT,

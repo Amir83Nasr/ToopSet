@@ -13,7 +13,12 @@ from app.schemas.contact import ContactCreate, ContactResponse
 router = APIRouter(prefix="/contact", tags=["contact"])
 
 
-@router.post("", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ContactResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="ارسال پیام تماس",
+)
 async def submit_contact(
     data: ContactCreate,
     db: AsyncSession = Depends(get_db),
@@ -34,7 +39,7 @@ async def submit_contact(
 # ── Admin endpoints ──────────────────────────────────────────────
 
 
-@router.get("/admin", response_model=list[ContactResponse])
+@router.get("/admin", response_model=list[ContactResponse], summary="لیست پیام‌های تماس (ادمین)")
 async def list_contact_messages(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -47,7 +52,9 @@ async def list_contact_messages(
     return list(result.scalars().all())
 
 
-@router.delete("/admin/{message_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/admin/{message_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف پیام تماس (ادمین)"
+)
 async def delete_contact_message(
     message_id: int,
     db: AsyncSession = Depends(get_db),

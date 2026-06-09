@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 from httpx import AsyncClient
+import pytest
 
 from app.core.security import decode_token
 
@@ -39,7 +39,7 @@ class TestRegister:
             json={"phone": "09121111111", "password": "654321", "full_name": "second"},
         )
         assert resp.status_code == 409
-        assert "already registered" in resp.text
+        assert "قبلاً ثبت" in resp.text
 
 
 class TestLogin:
@@ -68,7 +68,7 @@ class TestLogin:
             json={"phone": "09121111111", "password": "wrong"},
         )
         assert resp.status_code == 401
-        assert "Invalid" in resp.text
+        assert "اشتباه" in resp.text
 
     async def test_login_not_found(self, client: AsyncClient):
         resp = await client.post(

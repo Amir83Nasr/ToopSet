@@ -12,7 +12,7 @@ from app.models.user import User
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 
-@router.post("/court-image")
+@router.post("/court-image", summary="آپلود تصویر مجموعه")
 async def upload_court_image(
     file: UploadFile = File(...),
     request: Request = None,

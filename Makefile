@@ -140,6 +140,7 @@ back-check: ## Run all Python checks (lint + format-check + typecheck)
 
 back-clean: ## Remove Python cache files (__pycache__, .pyc)
 	@find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null; \
+	 find . -type d -name '*_cache' -exec rm -rf {} + 2>/dev/null; \
 	 find . -name '*.pyc' -delete
 	@echo "  $(GREEN)✓$(RESET) Python cache cleaned"
 
@@ -174,6 +175,13 @@ install: ## Install ALL project dependencies (npm + pip)
 # ─────────────────────────────────────────────────────────────────────
 # --- Version management ---
 # ─────────────────────────────────────────────────────────────────────
+
+.PHONY: version-tag
+version-tag: ## Create a git tag from VERSION and push it (triggers CD)
+	$(eval V := $(shell cat VERSION))
+	@git tag v$(V)
+	@git push origin v$(V)
+	@echo "  $(GREEN)✓$(RESET)  Tagged v$(V) and pushed"
 
 .PHONY: version version-sync version-bump version-check
 
@@ -251,8 +259,8 @@ db-reset: ## ⚠️  Wipe all database data (destroys volumes!)
 
 .PHONY: up down logs ps
 
-up: ## Start ALL Docker services (full stack: frontend + backend + db + monitoring)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d
+up: ## Start ALL Docker services — waits for health checks
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait
 	@echo "  $(GREEN)✓$(RESET) All services started"
 	@echo "  $(GREY)│$(RESET)  Frontend:  http://localhost:$(NEXT_PORT)"
 	@echo "  $(GREY)│$(RESET)  Backend:   http://localhost:$(UVICORN_PORT)"
@@ -260,6 +268,14 @@ up: ## Start ALL Docker services (full stack: frontend + backend + db + monitori
 	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
 	@echo "  $(GREY)│$(RESET)  Prometheus:  http://localhost:9090"
 	@echo "  $(GREY)│$(RESET)  Alertmanager: http://localhost:9093"
+
+.PHONY: compose-up-dev
+compose-up-dev: ## Start core services only (postgres + redis + backend + frontend) — no monitoring
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait \
+		postgres redis backend frontend
+	@echo "  $(GREEN)✓$(RESET) Core services started"
+	@echo "  $(GREY)│$(RESET)  Frontend:  http://localhost:$(NEXT_PORT)"
+	@echo "  $(GREY)│$(RESET)  Backend:   http://localhost:$(UVICORN_PORT)"
 
 down: ## Stop all Docker services (data stays in volumes)
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
@@ -278,45 +294,65 @@ ps: ## Show status of all Docker services
 .PHONY: up-build up-backend up-frontend
 
 up-build: ## Rebuild all images and start services
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait
 	@echo "  $(GREEN)✓$(RESET) Services rebuilt and started"
 
 up-backend: ## Rebuild only backend image and restart it
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build backend
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait backend
 	@echo "  $(GREEN)✓$(RESET) Backend rebuilt"
 
 up-frontend: ## Rebuild only frontend image and restart it
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build frontend
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait frontend
 	@echo "  $(GREEN)✓$(RESET) Frontend rebuilt"
 
 # ─────────────────────────────────────────────────────────────────────
-# --- Single Docker image (monolith) ---
+# --- Docker: registry login ---
 # ─────────────────────────────────────────────────────────────────────
 
-.PHONY: build run run-stop
+.PHONY: docker-login
+docker-login: ## 🔑 Log in to GitHub Container Registry (prompts for token)
+	@echo "  $(CYAN)ℹ$(RESET)  Paste your GitHub PAT (or GITHUB_TOKEN) when prompted:"
+	@echo "      ghcr.io username: $(GITHUB_ACTOR)"
+	@echo ""
+	@docker login ghcr.io
 
-build: ## 🐳 Build the single toopset image (frontend + backend in one)
-	@echo "  $(CYAN)ℹ$(RESET)  Building $(IMAGE_NAME):$(IMAGE_TAG)…"
-	@docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
-	@echo "  $(GREEN)✓$(RESET)  Built $(IMAGE_NAME):$(IMAGE_TAG)"
+# ─────────────────────────────────────────────────────────────────────
+# --- Docker images (separate frontend/backend) ---
+# ─────────────────────────────────────────────────────────────────────
 
-run: ## 🐳 Run the single toopset image (requires Postgres/Redis running)
-	@echo "  $(CYAN)ℹ$(RESET)  Starting toopset container…"
-	@docker rm -f toopset 2>/dev/null; true
-	@docker run -d \
-		--name toopset \
-		-p $(NEXT_PORT):3000 \
-		-p $(UVICORN_PORT):8000 \
-		--env-file .env \
-		--add-host host.docker.internal:host-gateway \
-		$(IMAGE_NAME):$(IMAGE_TAG)
-	@echo "  $(GREEN)✓$(RESET)  toopset container started"
-	@echo "  $(GREY)│$(RESET)  Frontend: http://localhost:$(NEXT_PORT)"
-	@echo "  $(GREY)│$(RESET)  Backend:  http://localhost:$(UVICORN_PORT)"
+.PHONY: back-build-docker front-build-docker docker-buildx
 
-run-stop: ## Stop the single toopset container
-	@docker rm -f toopset 2>/dev/null; true
-	@echo "  $(GREEN)✓$(RESET)  toopset container removed"
+back-build-docker: ## 🐳 Build backend Docker image
+	@echo "  $(CYAN)ℹ$(RESET)  Building toopset-backend:$(IMAGE_TAG)…"
+	@docker build -t ghcr.io/toopset/toopset-backend:$(IMAGE_TAG) ./backend
+	@echo "  $(GREEN)✓$(RESET)  Built toopset-backend:$(IMAGE_TAG)"
+
+front-build-docker: ## 🐳 Build frontend Docker image
+	@echo "  $(CYAN)ℹ$(RESET)  Building toopset-frontend:$(IMAGE_TAG)…"
+	@docker build -t ghcr.io/toopset/toopset-frontend:$(IMAGE_TAG) ./frontend
+	@echo "  $(GREEN)✓$(RESET)  Built toopset-frontend:$(IMAGE_TAG)"
+
+docker-buildx: ## Build multi-arch images and push to registry (TAG=version)
+	@if [ -z "$(TAG)" ]; then \
+		echo "  $(RED)✗$(RESET) Usage: make docker-buildx TAG=0.2.0"; \
+		exit 1; \
+	fi
+	@echo "  $(CYAN)ℹ$(RESET)  Building & pushing backend…"
+	@docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--push \
+		-t ghcr.io/toopset/toopset-backend:$(TAG) \
+		-t ghcr.io/toopset/toopset-backend:latest \
+		./backend
+	@echo "  $(GREEN)✓$(RESET)  Pushed toopset-backend:$(TAG)"
+	@echo "  $(CYAN)ℹ$(RESET)  Building & pushing frontend…"
+	@docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--push \
+		-t ghcr.io/toopset/toopset-frontend:$(TAG) \
+		-t ghcr.io/toopset/toopset-frontend:latest \
+		./frontend
+	@echo "  $(GREEN)✓$(RESET)  Pushed toopset-frontend:$(TAG)"
 
 # ─────────────────────────────────────────────────────────────────────
 # --- Monitoring (standalone) ---
@@ -325,7 +361,7 @@ run-stop: ## Stop the single toopset container
 .PHONY: monitor monitor-stop
 
 monitor: ## Start only monitoring stack (ELK + Prometheus + Grafana + Alertmanager)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d \
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait \
 		elasticsearch logstash kibana prometheus grafana alertmanager \
 		postgres_exporter redis_exporter
 	@echo "  $(GREEN)✓$(RESET)  Monitoring stack started"
@@ -403,8 +439,8 @@ clean: ## ⚠️  Remove ALL containers + volumes (irreversible data loss)
 	@read -p "  Type 'yes' to confirm: " ans; \
 	if [ "$$ans" = "yes" ]; then \
 		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v; \
-		-docker rm -f toopset 2>/dev/null; \
-		-docker rmi $(IMAGE_NAME):$(IMAGE_TAG) 2>/dev/null; \
+		-docker rmi ghcr.io/toopset/toopset-backend:$(IMAGE_TAG) 2>/dev/null; \
+		-docker rmi ghcr.io/toopset/toopset-frontend:$(IMAGE_TAG) 2>/dev/null; \
 		echo "  $(GREEN)✓$(RESET)  All cleaned"; \
 	else \
 		echo "  $(GREY)Aborted$(RESET)"; \

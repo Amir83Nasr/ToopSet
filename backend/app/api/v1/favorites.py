@@ -12,7 +12,7 @@ from app.services.favorite_service import FavoriteService
 router = APIRouter(prefix="/favorites", tags=["favorites"])
 
 
-@router.get("", response_model=list[FavoriteResponse])
+@router.get("", response_model=list[FavoriteResponse], summary="لیست علاقه‌مندی‌ها")
 async def list_favorites(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -23,7 +23,7 @@ async def list_favorites(
     return await service.list_favorites(skip=skip, limit=limit)
 
 
-@router.get("/check", response_model=FavoriteCheckResponse)
+@router.get("/check", response_model=FavoriteCheckResponse, summary="بررسی علاقه‌مندی به مجموعه‌ها")
 async def check_favorites(
     court_ids: str = Query(..., description="Comma-separated court IDs"),
     db: AsyncSession = Depends(get_db),
@@ -35,7 +35,12 @@ async def check_favorites(
     return FavoriteCheckResponse(favorited_court_ids=favorited)
 
 
-@router.post("/{court_id}", response_model=FavoriteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{court_id}",
+    response_model=FavoriteResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="افزودن به علاقه‌مندی‌ها",
+)
 async def add_favorite(
     court_id: int,
     db: AsyncSession = Depends(get_db),
@@ -45,7 +50,9 @@ async def add_favorite(
     return await service.add_favorite(court_id)
 
 
-@router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف از علاقه‌مندی‌ها"
+)
 async def remove_favorite(
     court_id: int,
     db: AsyncSession = Depends(get_db),

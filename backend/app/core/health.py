@@ -7,8 +7,8 @@ the database (PostgreSQL) and cache (Redis), along with uptime tracking.
 
 from __future__ import annotations
 
-import time
 from datetime import datetime, timezone
+import time
 from typing import Any
 
 from sqlalchemy import text
@@ -19,7 +19,7 @@ from app.core.redis_client import get_redis
 # ── App lifecycle ─────────────────────────────────────────────────────────────
 
 APP_START_TIME: datetime = datetime.now(timezone.utc)
-APP_VERSION: str = "0.1.0"
+APP_VERSION: str = "0.2.0"
 
 
 # ── Component probes ──────────────────────────────────────────────────────────

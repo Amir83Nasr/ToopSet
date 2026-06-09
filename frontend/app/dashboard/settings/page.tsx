@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import Image from "next/image"
-import { api, ApiError, buildAvatarUrl, uploadAvatar, deleteAvatar } from "@/lib/api"
+import {
+  api,
+  ApiError,
+  buildAvatarUrl,
+  uploadAvatar,
+  deleteAvatar,
+} from "@/lib/api"
 import { getInitials, toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
@@ -12,15 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import {
-  Loader2,
-  Lock,
-  Sun,
-  Moon,
-  Phone,
-  Camera,
-  Trash2,
-} from "lucide-react"
+import { Loader2, Lock, Sun, Moon, Phone, Camera, Trash2 } from "lucide-react"
 import { toast } from "@/lib/toast"
 
 interface UserProfile {
@@ -200,7 +198,9 @@ export default function SettingsPage() {
     <div className="flex flex-1 flex-col gap-6 p-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">تنظیمات حساب</h1>
-        <p className="text-muted-foreground">مدیریت اطلاعات شخصی، تم و رمز عبور</p>
+        <p className="text-muted-foreground">
+          مدیریت اطلاعات شخصی، تم و رمز عبور
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -228,7 +228,10 @@ export default function SettingsPage() {
                   <span className="truncate text-base font-semibold">
                     {user.full_name}
                   </span>
-                  <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 px-1.5 py-0 text-[10px]"
+                  >
                     {roleLabels[user.role] || user.role}
                   </Badge>
                 </div>
@@ -295,7 +298,11 @@ export default function SettingsPage() {
                   disabled={saving || name === user.full_name}
                   className="h-8 shrink-0 px-3 text-xs"
                 >
-                  {saving ? <Loader2 className="size-3 animate-spin" /> : "ذخیره"}
+                  {saving ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    "ذخیره"
+                  )}
                 </Button>
               </div>
             </div>
@@ -336,7 +343,10 @@ export default function SettingsPage() {
               </div>
               <div className="flex gap-1.5">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <Label htmlFor="curPass" className="text-[11px] text-muted-foreground">
+                  <Label
+                    htmlFor="curPass"
+                    className="text-[11px] text-muted-foreground"
+                  >
                     رمز فعلی
                   </Label>
                   <Input
@@ -349,7 +359,10 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <Label htmlFor="newPass" className="text-[11px] text-muted-foreground">
+                  <Label
+                    htmlFor="newPass"
+                    className="text-[11px] text-muted-foreground"
+                  >
                     رمز جدید
                   </Label>
                   <Input
@@ -362,7 +375,10 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <Label htmlFor="confirmPass" className="text-[11px] text-muted-foreground">
+                  <Label
+                    htmlFor="confirmPass"
+                    className="text-[11px] text-muted-foreground"
+                  >
                     تکرار رمز جدید
                   </Label>
                   <Input
@@ -381,7 +397,9 @@ export default function SettingsPage() {
                 disabled={changingPass}
                 className="text-xs"
               >
-                {changingPass && <Loader2 className="ml-1 size-3 animate-spin" />}
+                {changingPass && (
+                  <Loader2 className="ml-1 size-3 animate-spin" />
+                )}
                 {changingPass ? "در حال تغییر..." : "تغییر رمز عبور"}
               </Button>
             </div>

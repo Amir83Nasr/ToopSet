@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytest
 from httpx import AsyncClient
+import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -104,8 +104,8 @@ class TestCreateBooking:
             json={"slot_id": slot_id, "version": version, "participants_count": 1},
             headers=user_headers,
         )
-        assert resp2.status_code == 400
-        assert "already" in resp2.text.lower()
+        assert resp2.status_code == 409
+        assert "قبلاً" in resp2.text
 
     async def test_create_booking_version_conflict(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
@@ -235,7 +235,7 @@ class TestPayBooking:
         )
         booking_id = create.json()["id"]
 
-        with patch("random.random", return_value=0.99):
+        with patch("random.random", return_value=0.5):
             resp = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
         assert resp.status_code == 200, resp.text
         assert resp.json()["status"] == "confirmed"
@@ -257,10 +257,10 @@ class TestPayBooking:
         )
         booking_id = create.json()["id"]
 
-        # Pay once
-        with patch("random.random", return_value=0.99):
+        # Pay once successfully
+        with patch("random.random", return_value=0.5):
             await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
-        # Pay again
+        # Pay again — already paid
         resp = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
         assert resp.status_code == 400
 
@@ -307,4 +307,4 @@ class TestCancelBooking:
 
         await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
         resp = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
-        assert resp.status_code == 400
+        assert resp.status_code == 409

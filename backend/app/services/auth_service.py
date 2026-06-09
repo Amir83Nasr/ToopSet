@@ -49,7 +49,9 @@ class AuthService:
             )
 
         if not user.is_active:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
+            )
 
         user.token_version += 1
         await self.repo.update_user(user.id, {"token_version": user.token_version})

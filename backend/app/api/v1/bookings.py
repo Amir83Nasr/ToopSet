@@ -17,7 +17,7 @@ from app.services.booking_service import BookingService, get_booking_service
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
-@router.get("", response_model=BookingListResponse)
+@router.get("", response_model=BookingListResponse, summary="لیست رزروهای من")
 async def list_my_bookings(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -26,17 +26,18 @@ async def list_my_bookings(
     return await service.list_my_bookings(skip=skip, limit=limit)
 
 
-@router.get("/completed", response_model=BookingListResponse)
+@router.get(
+    "/completed", response_model=BookingListResponse, summary="رزروهای تکمیل‌شده (قابل نظر)"
+)
 async def list_completed_bookings(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     service: BookingService = Depends(get_booking_service),
 ):
-    """List user's confirmed/completed bookings (eligible for review)."""
     return await service.list_completed_bookings(skip=skip, limit=limit)
 
 
-@router.get("/{booking_id}", response_model=BookingDetailResponse)
+@router.get("/{booking_id}", response_model=BookingDetailResponse, summary="جزئیات رزرو")
 async def get_booking(
     booking_id: int,
     service: BookingService = Depends(get_booking_service),
@@ -44,7 +45,12 @@ async def get_booking(
     return await service.get_booking(booking_id)
 
 
-@router.post("", response_model=BookingDetailResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=BookingDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="ایجاد رزرو جدید",
+)
 async def create_booking(
     data: BookingCreate,
     service: BookingService = Depends(get_booking_service),
@@ -52,16 +58,15 @@ async def create_booking(
     return await service.create_booking(data)
 
 
-@router.post("/{booking_id}/pay", response_model=BookingDetailResponse)
+@router.post("/{booking_id}/pay", response_model=BookingDetailResponse, summary="پرداخت رزرو")
 async def pay_booking(
     booking_id: int,
     service: BookingService = Depends(get_booking_service),
 ):
-    """Process mock payment for a pending booking."""
     return await service.pay_booking(booking_id)
 
 
-@router.post("/{booking_id}/cancel", response_model=BookingDetailResponse)
+@router.post("/{booking_id}/cancel", response_model=BookingDetailResponse, summary="لغو رزرو")
 async def cancel_booking(
     booking_id: int,
     service: BookingService = Depends(get_booking_service),
@@ -76,7 +81,7 @@ async def get_booking_service_admin(
     return BookingService(db=db, current_user=current_user)
 
 
-@router.get("/all", response_model=AdminBookingListResponse)
+@router.get("/all", response_model=AdminBookingListResponse, summary="همه رزروها (ادمین)")
 async def list_all_bookings_admin(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),

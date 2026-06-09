@@ -20,12 +20,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="fa"
-      dir="rtl"
-      suppressHydrationWarning
-      className="antialiased"
-    >
+    <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <body>
         <link rel="preconnect" href="https://tile.openstreetmap.org" />
         <ThemeProvider>

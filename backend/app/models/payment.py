@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import enum
 from datetime import datetime
 from decimal import Decimal
+import enum
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -22,7 +22,9 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"), unique=True)
+    booking_id: Mapped[int] = mapped_column(
+        ForeignKey("bookings.id", ondelete="CASCADE"), unique=True
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     gateway_transaction_id: Mapped[str | None] = mapped_column(String(256), default=None)
     gateway_name: Mapped[str | None] = mapped_column(String(64), default=None)

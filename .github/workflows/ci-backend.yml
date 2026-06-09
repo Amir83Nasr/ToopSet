@@ -1,0 +1,79 @@
+name: CI — Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "pyproject.toml"
+      - "requirements.txt"
+      - ".github/actions/setup-python/**"
+      - ".github/workflows/ci-backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "pyproject.toml"
+      - "requirements.txt"
+      - ".github/actions/setup-python/**"
+      - ".github/workflows/ci-backend.yml"
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup-python
+
+      - name: Run ruff
+        run: make back-lint
+
+  typecheck:
+    name: Typecheck (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup-python
+
+      - name: Run mypy
+        run: make back-typecheck
+
+  test:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: toopset_test
+          POSTGRES_USER: toopset
+          POSTGRES_PASSWORD: toopset_secret
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: ./.github/actions/setup-python
+
+      - name: Install test dependencies
+        run: pip install pytest pytest-asyncio httpx pytest-httpx asgi-lifespan
+
+      - name: Run tests with coverage
+        run: |
+          cd backend && python3 -m pytest tests/ \
+            -v --tb=short \
+            -W ignore::DeprecationWarning \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=60
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 14

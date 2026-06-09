@@ -10,20 +10,20 @@
 
 ## Types
 
-| Type     | When to use                        |
-| -------- | ---------------------------------- |
-| `feat`   | New feature                        |
-| `fix`    | Bug fix                            |
-|`refactor`| Code rewrite, no behavior change   |
-| `style`  | CSS, font, theme changes           |
-| `perf`   | Performance optimization           |
-| `test`   | Adding or fixing tests             |
-| `docs`   | Documentation, README, comments    |
-| `chore`  | Tools, deploy, Docker config       |
-| `db`     | Database migration or model change |
-| `api`    | Backend endpoint changes           |
-| `ui`     | Frontend component changes         |
-| `infra`  | docker-compose, env, CI/CD         |
+| Type       | When to use                        |
+| ---------- | ---------------------------------- |
+| `feat`     | New feature                        |
+| `fix`      | Bug fix                            |
+| `refactor` | Code rewrite, no behavior change   |
+| `style`    | CSS, font, theme changes           |
+| `perf`     | Performance optimization           |
+| `test`     | Adding or fixing tests             |
+| `docs`     | Documentation, README, comments    |
+| `chore`    | Tools, deploy, Docker config       |
+| `db`       | Database migration or model change |
+| `api`      | Backend endpoint changes           |
+| `ui`       | Frontend component changes         |
+| `infra`    | docker-compose, env, CI/CD         |
 
 ## Scopes
 

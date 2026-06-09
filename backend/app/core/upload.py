@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
+import uuid
 
 BASE_UPLOAD_DIR = Path("uploads")
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

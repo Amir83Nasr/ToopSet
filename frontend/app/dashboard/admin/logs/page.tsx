@@ -56,7 +56,9 @@ interface LogEntry {
 
 function formatDate(iso: string): string {
   const normalized = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z"
-  return new Date(normalized).toLocaleDateString("fa-IR", { timeZone: "Asia/Tehran" })
+  return new Date(normalized).toLocaleDateString("fa-IR", {
+    timeZone: "Asia/Tehran",
+  })
 }
 
 function formatTime(iso: string): string {

@@ -173,19 +173,17 @@ export default function EditCourtPage() {
                         onCheckedChange={() => {
                           const current = selectedSports
                           if (current.includes(sport.value)) {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             setValue(
                               "sport_types",
-                              current.filter((s) => s !== sport.value) as any,
+                              current.filter((s) => s !== sport.value) as CourtUpdateInput["sport_types"],
                               {
                                 shouldValidate: true,
                               }
                             )
                           } else {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             setValue(
                               "sport_types",
-                              [...current, sport.value] as any,
+                              [...current, sport.value] as CourtUpdateInput["sport_types"],
                               {
                                 shouldValidate: true,
                               }

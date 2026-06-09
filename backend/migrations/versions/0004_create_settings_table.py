@@ -8,8 +8,8 @@ Create Date: 2026-05-30
 
 from typing import Sequence, Union
 
-import sqlalchemy as sa
 from alembic import op
+import sqlalchemy as sa
 
 revision: str = "0004"
 down_revision: Union[str, None] = "e0adc347178c"

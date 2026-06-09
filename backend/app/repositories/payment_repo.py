@@ -13,6 +13,13 @@ class PaymentRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
+    async def create(self, data: dict) -> Payment:
+        payment = Payment(**data)
+        self.db.add(payment)
+        await self.db.flush()
+        await self.db.refresh(payment)
+        return payment
+
     async def list_by_user(
         self,
         user_id: int,

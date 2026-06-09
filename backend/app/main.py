@@ -94,7 +94,11 @@ async def lifespan(app: FastAPI):
 
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
-            environment="development" if settings.secret_key == "change-me-to-a-random-secret-key" else "production",
+            environment=(
+                "development"
+                if settings.secret_key == "change-me-to-a-random-secret-key"
+                else "production"
+            ),
             traces_sample_rate=settings.sentry_traces_sample_rate,
         )
 
@@ -107,7 +111,33 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="ToopSet API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="ToopSet API",
+    description="پلتفرم رزرو آنلاین مجموعه‌های ورزشی — مدیریت کاربران، مجموعه‌ها، رزروها و پرداخت‌ها",
+    version="0.2.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "none"},
+    contact={"name": "Amirhossein Nasrollahi", "email": "amirhossein.nasrollahi.main@gmail.com"},
+    openapi_tags=[
+        {"name": "auth", "description": "ثبت‌نام، ورود، بروزرسانی پروفایل و آواتار"},
+        {"name": "courts", "description": "جستجو، ایجاد و مدیریت مجموعه‌های ورزشی"},
+        {"name": "time-slots", "description": "مدیریت زمان‌های قابل رزرو هر مجموعه"},
+        {"name": "slots", "description": "مشاهده جزئیات یک زمان خاص"},
+        {"name": "bookings", "description": "رزرو، پرداخت و لغو رزرو"},
+        {"name": "dashboard", "description": "آمار و گزارشات کاربران، مدیران و ادمین"},
+        {"name": "reviews", "description": "ثبت و مدیریت نظرات کاربران"},
+        {"name": "uploads", "description": "آپلود تصاویر مجموعه‌ها"},
+        {"name": "users", "description": "مدیریت کاربران (ادمین)"},
+        {"name": "payments", "description": "مشاهده تاریخچه پرداخت‌ها (ادمین)"},
+        {"name": "wallet", "description": "مدیریت کیف پول و تراکنش‌ها"},
+        {"name": "notifications", "description": "مدیریت اعلان‌های کاربر"},
+        {"name": "penalties", "description": "مشاهده جریمه‌های کاربر"},
+        {"name": "contact", "description": "ارسال و مدیریت پیام‌های تماس با ما"},
+        {"name": "favorites", "description": "مدیریت علاقه‌مندی‌های کاربر"},
+        {"name": "admin", "description": "مدیریت سیستم — تنظیمات، لاگ‌ها، تایید مجموعه‌ها و حذف"},
+    ],
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -147,16 +177,16 @@ app.include_router(favorites_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 
 
-@app.get("/")
+@app.get("/", summary="Home")
 async def root():
     return {"message": "ToopSet API is running"}
 
 
-@app.get("/health")
+@app.get("/health", summary="Health check")
 async def health():
     return await check_health()
 
 
-@app.get("/metrics")
+@app.get("/metrics", include_in_schema=False)
 async def metrics():
     return metrics_response()

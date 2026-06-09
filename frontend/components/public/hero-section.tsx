@@ -32,6 +32,7 @@ export function HeroSection() {
     }
 
     if (isDeleting && !displayText) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsDeleting(false)
       setPhraseIndex((prev) => (prev + 1) % searchPhrases.length)
       return

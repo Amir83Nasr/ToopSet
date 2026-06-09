@@ -24,7 +24,7 @@ def get_review_service(
     return ReviewService(db=db, current_user=current_user)
 
 
-@router.get("/recent", response_model=ReviewListResponse)
+@router.get("/recent", response_model=ReviewListResponse, summary="نظرات اخیر")
 async def list_recent_reviews(
     limit: int = Query(5, ge=1, le=20),
     db: AsyncSession = Depends(get_db),
@@ -34,7 +34,7 @@ async def list_recent_reviews(
     return await service.list_recent(limit=limit)
 
 
-@router.get("/my", response_model=ReviewListResponse)
+@router.get("/my", response_model=ReviewListResponse, summary="نظرات من")
 async def list_my_reviews(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -43,7 +43,12 @@ async def list_my_reviews(
     return await service.list_my(skip=skip, limit=limit)
 
 
-@router.post("", response_model=ReviewDetailResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ReviewDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="ثبت نظر جدید",
+)
 async def create_review(
     data: ReviewCreate,
     service: ReviewService = Depends(get_review_service),
@@ -51,7 +56,7 @@ async def create_review(
     return await service.create(data)
 
 
-@router.post("/{review_id}/report")
+@router.post("/{review_id}/report", summary="گزارش نظر")
 async def report_review(
     review_id: int,
     service: ReviewService = Depends(get_review_service),
@@ -59,7 +64,7 @@ async def report_review(
     return await service.report(review_id)
 
 
-@router.post("/{review_id}/respond", response_model=ReviewDetailResponse)
+@router.post("/{review_id}/respond", response_model=ReviewDetailResponse, summary="پاسخ به نظر")
 async def respond_to_review(
     review_id: int,
     data: ReviewRespondRequest,
@@ -68,7 +73,7 @@ async def respond_to_review(
     return await service.respond(review_id, data.response)
 
 
-@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف نظر")
 async def delete_review(
     review_id: int,
     service: ReviewService = Depends(get_review_service),

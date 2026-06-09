@@ -1,17 +1,15 @@
 # ToopSet
 
-> سامانه رزرو آنلاین زمین‌های ورزشی
-
 An online platform for booking sports courts — built with **Next.js** (frontend) and **FastAPI** (backend).
 
 ## Tech Stack
 
-| Layer | Stack |
-|-------|-------|
-| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui |
-| **Backend**  | Python 3.12, FastAPI, SQLAlchemy (async), Alembic |
-| **Database** | PostgreSQL 17, Redis 7 |
-| **Monitoring**| ELK (Elasticsearch + Logstash + Kibana), Prometheus, Grafana |
+| Layer          | Stack                                                        |
+| -------------- | ------------------------------------------------------------ |
+| **Frontend**   | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui |
+| **Backend**    | Python 3.12, FastAPI, SQLAlchemy (async), Alembic            |
+| **Database**   | PostgreSQL 17, Redis 7                                       |
+| **Monitoring** | ELK (Elasticsearch + Logstash + Kibana), Prometheus, Grafana |
 
 ## Quick Start
 
@@ -38,7 +36,7 @@ make dev
 
 ## Makefile Targets
 
-```
+```txt
 make db             Start only Postgres + Redis
 make db-stop        Stop databases
 make up             Start all Docker services
@@ -59,7 +57,7 @@ make doctor         System health check
 
 ## Project Structure
 
-```
+```txt
 toopset/
 ├── backend/          # FastAPI application
 │   ├── app/

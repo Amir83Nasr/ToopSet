@@ -40,7 +40,9 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     if token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="وارد حساب خود نشده‌اید")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="وارد حساب خود نشده‌اید"
+        )
 
     try:
         payload = jwt.decode(token.credentials, settings.secret_key, algorithms=["HS256"])
@@ -57,7 +59,9 @@ async def get_current_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
     if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
+        )
 
     # Single-device check: reject if token_version in JWT doesn't match
     token_ver = payload.get("ver")

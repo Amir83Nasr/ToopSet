@@ -164,7 +164,9 @@ export default function UsersPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await api(`/api/v1/admin/users/${deleteTarget.id}/force`, { method: "DELETE" })
+      await api(`/api/v1/admin/users/${deleteTarget.id}/force`, {
+        method: "DELETE",
+      })
 
       // Update local state immediately for better UI response
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
@@ -287,14 +289,14 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                  <TableHead className="text-right">ردیف</TableHead>
-                  <TableHead className="text-right">نام</TableHead>
-                  <TableHead className="text-right">تلفن</TableHead>
-                  <TableHead className="text-right">نقش</TableHead>
-                  <TableHead className="text-right">وضعیت</TableHead>
-                  <TableHead className="text-right">تاریخ ثبت‌نام</TableHead>
-                  <TableHead className="text-right">عملیات</TableHead>
-                </TableRow>
+                <TableHead className="text-right">ردیف</TableHead>
+                <TableHead className="text-right">نام</TableHead>
+                <TableHead className="text-right">تلفن</TableHead>
+                <TableHead className="text-right">نقش</TableHead>
+                <TableHead className="text-right">وضعیت</TableHead>
+                <TableHead className="text-right">تاریخ ثبت‌نام</TableHead>
+                <TableHead className="text-right">عملیات</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((u, idx) => {
@@ -303,7 +305,9 @@ export default function UsersPage() {
                     <TableCell className="text-right text-muted-foreground">
                       {toPersianDigits(page * limit + idx + 1)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">{u.full_name}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {u.full_name}
+                    </TableCell>
                     <TableCell dir="ltr" className="text-right">
                       {toPersianDigits(u.phone)}
                     </TableCell>
@@ -375,7 +379,8 @@ export default function UsersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
               </p>
               <div className="flex gap-2">
                 <Button

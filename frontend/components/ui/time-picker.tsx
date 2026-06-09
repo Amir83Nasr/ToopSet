@@ -50,11 +50,13 @@ export function TimePicker({
 
   // Parse initial value
   React.useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (value && /^\d{2}:\d{2}$/.test(value)) {
       const [h, m] = value.split(":").map(Number)
       setHour(h)
       setMinute(m)
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [value])
 
   // Auto-scroll to selected hour/minute when popover opens

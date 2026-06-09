@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 from httpx import AsyncClient
+import pytest
 
 from app.core.health import APP_VERSION, check_health
 

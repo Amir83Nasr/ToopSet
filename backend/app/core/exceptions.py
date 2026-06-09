@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timezone
+import logging
 
 from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -62,9 +62,7 @@ async def validation_exception_handler(
     )
 
 
-async def integrity_error_handler(
-    request: Request, exc: IntegrityError
-) -> JSONResponse:
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
     detail = "این اطلاعات قبلاً ثبت شده است"
     orig_msg = str(exc.orig or "").lower()
     if "unique constraint" in orig_msg or "duplicate key" in orig_msg:
@@ -84,9 +82,7 @@ async def integrity_error_handler(
     )
 
 
-async def statement_error_handler(
-    request: Request, exc: StatementError
-) -> JSONResponse:
+async def statement_error_handler(request: Request, exc: StatementError) -> JSONResponse:
     logger.exception("Database statement error on %s", request.url.path)
     return _make_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

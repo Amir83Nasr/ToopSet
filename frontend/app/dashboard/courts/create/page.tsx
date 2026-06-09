@@ -56,13 +56,14 @@ export default function CreateCourtPage() {
     control,
     formState: { errors, isSubmitting },
   } = useForm<CourtCreateInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(courtCreateSchema) as any,
     defaultValues: {
       name: "",
       sport_types: [],
       address: "",
-      latitude: undefined as any,
-      longitude: undefined as any,
+      latitude: undefined,
+      longitude: undefined,
       capacity: 10,
       amenities: {},
       images: [],
@@ -71,6 +72,8 @@ export default function CreateCourtPage() {
   const selectedSports: string[] =
     (useWatch({ control, name: "sport_types" }) as string[]) || []
   const amenitiesValue = useWatch({ control, name: "amenities" }) || {}
+  const latitudeWatch = useWatch({ control, name: "latitude" })
+  const longitudeWatch = useWatch({ control, name: "longitude" })
 
   /* Check if manager already has a court */
   useEffect(() => {
@@ -283,8 +286,8 @@ export default function CreateCourtPage() {
                 روی نقشه کلیک کنید یا نشانگر را بکشید
               </p>
               <LocationPicker
-                latitude={useWatch({ control, name: "latitude" }) ?? null}
-                longitude={useWatch({ control, name: "longitude" }) ?? null}
+                latitude={latitudeWatch ?? null}
+                longitude={longitudeWatch ?? null}
                 onLocationChange={(lat, lng, address) => {
                   setValue("latitude", lat, { shouldValidate: true })
                   setValue("longitude", lng, { shouldValidate: true })

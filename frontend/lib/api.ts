@@ -24,7 +24,7 @@ const enToFa: Record<string, string> = {
   "Phone already registered": "این شماره تلفن قبلاً ثبت‌نام کرده است",
   "Not authenticated": "وارد حساب خود نشده‌اید",
   "Account is disabled": "حساب کاربری شما غیرفعال شده است",
-  "Forbidden": "دسترسی غیرمجاز",
+  Forbidden: "دسترسی غیرمجاز",
   "Not found": "پیدا نشد",
   "File too large": "حجم فایل بیش از حد مجاز است",
   "Invalid file type": "نوع فایل مجاز نیست",
@@ -45,7 +45,7 @@ const enToFa: Record<string, string> = {
   "Request failed": "درخواست با خطا مواجه شد",
   "Upload failed": "آپلود با مشکل مواجه شد",
   "Delete failed": "خطا در حذف",
-  "Unauthorized": "دسترسی غیرمجاز",
+  Unauthorized: "دسترسی غیرمجاز",
 }
 
 function translateMessage(message: string): string {
@@ -137,7 +137,10 @@ export async function api<T>(
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("auth:expired"))
       }
-      throw new ApiError(401, "نشست شما به پایان رسیده. لطفاً دوباره وارد شوید.")
+      throw new ApiError(
+        401,
+        "نشست شما به پایان رسیده. لطفاً دوباره وارد شوید."
+      )
     }
 
     if (!token) {
@@ -161,7 +164,10 @@ export async function api<T>(
         const body = await retryRes
           .json()
           .catch(() => ({ detail: "Request failed" }))
-        throw new ApiError(retryRes.status, translateMessage(body.detail || "Request failed"))
+        throw new ApiError(
+          retryRes.status,
+          translateMessage(body.detail || "Request failed")
+        )
       }
 
       return retryRes.json()
@@ -182,7 +188,10 @@ export async function api<T>(
         { tags: { path } }
       )
     }
-    throw new ApiError(res.status, translateMessage(body.detail || "Unknown error"))
+    throw new ApiError(
+      res.status,
+      translateMessage(body.detail || "Unknown error")
+    )
   }
 
   if (res.status === 204) {
@@ -222,7 +231,10 @@ export async function uploadFile(file: File): Promise<UploadResult> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Upload failed" }))
-    throw new ApiError(res.status, translateMessage(body.detail || "Upload failed"))
+    throw new ApiError(
+      res.status,
+      translateMessage(body.detail || "Upload failed")
+    )
   }
 
   return res.json()
@@ -257,7 +269,10 @@ export async function uploadAvatar(file: File): Promise<string> {
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("auth:expired"))
       }
-      throw new ApiError(401, "نشست شما به پایان رسیده. لطفاً دوباره وارد شوید.")
+      throw new ApiError(
+        401,
+        "نشست شما به پایان رسیده. لطفاً دوباره وارد شوید."
+      )
     }
     const newToken = getCookie("access_token")
     headers["Authorization"] = `Bearer ${newToken}`
@@ -283,7 +298,10 @@ export async function uploadAvatar(file: File): Promise<string> {
         { tags: { path: "/api/v1/auth/avatar" } }
       )
     }
-    throw new ApiError(res.status, translateMessage(body.detail || "Upload failed"))
+    throw new ApiError(
+      res.status,
+      translateMessage(body.detail || "Upload failed")
+    )
   }
 
   const data = await res.json()

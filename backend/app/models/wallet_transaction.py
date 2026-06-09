@@ -11,7 +11,9 @@ class WalletTransaction(Base):
     __tablename__ = "wallet_transactions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    wallet_id: Mapped[int] = mapped_column(Integer, ForeignKey("wallets.id", ondelete="CASCADE"), nullable=False)
+    wallet_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("wallets.id", ondelete="CASCADE"), nullable=False
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     type: Mapped[str] = mapped_column(
         String(20), nullable=False

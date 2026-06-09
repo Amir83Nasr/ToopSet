@@ -15,7 +15,9 @@ class FavoriteService:
     async def add_favorite(self, court_id: int):
         existing = await self.repo.is_favorited(self.current_user.id, court_id)
         if existing:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="قبلاً به علاقه‌مندی‌ها اضافه شده است")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="قبلاً به علاقه‌مندی‌ها اضافه شده است"
+            )
         return await self.repo.add(self.current_user.id, court_id)
 
     async def remove_favorite(self, court_id: int):

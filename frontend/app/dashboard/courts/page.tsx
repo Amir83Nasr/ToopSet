@@ -242,14 +242,16 @@ export default function CourtsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                  <TableHead className="text-right">نام</TableHead>
-                  <TableHead className="text-right">ورزش</TableHead>
-                  <TableHead className="text-right">آدرس</TableHead>
-                  <TableHead className="text-right">امتیاز</TableHead>
-                  <TableHead className="text-right">وضعیت</TableHead>
-                  {user?.role === "admin" && <TableHead className="text-right">مدیر</TableHead>}
-                  <TableHead className="text-right">عملیات</TableHead>
-                </TableRow>
+                <TableHead className="text-right">نام</TableHead>
+                <TableHead className="text-right">ورزش</TableHead>
+                <TableHead className="text-right">آدرس</TableHead>
+                <TableHead className="text-right">امتیاز</TableHead>
+                <TableHead className="text-right">وضعیت</TableHead>
+                {user?.role === "admin" && (
+                  <TableHead className="text-right">مدیر</TableHead>
+                )}
+                <TableHead className="text-right">عملیات</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
               {courts.map((court) => (
@@ -312,7 +314,9 @@ export default function CourtsPage() {
                     </span>
                   </TableCell>
                   {user?.role === "admin" && (
-                    <TableCell className="text-right">{court.manager_name || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      {court.manager_name || "—"}
+                    </TableCell>
                   )}
                   <TableCell className="text-right">
                     <div

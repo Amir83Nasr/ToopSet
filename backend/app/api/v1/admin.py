@@ -29,7 +29,7 @@ class BroadcastRequest(BaseModel):
     message: str
 
 
-@router.post("/notifications/broadcast")
+@router.post("/notifications/broadcast", summary="ارسال اعلان همگانی")
 async def broadcast_notification(
     data: BroadcastRequest,
     db: AsyncSession = Depends(get_db),
@@ -58,7 +58,7 @@ class LogListResponse(BaseModel):
     total: int
 
 
-@router.get("/logs", response_model=LogListResponse)
+@router.get("/logs", response_model=LogListResponse, summary="مشاهده لاگ‌ها")
 async def list_logs(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -87,7 +87,7 @@ async def list_logs(
     return LogListResponse(logs=log_responses, total=total)
 
 
-@router.delete("/logs/clear", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/logs/clear", status_code=status.HTTP_204_NO_CONTENT, summary="پاکسازی همه لاگ‌ها")
 async def clear_logs(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
@@ -99,7 +99,7 @@ async def clear_logs(
     )
 
 
-@router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف لاگ")
 async def delete_log(
     log_id: int,
     db: AsyncSession = Depends(get_db),
@@ -122,7 +122,7 @@ class CourtApprovalResponse(BaseModel):
     created_at: datetime
 
 
-@router.get("/pending-courts")
+@router.get("/pending-courts", summary="مجموعه‌های منتظر تایید")
 async def list_pending_courts(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
@@ -149,7 +149,7 @@ async def list_pending_courts(
     return {"courts": courts_data, "total": len(courts_data)}
 
 
-@router.post("/courts/{court_id}/approve", response_model=CourtResponse)
+@router.post("/courts/{court_id}/approve", response_model=CourtResponse, summary="تایید مجموعه")
 async def approve_court(
     court_id: int,
     db: AsyncSession = Depends(get_db),
@@ -165,7 +165,9 @@ async def approve_court(
     return result
 
 
-@router.post("/courts/{court_id}/reject", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/courts/{court_id}/reject", status_code=status.HTTP_204_NO_CONTENT, summary="رد مجموعه"
+)
 async def reject_court(
     court_id: int,
     db: AsyncSession = Depends(get_db),
@@ -185,7 +187,9 @@ async def reject_court(
 # ── Hard-delete endpoints ───────────────────────────────────────────
 
 
-@router.delete("/courts/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/courts/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف دائمی مجموعه"
+)
 async def hard_delete_court(
     court_id: int,
     db: AsyncSession = Depends(get_db),
@@ -205,7 +209,11 @@ async def hard_delete_court(
     )
 
 
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="حذف دائمی کاربر (با بررسی وابستگی)",
+)
 async def hard_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
@@ -264,7 +272,11 @@ async def hard_delete_user(
     )
 
 
-@router.delete("/users/{user_id}/force", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/users/{user_id}/force",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="حذف اجباری کاربر و تمام داده‌های مرتبط",
+)
 async def force_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
@@ -290,14 +302,22 @@ async def force_delete_user(
     delete_upload(user.avatar_url)
 
     # Collect court IDs for this user
-    court_ids = (await db.execute(select(Court.id).where(Court.manager_id == user_id))).scalars().all()
+    court_ids = (
+        (await db.execute(select(Court.id).where(Court.manager_id == user_id))).scalars().all()
+    )
 
     # 1 ── Delete courts and all data referencing them ───────────────
     for cid in court_ids:
         # a) Booking-related data for time slots in this court
-        slot_ids = (await db.execute(select(TimeSlot.id).where(TimeSlot.court_id == cid))).scalars().all()
+        slot_ids = (
+            (await db.execute(select(TimeSlot.id).where(TimeSlot.court_id == cid))).scalars().all()
+        )
         if slot_ids:
-            booking_ids = (await db.execute(select(Booking.id).where(Booking.slot_id.in_(slot_ids)))).scalars().all()
+            booking_ids = (
+                (await db.execute(select(Booking.id).where(Booking.slot_id.in_(slot_ids))))
+                .scalars()
+                .all()
+            )
             if booking_ids:
                 await db.execute(delete(Payment).where(Payment.booking_id.in_(booking_ids)))
                 await db.execute(delete(Penalty).where(Penalty.booking_id.in_(booking_ids)))
@@ -313,7 +333,9 @@ async def force_delete_user(
     await db.execute(delete(Court).where(Court.manager_id == user_id))
 
     # 2 ── Delete user's own data (as a customer) ──────────────────
-    own_booking_ids = (await db.execute(select(Booking.id).where(Booking.user_id == user_id))).scalars().all()
+    own_booking_ids = (
+        (await db.execute(select(Booking.id).where(Booking.user_id == user_id))).scalars().all()
+    )
     if own_booking_ids:
         await db.execute(delete(Payment).where(Payment.booking_id.in_(own_booking_ids)))
         await db.execute(delete(Penalty).where(Penalty.booking_id.in_(own_booking_ids)))
@@ -335,7 +357,9 @@ async def force_delete_user(
     )
 
 
-@router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف دائمی نظر"
+)
 async def hard_delete_review(
     review_id: int,
     db: AsyncSession = Depends(get_db),
@@ -355,7 +379,7 @@ async def hard_delete_review(
 # ── System settings ─────────────────────────────────────────────────
 
 
-@router.get("/settings", response_model=list[SettingResponse])
+@router.get("/settings", response_model=list[SettingResponse], summary="لیست تنظیمات سیستم")
 async def list_settings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
@@ -368,7 +392,9 @@ async def list_settings(
     return result.scalars().all()
 
 
-@router.put("/settings/{setting_id}", response_model=SettingResponse)
+@router.put(
+    "/settings/{setting_id}", response_model=SettingResponse, summary="ویرایش تنظیمات سیستم"
+)
 async def update_setting(
     setting_id: int,
     data: SettingUpdateRequest,
@@ -393,7 +419,9 @@ async def update_setting(
     return setting
 
 
-@router.post("/settings/seed", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/settings/seed", status_code=status.HTTP_201_CREATED, summary="مقداردهی اولیه تنظیمات"
+)
 async def seed_default_settings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
@@ -432,7 +460,7 @@ class SeedAdminRequest(BaseModel):
     full_name: str = "مدیر سیستم"
 
 
-@router.post("/seed-admin", status_code=status.HTTP_201_CREATED)
+@router.post("/seed-admin", status_code=status.HTTP_201_CREATED, summary="ایجاد ادمین اولیه")
 async def seed_admin(
     data: SeedAdminRequest,
     db: AsyncSession = Depends(get_db),

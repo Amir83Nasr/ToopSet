@@ -5,10 +5,10 @@ for Logstash / ELK ingestion.
 """
 
 import logging
-import os
-import sys
 from logging.handlers import RotatingFileHandler
+import os
 from pathlib import Path
+import sys
 
 from pythonjsonlogger import jsonlogger
 

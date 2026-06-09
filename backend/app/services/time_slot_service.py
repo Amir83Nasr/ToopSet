@@ -91,7 +91,8 @@ class TimeSlotService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if data.start_time >= data.end_time:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="زمان شروع باید قبل از زمان پایان باشد"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="زمان شروع باید قبل از زمان پایان باشد",
             )
         slot = await self.repo.create(data.model_dump())
         await invalidate_slot_list(data.court_id)

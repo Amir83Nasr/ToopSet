@@ -15,7 +15,7 @@ from app.services.user_service import UserService, get_user_service
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("", response_model=UserListResponse)
+@router.get("", response_model=UserListResponse, summary="لیست کاربران (ادمین)")
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -30,7 +30,7 @@ async def list_users(
     )
 
 
-@router.get("/{user_id}", response_model=UserDetailResponse)
+@router.get("/{user_id}", response_model=UserDetailResponse, summary="جزئیات کاربر (ادمین)")
 async def get_user(
     user_id: int,
     service: UserService = Depends(get_user_service),
@@ -39,7 +39,9 @@ async def get_user(
     return await service.get_user(user_id)
 
 
-@router.patch("/{user_id}/role", response_model=UserDetailResponse)
+@router.patch(
+    "/{user_id}/role", response_model=UserDetailResponse, summary="تغییر نقش کاربر (ادمین)"
+)
 async def update_user_role(
     user_id: int,
     data: UpdateUserRoleRequest,
@@ -49,7 +51,11 @@ async def update_user_role(
     return await service.update_role(current_user, user_id, data.role.value)
 
 
-@router.patch("/{user_id}/toggle-active", response_model=ToggleActiveResponse)
+@router.patch(
+    "/{user_id}/toggle-active",
+    response_model=ToggleActiveResponse,
+    summary="فعال/غیرفعال کردن کاربر (ادمین)",
+)
 async def toggle_user_active(
     user_id: int,
     service: UserService = Depends(get_user_service),
