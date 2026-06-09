@@ -147,7 +147,7 @@ export default function SettingsPage() {
         if (fileInputRef.current) fileInputRef.current.value = ""
       }
     },
-    []
+    [refreshUser]
   )
 
   const handleDeleteAvatar = useCallback(async () => {
@@ -162,7 +162,7 @@ export default function SettingsPage() {
     } finally {
       setDeletingAvatar(false)
     }
-  }, [])
+  }, [refreshUser])
 
   if (loading) {
     return (

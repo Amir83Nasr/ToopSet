@@ -44,8 +44,10 @@ const sportTypes = [
 
 export default function CreateCourtPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { refreshUser } = useAuth()
   const [checking, setChecking] = useState(true)
+
+  void refreshUser
   const [existingCourtId, setExistingCourtId] = useState<number | null>(null)
   const [courtImages, setCourtImages] = useState<string[]>([])
   const [tempIds, setTempIds] = useState<string[]>([])

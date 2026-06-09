@@ -50,14 +50,12 @@ import {
   Loader2,
   Trash2,
   ToggleRight,
-  Clock,
   Eye,
   ChevronLeft,
   ChevronRight,
   CalendarDays,
   CheckCircle2,
   XCircle,
-  Timer,
 } from "lucide-react"
 import { PersianInput } from "@/components/ui/persian-input"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
@@ -85,16 +83,6 @@ const CourtLocationMap = dynamic(
     ),
   { ssr: false, loading: () => <Skeleton className="h-48 w-full rounded-xl" /> }
 )
-
-const PERSIAN_DAY_NAMES = [
-  "شنبه",
-  "یکشنبه",
-  "دوشنبه",
-  "سه‌شنبه",
-  "چهارشنبه",
-  "پنجشنبه",
-  "جمعه",
-]
 
 export default function DashboardCourtDetailPage() {
   const params = useParams()

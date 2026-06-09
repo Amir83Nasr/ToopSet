@@ -15,7 +15,6 @@ import { useGeolocation } from "@/hooks/use-geolocation"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { FavoriteButton } from "@/components/courts/favorite-button"
 import { Input } from "@/components/ui/input"
@@ -123,7 +122,9 @@ function HomePageContent() {
 
   // User geolocation for nearby courts
   const geo = useGeolocation()
-  const [maxDistance, setMaxDistance] = useState("")
+  const [maxDistance, _setMaxDistance] = useState("")
+
+  void _setMaxDistance
   const [locating, setLocating] = useState(false)
   const userLocation = useMemo(
     () =>

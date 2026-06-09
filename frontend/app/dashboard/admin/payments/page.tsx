@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import { CreditCard, ShieldX, Loader2, RefreshCw } from "lucide-react"
+import { CreditCard, ShieldX, RefreshCw } from "lucide-react"
 
 interface AdminPayment {
   id: number
@@ -45,7 +45,6 @@ function formatAmount(amount: number): string {
 export default function AdminPaymentsPage() {
   const { user } = useAuth()
   const [payments, setPayments] = useState<AdminPayment[]>([])
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const fetchPayments = useCallback(async () => {
@@ -53,8 +52,7 @@ export default function AdminPaymentsPage() {
     try {
       const res = await api<PaymentListResponse>("/api/v1/payments/all")
       setPayments(res.payments)
-      setTotal(res.total)
-    } catch (err) {
+    } catch {
       toast.error("خطا در دریافت اطلاعات پرداخت‌ها")
     } finally {
       setLoading(false)
