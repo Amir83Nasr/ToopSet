@@ -175,7 +175,9 @@ export default function EditCourtPage() {
                           if (current.includes(sport.value)) {
                             setValue(
                               "sport_types",
-                              current.filter((s) => s !== sport.value) as CourtUpdateInput["sport_types"],
+                              current.filter(
+                                (s) => s !== sport.value
+                              ) as CourtUpdateInput["sport_types"],
                               {
                                 shouldValidate: true,
                               }
@@ -183,7 +185,10 @@ export default function EditCourtPage() {
                           } else {
                             setValue(
                               "sport_types",
-                              [...current, sport.value] as CourtUpdateInput["sport_types"],
+                              [
+                                ...current,
+                                sport.value,
+                              ] as CourtUpdateInput["sport_types"],
                               {
                                 shouldValidate: true,
                               }

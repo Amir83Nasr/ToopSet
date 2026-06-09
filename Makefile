@@ -120,12 +120,12 @@ back-lint: ## Lint Python code with ruff
 	@cd $(BACKEND_DIR) && ruff check --fix .
 	@echo "  $(GREEN)✓$(RESET) Ruff checks passed"
 
-back-format: ## Format Python code with isort + black
-	@cd $(BACKEND_DIR) && isort . && black .
-	@echo "  $(GREEN)✓$(RESET) isort + black applied"
+back-format: ## Format Python code with ruff
+	@cd $(BACKEND_DIR) && ruff format .
+	@echo "  $(GREEN)✓$(RESET) ruff format applied"
 
 back-format-check: ## Check formatting without changing files
-	@cd $(BACKEND_DIR) && isort --check-only . && black --check .
+	@cd $(BACKEND_DIR) && ruff format --check .
 	@echo "  $(GREEN)✓$(RESET) Formatting looks good"
 
 back-typecheck: ## Type-check Python code with mypy
@@ -304,17 +304,6 @@ up-backend: ## Rebuild only backend image and restart it
 up-frontend: ## Rebuild only frontend image and restart it
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait frontend
 	@echo "  $(GREEN)✓$(RESET) Frontend rebuilt"
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Docker: registry login ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: docker-login
-docker-login: ## 🔑 Log in to GitHub Container Registry (prompts for token)
-	@echo "  $(CYAN)ℹ$(RESET)  Paste your GitHub PAT (or GITHUB_TOKEN) when prompted:"
-	@echo "      ghcr.io username: $(GITHUB_ACTOR)"
-	@echo ""
-	@docker login ghcr.io
 
 # ─────────────────────────────────────────────────────────────────────
 # --- Docker images (separate frontend/backend) ---

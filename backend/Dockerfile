@@ -29,8 +29,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY app/ ./app/
-COPY alembic.ini ./app/
-COPY migrations/ ./app/migrations/
+COPY alembic.ini ./
+COPY migrations/ ./migrations/
 
 RUN mkdir -p /app/logs /app/uploads && chown -R toopset:toopset /app
 

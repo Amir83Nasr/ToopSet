@@ -50,9 +50,7 @@ async def add_favorite(
     return await service.add_favorite(court_id)
 
 
-@router.delete(
-    "/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف از علاقه‌مندی‌ها"
-)
+@router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف از علاقه‌مندی‌ها")
 async def remove_favorite(
     court_id: int,
     db: AsyncSession = Depends(get_db),

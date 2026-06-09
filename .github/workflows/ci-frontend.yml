@@ -25,6 +25,9 @@ jobs:
       - name: Run ESLint
         run: make front-lint
 
+      - name: Run Prettier format check
+        run: npx prettier --check .
+
   typecheck:
     name: Typecheck (tsc)
     runs-on: ubuntu-latest

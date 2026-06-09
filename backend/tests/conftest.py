@@ -6,9 +6,9 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from httpx import ASGITransport, AsyncClient
 import pytest
 import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import NullPool, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 

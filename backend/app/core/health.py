@@ -7,8 +7,8 @@ the database (PostgreSQL) and cache (Redis), along with uptime tracking.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import text

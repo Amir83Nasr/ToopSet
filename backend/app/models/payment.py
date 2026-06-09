@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import enum
 from datetime import datetime
 from decimal import Decimal
-import enum
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

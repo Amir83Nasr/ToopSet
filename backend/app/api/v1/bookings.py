@@ -26,9 +26,7 @@ async def list_my_bookings(
     return await service.list_my_bookings(skip=skip, limit=limit)
 
 
-@router.get(
-    "/completed", response_model=BookingListResponse, summary="رزروهای تکمیل‌شده (قابل نظر)"
-)
+@router.get("/completed", response_model=BookingListResponse, summary="رزروهای تکمیل‌شده (قابل نظر)")
 async def list_completed_bookings(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
