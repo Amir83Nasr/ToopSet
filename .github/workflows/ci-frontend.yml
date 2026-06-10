@@ -13,10 +13,11 @@ on:
       - "frontend/**"
       - ".github/actions/setup-node/**"
       - ".github/workflows/ci-frontend.yml"
+  workflow_dispatch:
 
 jobs:
   lint:
-    name: Lint (ESLint)
+    name: Lint (ESLint + Prettier)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +31,7 @@ jobs:
 
   typecheck:
     name: Typecheck (tsc)
+    needs: [lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,13 +42,14 @@ jobs:
 
   test:
     name: Test (vitest)
+    needs: [lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
 
       - name: Run vitest with coverage
-        run: npx vitest run --coverage
+        run: make front-test
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -58,6 +61,7 @@ jobs:
 
   build:
     name: Build (next build)
+    needs: [typecheck, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

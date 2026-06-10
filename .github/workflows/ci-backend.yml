@@ -17,6 +17,7 @@ on:
       - "requirements.txt"
       - ".github/actions/setup-python/**"
       - ".github/workflows/ci-backend.yml"
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -34,6 +35,7 @@ jobs:
 
   typecheck:
     name: Typecheck (mypy)
+    needs: [lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +46,7 @@ jobs:
 
   test:
     name: Test (pytest)
+    needs: [lint]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -59,12 +62,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - "6379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python
-
-      - name: Install test dependencies
-        run: pip install pytest pytest-asyncio httpx pytest-httpx asgi-lifespan
 
       - name: Run tests with coverage
         run: |
