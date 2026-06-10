@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert.rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: "toopset-backend"
+    static_configs:
+      - targets: ["backend:8000"]
+    metrics_path: "/metrics"
+
+  - job_name: "toopset-postgres"
+    static_configs:
+      - targets: ["postgres:9187"]
+
+  - job_name: "toopset-redis"
+    static_configs:
+      - targets: ["redis:9121"]
