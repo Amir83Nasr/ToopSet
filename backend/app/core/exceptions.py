@@ -30,7 +30,9 @@ def _make_response(
     return JSONResponse(status_code=status_code, content=body)
 
 
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, HTTPException):
+        raise exc
     return _make_response(
         status_code=exc.status_code,
         detail=exc.detail if isinstance(exc.detail, str) else str(exc.detail),
@@ -39,9 +41,9 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     )
 
 
-async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, RequestValidationError):
+        raise exc
     fields: list[FieldError] = []
     for err in exc.errors():
         loc = err.get("loc", [])
@@ -62,7 +64,9 @@ async def validation_exception_handler(
     )
 
 
-async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+async def integrity_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, IntegrityError):
+        raise exc
     detail = "این اطلاعات قبلاً ثبت شده است"
     orig_msg = str(exc.orig or "").lower()
     if "unique constraint" in orig_msg or "duplicate key" in orig_msg:
@@ -82,7 +86,9 @@ async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSON
     )
 
 
-async def statement_error_handler(request: Request, exc: StatementError) -> JSONResponse:
+async def statement_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, StatementError):
+        raise exc
     logger.exception("Database statement error on %s", request.url.path)
     return _make_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
