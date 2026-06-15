@@ -73,10 +73,7 @@ const navGroups: NavGroup[] = [
   {
     label: "گزارشات",
     roles: ["admin"],
-    items: [
-      { title: "داشبورد ادمین", url: "/dashboard/admin", icon: BarChart3 },
-      { title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 },
-    ],
+    items: [{ title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 }],
   },
   {
     label: "مدیریت",

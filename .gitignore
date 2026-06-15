@@ -49,9 +49,6 @@ Desktop.ini
 *.pem
 *.key
 
-# ── Docker ────────────────────────────────────────────────
-docker-data/
-
 # ── Backend ───────────────────────────────────────────────
 backend/bin/
 backend/*.db
@@ -61,14 +58,11 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 backend/.pytest_cache/
 
-# ── Logs ──────────────────────────────────────────────────
-*.log
-logs/*
-!logs/.gitkeep
-
 # ── Uploads (runtime data) ────────────────────────────────
-uploads/*
+uploads/
 !uploads/.gitkeep
+!uploads/courts/.gitkeep
+!uploads/avatars/.gitkeep
 
 # ── Misc ──────────────────────────────────────────────────
 *.tsbuildinfo
