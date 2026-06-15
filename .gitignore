@@ -60,6 +60,7 @@ backend/.pytest_cache/
 
 # ── Uploads (runtime data) ────────────────────────────────
 uploads/*
+!uploads/.gitkeep
 
 # ── Misc ──────────────────────────────────────────────────
 *.tsbuildinfo
