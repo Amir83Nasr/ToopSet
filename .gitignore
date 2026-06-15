@@ -59,7 +59,7 @@ backend/.ruff_cache/
 backend/.pytest_cache/
 
 # ── Uploads (runtime data) ────────────────────────────────
-uploads/*
+uploads/
 !uploads/.gitkeep
 
 # ── Misc ──────────────────────────────────────────────────
