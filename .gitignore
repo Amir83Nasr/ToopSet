@@ -59,8 +59,9 @@ backend/.ruff_cache/
 backend/.pytest_cache/
 
 # ── Uploads (runtime data) ────────────────────────────────
-uploads/
-!uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/avatars/.gitkeep
+!backend/uploads/courts/.gitkeep
 
 # ── Misc ──────────────────────────────────────────────────
 *.tsbuildinfo
