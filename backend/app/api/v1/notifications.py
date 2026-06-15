@@ -12,7 +12,7 @@ from app.schemas.notification import NotificationListResponse, NotificationRespo
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
-@router.get("", response_model=NotificationListResponse, summary="لیست اعلان‌ها")
+@router.get("", response_model=NotificationListResponse, summary="List notifications")
 async def list_notifications(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -30,7 +30,7 @@ async def list_notifications(
     )
 
 
-@router.get("/unread-count", summary="تعداد اعلان‌های خوانده‌نشده")
+@router.get("/unread-count", summary="Unread notification count")
 async def unread_count(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -43,7 +43,7 @@ async def unread_count(
 @router.post(
     "/{notification_id}/read",
     response_model=NotificationResponse,
-    summary="علامت‌گذاری اعلان به عنوان خوانده‌شده",
+    summary="Mark notification as read",
 )
 async def mark_read(
     notification_id: int,
@@ -61,7 +61,7 @@ async def mark_read(
     return NotificationResponse.model_validate(n)
 
 
-@router.post("/read-all", summary="علامت‌گذاری همه اعلان‌ها به عنوان خوانده‌شده")
+@router.post("/read-all", summary="Mark all notifications as read")
 async def mark_all_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

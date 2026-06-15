@@ -4,6 +4,8 @@
 
 ToopSet is a Persian sports venue booking platform. Users can search for sports courts (e.g., football, basketball, tennis), book available time slots, pay through a wallet system, leave reviews, and manage their profile. Managers can register and manage their own courts. Admins oversee the entire system — approving courts, managing users, viewing logs, and configuring platform settings.
 
+**License**: Proprietary — All rights reserved. See [LICENSE](../LICENSE) for details.
+
 ---
 
 ## Tech Stack
@@ -116,8 +118,8 @@ app.include_router(courts_router, prefix="/api/v1")
 Each router has:
 
 - A `prefix` (e.g., `/auth`, `/courts`)
-- A `tags` list (single Persian tag name for Swagger grouping)
-- Every endpoint has `summary=` (Persian) and `response_model=` (Pydantic schema)
+- A `tags` list (single English tag name for Swagger grouping)
+- Every endpoint has `summary=` (English) and `response_model=` (Pydantic schema)
 
 ### Auth Dependencies (`deps.py`)
 
@@ -231,7 +233,7 @@ Key models and their relationships:
 
 ### Language
 
-- All UI text, error messages, and Swagger summaries are in **Persian**
+- UI text and error messages are in **Persian**; Swagger summaries, code, and comments are in **English**
 - Code, variable names, comments, types, commit messages are in **English**
 - Commit messages follow conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`, etc.
 
@@ -272,6 +274,59 @@ Key models and their relationships:
 
 ---
 
+## Pre-commit Hooks
+
+Project uses [pre-commit](https://pre-commit.com) for automated code quality gates:
+
+```bash
+pip install pre-commit     # One-time install
+pre-commit install          # Activate hooks for this repo
+pre-commit run --all-files  # Run once on all files
+pre-commit autoupdate       # Update hook versions
+```
+
+**Configured hooks** (`.pre-commit-config.yaml`):
+
+| Category | Hook                                 | Scope        |
+| -------- | ------------------------------------ | ------------ |
+| General  | trailing-whitespace                  | All files    |
+| General  | end-of-file-fixer                    | All files    |
+| General  | check-yaml / check-json / check-toml | Config files |
+| General  | mixed-line-ending (LF)               | All files    |
+| General  | detect-private-key                   | All files    |
+| Python   | ruff format                          | backend/     |
+| Python   | ruff check --fix                     | backend/     |
+| Frontend | prettier                             | frontend/    |
+| Frontend | eslint --fix                         | frontend/    |
+
+## Environment Variables
+
+Each service has its own env file — no single `.env` to rule them all:
+
+| File                    | Purpose                       |
+| ----------------------- | ----------------------------- |
+| `.env`                  | Docker Compose infrastructure |
+| `backend/.env`          | Backend runtime variables     |
+| `backend/.env.example`  | Backend env template          |
+| `frontend/.env.local`   | Frontend runtime variables    |
+| `frontend/.env.example` | Frontend env template         |
+| `.env.example`          | Comprehensive reference       |
+
+Copy the relevant example and adjust:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+```
+
+**Backend** (`backend/.env`): Postgres, Redis, JWT secrets, connection pool, payment/SMS gateway, Sentry.
+
+**Frontend** (`frontend/.env.local`): `NEXT_PUBLIC_API_URL`, optional `NEXT_PUBLIC_SENTRY_DSN`.
+
+**Root** (`.env`): Only Docker Compose variable substitution (ports, project name).
+
+---
+
 ## Commands
 
 ### Backend
@@ -294,6 +349,29 @@ npm run build          # Production build
 npm run lint           # ESLint check
 npx tsc --noEmit       # TypeScript type check
 ```
+
+### Pre-commit
+
+```bash
+pip install pre-commit && pre-commit install   # Setup hooks
+pre-commit run --all-files                     # Run all hooks
+make precommit-install                         # (via Makefile)
+make precommit-run                             # (via Makefile)
+```
+
+### Version Management
+
+```bash
+make version                # Show current version (0.2.x)
+make version-check          # Verify VERSION == __init__ == package.json
+make version-sync           # Sync VERSION → __init__.py + package.json
+make version-bump BUMP=patch    # 0.2.0 → 0.2.1
+make version-bump BUMP=minor    # 0.2.0 → 0.3.0
+make version-bump BUMP=major    # 0.2.0 → 1.0.0
+make version-tag            # git tag v0.2.x + push (triggers CD)
+```
+
+**SSOT**: `VERSION` file in project root. `backend/app/__init__.py` has `__version__` for dynamic FastAPI metadata. `backend/pyproject.toml` reads dynamically via `version = {attr = "app.__version__"}`.
 
 ---
 

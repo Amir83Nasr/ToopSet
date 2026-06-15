@@ -6,9 +6,11 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError, StatementError
 
+from app import __version__
 from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bookings import router as bookings_router
@@ -113,29 +115,35 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ToopSet API",
-    description="پلتفرم رزرو آنلاین مجموعه‌های ورزشی — مدیریت کاربران، مجموعه‌ها، رزروها و پرداخت‌ها",
-    version="0.2.0",
-    lifespan=lifespan,
+    description="Online sports venue booking platform — user management, courts, bookings, and payments",
+    version=__version__,
     docs_url="/docs",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "none"},
     contact={"name": "Amirhossein Nasrollahi", "email": "amirhossein.nasrollahi.main@gmail.com"},
+    servers=[
+        {"url": "http://localhost:8000", "description": "Local network server"},
+        {"url": "http://192.168.1.20:8000", "description": "Mac network server"},
+    ],
     openapi_tags=[
-        {"name": "auth", "description": "ثبت‌نام، ورود، بروزرسانی پروفایل و آواتار"},
-        {"name": "courts", "description": "جستجو، ایجاد و مدیریت مجموعه‌های ورزشی"},
-        {"name": "time-slots", "description": "مدیریت زمان‌های قابل رزرو هر مجموعه"},
-        {"name": "slots", "description": "مشاهده جزئیات یک زمان خاص"},
-        {"name": "bookings", "description": "رزرو، پرداخت و لغو رزرو"},
-        {"name": "dashboard", "description": "آمار و گزارشات کاربران، مدیران و ادمین"},
-        {"name": "reviews", "description": "ثبت و مدیریت نظرات کاربران"},
-        {"name": "uploads", "description": "آپلود تصاویر مجموعه‌ها"},
-        {"name": "users", "description": "مدیریت کاربران (ادمین)"},
-        {"name": "payments", "description": "مشاهده تاریخچه پرداخت‌ها (ادمین)"},
-        {"name": "wallet", "description": "مدیریت کیف پول و تراکنش‌ها"},
-        {"name": "notifications", "description": "مدیریت اعلان‌های کاربر"},
-        {"name": "penalties", "description": "مشاهده جریمه‌های کاربر"},
-        {"name": "contact", "description": "ارسال و مدیریت پیام‌های تماس با ما"},
-        {"name": "favorites", "description": "مدیریت علاقه‌مندی‌های کاربر"},
-        {"name": "admin", "description": "مدیریت سیستم — تنظیمات، لاگ‌ها، تایید مجموعه‌ها و حذف"},
+        {"name": "auth", "description": "Register, login, profile & avatar management"},
+        {"name": "courts", "description": "Search, create & manage sports courts"},
+        {"name": "time-slots", "description": "Manage available time slots for each court"},
+        {"name": "slots", "description": "View details of a specific time slot"},
+        {"name": "bookings", "description": "Book, pay & cancel reservations"},
+        {"name": "dashboard", "description": "Stats & reports for users, managers & admins"},
+        {"name": "reviews", "description": "Submit & manage user reviews"},
+        {"name": "uploads", "description": "Upload court images"},
+        {"name": "users", "description": "User management (admin)"},
+        {"name": "payments", "description": "View payment history (admin)"},
+        {"name": "wallet", "description": "Wallet & transaction management"},
+        {"name": "notifications", "description": "User notification management"},
+        {"name": "penalties", "description": "View user penalties"},
+        {"name": "contact", "description": "Submit & manage contact messages"},
+        {"name": "favorites", "description": "User favorites management"},
+        {
+            "name": "admin",
+            "description": "System management — settings, logs, court approval & deletion",
+        },
     ],
 )
 
@@ -177,9 +185,9 @@ app.include_router(favorites_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 
 
-@app.get("/", summary="Home")
+@app.get("/", include_in_schema=False)
 async def root():
-    return {"message": "ToopSet API is running"}
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health", summary="Health check")

@@ -41,7 +41,7 @@ def _format_payment(p: Payment) -> PaymentDetailResponse:
     )
 
 
-@router.get("/all", response_model=PaymentListResponse, summary="همه پرداخت‌ها (ادمین)")
+@router.get("/all", response_model=PaymentListResponse, summary="All payments (admin)")
 async def list_all_payments(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),

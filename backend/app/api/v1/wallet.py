@@ -15,7 +15,7 @@ from app.schemas.wallet import (
 router = APIRouter(prefix="/wallet", tags=["wallet"])
 
 
-@router.get("/balance", response_model=WalletBalanceResponse, summary="موجودی کیف پول")
+@router.get("/balance", response_model=WalletBalanceResponse, summary="Wallet balance")
 async def get_wallet_balance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -25,7 +25,7 @@ async def get_wallet_balance(
     return WalletBalanceResponse(balance=float(wallet.balance))
 
 
-@router.post("/deposit", response_model=WalletBalanceResponse, summary="واریز به کیف پول")
+@router.post("/deposit", response_model=WalletBalanceResponse, summary="Deposit to wallet")
 async def deposit_to_wallet(
     request: WalletDepositRequest,
     db: AsyncSession = Depends(get_db),
@@ -41,7 +41,7 @@ async def deposit_to_wallet(
     return WalletBalanceResponse(balance=float(wallet.balance))
 
 
-@router.post("/withdraw", response_model=WalletBalanceResponse, summary="برداشت از کیف پول")
+@router.post("/withdraw", response_model=WalletBalanceResponse, summary="Withdraw from wallet")
 async def withdraw_from_wallet(
     request: WalletWithdrawRequest,
     db: AsyncSession = Depends(get_db),
@@ -60,7 +60,7 @@ async def withdraw_from_wallet(
 
 
 @router.get(
-    "/transactions", response_model=list[WalletTransactionResponse], summary="تاریخچه تراکنش‌ها"
+    "/transactions", response_model=list[WalletTransactionResponse], summary="Transaction history"
 )
 async def get_wallet_transactions(
     limit: int = 20,

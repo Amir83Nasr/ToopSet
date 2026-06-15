@@ -17,7 +17,7 @@ router = APIRouter(prefix="/contact", tags=["contact"])
     "",
     response_model=ContactResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="ارسال پیام تماس",
+    summary="Submit contact message",
 )
 async def submit_contact(
     data: ContactCreate,
@@ -39,7 +39,7 @@ async def submit_contact(
 # ── Admin endpoints ──────────────────────────────────────────────
 
 
-@router.get("/admin", response_model=list[ContactResponse], summary="لیست پیام‌های تماس (ادمین)")
+@router.get("/admin", response_model=list[ContactResponse], summary="List contact messages (admin)")
 async def list_contact_messages(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -53,7 +53,9 @@ async def list_contact_messages(
 
 
 @router.delete(
-    "/admin/{message_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف پیام تماس (ادمین)"
+    "/admin/{message_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete contact message (admin)",
 )
 async def delete_contact_message(
     message_id: int,

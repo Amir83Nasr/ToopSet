@@ -24,7 +24,7 @@ from app.services.review_service import ReviewService
 router = APIRouter(prefix="/courts", tags=["courts"])
 
 
-@router.get("", response_model=CourtListResponse, summary="لیست مجموعه‌ها")
+@router.get("", response_model=CourtListResponse, summary="List sports courts")
 async def list_courts(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -58,7 +58,7 @@ async def list_courts(
     )
 
 
-@router.get("/{court_id}/reviews", response_model=ReviewListResponse, summary="نظرات یک مجموعه")
+@router.get("/{court_id}/reviews", response_model=ReviewListResponse, summary="Court reviews")
 async def list_court_reviews(
     court_id: int,
     skip: int = Query(0, ge=0),
@@ -69,7 +69,7 @@ async def list_court_reviews(
     return await service.list_by_court(court_id, skip=skip, limit=limit)
 
 
-@router.get("/{court_id}", response_model=CourtResponse, summary="جزئیات مجموعه")
+@router.get("/{court_id}", response_model=CourtResponse, summary="Get court details")
 async def get_court(
     court_id: int,
     service: CourtService = Depends(get_court_service_public),
@@ -81,7 +81,7 @@ async def get_court(
     "",
     response_model=CourtResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="ایجاد مجموعه جدید",
+    summary="Create new court",
 )
 async def create_court(
     data: CourtCreate,
@@ -90,7 +90,7 @@ async def create_court(
     return await service.create_court(data)
 
 
-@router.patch("/{court_id}", response_model=CourtResponse, summary="ویرایش مجموعه")
+@router.patch("/{court_id}", response_model=CourtResponse, summary="Update court")
 async def update_court(
     court_id: int,
     data: CourtUpdate,
@@ -99,7 +99,7 @@ async def update_court(
     return await service.update_court(court_id, data)
 
 
-@router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف مجموعه")
+@router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete court")
 async def delete_court(
     court_id: int,
     service: CourtService = Depends(get_court_service),
@@ -115,7 +115,7 @@ async def delete_court(
     "/{court_id}/images",
     response_model=CourtImageResponse,
     status_code=201,
-    summary="افزودن تصویر به مجموعه",
+    summary="Add court image",
 )
 async def upload_court_image(
     court_id: int,
@@ -142,7 +142,7 @@ async def upload_court_image(
     return CourtImageResponse.model_validate(img)
 
 
-@router.delete("/{court_id}/images/{image_id}", status_code=204, summary="حذف تصویر مجموعه")
+@router.delete("/{court_id}/images/{image_id}", status_code=204, summary="Delete court image")
 async def delete_court_image(
     court_id: int,
     image_id: int,
@@ -161,7 +161,7 @@ async def delete_court_image(
     await db.commit()
 
 
-@router.put("/{court_id}/images/reorder", status_code=204, summary="مرتب‌سازی تصاویر مجموعه")
+@router.put("/{court_id}/images/reorder", status_code=204, summary="Reorder court images")
 async def reorder_court_images(
     court_id: int,
     ordered_ids: list[int],

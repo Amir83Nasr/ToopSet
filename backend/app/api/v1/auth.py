@@ -26,7 +26,7 @@ def _auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
 
 
 @router.post(
-    "/register", response_model=TokenResponse, status_code=201, summary="ثبت‌نام کاربر جدید"
+    "/register", response_model=TokenResponse, status_code=201, summary="Register a new user"
 )
 async def register(body: RegisterRequest, service: AuthService = Depends(_auth_service)):
     user, access_token, refresh_token = await service.register(
@@ -41,7 +41,7 @@ async def register(body: RegisterRequest, service: AuthService = Depends(_auth_s
     )
 
 
-@router.post("/login", response_model=TokenResponse, summary="ورود کاربر")
+@router.post("/login", response_model=TokenResponse, summary="Login user")
 async def login(body: LoginRequest, service: AuthService = Depends(_auth_service)):
     user, access_token, refresh_token = await service.login(
         phone=body.phone,
@@ -54,7 +54,7 @@ async def login(body: LoginRequest, service: AuthService = Depends(_auth_service
     )
 
 
-@router.post("/refresh", response_model=TokenResponse, summary="بروزرسانی توکن")
+@router.post("/refresh", response_model=TokenResponse, summary="Refresh access token")
 async def refresh(body: RefreshRequest, service: AuthService = Depends(_auth_service)):
     new_access, new_refresh = await service.refresh(body.refresh_token)
     return TokenResponse(
@@ -63,12 +63,12 @@ async def refresh(body: RefreshRequest, service: AuthService = Depends(_auth_ser
     )
 
 
-@router.get("/me", response_model=UserResponse, summary="اطلاعات کاربر فعلی")
+@router.get("/me", response_model=UserResponse, summary="Get current user info")
 async def me(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)
 
 
-@router.patch("/profile", response_model=UserResponse, summary="ویرایش پروفایل")
+@router.patch("/profile", response_model=UserResponse, summary="Update profile")
 async def update_profile(
     body: UpdateProfileRequest,
     current_user: User = Depends(get_current_user),
@@ -78,7 +78,7 @@ async def update_profile(
     return UserResponse.model_validate(updated_user)
 
 
-@router.post("/avatar", response_model=AvatarUploadResponse, summary="آپلود عکس پروفایل")
+@router.post("/avatar", response_model=AvatarUploadResponse, summary="Upload avatar")
 async def upload_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
@@ -114,7 +114,7 @@ async def upload_avatar(
     return AvatarUploadResponse(url=relative_url)
 
 
-@router.delete("/avatar", status_code=204, summary="حذف عکس پروفایل")
+@router.delete("/avatar", status_code=204, summary="Delete avatar")
 async def delete_avatar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

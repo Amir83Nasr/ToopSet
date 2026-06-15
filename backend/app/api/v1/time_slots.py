@@ -22,7 +22,7 @@ from app.services.time_slot_service import (
 router = APIRouter(prefix="/courts/{court_id}/slots", tags=["time-slots"])
 
 
-@router.get("", response_model=TimeSlotListResponse, summary="لیست زمان‌های یک مجموعه")
+@router.get("", response_model=TimeSlotListResponse, summary="List time slots for a court")
 async def list_slots(
     court_id: int,
     date: str | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
@@ -37,7 +37,7 @@ async def list_slots(
     "",
     response_model=TimeSlotResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="ایجاد زمان جدید",
+    summary="Create time slot",
 )
 async def create_slot(
     court_id: int,
@@ -52,7 +52,7 @@ async def create_slot(
     "/generate",
     response_model=TimeSlotGenerateResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="تولید خودکار زمان‌ها",
+    summary="Auto-generate time slots",
 )
 async def generate_slots(
     court_id: int,
@@ -63,7 +63,7 @@ async def generate_slots(
     return await service.generate_slots(court_id, data)
 
 
-@router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="ویرایش زمان")
+@router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="Update time slot")
 async def update_slot(
     court_id: int,
     slot_id: int,
@@ -74,7 +74,7 @@ async def update_slot(
     return await service.update_slot(slot_id, data)
 
 
-@router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف زمان")
+@router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
 async def delete_slot(
     court_id: int,
     slot_id: int,
@@ -89,7 +89,7 @@ slot_detail_router = APIRouter(prefix="/slots", tags=["slots"])
 
 
 @slot_detail_router.get(
-    "/{slot_id}", response_model=TimeSlotDetailResponse, summary="جزئیات یک زمان"
+    "/{slot_id}", response_model=TimeSlotDetailResponse, summary="Get slot details"
 )
 async def get_slot_by_id(
     slot_id: int,

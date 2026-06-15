@@ -1,8 +1,11 @@
 [project]
 name = "toopset-backend"
-version = "0.2.0"
+dynamic = ["version"]
 description = "ToopSet — sports court booking platform backend"
 requires-python = ">=3.12"
+
+[tool.setuptools.dynamic]
+version = {attr = "app.__version__"}
 
 [project.optional-dependencies]
 test = [
@@ -58,5 +61,3 @@ module = [
     "app.main",
 ]
 ignore_errors = true
-
-

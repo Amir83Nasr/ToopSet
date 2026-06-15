@@ -12,7 +12,7 @@ from app.schemas.penalty import PenaltyListResponse, PenaltyResponse
 router = APIRouter(prefix="/penalties", tags=["penalties"])
 
 
-@router.get("", response_model=PenaltyListResponse, summary="لیست جریمه‌ها")
+@router.get("", response_model=PenaltyListResponse, summary="List penalties")
 async def list_penalties(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),

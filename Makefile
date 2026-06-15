@@ -1,12 +1,8 @@
-# ─── ToopSet Makefile ────────────────────────────────────────────
-# A self-documenting Makefile. Targets automatically appear in
-# `make help` when they have a `##` comment after their declaration.
-# ─────────────────────────────────────────────────────────────────
-
+# ─── ToopSet Makefile ──────────────────────────────────────────────────────────
 SHELL := /bin/bash
 .ONESHELL:
 
-# ── ANSI colors ────────────────────────────────────────────
+# ── ANSI colors ──────────────────────────────────────────────────────────────
 ESC    := $(shell printf '\033')
 BOLD   := $(ESC)[1m
 RESET  := $(ESC)[0m
@@ -16,200 +12,198 @@ YELLOW := $(ESC)[33m
 RED    := $(ESC)[31m
 GREY   := $(ESC)[90m
 
-# ── Project config ─────────────────────────────────────────
+# ── Project config ───────────────────────────────────────────────────────────
 COMPOSE_FILE    := compose.yml
 COMPOSE_PROJECT := toopset
-IMAGE_NAME      := toopset
 IMAGE_TAG       ?= $(shell cat VERSION 2>/dev/null || echo "latest")
 BACKEND_DIR     := backend
 FRONTEND_DIR    := frontend
 UVICORN_PORT    ?= 8000
 NEXT_PORT       ?= 3000
 
-# ── Version management ─────────────────────────────────────────
-CUR_VERSION := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
-SEMVER_RE   := ^[0-9]+\.[0-9]+\.[0-9]+
+# ── Project variables ─────────────────────────────────────────────────────────
+PROJECT_NAME       := ToopSet
+PROJECT_NAME_ASCII := $(shell python3 scripts/ascii_logo.py $(PROJECT_NAME))
+CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
 
-# ─────────────────────────────────────────────────────────────────────
-# 🏠  Help
-# ─────────────────────────────────────────────────────────────────────
+.DEFAULT_GOAL := help
 
-.PHONY: help
-help: ## Show this help screen
-	@printf "\n$(BOLD)Usage:$(RESET)  make $(GREEN)<target>$(RESET)\n\n"
-	@awk -F ':.*## ' \
-		-v green="$(GREEN)" \
-		-v cyan="$(CYAN)" \
-		-v bold="$(BOLD)" \
-		-v grey="$(GREY)" \
-		-v reset="$(RESET)" \
-		' \
-		/^# ---+ / { \
-			title = $$0; \
-			gsub(/^# -+ | -+$$/, "", title); \
-			sec[++s] = title; \
-			items[s] = ""; \
-			next \
-		} \
-		/^[a-zA-Z_-]+:.*## / { \
-			gsub(/:.*## /, "|", $$0); \
-			split($$0, a, "|"); \
-			t = a[1]; d = a[2]; \
-			items[s] = items[s] sprintf("  %s%-22s%s %s\n", green, t, reset, d) \
-		} \
-		END { \
-			for (i = 1; i <= s; i++) { \
-				printf "\n%s%s── %s ──%s\n\n", bold, cyan, sec[i], reset; \
-				printf "%s", items[i] \
-			}; \
-			printf "\n" \
-		}' Makefile
+.PHONY: install install-backend install-frontend \
+        dev dev-backend dev-frontend \
+        build \
+        lint lint-backend lint-frontend \
+        format format-backend format-frontend \
+        typecheck typecheck-backend typecheck-frontend \
+        check \
+        test test-backend test-frontend test-db-setup \
+        db db-stop db-status db-reset \
+        up down logs ps up-build up-backend up-frontend compose-up-dev \
+        back-build-docker front-build-docker docker-buildx \
+        monitor monitor-stop \
+        version version-sync version-bump version-tag version-check \
+        clean clean-backend clean-frontend clean-db \
+        prune doctor generate-logo \
+        precommit-install precommit-run \
+        help
 
-# ─────────────────────────────────────────────────────────────────────
-# --- Frontend (local) ---
-# ─────────────────────────────────────────────────────────────────────
+# ─── Install ──────────────────────────────────────────────────────────────────
+install: install-backend install-frontend ## Install all dependencies
 
-.PHONY: front-dev front-build front-start front-lint front-format front-typecheck front-install front-clean
+install-backend: ## Install backend Python dependencies
+	@cd $(BACKEND_DIR) && pip3 install -r requirements.txt
+	@echo "  $(GREEN)✓$(RESET) Backend dependencies installed"
 
-front-dev: ## Start frontend dev server (Turbopack, HMR)
-	@cd $(FRONTEND_DIR) && npm run dev
-
-front-build: ## Build frontend for production
-	@cd $(FRONTEND_DIR) && npm run build
-
-front-start: ## Start frontend production server
-	@cd $(FRONTEND_DIR) && npm run start
-
-front-lint: ## Lint frontend code (ESLint)
-	@cd $(FRONTEND_DIR) && npm run lint
-
-front-format: ## Format frontend code (Prettier)
-	@cd $(FRONTEND_DIR) && npm run format
-
-front-typecheck: ## Run TypeScript type checking (tsc --noEmit)
-	@cd $(FRONTEND_DIR) && npm run typecheck
-
-front-install: ## Install / update frontend npm dependencies
+install-frontend: ## Install frontend npm dependencies
 	@cd $(FRONTEND_DIR) && npm install
+	@echo "  $(GREEN)✓$(RESET) Frontend dependencies installed"
 
-front-clean: ## Remove .next build cache and node_modules
-	@rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/node_modules
-	@echo "  $(GREEN)✓$(RESET) Frontend cache cleaned"
+install-precommit: ## Install pre-commit hooks
+	@pip3 install pre-commit -q 2>/dev/null && pre-commit install
+	@echo "  $(GREEN)✓$(RESET) Pre-commit hooks installed"
 
-# ─────────────────────────────────────────────────────────────────────
-# --- Backend (local) ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: back-dev back-deps back-migrate back-shell back-clean back-lint back-format back-typecheck back-check
-
-back-dev: ## Start backend dev server (uvicorn, auto-reload on save)
+# ─── Development ──────────────────────────────────────────────────────────────
+dev-backend: ## Start backend server with auto-reload
 	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
-back-deps: ## Install / sync backend Python dependencies (pip install -r)
-	@pip3 install -r $(BACKEND_DIR)/requirements.txt
-	@echo "  $(GREEN)✓$(RESET) Backend deps installed"
-
-back-migrate: ## Run Alembic migrations (upgrade head)
-	@cd $(BACKEND_DIR) && alembic upgrade head
-	@echo "  $(GREEN)✓$(RESET) Migrations up to date"
-
-back-shell: ## Open a Python shell inside the backend directory
-	@cd $(BACKEND_DIR) && python3 -c "import code; code.interact(local={'app': 'toopset'})"
-
-back-lint: ## Lint Python code with ruff
-	@cd $(BACKEND_DIR) && ruff check --fix .
-	@echo "  $(GREEN)✓$(RESET) Ruff checks passed"
-
-back-format: ## Format Python code with ruff
-	@cd $(BACKEND_DIR) && ruff format .
-	@echo "  $(GREEN)✓$(RESET) ruff format applied"
-
-back-format-check: ## Check formatting without changing files
-	@cd $(BACKEND_DIR) && ruff format --check .
-	@echo "  $(GREEN)✓$(RESET) Formatting looks good"
-
-back-typecheck: ## Type-check Python code with mypy
-	@cd $(BACKEND_DIR) && mypy app
-	@echo "  $(GREEN)✓$(RESET) mypy passed"
-
-back-check: ## Run all Python checks (lint + format-check + typecheck)
-	@$(MAKE) back-lint && \
-	 $(MAKE) back-format-check && \
-	 $(MAKE) back-typecheck && \
-	 echo "  $(GREEN)✓$(RESET) All checks passed"
-
-back-clean: ## Remove Python cache files (__pycache__, .pyc)
-	@find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null; \
-	 find . -type d -name '*_cache' -exec rm -rf {} + 2>/dev/null; \
-	 find . -name '*.pyc' -delete
-	@echo "  $(GREEN)✓$(RESET) Python cache cleaned"
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Local dev (frontend + backend together) ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: dev install
-
-dev: ## 🚀 Start both backend + frontend in separate Terminal windows (macOS)
-	@echo "  $(CYAN)ℹ$(RESET)  Opening backend + frontend in separate Terminal windows…"
-	@osascript \
-		-e 'tell application "Terminal"' \
-		-e 'activate' \
-		-e 'do script "cd $(PWD) && make back-dev"' \
-		-e 'do script "cd $(PWD) && make front-dev"' \
-		-e 'end tell'
-	@echo "  $(GREEN)✓$(RESET) Both servers started — check the Terminal windows"
-
-dev-manual: ## Start backend (background) + frontend (foreground) in one terminal
-	@echo "  $(CYAN)ℹ$(RESET)  Starting backend in background…"
-	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload &
-	@sleep 2
-	@echo "  $(CYAN)ℹ$(RESET)  Starting frontend…"
+dev-frontend: ## Start frontend dev server with HMR
 	@cd $(FRONTEND_DIR) && npm run dev
 
-install: ## Install ALL project dependencies (npm + pip)
-	@$(MAKE) back-deps
-	@$(MAKE) front-install
-	@echo "  $(GREEN)✓$(RESET) All dependencies installed"
+# ─── Build ────────────────────────────────────────────────────────────────────
+build: ## Build frontend for production
+	@cd $(FRONTEND_DIR) && npm run build
+	@echo "  $(GREEN)✓$(RESET) Frontend built"
 
-# ─────────────────────────────────────────────────────────────────────
-# --- Version management ---
-# ─────────────────────────────────────────────────────────────────────
+# ─── Lint ─────────────────────────────────────────────────────────────────────
+lint: lint-backend lint-frontend ## Run all linters
 
-.PHONY: version-tag
-version-tag: ## Create a git tag from VERSION and push it (triggers CD)
-	$(eval V := $(shell cat VERSION))
-	@git tag v$(V)
-	@git push origin v$(V)
-	@echo "  $(GREEN)✓$(RESET)  Tagged v$(V) and pushed"
+lint-backend: ## Lint backend with Ruff
+	@cd $(BACKEND_DIR) && ruff check --fix .
+	@echo "  $(GREEN)✓$(RESET) Backend linted"
 
-.PHONY: version version-sync version-bump version-check
+lint-frontend: ## Lint frontend with ESLint
+	@cd $(FRONTEND_DIR) && npm run lint
+	@echo "  $(GREEN)✓$(RESET) Frontend linted"
 
+# ─── Format ───────────────────────────────────────────────────────────────────
+format: format-backend format-frontend ## Format all code
+
+format-backend: ## Format backend with Ruff
+	@cd $(BACKEND_DIR) && ruff format .
+	@echo "  $(GREEN)✓$(RESET) Backend formatted"
+
+format-frontend: ## Format frontend with Prettier
+	@cd $(FRONTEND_DIR) && npm run format
+	@echo "  $(GREEN)✓$(RESET) Frontend formatted"
+
+# ─── Typecheck ────────────────────────────────────────────────────────────────
+typecheck: typecheck-backend typecheck-frontend ## Run all type checkers
+
+typecheck-backend: ## Type-check backend with mypy
+	@cd $(BACKEND_DIR) && mypy app
+	@echo "  $(GREEN)✓$(RESET) Backend type check passed"
+
+typecheck-frontend: ## Type-check frontend with TypeScript
+	@cd $(FRONTEND_DIR) && npm run typecheck
+	@echo "  $(GREEN)✓$(RESET) Frontend type check passed"
+
+# ─── Test ─────────────────────────────────────────────────────────────────────
+test: test-backend test-frontend ## Run all tests
+
+test-db: ## Create test database
+	@PGPASSWORD=$${POSTGRES_PASSWORD:-toopset_secret} \
+		psql -h $${POSTGRES_HOST:-localhost} -p $${POSTGRES_PORT:-5432} \
+		-U $${POSTGRES_USER:-toopset} -d postgres \
+		-c "CREATE DATABASE toopset_test" 2>/dev/null || true
+	@echo "  $(GREEN)✓$(RESET) Test database ready"
+
+test-backend: test-db-setup ## Run backend tests with pytest
+	@cd $(BACKEND_DIR) && pip install pytest pytest-asyncio httpx -q 2>/dev/null
+	@cd $(BACKEND_DIR) && python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
+
+test-frontend: ## Run frontend tests with Vitest
+	@cd $(FRONTEND_DIR) && npx vitest run
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+db-start: ## Start Postgres and Redis
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
+	@echo "  $(GREEN)✓$(RESET) Postgres and Redis started"
+
+db-stop: ## Stop Postgres and Redis
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
+	@echo "  $(GREEN)✓$(RESET) Postgres and Redis stopped"
+
+db-status: ## Check database container status
+	@for svc in postgres redis; do \
+		status=$$(docker inspect --format='{{.State.Status}}' $(COMPOSE_PROJECT)-$$svc 2>/dev/null || echo "not found"); \
+		if [ "$$status" = "running" ]; then \
+			echo "  $(GREEN)✓$(RESET) $$svc: $$status"; \
+		else \
+			echo "  $(RED)✗$(RESET) $$svc: $$status"; \
+		fi; \
+	done
+
+db-reset: ## Wipe and recreate database volumes
+	@echo "  $(YELLOW)WARNING$(RESET) This will delete all database data!"
+	@read -p "  Continue? [y/N] " ans; \
+	if [ "$$ans" = "y" ] || [ "$$ans" = "Y" ]; then \
+		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v postgres redis && \
+		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis && \
+		echo "  $(GREEN)✓$(RESET) Databases recreated"; \
+	else \
+		echo "  $(GREY)Operation cancelled$(RESET)"; \
+	fi
+
+# ─── Docker: Full Stack ───────────────────────────────────────────────────────
+up: ## Start core services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait \
+		postgres redis backend frontend
+	@echo "  $(GREEN)✓$(RESET) Core services started"
+	@echo "  $(GREY)Frontend: http://localhost:$(NEXT_PORT)$(RESET)"
+	@echo "  $(GREY)Backend:  http://localhost:$(UVICORN_PORT)$(RESET)"
+
+down: ## Stop all Docker services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
+	@echo "  $(GREEN)✓$(RESET) Services stopped"
+
+logs: ## Tail logs from all services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) logs -f
+
+ps: ## Show status of Docker services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) ps
+
+up-build: ## Rebuild and start all services
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait
+	@echo "  $(GREEN)✓$(RESET) Services rebuilt and started"
+
+up-backend: ## Rebuild and restart backend only
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait backend
+	@echo "  $(GREEN)✓$(RESET) Backend rebuilt"
+
+up-frontend: ## Rebuild and restart frontend only
+	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait frontend
+	@echo "  $(GREEN)✓$(RESET) Frontend rebuilt"
+
+# ─── Version Management ───────────────────────────────────────────────────────
 version: ## Show current project version
 	@echo "  $(CUR_VERSION)"
 
-version-sync: ## Sync VERSION → pyproject.toml + package.json
+version-check: ## Verify versions across all files
+	@python3 scripts/check_version.py --all
+
+version-sync: ## Sync VERSION → __init__ + package.json
 	$(eval V := $(shell cat VERSION))
-	@sed -i '' 's/^version = ".*"/version = "$(V)"/' $(BACKEND_DIR)/pyproject.toml
+	@sed -i '' 's/^__version__ = ".*"/__version__ = "$(V)"/' $(BACKEND_DIR)/app/__init__.py
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' $(FRONTEND_DIR)/package.json
 	@echo "  $(GREEN)✓$(RESET) Version synced to $(V)"
-
-define bump-usage
-Usage:  make version-bump BUMP=<part>
-  BUMP=patch   (0.1.0 → 0.1.1)
-  BUMP=minor   (0.1.0 → 0.2.0)
-  BUMP=major   (0.1.0 → 1.0.0)
-endef
 
 version-bump: ## Bump version (BUMP=patch|minor|major)
 	@if [ -z "$(BUMP)" ]; then \
 		echo "  $(RED)✗$(RESET) Usage: make version-bump BUMP=patch|minor|major"; \
 		exit 1; \
 	fi
-	$(eval V := $(shell cat VERSION))
-	$(eval MAJ := $(word 1,$(subst ., ,$(V))))
-	$(eval MIN := $(word 2,$(subst ., ,$(V))))
-	$(eval PAT := $(word 3,$(subst ., ,$(V))))
+	$(eval MAJ := $(word 1,$(subst ., ,$(CUR_VERSION))))
+	$(eval MIN := $(word 2,$(subst ., ,$(CUR_VERSION))))
+	$(eval PAT := $(word 3,$(subst ., ,$(CUR_VERSION))))
 	$(eval NEW_V := $(if $(filter patch,$(BUMP)),$(MAJ).$(MIN).$$(shell expr $(PAT) + 1),$(if $(filter minor,$(BUMP)),$(MAJ).$$(shell expr $(MIN) + 1).0,$(if $(filter major,$(BUMP)),$$(shell expr $(MAJ) + 1).0.0,))))
 	@if [ "$(NEW_V)" = "" ]; then \
 		echo "  $(RED)✗$(RESET) Invalid BUMP: $(BUMP). Use patch, minor, or major."; \
@@ -217,278 +211,94 @@ version-bump: ## Bump version (BUMP=patch|minor|major)
 	fi
 	@printf '%s' "$(NEW_V)" > VERSION
 	@$(MAKE) version-sync V=$(NEW_V)
-	@echo "  $(GREEN)✓$(RESET) Bumped $(V) → $(NEW_V)"
+	@echo "  $(GREEN)✓$(RESET) Bumped $(CUR_VERSION) → $(NEW_V)"
 
-version-check: ## Verify VERSION matches pyproject.toml and package.json
-	@python3 scripts/check-version.py "$(shell cat VERSION)" \
-		--pyproject $(BACKEND_DIR)/pyproject.toml \
-		--package $(FRONTEND_DIR)/package.json
+version-tag: ## Create git tag CUR_VERSION and push
+	@git tag -a "v$(CUR_VERSION)" -m "Release v$(CUR_VERSION)"
+	@git push origin "v$(CUR_VERSION)"
+	@echo "  $(GREEN)✓$(RESET) Tagged v$(CUR_VERSION) and pushed"
 
-# ─────────────────────────────────────────────────────────────────────
-# --- Docker: databases only ---
-# ─────────────────────────────────────────────────────────────────────
+# ─── Clean ────────────────────────────────────────────────────────────────────
+clean: clean-backend clean-frontend ## Remove all build artifacts
 
-.PHONY: db db-stop db-status db-reset
+clean-backend: ## Remove backend cache and artifacts
+	@find . -type d \( -name '__pycache__' -o -name '.idea' \
+		-o -name '*_cache' -o -name '.egg-info' \) \
+		-exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name '*.pyc' -o -name '.coverage' -o -name '.DS_Store' -delete
+	@echo "  $(GREEN)✓$(RESET) Backend cache cleaned"
 
-db: ## Start only Postgres + Redis (fast, for local dev servers)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
-	@echo "  $(GREEN)✓$(RESET) Postgres + Redis are up"
+clean-frontend: ## Remove frontend build artifacts
+	@rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/dist
+	@echo "  $(GREEN)✓$(RESET) Frontend build artifacts cleaned"
 
-db-stop: ## Stop Postgres + Redis (data persists in volumes)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
-	@echo "  $(GREEN)✓$(RESET) Postgres + Redis stopped"
-
-db-status: ## Check if Postgres and Redis are healthy
-	@docker inspect --format='{{.State.Status}}' toopset-postgres 2>/dev/null || echo "  $(RED)✗$(RESET) Postgres not running"
-	@docker inspect --format='{{.State.Status}}' toopset-redis 2>/dev/null || echo "  $(RED)✗$(RESET) Redis not running"
-
-db-reset: ## ⚠️  Wipe all database data (destroys volumes!)
-	@echo "  $(YELLOW)⚠$(RESET)  This will DELETE all data!"
-	@read -p "  Continue? [y/N] " ans; \
-	if [ "$$ans" = "y" ] || [ "$$ans" = "Y" ]; then \
-		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v postgres redis; \
-		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis; \
-		echo "  $(GREEN)✓$(RESET) Databases recreated"; \
-	else \
-		echo "  $(GREY)Aborted$(RESET)"; \
-	fi
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Docker: full stack ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: up down logs ps
-
-up: ## Start ALL Docker services — waits for health checks
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait
-	@echo "  $(GREEN)✓$(RESET) All services started"
-	@echo "  $(GREY)│$(RESET)  Frontend:  http://localhost:$(NEXT_PORT)"
-	@echo "  $(GREY)│$(RESET)  Backend:   http://localhost:$(UVICORN_PORT)"
-	@echo "  $(GREY)│$(RESET)  Kibana:    http://localhost:5601"
-	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
-	@echo "  $(GREY)│$(RESET)  Prometheus:  http://localhost:9090"
-	@echo "  $(GREY)│$(RESET)  Alertmanager: http://localhost:9093"
-
-.PHONY: compose-up-dev
-compose-up-dev: ## Start core services only (postgres + redis + backend + frontend) — no monitoring
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait \
-		postgres redis backend frontend
-	@echo "  $(GREEN)✓$(RESET) Core services started"
-	@echo "  $(GREY)│$(RESET)  Frontend:  http://localhost:$(NEXT_PORT)"
-	@echo "  $(GREY)│$(RESET)  Backend:   http://localhost:$(UVICORN_PORT)"
-
-down: ## Stop all Docker services (data stays in volumes)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down
-	@echo "  $(GREEN)✓$(RESET) Services stopped"
-
-logs: ## Tail logs from all Docker services (Ctrl+C to exit)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) logs -f
-
-ps: ## Show status of all Docker services
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) ps
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Docker: compose rebuild ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: up-build up-backend up-frontend
-
-up-build: ## Rebuild all images and start services
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait
-	@echo "  $(GREEN)✓$(RESET) Services rebuilt and started"
-
-up-backend: ## Rebuild only backend image and restart it
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait backend
-	@echo "  $(GREEN)✓$(RESET) Backend rebuilt"
-
-up-frontend: ## Rebuild only frontend image and restart it
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait frontend
-	@echo "  $(GREEN)✓$(RESET) Frontend rebuilt"
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Docker images (separate frontend/backend) ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: back-build-docker front-build-docker docker-buildx
-
-back-build-docker: ## 🐳 Build backend Docker image
-	@echo "  $(CYAN)ℹ$(RESET)  Building toopset-backend:$(IMAGE_TAG)…"
-	@docker build -t ghcr.io/toopset/toopset-backend:$(IMAGE_TAG) ./backend
-	@echo "  $(GREEN)✓$(RESET)  Built toopset-backend:$(IMAGE_TAG)"
-
-front-build-docker: ## 🐳 Build frontend Docker image
-	@echo "  $(CYAN)ℹ$(RESET)  Building toopset-frontend:$(IMAGE_TAG)…"
-	@docker build -t ghcr.io/toopset/toopset-frontend:$(IMAGE_TAG) ./frontend
-	@echo "  $(GREEN)✓$(RESET)  Built toopset-frontend:$(IMAGE_TAG)"
-
-docker-buildx: ## Build multi-arch images and push to registry (TAG=version)
-	@if [ -z "$(TAG)" ]; then \
-		echo "  $(RED)✗$(RESET) Usage: make docker-buildx TAG=0.2.0"; \
-		exit 1; \
-	fi
-	@echo "  $(CYAN)ℹ$(RESET)  Building & pushing backend…"
-	@docker buildx build \
-		--platform linux/amd64,linux/arm64 \
-		--push \
-		-t ghcr.io/toopset/toopset-backend:$(TAG) \
-		-t ghcr.io/toopset/toopset-backend:latest \
-		./backend
-	@echo "  $(GREEN)✓$(RESET)  Pushed toopset-backend:$(TAG)"
-	@echo "  $(CYAN)ℹ$(RESET)  Building & pushing frontend…"
-	@docker buildx build \
-		--platform linux/amd64,linux/arm64 \
-		--push \
-		-t ghcr.io/toopset/toopset-frontend:$(TAG) \
-		-t ghcr.io/toopset/toopset-frontend:latest \
-		./frontend
-	@echo "  $(GREEN)✓$(RESET)  Pushed toopset-frontend:$(TAG)"
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Monitoring (standalone) ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: monitor monitor-stop
-
-monitor: ## Start only monitoring stack (ELK + Prometheus + Grafana + Alertmanager)
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait \
-		elasticsearch logstash kibana prometheus grafana alertmanager \
-		postgres_exporter redis_exporter
-	@echo "  $(GREEN)✓$(RESET)  Monitoring stack started"
-	@echo "  $(GREY)│$(RESET)  Kibana:    http://localhost:5601"
-	@echo "  $(GREY)│$(RESET)  Grafana:   http://localhost:3001"
-	@echo "  $(GREY)│$(RESET)  Prometheus:  http://localhost:9090"
-	@echo "  $(GREY)│$(RESET)  Alertmanager: http://localhost:9093"
-
-monitor-stop: ## Stop monitoring stack
-	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop \
-		elasticsearch logstash kibana prometheus grafana alertmanager \
-		postgres_exporter redis_exporter
-	@echo "  $(GREEN)✓$(RESET)  Monitoring stopped"
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Testing ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: test back-test front-test test-db-setup
-
-## Run all tests
-test: back-test front-test
-
-## Create the test PostgreSQL database (requires running Postgres)
-test-db-setup: ## Create toopset_test database for integration tests
-	@PGPASSWORD=$${POSTGRES_PASSWORD:-toopset_secret} \
-		psql -h $${POSTGRES_HOST:-localhost} -p $${POSTGRES_PORT:-5432} \
-		-U $${POSTGRES_USER:-toopset} -d postgres \
-		-c "CREATE DATABASE toopset_test" 2>/dev/null || \
-		echo "  $(YELLOW)ℹ$(RESET) Database 'toopset_test' may already exist"
-	@echo "  $(GREEN)✓$(RESET) Test database ready"
-
-## Run backend tests (starts Postgres if not running)
-back-test: test-db-setup ## Run Python tests with pytest
-	@cd backend && pip install pytest pytest-asyncio httpx pytest-httpx asgi-lifespan -q 2>/dev/null; python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
-
-## Run frontend tests
-front-test: ## Run Vitest tests
-	cd frontend && npx vitest run
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Lint / Format / Typecheck (full project) ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: lint format typecheck check
-
-lint: ## Run all linters (ruff + ESLint)
-	@$(MAKE) back-lint
-	@$(MAKE) front-lint
-
-format: ## Format all code (ruff format + Prettier)
-	@$(MAKE) back-format
-	@$(MAKE) front-format
-
-typecheck: ## Run all type checkers (mypy + TypeScript)
-	@$(MAKE) back-typecheck
-	@$(MAKE) front-typecheck
-
-check: ## Run ALL checks (lint + format-check + typecheck)
-	@echo "  $(CYAN)ℹ$(RESET)  Running all checks…"
-	@$(MAKE) lint
-	@$(MAKE) back-format-check
-	@$(MAKE) typecheck
-	@echo ""
-	@echo "  $(GREEN)✓$(RESET) All checks passed"
-
-# ─────────────────────────────────────────────────────────────────────
-# --- Maintenance ---
-# ─────────────────────────────────────────────────────────────────────
-
-.PHONY: clean prune doctor
-
-clean: ## ⚠️  Remove ALL containers + volumes (irreversible data loss)
-	@echo "  $(YELLOW)⚠$(RESET)  This will DELETE all Docker volumes (Postgres, Redis, ES, Grafana)!"
+clean-db: ## Delete all Docker volumes (data loss)
+	@echo "  $(YELLOW)WARNING$(RESET) This will delete all data!"
 	@read -p "  Type 'yes' to confirm: " ans; \
 	if [ "$$ans" = "yes" ]; then \
 		docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) down -v; \
-		-docker rmi ghcr.io/toopset/toopset-backend:$(IMAGE_TAG) 2>/dev/null; \
-		-docker rmi ghcr.io/toopset/toopset-frontend:$(IMAGE_TAG) 2>/dev/null; \
-		echo "  $(GREEN)✓$(RESET)  All cleaned"; \
+		echo "  $(GREEN)✓$(RESET) All volumes deleted"; \
 	else \
-		echo "  $(GREY)Aborted$(RESET)"; \
+		echo "  $(GREY)Operation cancelled$(RESET)"; \
 	fi
 
-prune: ## 🧹 Docker system prune (remove unused images, containers, cache)
-	@docker system prune -af --volumes
-	@echo "  $(GREEN)✓$(RESET)  Docker pruned"
-
-doctor: ## 🔍 Check system health (Docker, ports, Python, Node)
+# ─── Maintenance ──────────────────────────────────────────────────────────────
+doctor: ## Check system requirements
 	@echo ""
-	@printf "$(BOLD)System check for ToopSet$(RESET)\n"
-	@printf -- "$(GREY)──────────────────────────────────$(RESET)\n"
-	@# Docker
-	@if command -v docker &>/dev/null; then \
-		printf "  $(GREEN)✓$(RESET) Docker found\n"; \
-	else \
-		printf "  $(RED)✗$(RESET) Docker not found\n"; \
-	fi
-	@# Python
-	@if command -v python3 &>/dev/null; then \
-		pyver=$$(python3 --version 2>&1); \
-		printf "  $(GREEN)✓$(RESET) $$pyver\n"; \
-	else \
-		printf "  $(RED)✗$(RESET) Python 3 not found\n"; \
-	fi
-	@# Node
-	@if command -v node &>/dev/null; then \
-		never=$$(node --version 2>&1); \
-		npmver=$$(npm --version 2>&1); \
-		printf "  $(GREEN)✓$(RESET) Node $$never / npm $$npmver\n"; \
-	else \
-		printf "  $(RED)✗$(RESET) Node.js not found\n"; \
-	fi
-	@# PostgreSQL port
-	@if lsof -i :5432 &>/dev/null; then \
-		printf "  $(GREEN)✓$(RESET) Port 5432 (Postgres) in use\n"; \
-	else \
-		printf "  $(YELLOW)⚠$(RESET) Port 5432 free — run $(GREY)make db$(RESET)\n"; \
-	fi
-	@# Redis port
-	@if lsof -i :6379 &>/dev/null; then \
-		printf "  $(GREEN)✓$(RESET) Port 6379 (Redis) in use\n"; \
-	else \
-		printf "  $(YELLOW)⚠$(RESET) Port 6379 free — run $(GREY)make db$(RESET)\n"; \
-	fi
-	@# Python deps
-	@if python3 -c "import fastapi" &>/dev/null; then \
+	@printf "$(BOLD)System Check - ToopSet$(RESET)\n"
+	@printf -- "$(GREY)─────────────────────────$(RESET)\n"
+	@for cmd in docker python3 node; do \
+		if command -v $$cmd &>/dev/null; then \
+			printf "  $(GREEN)✓$(RESET) $$cmd found\n"; \
+		else \
+			printf "  $(RED)✗$(RESET) $$cmd not found\n"; \
+		fi; \
+	done
+	@for port in 5432 6379; do \
+		if lsof -i :$$port &>/dev/null; then \
+			printf "  $(GREEN)✓$(RESET) Port $$port in use\n"; \
+		else \
+			printf "  $(YELLOW)⚠$(RESET) Port $$port free - run 'make db'\n"; \
+		fi; \
+	done
+	@if python3 -c "import fastapi" 2>/dev/null; then \
 		printf "  $(GREEN)✓$(RESET) Python deps installed\n"; \
 	else \
-		printf "  $(YELLOW)⚠$(RESET) Python deps missing — run $(GREY)make back-deps$(RESET)\n"; \
+		printf "  $(YELLOW)⚠$(RESET) Python deps missing - run 'make install-backend'\n"; \
 	fi
-	@# Node deps
 	@if [ -d "$(FRONTEND_DIR)/node_modules" ]; then \
 		printf "  $(GREEN)✓$(RESET) Node deps installed\n"; \
 	else \
-		printf "  $(YELLOW)⚠$(RESET) Node deps missing — run $(GREY)make front-install$(RESET)\n"; \
+		printf "  $(YELLOW)⚠$(RESET) Node deps missing - run 'make install-frontend'\n"; \
 	fi
-	@printf -- "$(GREY)──────────────────────────────────$(RESET)\n"
-	@echo ""
+	@printf -- "$(GREY)─────────────────────────$(RESET)\n\n"
 
-.DEFAULT_GOAL := help
+# ─── Pre-commit ────────────────────────────────────────────────
+precommit: ## Run pre-commit on all files
+	@pre-commit run --all-files
+
+# ─── Help ─────────────────────────────────────────────────────────────────────
+help: ## Show this help message
+	@printf "\n\n\n\n"
+	@printf "\033[1;30m"
+	@printf "%s\n" "$$(python3 scripts/ascii_logo.py $(PROJECT_NAME))"
+	@printf "\033[0m\n"
+	@printf "\n"
+	@awk 'BEGIN {FS = ":.*##"; section = ""; last = ""; line = "──────────────────────────────────────────────────────────────────────"} \
+	/^# ─── / { \
+		s=$$0; gsub(/^# ──+ /,"",s); gsub(/ ──+.*$$/,"",s); section=s; \
+	} \
+	/^[a-zA-Z_-]+:.*##/ { \
+		t=$$1; d=$$2; \
+		if (section != last) { \
+			if (last != "") printf "\033[2;37m└" line "┘\033[0m\n\n"; \
+			printf "\033[2;37m┌──────────────────────────────────────────────────────────────────────┐\033[0m\n"; \
+			printf "\033[2;37m│ \033[1;37m%-60s\033[0m \033[2;37m        │\033[0m\n", section; \
+			printf "\033[2;37m├──────────────────────────────────────────────────────────────────────┤\033[0m\n"; \
+			last = section; \
+		} \
+		printf "\033[2;37m│ \033[1;36m%-28s\033[0m \033[2;37m%-39s\033[0m \033[2;37m│\033[0m\n", t, d; \
+	} END {printf "\033[2;37m└" line "┘\033[0m\n\n";}' Makefile
+	@printf "\033[2;37m────────────────────────────────────────────────────────────────────────\033[0m\n"
+	@printf "\033[2;37m→\033[0m \033[1;37mmake\033[0m \033[1;36m<command>\033[0m\n"
+	@printf "\n"

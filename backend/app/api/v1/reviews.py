@@ -24,7 +24,7 @@ def get_review_service(
     return ReviewService(db=db, current_user=current_user)
 
 
-@router.get("/recent", response_model=ReviewListResponse, summary="نظرات اخیر")
+@router.get("/recent", response_model=ReviewListResponse, summary="Recent reviews")
 async def list_recent_reviews(
     limit: int = Query(5, ge=1, le=20),
     db: AsyncSession = Depends(get_db),
@@ -34,7 +34,7 @@ async def list_recent_reviews(
     return await service.list_recent(limit=limit)
 
 
-@router.get("/my", response_model=ReviewListResponse, summary="نظرات من")
+@router.get("/my", response_model=ReviewListResponse, summary="My reviews")
 async def list_my_reviews(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -47,7 +47,7 @@ async def list_my_reviews(
     "",
     response_model=ReviewDetailResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="ثبت نظر جدید",
+    summary="Create new review",
 )
 async def create_review(
     data: ReviewCreate,
@@ -56,7 +56,7 @@ async def create_review(
     return await service.create(data)
 
 
-@router.post("/{review_id}/report", summary="گزارش نظر")
+@router.post("/{review_id}/report", summary="Report review")
 async def report_review(
     review_id: int,
     service: ReviewService = Depends(get_review_service),
@@ -64,7 +64,9 @@ async def report_review(
     return await service.report(review_id)
 
 
-@router.post("/{review_id}/respond", response_model=ReviewDetailResponse, summary="پاسخ به نظر")
+@router.post(
+    "/{review_id}/respond", response_model=ReviewDetailResponse, summary="Respond to review"
+)
 async def respond_to_review(
     review_id: int,
     data: ReviewRespondRequest,
@@ -73,7 +75,7 @@ async def respond_to_review(
     return await service.respond(review_id, data.response)
 
 
-@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف نظر")
+@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete review")
 async def delete_review(
     review_id: int,
     service: ReviewService = Depends(get_review_service),
