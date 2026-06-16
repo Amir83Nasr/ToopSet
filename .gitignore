@@ -23,15 +23,16 @@ build/
 # ── IDE / Editor ──────────────────────────────────────────
 .vscode/
 .idea/
+.omo/
+.agents/
+.kilo/
+.claude/
+superpowers/
 *.swp
 *.swo
 *.swn
 *.bak
 *~
-.omo
-.agents
-.kilo
-superpowers/
 
 # ── OS ─────────────────────────────────────────────────────
 .DS_Store
