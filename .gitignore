@@ -31,6 +31,7 @@ build/
 .omo
 .agents
 .kilo
+superpowers/
 
 # ── OS ─────────────────────────────────────────────────────
 .DS_Store
