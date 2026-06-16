@@ -1,6 +1,5 @@
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -8,6 +7,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError, StatementError
 
 from app import __version__
@@ -43,7 +44,9 @@ from app.core.metrics import (
     metrics_response,
     refresh_business_metrics,
 )
+from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.core.redis_client import close_redis
+from app.core.timezone import now_utc
 
 METRICS_REFRESH_INTERVAL = 120  # seconds
 
@@ -73,7 +76,7 @@ async def _cancel_expired_pending():
 
                 repo = BookingRepo(db)
                 slot_repo = TimeSlotRepo(db)
-                now = datetime.now(timezone.utc)
+                now = now_utc()
                 expired = await repo.list_expired_pending(now)
                 for b in expired:
                     slot = await slot_repo.get_by_id(b.slot_id)
@@ -155,6 +158,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(PrometheusMiddleware)
+app.add_middleware(SlowAPIMiddleware)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # ── Global exception handlers ──────────────────────────────────────────
 app.add_exception_handler(HTTPException, http_exception_handler)

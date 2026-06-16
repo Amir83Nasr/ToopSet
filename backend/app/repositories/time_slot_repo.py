@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.timezone import now_utc
 from app.models.time_slot import TimeSlot
 
 
@@ -46,7 +47,7 @@ class TimeSlotRepo:
         return result.scalar_one_or_none()
 
     async def list_upcoming_by_court(self, court_id: int) -> list[TimeSlot]:
-        now = datetime.now(timezone.utc)
+        now = now_utc()
         result = await self.db.execute(
             select(TimeSlot)
             .where(TimeSlot.court_id == court_id, TimeSlot.start_time > now)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.logger import log_action
+from app.core.timezone import now_utc
 from app.models.booking import BookingStatus
 from app.models.user import User
 from app.repositories.booking_repo import BookingRepo
@@ -145,7 +146,7 @@ class BookingService:
                 "status": BookingStatus.PENDING_PAYMENT,
                 "price_paid": float(slot.base_price),
                 "participants_count": data.participants_count,
-                "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+                "expires_at": now_utc() + timedelta(minutes=10),
             }
         )
 
@@ -338,7 +339,7 @@ class BookingService:
 
         was_confirmed = booking.status == BookingStatus.CONFIRMED
 
-        now = datetime.now(timezone.utc)
+        now = now_utc()
         hours_until_slot = (slot.start_time - now).total_seconds() / 3600
 
         if hours_until_slot < 2:

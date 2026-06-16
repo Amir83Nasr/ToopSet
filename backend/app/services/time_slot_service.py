@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
+from app.core.timezone import iran_to_utc
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
@@ -94,7 +95,13 @@ class TimeSlotService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="زمان شروع باید قبل از زمان پایان باشد",
             )
-        slot = await self.repo.create(data.model_dump())
+
+        # Convert Iran-local input to UTC for storage
+        slot_data = data.model_dump()
+        slot_data["start_time"] = iran_to_utc(data.start_time)
+        slot_data["end_time"] = iran_to_utc(data.end_time)
+
+        slot = await self.repo.create(slot_data)
         await invalidate_slot_list(data.court_id)
         return TimeSlotResponse.model_validate(slot)
 
@@ -159,15 +166,20 @@ class TimeSlotService:
                 if start_dt >= end_dt:
                     skipped += 1
                     continue
-                if start_dt in existing:
+
+                # Convert Iran-local slot times to UTC for storage
+                start_dt_utc = iran_to_utc(start_dt)
+                end_dt_utc = iran_to_utc(end_dt)
+
+                if start_dt_utc in existing:
                     skipped += 1
                     continue
 
                 to_create.append(
                     {
                         "court_id": court_id,
-                        "start_time": start_dt,
-                        "end_time": end_dt,
+                        "start_time": start_dt_utc,
+                        "end_time": end_dt_utc,
                         "base_price": template.base_price,
                     }
                 )

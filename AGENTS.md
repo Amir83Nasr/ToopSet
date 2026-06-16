@@ -63,6 +63,8 @@ ToopSet is a Persian sports venue booking platform. Users can search for sports 
       /metrics.py     — Prometheus middleware + business gauges
       /redis_client.py
       /date_utils.py  — Jalali date parsing helpers
+      /rate_limiter.py — slowapi-based Redis-backed rate limiter (auth endpoints)
+      /timezone.py    — Iran timezone (Asia/Tehran) helpers for UTC conversion
     /models/          — SQLAlchemy ORM models (user, court, booking, etc.)
     /repositories/    — DB query layer (one repo per model)
     /schemas/         — Pydantic request/response models (one file per domain)
@@ -253,6 +255,14 @@ Key models and their relationships:
 - Pydantic v2 `model_validate()` for ORM → schema conversion
 - Business logic goes in Services, not Routes or Repositories
 - Use `log_action()` for audit trail on important operations
+
+### Timezone
+
+- **Storage:** All datetimes stored in UTC in PostgreSQL (columns use `DateTime(timezone=True)`)
+- **Display/Input:** User-facing times are in Iran timezone (`Asia/Tehran`)
+- **Conversion helpers:** Use `app.core.timezone` — `iran_to_utc()` for input, `utc_to_iran()` for output, `now_utc()` for internal comparisons
+- **Naive assumption:** Incoming datetimes without timezone info are assumed to be Iran local time
+- **Rate limiting:** Redis-backed via slowapi — see `app.core.rate_limiter`; auth endpoints have per-endpoint limits (login: 5/min, register: 3/min, refresh: 10/min)
 
 ### Code Style — Frontend
 

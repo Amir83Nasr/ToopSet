@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.logger import log_action
+from app.core.rate_limiter import limiter
 from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload, save_upload
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
@@ -28,7 +30,12 @@ def _auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
 @router.post(
     "/register", response_model=TokenResponse, status_code=201, summary="Register a new user"
 )
-async def register(body: RegisterRequest, service: AuthService = Depends(_auth_service)):
+@limiter.limit("3/minute")
+async def register(
+    request: Request,
+    body: RegisterRequest,
+    service: AuthService = Depends(_auth_service),
+):
     user, access_token, refresh_token = await service.register(
         phone=body.phone,
         password=body.password,
@@ -42,7 +49,12 @@ async def register(body: RegisterRequest, service: AuthService = Depends(_auth_s
 
 
 @router.post("/login", response_model=TokenResponse, summary="Login user")
-async def login(body: LoginRequest, service: AuthService = Depends(_auth_service)):
+@limiter.limit("5/minute")
+async def login(
+    request: Request,
+    body: LoginRequest,
+    service: AuthService = Depends(_auth_service),
+):
     user, access_token, refresh_token = await service.login(
         phone=body.phone,
         password=body.password,
@@ -55,7 +67,12 @@ async def login(body: LoginRequest, service: AuthService = Depends(_auth_service
 
 
 @router.post("/refresh", response_model=TokenResponse, summary="Refresh access token")
-async def refresh(body: RefreshRequest, service: AuthService = Depends(_auth_service)):
+@limiter.limit("10/minute")
+async def refresh(
+    request: Request,
+    body: RefreshRequest,
+    service: AuthService = Depends(_auth_service),
+):
     new_access, new_refresh = await service.refresh(body.refresh_token)
     return TokenResponse(
         access_token=new_access,
