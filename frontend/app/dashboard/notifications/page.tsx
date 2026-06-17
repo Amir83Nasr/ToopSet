@@ -223,7 +223,7 @@ export default function NotificationsPage() {
                       {notificationLabels[n.type] || n.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[300px]">
+                  <TableCell className="max-w-75">
                     <p className="truncate">{n.message}</p>
                   </TableCell>
                   <TableCell className="text-xs whitespace-nowrap">

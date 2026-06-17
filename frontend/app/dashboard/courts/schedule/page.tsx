@@ -490,7 +490,7 @@ export default function SchedulePage() {
             value={selectedCourtId?.toString() ?? ""}
             onValueChange={(v) => setSelectedCourtId(Number(v))}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-50">
               <SelectValue placeholder="انتخاب مجموعه" />
             </SelectTrigger>
             <SelectContent>
@@ -750,7 +750,7 @@ export default function SchedulePage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div className="grid min-w-[700px] grid-cols-7 gap-3">
+                <div className="grid min-w-175 grid-cols-7 gap-3">
                   {weekDays.map((day, dayIndex) => {
                     const dateKey = getDateKey(day)
                     const daySlots = groupedSlots[dateKey] ?? []
@@ -776,7 +776,7 @@ export default function SchedulePage() {
                         </div>
 
                         {/* Slot cards */}
-                        <div className="min-h-[120px] space-y-2">
+                        <div className="min-h-30 space-y-2">
                           {daySlots.length === 0 ? (
                             <div className="flex items-center justify-center rounded-lg border border-dashed py-6 text-xs text-muted-foreground">
                               بدون زمان

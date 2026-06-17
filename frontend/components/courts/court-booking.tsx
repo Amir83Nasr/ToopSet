@@ -65,7 +65,7 @@ export function CourtBooking({
 
   return (
     <div className="rounded-2xl border bg-card/80 shadow-sm backdrop-blur-md transition-shadow hover:shadow-md">
-      <div className="border-b bg-gradient-to-r from-primary/5 via-transparent to-transparent px-6 py-5">
+      <div className="border-b bg-linear-to-r from-primary/5 via-transparent to-transparent px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
             <Calendar className="size-5 text-primary" />
@@ -92,7 +92,7 @@ export function CourtBooking({
                 <button
                   key={date}
                   onClick={() => onDateSelect(date)}
-                  className={`flex min-w-[84px] shrink-0 flex-col items-center gap-1 rounded-xl border-2 py-3 text-sm transition-all ${
+                  className={`flex min-w-21 shrink-0 flex-col items-center gap-1 rounded-xl border-2 py-3 text-sm transition-all ${
                     selectedDate === date
                       ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "border-border/50 bg-background/40 hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm"
@@ -129,7 +129,7 @@ export function CourtBooking({
         {slotsLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-[76px] w-full rounded-xl" />
+              <Skeleton key={i} className="h-19 w-full rounded-xl" />
             ))}
           </div>
         ) : slots.length === 0 ? (
@@ -219,7 +219,7 @@ export function CourtBooking({
 
         {/* Booking CTA */}
         {selectedSlot && !selectedSlot.is_reserved && (
-          <div className="mt-6 space-y-4 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent p-5 shadow-sm">
+          <div className="mt-6 space-y-4 rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 via-primary/3 to-transparent p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
                 مبلغ قابل پرداخت

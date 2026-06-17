@@ -148,7 +148,7 @@ export default function ContactMessagesPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-[200px]">
+                    <TableCell className="max-w-50">
                       <p className="truncate">{msg.subject}</p>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

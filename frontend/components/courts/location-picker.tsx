@@ -95,7 +95,7 @@ function ZoomControls() {
   }, [map])
 
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-0.5">
+    <div className="absolute bottom-3 left-3 z-1000 flex flex-col gap-0.5">
       <Button
         ref={inRef}
         type="button"
@@ -231,10 +231,10 @@ export function LocationPicker({
   return (
     <div
       ref={containerRef}
-      className={`relative ${fullscreen ? "fixed inset-0 z-[9999] bg-background" : ""}`}
+      className={`relative ${fullscreen ? "fixed inset-0 z-9999 bg-background" : ""}`}
     >
       {geocoding && (
-        <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+        <div className="pointer-events-none absolute top-3 right-3 z-1000 flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
           <Loader2 className="size-3 animate-spin" />
           در حال تشخیص آدرس...
         </div>
@@ -281,7 +281,7 @@ export function LocationPicker({
           e.stopPropagation()
           toggleFullscreen()
         }}
-        className="absolute right-3 bottom-3 z-[1000] bg-card text-muted-foreground shadow-sm hover:bg-accent"
+        className="absolute right-3 bottom-3 z-1000 bg-card text-muted-foreground shadow-sm hover:bg-accent"
       >
         {fullscreen ? (
           <Minimize2 className="size-4" />
@@ -291,7 +291,7 @@ export function LocationPicker({
       </Button>
 
       {!hasLocation && (
-        <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-1000 flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
           <MapPin className="size-3.5" />
           روی نقشه کلیک کنید تا موقعیت را مشخص کنید
         </div>

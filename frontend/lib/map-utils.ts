@@ -75,8 +75,8 @@ export function createUserLocationIcon(): L.DivIcon {
   return L.divIcon({
     html: `<div class="relative" style="width:24px;height:24px">
       <div class="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
-      <div class="absolute inset-[3px] rounded-full bg-blue-500/40 animate-pulse"></div>
-      <div class="absolute inset-[6px] rounded-full bg-blue-600 border-2 border-white shadow-lg"></div>
+      <div class="absolute inset-0.75 rounded-full bg-blue-500/40 animate-pulse"></div>
+      <div class="absolute inset-1.5 rounded-full bg-blue-600 border-2 border-white shadow-lg"></div>
     </div>`,
     className: "",
     iconSize: [24, 24],

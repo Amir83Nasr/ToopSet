@@ -83,7 +83,7 @@ export function TimePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "h-8 w-fit min-w-[100px] justify-start gap-2 rounded-lg border border-input bg-transparent px-2.5 text-base font-normal transition-colors md:text-sm",
+            "h-8 w-fit min-w-25 justify-start gap-2 rounded-lg border border-input bg-transparent px-2.5 text-base font-normal transition-colors md:text-sm",
             !value && "text-muted-foreground",
             className
           )}
@@ -92,7 +92,7 @@ export function TimePicker({
           <span>{displayText}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[240px] p-0" align="start" sideOffset={4}>
+      <PopoverContent className="w-60 p-0" align="start" sideOffset={4}>
         <div className="p-4" dir="ltr">
           {/* Large time display — hours : minutes */}
           <div className="mb-4 flex items-center justify-center gap-1 rounded-xl bg-muted/60 py-3 text-center">

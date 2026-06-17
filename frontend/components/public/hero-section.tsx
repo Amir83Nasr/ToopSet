@@ -17,7 +17,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/[0.04] px-4 py-2 text-[10px] font-bold text-muted-foreground backdrop-blur-sm sm:text-xs"
+          className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/4 px-4 py-2 text-[10px] font-bold text-muted-foreground backdrop-blur-sm sm:text-xs"
         >
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/50 opacity-75" />

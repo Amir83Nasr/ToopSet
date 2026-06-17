@@ -279,7 +279,7 @@ export default function CourtsPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-right">
+                  <TableCell className="max-w-50 truncate text-right">
                     <div className="flex items-center gap-1">
                       <MapPin className="size-3 shrink-0 text-muted-foreground" />
                       <span className="truncate">{court.address}</span>

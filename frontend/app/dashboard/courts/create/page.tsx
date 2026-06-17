@@ -273,7 +273,7 @@ export default function CreateCourtPage() {
               <Textarea
                 id="address"
                 placeholder="استان، شهر، خیابان، پلاک"
-                className="min-h-[80px]"
+                className="min-h-20"
                 {...register("address")}
               />
               {errors.address?.message && (
@@ -335,7 +335,7 @@ export default function CreateCourtPage() {
                     field.onChange(parseInt(e.target.value, 10) || 0)
                   }
                   onBlur={field.onBlur}
-                  className="max-w-[120px] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="max-w-30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               )}
             />
@@ -408,7 +408,7 @@ export default function CreateCourtPage() {
             <Button
               type="submit"
               size="lg"
-              className="h-11 min-w-[160px] gap-2"
+              className="h-11 min-w-40 gap-2"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

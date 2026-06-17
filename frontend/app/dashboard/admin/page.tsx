@@ -492,7 +492,7 @@ export default function AdminDashboardPage() {
                     <h2 className="text-xl font-semibold">
                       روند رزروها (۷ روز اخیر)
                     </h2>
-                    <div className="mt-6 h-[300px] w-full">
+                    <div className="mt-6 h-75 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={stats.booking_trends}>
                           <CartesianGrid

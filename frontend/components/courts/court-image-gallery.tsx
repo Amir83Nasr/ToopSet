@@ -68,8 +68,8 @@ export function CourtHeroGallery({
   /* ── No images: gradient fallback ── */
   if (!hasImages) {
     return (
-      <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-chart-2/20">
-        <div className="relative z-10 flex min-h-[320px] flex-col justify-end px-8 pt-20 pb-8">
+      <div className="relative mb-8 overflow-hidden rounded-3xl bg-linear-to-br from-primary/20 via-primary/10 to-chart-2/20">
+        <div className="relative z-10 flex min-h-80 flex-col justify-end px-8 pt-20 pb-8">
           {/* Sport badges */}
           {sportTypes.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
@@ -118,7 +118,7 @@ export function CourtHeroGallery({
             {images.map((img, i) => (
               <CarouselItem key={i}>
                 <div
-                  className="relative aspect-[21/9] min-h-[320px] cursor-pointer sm:min-h-[400px] lg:min-h-[480px]"
+                  className="relative aspect-21/9 min-h-80 cursor-pointer sm:min-h-100 lg:min-h-120"
                   onClick={() => openLightbox(i)}
                 >
                   <Image
@@ -130,9 +130,9 @@ export function CourtHeroGallery({
                     priority={i === 0}
                   />
                   {/* Multi-layer gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/60" />
+                  <div className="absolute inset-0 bg-linear-to-t from-background via-background/10 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-r from-background/40 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-b from-background/10 via-transparent to-background/60" />
                 </div>
               </CarouselItem>
             ))}
@@ -315,7 +315,7 @@ export function CourtImageGallery({
         <CarouselContent>
           {images.map((img, i) => (
             <CarouselItem key={i}>
-              <div className="relative aspect-[21/9] cursor-pointer">
+              <div className="relative aspect-21/9 cursor-pointer">
                 <Image
                   src={img}
                   alt={`${courtName} - ${i + 1}`}
@@ -324,7 +324,7 @@ export function CourtImageGallery({
                   unoptimized
                   priority={i === 0}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
               </div>
             </CarouselItem>
           ))}

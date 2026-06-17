@@ -26,7 +26,6 @@ import {
   Users,
   X,
   MapPin,
-  Clock,
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { CourtHeroGallery } from "@/components/courts/court-image-gallery"
@@ -58,7 +57,7 @@ function LoadingSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <Skeleton className="h-4 w-28 rounded-md" />
-      <Skeleton className="mt-6 h-[400px] w-full rounded-3xl" />
+      <Skeleton className="mt-6 h-100 w-full rounded-3xl" />
       <Skeleton className="mt-6 h-20 w-full rounded-2xl" />
       <div className="mt-8 grid gap-8 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
@@ -194,7 +193,7 @@ export default function PublicCourtDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/30">
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-6 pb-16">
         {/* Breadcrumb */}
         <Breadcrumb className="mb-6">

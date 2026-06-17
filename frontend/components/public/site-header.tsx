@@ -131,7 +131,7 @@ export function SiteHeader() {
                   align={isRtl ? "start" : "end"}
                   side="bottom"
                   collisionPadding={16}
-                  className="z-[60] w-56 border-2 border-border/30 shadow-xl"
+                  className="z-60 w-56 border-2 border-border/30 shadow-xl"
                 >
                   <div dir="rtl">
                     <DropdownMenuLabel className="pb-2">
@@ -219,11 +219,12 @@ export function SiteHeader() {
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="size-11">
+              <Button variant="ghost" size="icon" className="size-11">
                 <Menu className="size-5" />
                 <span className="sr-only">منو</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side={isRtl ? "right" : "left"} className="w-[280px]">
+            <SheetContent side={isRtl ? "right" : "left"} className="w-70">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Image
@@ -242,6 +243,7 @@ export function SiteHeader() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
+                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
                     {link.label}

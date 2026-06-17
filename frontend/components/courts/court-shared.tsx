@@ -182,7 +182,7 @@ export function SectionHeading({
     <div className="mb-5 flex items-center gap-2.5">
       {icon && <span className="text-primary">{icon}</span>}
       <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="mr-auto h-px flex-1 bg-gradient-to-l from-border/60 to-transparent" />
+      <div className="mr-auto h-px flex-1 bg-linear-to-l from-border/60 to-transparent" />
       {action}
     </div>
   )

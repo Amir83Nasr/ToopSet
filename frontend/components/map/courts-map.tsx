@@ -202,7 +202,7 @@ export function CourtsMap({
                     ?.map((st) => sportLabels[st] || st)
                     .join("، ")}
                 </p>
-                <p className="mb-1.5 max-w-[200px] truncate text-xs text-gray-500">
+                <p className="mb-1.5 max-w-50 truncate text-xs text-gray-500">
                   {court.address}
                 </p>
                 <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
