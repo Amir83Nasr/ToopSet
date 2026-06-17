@@ -67,7 +67,11 @@ const navGroups: NavGroup[] = [
     roles: ["manager"],
     items: [
       { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
-      { title: "زمان‌بندی", url: "/dashboard/courts/schedule", icon: Calendar },
+      {
+        title: "زمان‌بندی",
+        url: "/dashboard/manager/schedule",
+        icon: Calendar,
+      },
     ],
   },
   {
