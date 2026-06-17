@@ -121,6 +121,18 @@
   --color-status-archived: var(--status-archived);
   --color-type-problem: var(--type-problem);
   --color-type-idea: var(--type-idea);
+  --color-notif-info-bg: var(--notif-info-bg);
+  --color-notif-info: var(--notif-info);
+  --color-notif-success-bg: var(--notif-success-bg);
+  --color-notif-success: var(--notif-success);
+  --color-notif-error-bg: var(--notif-error-bg);
+  --color-notif-error: var(--notif-error);
+  --color-status-confirmed: var(--status-confirmed);
+  --color-status-confirmed-bg: var(--status-confirmed-bg);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-cancelled: var(--status-cancelled);
+  --color-status-cancelled-bg: var(--status-cancelled-bg);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -167,6 +179,18 @@
   --status-archived: oklch(0.45 0 0);
   --type-problem: oklch(0.577 0.245 27.325);
   --type-idea: oklch(0.55 0.14 160);
+  --notif-info-bg: oklch(0.93 0.05 240);
+  --notif-info: oklch(0.4 0.12 240);
+  --notif-success-bg: oklch(0.95 0.04 160);
+  --notif-success: oklch(0.45 0.12 160);
+  --notif-error-bg: oklch(0.95 0.04 30);
+  --notif-error: oklch(0.5 0.2 30);
+  --status-confirmed: oklch(0.45 0.12 160);
+  --status-confirmed-bg: oklch(0.95 0.04 160);
+  --status-pending: oklch(0.65 0.15 70);
+  --status-pending-bg: oklch(0.94 0.06 70);
+  --status-cancelled: oklch(0.5 0.2 30);
+  --status-cancelled-bg: oklch(0.95 0.04 30);
   --border: oklch(0.2 0 0 / 28%);
   --input: oklch(0.2 0 0 / 32%);
   --ring: oklch(0.55 0.1 240);
@@ -209,6 +233,18 @@
   --status-archived: oklch(0.55 0 0);
   --type-problem: oklch(0.704 0.191 22.216);
   --type-idea: oklch(0.7 0.1 160);
+  --notif-info-bg: oklch(0.2 0.05 240);
+  --notif-info: oklch(0.8 0.1 240);
+  --notif-success-bg: oklch(0.2 0.05 160);
+  --notif-success: oklch(0.8 0.1 160);
+  --notif-error-bg: oklch(0.22 0.07 20);
+  --notif-error: oklch(0.8 0.1 20);
+  --status-confirmed: oklch(0.8 0.1 160);
+  --status-confirmed-bg: oklch(0.2 0.05 160);
+  --status-pending: oklch(0.8 0.1 70);
+  --status-pending-bg: oklch(0.25 0.06 70);
+  --status-cancelled: oklch(0.8 0.1 20);
+  --status-cancelled-bg: oklch(0.22 0.07 20);
   --border: oklch(1 0 0 / 20%);
   --input: oklch(1 0 0 / 25%);
   --ring: oklch(0.7 0.08 240);
@@ -478,6 +514,22 @@
 }
 
 .dark #toopset-root::before {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* grid pattern on dashboard content area — sits behind children naturally */
+
+#dash-content {
+  background-color: var(--color-background);
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.dark #dash-content {
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);

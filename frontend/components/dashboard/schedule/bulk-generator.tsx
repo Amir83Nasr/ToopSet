@@ -84,7 +84,8 @@ export function BulkGenerator({
   const [templateName, setTemplateName] = useState("")
 
   useEffect(() => {
-    setSavedTemplates(loadTemplates())
+    const timer = setTimeout(() => setSavedTemplates(loadTemplates()), 0)
+    return () => clearTimeout(timer)
   }, [open])
 
   const previewCount = useMemo(
@@ -163,7 +164,10 @@ export function BulkGenerator({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-full max-w-md overflow-y-auto sm:max-w-lg">
+        <SheetContent
+          side="left"
+          className="w-full max-w-md overflow-y-auto sm:max-w-lg"
+        >
           <SheetHeader>
             <SheetTitle>ایجاد زمان‌بندی گروهی</SheetTitle>
             <SheetDescription>
@@ -414,7 +418,10 @@ export function BulkGenerator({
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
               انصراف
             </Button>
-            <Button onClick={handleSaveTemplate} disabled={!templateName.trim()}>
+            <Button
+              onClick={handleSaveTemplate}
+              disabled={!templateName.trim()}
+            >
               ذخیره
             </Button>
           </DialogFooter>

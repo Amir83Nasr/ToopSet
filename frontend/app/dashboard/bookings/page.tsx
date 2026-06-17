@@ -228,7 +228,7 @@ export default function BookingsPage() {
       </div>
 
       {loading ? (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -269,7 +269,7 @@ export default function BookingsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       ) : bookings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -289,7 +289,7 @@ export default function BookingsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -403,7 +403,7 @@ export default function BookingsPage() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Cancel dialog with penalty preview */}
@@ -438,8 +438,8 @@ export default function BookingsPage() {
                   <span
                     className={
                       preview.refundPercent >= 100
-                        ? "text-green-600"
-                        : "text-amber-600"
+                        ? "text-status-confirmed"
+                        : "text-status-pending"
                     }
                   >
                     {toPersianDigits(preview.refundPercent)}٪
@@ -447,7 +447,7 @@ export default function BookingsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">مبلغ بازگشتی</span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-medium text-status-confirmed">
                     {new Intl.NumberFormat("fa-IR").format(
                       preview.refundAmount
                     )}{" "}

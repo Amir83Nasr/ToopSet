@@ -1,5 +1,3 @@
-import type { DateRange } from "@daypicker/react"
-
 export interface Court {
   id: number
   name: string

@@ -3,6 +3,11 @@
 import { Clock, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { formatTime, formatPrice, getSlotStatus } from "./utils"
 import type { TimeSlot } from "./types"
 
@@ -13,7 +18,12 @@ interface SlotCardProps {
   compact?: boolean
 }
 
-export function SlotCard({ slot, onDelete, showActions = true, compact = false }: SlotCardProps) {
+export function SlotCard({
+  slot,
+  onDelete,
+  showActions = true,
+  compact = false,
+}: SlotCardProps) {
   const status = getSlotStatus(slot)
 
   const statusStyles = {
@@ -35,7 +45,9 @@ export function SlotCard({ slot, onDelete, showActions = true, compact = false }
         statusStyles[status]
       } ${compact ? "p-1.5" : ""}`}
     >
-      <div className={`mb-1 flex items-center gap-1 font-medium ${compact ? "text-[11px]" : "text-xs"}`}>
+      <div
+        className={`mb-1 flex items-center gap-1 font-medium ${compact ? "text-[11px]" : "text-xs"}`}
+      >
         <Clock className="size-3 shrink-0" />
         <span>
           {formatTime(slot.start_time)} &ndash; {formatTime(slot.end_time)}
@@ -57,22 +69,32 @@ export function SlotCard({ slot, onDelete, showActions = true, compact = false }
         </Badge>
 
         {showActions && status === "available" && onDelete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(slot)
-            }}
-          >
-            <Trash2 className="size-3 text-destructive" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(slot)
+                }}
+              >
+                <Trash2 className="size-3 text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>حذف سانس</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 
       {status === "reserved" && (
-        <div className="absolute inset-0 cursor-help rounded-lg" title="این زمان توسط کاربر رزرو شده است" />
+        <div
+          className="absolute inset-0 cursor-help rounded-lg"
+          title="این زمان توسط کاربر رزرو شده است"
+        />
       )}
     </div>
   )

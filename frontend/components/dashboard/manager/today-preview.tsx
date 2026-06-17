@@ -6,7 +6,10 @@ import { CalendarDays, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { formatTime, getSlotStatus } from "@/components/dashboard/schedule/utils"
+import {
+  formatTime,
+  getSlotStatus,
+} from "@/components/dashboard/schedule/utils"
 import type { TimeSlot } from "@/components/dashboard/schedule/types"
 
 interface TodayPreviewProps {
@@ -18,12 +21,21 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
   const todaySlots = useMemo(() => {
     const todayKey = new Date().toLocaleDateString("en-CA")
     return slots
-      .filter((s) => new Date(s.start_time).toLocaleDateString("en-CA") === todayKey)
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      .filter(
+        (s) => new Date(s.start_time).toLocaleDateString("en-CA") === todayKey
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      )
   }, [slots])
 
-  const available = todaySlots.filter((s) => getSlotStatus(s) === "available").length
-  const reserved = todaySlots.filter((s) => getSlotStatus(s) === "reserved").length
+  const available = todaySlots.filter(
+    (s) => getSlotStatus(s) === "available"
+  ).length
+  const reserved = todaySlots.filter(
+    (s) => getSlotStatus(s) === "reserved"
+  ).length
 
   if (loading) {
     return (
@@ -47,7 +59,9 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
         <CardContent>
           <div className="flex flex-col items-center gap-2 py-4">
             <CalendarDays className="size-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">برنامه‌ای برای امروز ثبت نشده</p>
+            <p className="text-sm text-muted-foreground">
+              برنامه‌ای برای امروز ثبت نشده
+            </p>
             <Button variant="outline" size="sm" asChild>
               <Link href="/dashboard/manager/schedule">رفتن به زمان‌بندی</Link>
             </Button>
@@ -96,7 +110,11 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
                   variant={status === "available" ? "outline" : "secondary"}
                   className="px-1 py-0 text-[10px]"
                 >
-                  {status === "available" ? "آزاد" : status === "reserved" ? "رزرو" : "گذشته"}
+                  {status === "available"
+                    ? "آزاد"
+                    : status === "reserved"
+                      ? "رزرو"
+                      : "گذشته"}
                 </Badge>
               </div>
             )
@@ -112,7 +130,12 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
           )}
         </div>
         <div className="mt-3">
-          <Button variant="link" size="sm" className="h-auto p-0 text-xs" asChild>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
+            asChild
+          >
             <Link href="/dashboard/manager/schedule">
               مشاهده برنامه کامل هفته
               <ChevronLeft className="mr-1 size-3" />

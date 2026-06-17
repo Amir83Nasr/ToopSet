@@ -1,10 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import * as React from "react"
 import { api } from "@/lib/api"
 import { toPersianDigits, toLocalDateStr, todayStr } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
@@ -17,7 +23,10 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -99,6 +108,54 @@ const actionLabels: Record<string, string> = {
   wallet_credited: "بازگشت وجه به کیف پول",
   logs_cleared: "پاکسازی لاگ‌ها",
 }
+
+const actionGroups: { label: string; actions: string[] }[] = [
+  {
+    label: "رزروها",
+    actions: ["booking_created", "booking_cancelled", "booking_confirmed"],
+  },
+  {
+    label: "کاربران",
+    actions: [
+      "user_role_changed",
+      "user_toggled",
+      "user_created",
+      "user_deleted",
+      "user_registered",
+      "user_login",
+    ],
+  },
+  {
+    label: "مجموعه‌ها",
+    actions: [
+      "court_created",
+      "court_updated",
+      "court_deleted",
+      "court_hard_deleted",
+      "court_toggled",
+      "court_approved",
+      "court_rejected",
+    ],
+  },
+  {
+    label: "مالی",
+    actions: ["payment_failed", "penalty_created", "wallet_credited"],
+  },
+  {
+    label: "پروفایل",
+    actions: ["profile_updated", "avatar_updated", "avatar_deleted"],
+  },
+  {
+    label: "سیستم",
+    actions: [
+      "broadcast",
+      "review_deleted",
+      "setting_updated",
+      "settings_seeded",
+      "logs_cleared",
+    ],
+  },
+]
 
 export default function AdminLogsPage() {
   const { user } = useAuth()
@@ -195,25 +252,38 @@ export default function AdminLogsPage() {
           <p className="text-muted-foreground">رویدادهای اخیر سیستم</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={actionFilter}
-            onValueChange={(val) => {
-              setActionFilter(val === "all" ? "" : val)
-              setPage(0)
-            }}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="همه عملیات" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">همه عملیات</SelectItem>
-              {Object.entries(actionLabels).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div>
+            <Select
+              value={actionFilter}
+              onValueChange={(val) => {
+                setActionFilter(val === "all" ? "" : val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="همه عملیات" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>همه</SelectLabel>
+                  <SelectItem value="all">همه عملیات</SelectItem>
+                </SelectGroup>
+                {actionGroups.map((group) => (
+                  <React.Fragment key={group.label}>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>{group.label}</SelectLabel>
+                      {group.actions.map((key) => (
+                        <SelectItem key={key} value={key}>
+                          {actionLabels[key]}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </React.Fragment>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <DateRangePicker
             value={{
@@ -294,7 +364,7 @@ export default function AdminLogsPage() {
       </AlertDialog>
 
       {loading ? (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -318,7 +388,7 @@ export default function AdminLogsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       ) : logs.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -336,7 +406,7 @@ export default function AdminLogsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
+        <div className="overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -374,17 +444,23 @@ export default function AdminLogsPage() {
                       {log.details ? toPersianDigits(log.details) : "-"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => {
-                          setDeletingLogId(log.id)
-                          setDeleteDialogOpen(true)
-                        }}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setDeletingLogId(log.id)
+                              setDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>حذف لاگ</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -417,7 +493,7 @@ export default function AdminLogsPage() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
       )}
     </div>
   )

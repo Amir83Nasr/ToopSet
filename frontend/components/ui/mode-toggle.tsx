@@ -5,6 +5,11 @@ import { useTheme } from "next-themes"
 import { flushSync } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const themes = ["light", "dark"] as const
 
@@ -64,15 +69,21 @@ export function ModeToggle() {
   const Icon = icons[current] || Sun
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={cycle}
-      className="size-9 text-muted-foreground transition-colors hover:text-foreground max-sm:size-11"
-      aria-label={`تم فعلی: ${labels[current] || "روشن"}`}
-      title={`تم فعلی: ${labels[current] || "روشن"}`}
-    >
-      <Icon className="size-4" />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={cycle}
+          className="size-9 text-muted-foreground transition-colors hover:text-foreground max-sm:size-11"
+          aria-label={`تم فعلی: ${labels[current] || "روشن"}`}
+        >
+          <Icon className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>تغییر تم به {current === "light" ? "تیره" : "روشن"}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }

@@ -327,9 +327,8 @@ export default function DashboardCourtDetailPage() {
           </Button>
           {isAdmin && (
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              className="border-destructive/30 text-destructive hover:bg-destructive/10"
               onClick={() => setDeleteDialogOpen(true)}
             >
               <Trash2 className="ml-1.5 size-4" />

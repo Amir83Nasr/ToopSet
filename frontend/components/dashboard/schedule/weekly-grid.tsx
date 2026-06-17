@@ -31,7 +31,7 @@ export function WeeklyGrid({
   return (
     <>
       {/* Desktop: 7-column grid */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <div className="grid min-w-175 grid-cols-7 gap-3">
           {weekDays.map((day, dayIndex) => {
             const dateKey = getDateKey(day)

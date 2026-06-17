@@ -1,4 +1,4 @@
-# ─── ToopSet Makefile ──────────────────────────────────────────────────────────
+# ── ToopSet Makefile ───────────────────────────────────────────────────────────
 SHELL := /bin/bash
 .ONESHELL:
 
@@ -46,7 +46,7 @@ CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
         precommit-install precommit-run \
         help
 
-# ─── Install ──────────────────────────────────────────────────────────────────
+# ── Install ───────────────────────────────────────────────────────────────────
 install: install-backend install-frontend ## Install all dependencies
 
 install-backend: ## Install backend Python dependencies
@@ -61,19 +61,19 @@ install-precommit: ## Install pre-commit hooks
 	@pip3 install pre-commit -q 2>/dev/null && pre-commit install
 	@echo "  $(GREEN)✓$(RESET) Pre-commit hooks installed"
 
-# ─── Development ──────────────────────────────────────────────────────────────
+# ── Development ───────────────────────────────────────────────────────────────
 dev-backend: ## Start backend server with auto-reload
 	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
 dev-frontend: ## Start frontend dev server with HMR
 	@cd $(FRONTEND_DIR) && npm run dev
 
-# ─── Build ────────────────────────────────────────────────────────────────────
+# ── Build ─────────────────────────────────────────────────────────────────────
 build: ## Build frontend for production
 	@cd $(FRONTEND_DIR) && npm run build
 	@echo "  $(GREEN)✓$(RESET) Frontend built"
 
-# ─── Lint ─────────────────────────────────────────────────────────────────────
+# ── Lint ──────────────────────────────────────────────────────────────────────
 lint: lint-backend lint-frontend ## Run all linters
 
 lint-backend: ## Lint backend with Ruff
@@ -84,7 +84,7 @@ lint-frontend: ## Lint frontend with ESLint
 	@cd $(FRONTEND_DIR) && npm run lint
 	@echo "  $(GREEN)✓$(RESET) Frontend linted"
 
-# ─── Format ───────────────────────────────────────────────────────────────────
+# ── Format ────────────────────────────────────────────────────────────────────
 format: format-backend format-frontend ## Format all code
 
 format-backend: ## Format backend with Ruff
@@ -95,7 +95,7 @@ format-frontend: ## Format frontend with Prettier
 	@cd $(FRONTEND_DIR) && npm run format
 	@echo "  $(GREEN)✓$(RESET) Frontend formatted"
 
-# ─── Typecheck ────────────────────────────────────────────────────────────────
+# ── Typecheck ─────────────────────────────────────────────────────────────────
 typecheck: typecheck-backend typecheck-frontend ## Run all type checkers
 
 typecheck-backend: ## Type-check backend with mypy
@@ -106,7 +106,7 @@ typecheck-frontend: ## Type-check frontend with TypeScript
 	@cd $(FRONTEND_DIR) && npm run typecheck
 	@echo "  $(GREEN)✓$(RESET) Frontend type check passed"
 
-# ─── Test ─────────────────────────────────────────────────────────────────────
+# ── Test ──────────────────────────────────────────────────────────────────────
 test: test-backend test-frontend ## Run all tests
 
 test-db: ## Create test database
@@ -123,7 +123,7 @@ test-backend: test-db-setup ## Run backend tests with pytest
 test-frontend: ## Run frontend tests with Vitest
 	@cd $(FRONTEND_DIR) && npx vitest run
 
-# ─── Database ─────────────────────────────────────────────────────────────────
+# ── Database ──────────────────────────────────────────────────────────────────
 db-start: ## Start Postgres and Redis
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
 	@echo "  $(GREEN)✓$(RESET) Postgres and Redis started"
@@ -153,7 +153,7 @@ db-reset: ## Wipe and recreate database volumes
 		echo "  $(GREY)Operation cancelled$(RESET)"; \
 	fi
 
-# ─── Docker: Full Stack ───────────────────────────────────────────────────────
+# ── Docker: Full Stack ────────────────────────────────────────────────────────
 up: ## Start core services
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --wait \
 		postgres redis backend frontend
@@ -183,7 +183,7 @@ up-frontend: ## Rebuild and restart frontend only
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d --build --wait frontend
 	@echo "  $(GREEN)✓$(RESET) Frontend rebuilt"
 
-# ─── Version Management ───────────────────────────────────────────────────────
+# ── Version Management ────────────────────────────────────────────────────────
 version: ## Show current project version
 	@echo "  $(CUR_VERSION)"
 
@@ -218,7 +218,7 @@ version-tag: ## Create git tag CUR_VERSION and push
 	@git push origin "v$(CUR_VERSION)"
 	@echo "  $(GREEN)✓$(RESET) Tagged v$(CUR_VERSION) and pushed"
 
-# ─── Clean ────────────────────────────────────────────────────────────────────
+# ── Clean ─────────────────────────────────────────────────────────────────────
 clean: clean-backend clean-frontend ## Remove all build artifacts
 
 clean-backend: ## Remove backend cache and artifacts
@@ -242,7 +242,7 @@ clean-db: ## Delete all Docker volumes (data loss)
 		echo "  $(GREY)Operation cancelled$(RESET)"; \
 	fi
 
-# ─── Maintenance ──────────────────────────────────────────────────────────────
+# ── Maintenance ───────────────────────────────────────────────────────────────
 doctor: ## Check system requirements
 	@echo ""
 	@printf "$(BOLD)System Check - ToopSet$(RESET)\n"
@@ -273,11 +273,11 @@ doctor: ## Check system requirements
 	fi
 	@printf -- "$(GREY)─────────────────────────$(RESET)\n\n"
 
-# ─── Pre-commit ────────────────────────────────────────────────
+# ── Pre-commit ─────────────────────────────────────────────────
 precommit: ## Run pre-commit on all files
 	@pre-commit run --all-files
 
-# ─── Help ─────────────────────────────────────────────────────────────────────
+# ── Help ──────────────────────────────────────────────────────────────────────
 help: ## Show this help message
 	@printf "\n\n\n\n"
 	@printf "\033[1;30m"

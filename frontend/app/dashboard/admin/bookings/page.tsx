@@ -17,7 +17,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -67,11 +69,9 @@ const statusLabels: Record<string, string> = {
 }
 
 const statusStyles: Record<string, string> = {
-  pending_payment:
-    "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
-  confirmed:
-    "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
-  cancelled: "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
+  pending_payment: "bg-status-pending-bg text-status-pending",
+  confirmed: "bg-status-confirmed-bg text-status-confirmed",
+  cancelled: "bg-status-cancelled-bg text-status-cancelled",
 }
 
 function formatDate(iso: string): string {
@@ -156,27 +156,34 @@ export default function AdminBookingsPage() {
           <h1 className="text-2xl font-bold tracking-tight">مدیریت رزروها</h1>
           <p className="text-muted-foreground">همه رزروهای سیستم</p>
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => {
-            setStatusFilter(v)
-            setPage(0)
-          }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="همه وضعیت‌ها" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            <SelectItem value="pending_payment">در انتظار پرداخت</SelectItem>
-            <SelectItem value="confirmed">تایید شده</SelectItem>
-            <SelectItem value="cancelled">لغو شده</SelectItem>
-          </SelectContent>
-        </Select>
+        <div>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v)
+              setPage(0)
+            }}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="همه وضعیت‌ها" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectGroup>
+                <SelectLabel>وضعیت رزرو</SelectLabel>
+                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                <SelectItem value="pending_payment">
+                  در انتظار پرداخت
+                </SelectItem>
+                <SelectItem value="confirmed">تایید شده</SelectItem>
+                <SelectItem value="cancelled">لغو شده</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {loading ? (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -201,7 +208,7 @@ export default function AdminBookingsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       ) : bookings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -215,7 +222,7 @@ export default function AdminBookingsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -293,7 +300,7 @@ export default function AdminBookingsPage() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Cancel dialog */}

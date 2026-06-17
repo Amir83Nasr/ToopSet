@@ -40,13 +40,18 @@ export function QuickSlotForm({
   }
 
   return (
-    <div className="rounded-lg border p-3 space-y-3 bg-card">
+    <div className="space-y-3 rounded-lg border bg-card p-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-sm font-medium">
           <Clock className="size-4 text-primary" />
           {formatPersianDate(date)}
         </div>
-        <Button variant="ghost" size="icon" className="size-6" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          onClick={onClose}
+        >
           <X className="size-3.5" />
         </Button>
       </div>

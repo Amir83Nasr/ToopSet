@@ -53,7 +53,6 @@ export function CourtHeroGallery({
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   const hasImages = images && images.length > 0
-  const currentImage = hasImages ? images[activeIndex] : null
 
   const onSelect = useCallback(() => {
     if (!api) return

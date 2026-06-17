@@ -83,7 +83,7 @@ export function TimePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "h-8 w-fit min-w-25 justify-start gap-2 rounded-lg border border-input bg-transparent px-2.5 text-base font-normal transition-colors md:text-sm",
+            "h-8 w-fit min-w-25 justify-start gap-2 rounded-md border border-input bg-background px-2.5 text-start text-base font-normal transition-colors md:text-sm",
             !value && "text-muted-foreground",
             className
           )}
@@ -95,7 +95,7 @@ export function TimePicker({
       <PopoverContent className="w-60 p-0" align="start" sideOffset={4}>
         <div className="p-4" dir="ltr">
           {/* Large time display — hours : minutes */}
-          <div className="mb-4 flex items-center justify-center gap-1 rounded-xl bg-muted/60 py-3 text-center">
+          <div className="mb-4 flex items-center justify-center gap-1 rounded-md bg-muted/60 py-3 text-center">
             <span className="min-w-[3ch] text-2xl font-bold tracking-wider tabular-nums">
               {persianPad(hour)}
             </span>
@@ -113,7 +113,7 @@ export function TimePicker({
               </p>
               <div
                 ref={hourRef}
-                className="h-44 scrollbar-none overflow-y-auto rounded-lg border"
+                className="h-44 scrollbar-none overflow-y-auto rounded-md border"
               >
                 {HOURS.map((h) => (
                   <button
@@ -140,7 +140,7 @@ export function TimePicker({
               </p>
               <div
                 ref={minuteRef}
-                className="h-44 scrollbar-none overflow-y-auto rounded-lg border"
+                className="h-44 scrollbar-none overflow-y-auto rounded-md border"
               >
                 {MINUTES.map((m) => (
                   <button

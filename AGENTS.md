@@ -83,6 +83,8 @@ ToopSet is a Persian sports venue booking platform. Users can search for sports 
       /auth/          — LoginForm, RegisterForm
       /courts/        — Court-related components (booking, gallery, reviews, etc.)
       /dashboard/     — AppSidebar, SiteHeader, nav-main
+        /schedule/     — SlotCard, DayColumn, WeeklyGrid, MobileDayView, BulkGenerator, QuickSlotForm
+        /manager/      — today-preview.tsx
       /public/        — SiteHeader, HeroSection, etc.
       /ui/            — shadcn/ui generated components
     /hooks/           — use-auth (auth state + token management)
@@ -532,7 +534,8 @@ No glow/shine/neon effects anywhere in the app. No `blur-*` decorative divs, no 
 | `/dashboard/courts/create`    | ✅     | Create court                                 |
 | `/dashboard/courts/[id]`      | ✅     | Court detail (dashboard)                     |
 | `/dashboard/courts/[id]/edit` | ✅     | Edit court                                   |
-| `/dashboard/courts/schedule`  | ✅     | Schedule management                          |
+| `/dashboard/courts/schedule`  | ↪️     | Redirects to /dashboard/manager/schedule     |
+| `/dashboard/manager/schedule` | ✅     | Schedule management (weekly grid, bulk gen)  |
 | `/dashboard/settings`         | ✅     | User settings                                |
 | `/dashboard/payments`         | ✅     | Payments list                                |
 | `/dashboard/contact`          | ✅     | Messages (admin)                             |

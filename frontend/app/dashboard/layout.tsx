@@ -26,6 +26,7 @@ export default function DashboardLayout({
             <div
               className="flex flex-col gap-4 p-4"
               style={{ minHeight: "calc(100dvh - 5rem)" }}
+              id="dash-content"
             >
               {children}
             </div>

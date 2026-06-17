@@ -1,6 +1,6 @@
 # Tasks
 
-> Last updated: 2026-06-17
+> Last updated: 2026-06-17 — label additions
 
 ## In Progress
 
@@ -14,7 +14,7 @@
 - [ ] **[Feature]** Frontend location-based court search (API ready, needs UI)
 - [ ] **[Feature]** User notification preferences — which notification types to receive
 - [ ] **[Bug]** Reports & admin dashboard pages are cleared — rebuild or remove from sidebar
-- [ ] **[Feature]** Multi-court management for managers (currently limited to 1 court)
+- [ ] **[Feature]** Multi-court management for managers
 - [ ] **[Feature]** Promo/discount codes
 - [ ] **[Feature]** Recurring bookings (weekly/monthly schedules)
 - [ ] **[Refactor]** Split booking logic into focused service modules
@@ -23,6 +23,16 @@
 
 ## Done
 
+- [x] **[Feature]** Manager schedule management redesign — weekly grid, bulk generator, quick slot form, today preview (2026-06-17)
+- [x] **[Chore]** Init CLAUDE.md + project-level `.claude/settings.json` for auto-context and permissionless workflow (2026-06-17)
+- [x] **[Chore]** Style empty sidebar pages (reports, admin/settings) with consistent Card-based empty states (2026-06-17)
+- [x] **[Chore]** Replace hardcoded badge/status colors with theme CSS variables across admin, notifications, manager, bookings, and courts pages (2026-06-17)
+- [x] **[Chore]** Breadcrumbs clickable navigation, remove SidebarRail, fix collapsed logo alignment, add tooltip to sidebar toggle (2026-06-17)
+- [x] **[Chore]** Add table header background tint (`bg-muted/30`), remove theme toggle from settings page, add refresh button to contact page (2026-06-17)
+- [x] **[Chore]** Uniform form styling — `bg-background` on Input, Textarea, SelectTrigger, DatePicker, DateRangePicker, TimePicker (2026-06-17)
+- [x] **[Chore]** Fix RTL alignment on picker components — `text-start` on SelectTrigger, SelectItem, TimePicker (2026-06-17)
+- [x] **[Chore]** 6 UI polish items — table button tooltips, form border-radius uniformity (`rounded-md`), stronger table header (`bg-muted/50`), sidebar logo fix, Select RTL with `align="start"` (2026-06-17)
+- [x] **[Chore]** Add shadcn-pattern Labels above all dashboard Select components (admin/bookings, admin/logs, courts, users, manager/schedule, homepage) (2026-06-17)
 - [x] **[Chore]** Mobile-friendly responsive design — RTL fixes, touch targets, hamburger menu and theme toggle mobile fixes (2026-06-17)
 - [x] **[Chore]** Homepage redesign: streamlined to 4 sections, new hero, removed glow/separators (2026-06-17)
 - [x] **[Chore]** Remove dead pages (dashboard/favorites, /penalties, /wallet, /reviews) and unused public components (2026-06-17)

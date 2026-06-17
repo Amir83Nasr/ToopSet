@@ -1,11 +1,7 @@
 "use client"
 
 import { toPersianDigits } from "@/lib/utils"
-import {
-  Stars,
-  sportLabels,
-  type CourtData,
-} from "@/components/courts/court-shared"
+import { Stars, type CourtData } from "@/components/courts/court-shared"
 import { Users, Star, MessageSquareText, Swords } from "lucide-react"
 
 interface QuickStatsProps {

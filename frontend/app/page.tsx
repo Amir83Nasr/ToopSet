@@ -22,7 +22,9 @@ import { Slider } from "@/components/ui/slider"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -293,24 +295,33 @@ function HomePageContent() {
                   </div>
                 </div>
 
-                <Select
-                  value={sortBy}
-                  onValueChange={(v) => {
-                    setSortBy(v)
-                    setPage(0)
-                  }}
-                >
-                  <SelectTrigger className="w-35">
-                    <SelectValue placeholder="مرتب‌سازی" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">پیش‌فرض</SelectItem>
-                    <SelectItem value="price_asc">قیمت: کم به زیاد</SelectItem>
-                    <SelectItem value="price_desc">قیمت: زیاد به کم</SelectItem>
-                    <SelectItem value="rating">امتیاز</SelectItem>
-                    <SelectItem value="distance">نزدیک‌ترین</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Select
+                    value={sortBy}
+                    onValueChange={(v) => {
+                      setSortBy(v)
+                      setPage(0)
+                    }}
+                  >
+                    <SelectTrigger className="w-35">
+                      <SelectValue placeholder="مرتب‌سازی" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectGroup>
+                        <SelectLabel>مرتب‌سازی</SelectLabel>
+                        <SelectItem value="default">پیش‌فرض</SelectItem>
+                        <SelectItem value="price_asc">
+                          قیمت: کم به زیاد
+                        </SelectItem>
+                        <SelectItem value="price_desc">
+                          قیمت: زیاد به کم
+                        </SelectItem>
+                        <SelectItem value="rating">امتیاز</SelectItem>
+                        <SelectItem value="distance">نزدیک‌ترین</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <Button
                   variant={userLocation ? "default" : "outline"}

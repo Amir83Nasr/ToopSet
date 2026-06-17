@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
@@ -30,6 +35,7 @@ import {
   Loader2,
   Mail,
   Phone,
+  RefreshCw,
   Trash2,
   User,
 } from "lucide-react"
@@ -99,11 +105,24 @@ export default function ContactMessagesPage() {
   return (
     <div className="flex flex-1 flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">پیام‌های تماس</h1>
-        <p className="text-muted-foreground">
-          مدیریت پیام‌های ارسال شده از صفحه تماس با ما
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">پیام‌های تماس</h1>
+          <p className="text-muted-foreground">
+            مدیریت پیام‌های ارسال شده از صفحه تماس با ما
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchMessages}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`}
+          />
+          بروزرسانی
+        </Button>
       </div>
 
       {/* Loading */}
@@ -123,7 +142,7 @@ export default function ContactMessagesPage() {
       ) : (
         <>
           {/* Messages table */}
-          <Card>
+          <div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -159,14 +178,21 @@ export default function ContactMessagesPage() {
                         className="flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeleteTarget(msg)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteTarget(msg)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>حذف پیام</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -200,7 +226,7 @@ export default function ContactMessagesPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </>
       )}
 

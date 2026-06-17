@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -217,11 +222,21 @@ export default function AdminPendingCourtsPage() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-2">
-                          <Button asChild variant="outline" size="icon-sm">
-                            <Link href={`/courts/${court.id}`} target="_blank">
-                              <ExternalLink className="size-4" />
-                            </Link>
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button asChild variant="outline" size="icon-sm">
+                                <Link
+                                  href={`/courts/${court.id}`}
+                                  target="_blank"
+                                >
+                                  <ExternalLink className="size-4" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>مشاهده مجموعه</p>
+                            </TooltipContent>
+                          </Tooltip>
                           <Button
                             variant="default"
                             size="sm"

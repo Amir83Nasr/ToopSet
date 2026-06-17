@@ -99,9 +99,9 @@ function formatDate(iso: string): string {
 }
 
 const statusStyles: Record<string, string> = {
-  pending_payment: "text-amber-600 bg-amber-100",
-  confirmed: "text-green-600 bg-green-100",
-  cancelled: "text-red-600 bg-red-100",
+  pending_payment: "bg-status-pending-bg text-status-pending",
+  confirmed: "bg-status-confirmed-bg text-status-confirmed",
+  cancelled: "bg-status-cancelled-bg text-status-cancelled",
 }
 
 const statusLabels: Record<string, string> = {
@@ -361,7 +361,9 @@ export default function AdminDashboardPage() {
                       </p>
                       <div
                         className={`mt-2 flex items-center gap-1 text-sm font-medium ${
-                          item.change >= 0 ? "text-green-600" : "text-red-600"
+                          item.change >= 0
+                            ? "text-status-confirmed"
+                            : "text-status-cancelled"
                         }`}
                       >
                         {item.change >= 0 ? (

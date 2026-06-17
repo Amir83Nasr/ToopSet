@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { useTheme } from "next-themes"
 import Image from "next/image"
 import {
   api,
@@ -18,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Lock, Sun, Moon, Phone, Camera, Trash2 } from "lucide-react"
+import { Loader2, Lock, Phone, Camera, Trash2 } from "lucide-react"
 import { toast } from "@/lib/toast"
 
 interface UserProfile {
@@ -36,14 +35,8 @@ const roleLabels: Record<string, string> = {
   admin: "ادمین",
 }
 
-const themeOptions = [
-  { value: "light", label: "روشن", icon: Sun },
-  { value: "dark", label: "تیره", icon: Moon },
-] as const
-
 export default function SettingsPage() {
   const { refreshUser } = useAuth()
-  const { theme, setTheme } = useTheme()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -198,216 +191,175 @@ export default function SettingsPage() {
     <div className="flex flex-1 flex-col gap-6 p-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">تنظیمات حساب</h1>
-        <p className="text-muted-foreground">
-          مدیریت اطلاعات شخصی، تم و رمز عبور
-        </p>
+        <p className="text-muted-foreground">مدیریت اطلاعات شخصی و رمز عبور</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card size="sm">
-          <CardContent className="flex items-center gap-6 pt-3">
-            <div className="flex shrink-0 items-start gap-3">
-              <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/8">
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt={user.full_name}
-                    width={48}
-                    height={48}
-                    className="size-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="text-sm font-semibold text-primary">
-                    {getInitials(user.full_name)}
-                  </span>
-                )}
-              </div>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-base font-semibold">
-                    {user.full_name}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 px-1.5 py-0 text-[10px]"
-                  >
-                    {roleLabels[user.role] || user.role}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Phone className="size-3" />
-                  <span dir="ltr">{toPersianDigits(user.phone)}</span>
-                </div>
-                <div className="mt-1 flex items-center gap-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleAvatarSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 gap-1 px-2 text-[11px]"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                  >
-                    {uploadingAvatar ? (
-                      <Loader2 className="size-2.5 animate-spin" />
-                    ) : (
-                      <Camera className="size-3" />
-                    )}
-                    {uploadingAvatar ? "در حال آپلود..." : "تغییر عکس"}
-                  </Button>
-                  {user.avatar_url && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 gap-1 px-2 text-[11px] text-destructive"
-                      onClick={handleDeleteAvatar}
-                      disabled={deletingAvatar}
-                    >
-                      {deletingAvatar ? (
-                        <Loader2 className="size-2.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-3" />
-                      )}
-                      حذف
-                    </Button>
-                  )}
-                </div>
-              </div>
+      <Card size="sm">
+        <CardContent className="flex items-center gap-6 pt-3">
+          <div className="flex shrink-0 items-start gap-3">
+            <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/8">
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt={user.full_name}
+                  width={48}
+                  height={48}
+                  className="size-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <span className="text-sm font-semibold text-primary">
+                  {getInitials(user.full_name)}
+                </span>
+              )}
             </div>
-            <div className="min-w-0 flex-1 border-s border-border/40 ps-5">
-              <Label htmlFor="name" className="text-xs font-medium">
-                نام و نام خانوادگی
-              </Label>
-              <div className="flex gap-1.5">
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="نام خود را وارد کنید"
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-base font-semibold">
+                  {user.full_name}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 px-1.5 py-0 text-[10px]"
+                >
+                  {roleLabels[user.role] || user.role}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Phone className="size-3" />
+                <span dir="ltr">{toPersianDigits(user.phone)}</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
                 />
                 <Button
                   size="sm"
-                  onClick={saveName}
-                  disabled={saving || name === user.full_name}
-                  className="h-8 shrink-0 px-3 text-xs"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
                 >
-                  {saving ? (
-                    <Loader2 className="size-3 animate-spin" />
+                  {uploadingAvatar ? (
+                    <Loader2 className="ml-1 size-4 animate-spin" />
                   ) : (
-                    "ذخیره"
+                    <Camera className="ml-1 size-4" />
                   )}
+                  {uploadingAvatar ? "در حال آپلود..." : "تغییر عکس"}
                 </Button>
+                {user.avatar_url && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDeleteAvatar}
+                    disabled={deletingAvatar}
+                  >
+                    {deletingAvatar ? (
+                      <Loader2 className="ml-1 size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="ml-1 size-4" />
+                    )}
+                    حذف
+                  </Button>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardContent className="flex items-start gap-6 pt-3">
-            <div className="shrink-0 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-medium">
-                <Sun className="size-3.5 text-muted-foreground" />
-                <span>تم</span>
-              </div>
-              <div className="flex gap-1.5">
-                {themeOptions.map(({ value, label, icon: Icon }) => {
-                  const active = theme === value
-                  return (
-                    <Button
-                      key={value}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setTheme(value)}
-                      className={`text-xs ${
-                        active
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                      }`}
-                    >
-                      <Icon className="size-3.5" />
-                      {label}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="min-w-0 flex-1 border-s border-border/40 ps-5">
-              <div className="flex items-center gap-1.5 text-xs font-medium">
-                <Lock className="size-3.5 text-muted-foreground" />
-                <span>تغییر رمز عبور</span>
-              </div>
-              <div className="flex gap-1.5">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <Label
-                    htmlFor="curPass"
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    رمز فعلی
-                  </Label>
-                  <Input
-                    id="curPass"
-                    type="password"
-                    value={curPass}
-                    onChange={(e) => setCurPass(e.target.value)}
-                    className="h-8 text-xs"
-                    placeholder="••••••"
-                  />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <Label
-                    htmlFor="newPass"
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    رمز جدید
-                  </Label>
-                  <Input
-                    id="newPass"
-                    type="password"
-                    value={newPass}
-                    onChange={(e) => setNewPass(e.target.value)}
-                    className="h-8 text-xs"
-                    placeholder="حداقل ۶ کاراکتر"
-                  />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <Label
-                    htmlFor="confirmPass"
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    تکرار رمز جدید
-                  </Label>
-                  <Input
-                    id="confirmPass"
-                    type="password"
-                    value={confirmPass}
-                    onChange={(e) => setConfirmPass(e.target.value)}
-                    className="h-8 text-xs"
-                    placeholder="تکرار"
-                  />
-                </div>
-              </div>
+          </div>
+          <div className="min-w-0 flex-1 border-s border-border/40 ps-5">
+            <Label htmlFor="name" className="text-xs font-medium">
+              نام و نام خانوادگی
+            </Label>
+            <div className="flex gap-1.5">
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="نام خود را وارد کنید"
+              />
               <Button
                 size="sm"
-                onClick={changePassword}
-                disabled={changingPass}
-                className="text-xs"
+                onClick={saveName}
+                disabled={saving || name === user.full_name}
+                className="h-8 shrink-0 px-3 text-xs"
               >
-                {changingPass && (
-                  <Loader2 className="ml-1 size-3 animate-spin" />
-                )}
-                {changingPass ? "در حال تغییر..." : "تغییر رمز عبور"}
+                {saving ? <Loader2 className="size-3 animate-spin" /> : "ذخیره"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card size="sm">
+        <CardContent className="space-y-4 pt-3">
+          <div className="flex items-center gap-1.5 text-xs font-medium">
+            <Lock className="size-3.5 text-muted-foreground" />
+            <span>تغییر رمز عبور</span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <Label
+                htmlFor="curPass"
+                className="text-[11px] text-muted-foreground"
+              >
+                رمز فعلی
+              </Label>
+              <Input
+                id="curPass"
+                type="password"
+                value={curPass}
+                onChange={(e) => setCurPass(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="••••••"
+              />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <Label
+                htmlFor="newPass"
+                className="text-[11px] text-muted-foreground"
+              >
+                رمز جدید
+              </Label>
+              <Input
+                id="newPass"
+                type="password"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="حداقل ۶ کاراکتر"
+              />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <Label
+                htmlFor="confirmPass"
+                className="text-[11px] text-muted-foreground"
+              >
+                تکرار رمز جدید
+              </Label>
+              <Input
+                id="confirmPass"
+                type="password"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="تکرار"
+              />
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={changePassword}
+            disabled={changingPass}
+            className="text-xs"
+          >
+            {changingPass && <Loader2 className="ml-1 size-3 animate-spin" />}
+            {changingPass ? "در حال تغییر..." : "تغییر رمز عبور"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

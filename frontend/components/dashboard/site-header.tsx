@@ -6,13 +6,20 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { ExternalLink } from "lucide-react"
+import { ModeToggle } from "@/components/ui/mode-toggle"
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { usePathname } from "next/navigation"
 
 const breadcrumbLabels: Record<string, string> = {
@@ -32,6 +39,7 @@ const breadcrumbLabels: Record<string, string> = {
   reports: "گزارشات",
   logs: "لاگ‌ها",
   settings: "تنظیمات",
+  profile: "پروفایل",
 }
 
 export function SiteHeader() {
@@ -46,7 +54,14 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-sm">
       <div className="flex items-center gap-2 px-4">
-        <SidebarTrigger className="-ms-1" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SidebarTrigger className="-ms-1" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>تغییر نمای کناری</p>
+          </TooltipContent>
+        </Tooltip>
         <span className="me-2 flex items-center">
           <Separator orientation="vertical" className="h-4" />
         </span>
@@ -56,7 +71,9 @@ export function SiteHeader() {
               <Fragment key={crumb.href}>
                 <BreadcrumbItem>
                   {i < breadcrumbs.length - 1 ? (
-                    <span className="text-muted-foreground">{crumb.label}</span>
+                    <BreadcrumbLink asChild>
+                      <Link href={crumb.href}>{crumb.label}</Link>
+                    </BreadcrumbLink>
                   ) : (
                     <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                   )}
@@ -68,7 +85,10 @@ export function SiteHeader() {
         </Breadcrumb>
       </div>
       <div className="flex-1" />
-      <div className="px-4">
+      <div className="flex items-center gap-2 px-4">
+        <div className="max-sm:hidden">
+          <ModeToggle />
+        </div>
         <Button variant="outline" size="sm" asChild>
           <Link href="/">
             <ExternalLink className="me-1.5 size-4" />

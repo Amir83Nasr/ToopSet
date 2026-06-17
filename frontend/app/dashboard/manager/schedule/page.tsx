@@ -14,7 +14,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -129,14 +131,18 @@ export default function ManagerSchedulePage() {
   }, [])
 
   useEffect(() => {
-    fetchCourts()
+    const timer = setTimeout(() => fetchCourts(), 0)
+    return () => clearTimeout(timer)
   }, [fetchCourts])
 
   // Auto-select first court
   useEffect(() => {
-    if (courts.length > 0 && selectedCourtId === null) {
-      setSelectedCourtId(courts[0].id)
-    }
+    const timer = setTimeout(() => {
+      if (courts.length > 0 && selectedCourtId === null) {
+        setSelectedCourtId(courts[0].id)
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [courts, selectedCourtId])
 
   // Fetch slots
@@ -157,7 +163,8 @@ export default function ManagerSchedulePage() {
   }, [selectedCourtId])
 
   useEffect(() => {
-    fetchSlots()
+    const timer = setTimeout(() => fetchSlots(), 0)
+    return () => clearTimeout(timer)
   }, [fetchSlots])
 
   // Handlers
@@ -192,22 +199,23 @@ export default function ManagerSchedulePage() {
 
     setGenerating(true)
     try {
-      const res = await api<{ created: number; skipped: number; total: number }>(
-        `/api/v1/courts/${selectedCourtId}/slots/generate`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            date_from: toLocalDateStr(payload.date_range.from),
-            date_to: toLocalDateStr(payload.date_range.to),
-            days_of_week: selectedDayIndices,
-            templates: validTemplates.map((t) => ({
-              start_time: t.start_time,
-              end_time: t.end_time,
-              base_price: parseFloat(t.base_price),
-            })),
-          }),
-        }
-      )
+      const res = await api<{
+        created: number
+        skipped: number
+        total: number
+      }>(`/api/v1/courts/${selectedCourtId}/slots/generate`, {
+        method: "POST",
+        body: JSON.stringify({
+          date_from: toLocalDateStr(payload.date_range.from),
+          date_to: toLocalDateStr(payload.date_range.to),
+          days_of_week: selectedDayIndices,
+          templates: validTemplates.map((t) => ({
+            start_time: t.start_time,
+            end_time: t.end_time,
+            base_price: parseFloat(t.base_price),
+          })),
+        }),
+      })
       if (res.created > 0) {
         toast.success(`${res.created} زمان با موفقیت ایجاد شد`)
         if (res.skipped > 0) {
@@ -229,10 +237,9 @@ export default function ManagerSchedulePage() {
   async function handleDeleteSlot() {
     if (!slotToDelete || !selectedCourtId) return
     try {
-      await api(
-        `/api/v1/courts/${selectedCourtId}/slots/${slotToDelete.id}`,
-        { method: "DELETE" }
-      )
+      await api(`/api/v1/courts/${selectedCourtId}/slots/${slotToDelete.id}`, {
+        method: "DELETE",
+      })
       toast.success("زمان با موفقیت حذف شد")
       setSlotToDelete(null)
       fetchSlots()
@@ -273,7 +280,9 @@ export default function ManagerSchedulePage() {
   async function handleDeletePastSlots() {
     if (!selectedCourtId) return
     const now = new Date()
-    const pastSlots = slots.filter((s) => new Date(s.end_time) < now && !s.is_reserved)
+    const pastSlots = slots.filter(
+      (s) => new Date(s.end_time) < now && !s.is_reserved
+    )
     if (pastSlots.length === 0) {
       toast.info("سانس گذشته‌ای برای حذف وجود ندارد")
       return
@@ -322,7 +331,9 @@ export default function ManagerSchedulePage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20">
         <Building2 className="size-12 text-muted-foreground" />
-        <p className="text-xl text-muted-foreground">هنوز مجموعه‌ای ثبت نشده است</p>
+        <p className="text-xl text-muted-foreground">
+          هنوز مجموعه‌ای ثبت نشده است
+        </p>
       </div>
     )
   }
@@ -332,27 +343,34 @@ export default function ManagerSchedulePage() {
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">مدیریت زمان‌بندی</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            مدیریت زمان‌بندی
+          </h1>
           <p className="text-muted-foreground">
             مشاهده و مدیریت زمان‌های مجموعه
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select
-            value={selectedCourtId?.toString() ?? ""}
-            onValueChange={(v) => setSelectedCourtId(Number(v))}
-          >
-            <SelectTrigger className="w-50">
-              <SelectValue placeholder="انتخاب مجموعه" />
-            </SelectTrigger>
-            <SelectContent>
-              {courts.map((court) => (
-                <SelectItem key={court.id} value={court.id.toString()}>
-                  {court.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div>
+            <Select
+              value={selectedCourtId?.toString() ?? ""}
+              onValueChange={(v) => setSelectedCourtId(Number(v))}
+            >
+              <SelectTrigger className="w-50">
+                <SelectValue placeholder="انتخاب مجموعه" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>مجموعه</SelectLabel>
+                  {courts.map((court) => (
+                    <SelectItem key={court.id} value={court.id.toString()}>
+                      {court.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -400,22 +418,27 @@ export default function ManagerSchedulePage() {
             <Plus className="ml-1 size-3.5" />
             ایجاد گروهی
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDeletePastSlots}
-          >
+          <Button variant="ghost" size="sm" onClick={handleDeletePastSlots}>
             <Trash2 className="ml-1 size-3.5 text-destructive" />
             پاکسازی گذشته
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={fetchSlots}
-            disabled={slotsLoading}
-          >
-            <RefreshCw className={`size-4 ${slotsLoading ? "animate-spin" : ""}`} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={fetchSlots}
+                disabled={slotsLoading}
+              >
+                <RefreshCw
+                  className={`size-4 ${slotsLoading ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>به‌روزرسانی</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

@@ -45,12 +45,9 @@ const notificationLabels: Record<string, string> = {
 }
 
 const notificationColors: Record<string, string> = {
-  booking_created:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  booking_confirmed:
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  booking_cancelled:
-    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  booking_created: "bg-notif-info-bg text-notif-info",
+  booking_confirmed: "bg-notif-success-bg text-notif-success",
+  booking_cancelled: "bg-notif-error-bg text-notif-error",
 }
 
 export default function NotificationsPage() {
@@ -152,7 +149,7 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -185,7 +182,7 @@ export default function NotificationsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       ) : notifications.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -201,7 +198,7 @@ export default function NotificationsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -278,7 +275,7 @@ export default function NotificationsPage() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
       )}
     </div>
   )

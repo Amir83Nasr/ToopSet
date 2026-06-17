@@ -5,13 +5,20 @@ import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -228,43 +235,53 @@ export default function UsersPage() {
             />
           </div>
           <div className="flex gap-2">
-            <Select
-              value={roleFilter}
-              onValueChange={(val) => {
-                setRoleFilter(val)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">همه نقش‌ها</SelectItem>
-                {roleOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                setStatusFilter(val)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Select
+                value={roleFilter}
+                onValueChange={(val) => {
+                  setRoleFilter(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectGroup>
+                    <SelectLabel>نقش</SelectLabel>
+                    <SelectItem value="all">همه نقش‌ها</SelectItem>
+                    {roleOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => {
+                  setStatusFilter(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectGroup>
+                    <SelectLabel>وضعیت</SelectLabel>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -285,7 +302,7 @@ export default function UsersPage() {
         </Card>
       ) : (
         /* Users table */
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -358,15 +375,24 @@ export default function UsersPage() {
                           )}
                           {u.is_active ? "غیرفعال کردن" : "فعال کردن"}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          disabled={updatingId === u.id || u.id === user?.id}
-                          onClick={() => handleDeleteClick(u)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                        {updatingId === u.id || u.id === user?.id ? (
+                          ""
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteClick(u)}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>حذف کاربر</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -404,7 +430,7 @@ export default function UsersPage() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Delete confirmation dialog */}

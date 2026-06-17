@@ -75,21 +75,21 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             مدیریت پرداخت‌ها
           </h1>
           <p className="text-muted-foreground">مشاهده تمام تراکنش‌های سیستم</p>
         </div>
-        <Button variant="outline" onClick={fetchPayments}>
+        <Button variant="outline" size={"sm"} onClick={fetchPayments}>
           <RefreshCw className="ml-1.5 size-4" />
           بروزرسانی
         </Button>
       </div>
 
       {loading ? (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -122,7 +122,7 @@ export default function AdminPaymentsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       ) : payments.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -131,7 +131,7 @@ export default function AdminPaymentsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -156,7 +156,7 @@ export default function AdminPaymentsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       )}
     </div>
   )

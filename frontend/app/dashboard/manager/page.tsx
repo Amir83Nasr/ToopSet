@@ -118,9 +118,12 @@ export default function ManagerDashboardPage() {
           const slotsRes = await api<{ slots: TimeSlot[] }>(
             `/api/v1/courts/${courtsRes.courts[0].id}/slots?skip=0&limit=100`
           )
-          setTodaySlots(slotsRes.slots.filter((s: TimeSlot) =>
-            new Date(s.start_time).toLocaleDateString("en-CA") === todayKey
-          ))
+          setTodaySlots(
+            slotsRes.slots.filter(
+              (s: TimeSlot) =>
+                new Date(s.start_time).toLocaleDateString("en-CA") === todayKey
+            )
+          )
         }
       } catch {
         // Non-critical — TodayPreview just stays empty
@@ -321,7 +324,7 @@ export default function ManagerDashboardPage() {
               <>
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-2">
-                    <CreditCard className="size-4 text-green-600" />
+                    <CreditCard className="size-4 text-status-confirmed" />
                     <span className="text-sm">کل درآمد</span>
                   </div>
                   <span className="font-bold">
@@ -330,7 +333,7 @@ export default function ManagerDashboardPage() {
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-2">
-                    <CalendarCheck className="size-4 text-blue-600" />
+                    <CalendarCheck className="size-4 text-primary" />
                     <span className="text-sm">رزروها</span>
                   </div>
                   <span className="font-bold">
@@ -340,7 +343,7 @@ export default function ManagerDashboardPage() {
                 {stats && (
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-orange-600" />
+                      <Building2 className="size-4 text-status-pending" />
                       <span className="text-sm">مجموعه‌ها</span>
                     </div>
                     <span className="font-bold">

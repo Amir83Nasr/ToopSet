@@ -21,7 +21,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -179,40 +181,50 @@ export default function CourtsPage() {
             />
           </div>
           <div className="flex gap-2">
-            <Select
-              value={sportType}
-              onValueChange={(val) => {
-                setSportType(val)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="همه ورزش‌ها" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">همه ورزش‌ها</SelectItem>
-                <SelectItem value="volleyball">والیبال</SelectItem>
-                <SelectItem value="basketball">بسکتبال</SelectItem>
-                <SelectItem value="futsal">فوتسال</SelectItem>
-                <SelectItem value="handball">هندبال</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={isActive}
-              onValueChange={(val) => {
-                setIsActive(val)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-32">
-                <SelectValue placeholder="همه وضعیت‌ها" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                <SelectItem value="true">فعال</SelectItem>
-                <SelectItem value="false">غیرفعال</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <Select
+                value={sportType}
+                onValueChange={(val) => {
+                  setSportType(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="همه ورزش‌ها" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectGroup>
+                    <SelectLabel>نوع ورزش</SelectLabel>
+                    <SelectItem value="all">همه ورزش‌ها</SelectItem>
+                    <SelectItem value="volleyball">والیبال</SelectItem>
+                    <SelectItem value="basketball">بسکتبال</SelectItem>
+                    <SelectItem value="futsal">فوتسال</SelectItem>
+                    <SelectItem value="handball">هندبال</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select
+                value={isActive}
+                onValueChange={(val) => {
+                  setIsActive(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="همه وضعیت‌ها" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectGroup>
+                    <SelectLabel>وضعیت</SelectLabel>
+                    <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                    <SelectItem value="true">فعال</SelectItem>
+                    <SelectItem value="false">غیرفعال</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -238,7 +250,7 @@ export default function CourtsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -299,14 +311,14 @@ export default function CourtsPage() {
                     <span
                       className={
                         court.is_active
-                          ? "inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:bg-green-500/15 dark:text-green-400"
+                          ? "inline-flex items-center gap-1.5 rounded-full bg-status-confirmed-bg px-2.5 py-0.5 text-xs font-medium text-status-confirmed"
                           : "inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
                       }
                     >
                       <span
                         className={
                           court.is_active
-                            ? "size-1.5 rounded-full bg-green-500"
+                            ? "size-1.5 rounded-full bg-status-confirmed"
                             : "size-1.5 rounded-full bg-muted-foreground"
                         }
                       />
@@ -334,13 +346,11 @@ export default function CourtsPage() {
                             {court.is_active ? "غیرفعال کردن" : "فعال کردن"}
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            className="border-destructive/30 text-destructive hover:bg-destructive/10"
                             onClick={() => setDeleteCourt(court)}
                           >
-                            <Trash2 data-icon="inline-start" />
-                            حذف
+                            <Trash2 size={4} />
                           </Button>
                         </>
                       )}
@@ -379,7 +389,7 @@ export default function CourtsPage() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       <AlertDialog

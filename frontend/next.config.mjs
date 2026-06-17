@@ -8,11 +8,18 @@ const analyzer = withBundleAnalyzer({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  allowedDevOrigins: ["192.168.1.20"],
   images: {
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
+        port: "8000",
+        pathname: "/uploads/**",
+      },
+      {
+        protocol: "http",
+        hostname: "192.168.1.20",
         port: "8000",
         pathname: "/uploads/**",
       },

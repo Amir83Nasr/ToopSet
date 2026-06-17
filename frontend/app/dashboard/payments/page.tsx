@@ -97,7 +97,7 @@ function SkeletonRow() {
 
 function LoadingSkeleton() {
   return (
-    <Card>
+    <div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -115,7 +115,7 @@ function LoadingSkeleton() {
           ))}
         </TableBody>
       </Table>
-    </Card>
+    </div>
   )
 }
 
@@ -203,7 +203,7 @@ export default function PaymentsPage() {
 
   function renderTable() {
     return (
-      <Card>
+      <div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -283,7 +283,7 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
-      </Card>
+      </div>
     )
   }
 
