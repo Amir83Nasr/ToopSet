@@ -233,7 +233,7 @@ export function CourtBooking({
               size="lg"
               onClick={() => onBook(selectedSlot)}
             >
-              <CheckCircle2 className="ml-2 size-5" />
+              <CheckCircle2 className="me-2 size-5" />
               {isAuthenticated ? "رزرو کن" : "ورود و رزرو"}
             </Button>
             <p className="text-center text-[11px] text-muted-foreground">

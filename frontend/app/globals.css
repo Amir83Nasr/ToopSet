@@ -296,6 +296,17 @@
   }
 }
 
+/* ── Mobile touch target minimum ── */
+
+@media (max-width: 767px) {
+  button:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10),
+  [role="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(
+      .h-10
+    ) {
+    min-height: 44px;
+  }
+}
+
 /* ── Text selection ── */
 
 ::selection {
@@ -454,6 +465,16 @@
     linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
   background-size: 48px 48px;
+  mask-image: radial-gradient(
+    ellipse 50% 50% at center,
+    #000 80%,
+    transparent 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 50% 50% at center,
+    #000 80%,
+    transparent 100%
+  );
 }
 
 .dark #toopset-root::before {

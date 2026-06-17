@@ -23,6 +23,7 @@
 
 ## Done
 
+- [x] **[Chore]** Mobile-friendly responsive design — RTL fixes, touch targets, hamburger menu and theme toggle mobile fixes (2026-06-17)
 - [x] **[Chore]** Homepage redesign: streamlined to 4 sections, new hero, removed glow/separators (2026-06-17)
 - [x] **[Chore]** Remove dead pages (dashboard/favorites, /penalties, /wallet, /reviews) and unused public components (2026-06-17)
 - [x] **[Chore]** Clean up remaining glow effects — removed radial-gradient backgrounds from body CSS, removed blur glow div from about page (2026-06-17)

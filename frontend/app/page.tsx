@@ -548,7 +548,7 @@ function HomePageContent() {
                       variant="link"
                       size="sm"
                       onClick={clearFilters}
-                      className="mr-2 text-xs"
+                      className="me-2 text-xs"
                     >
                       پاک کردن فیلتر
                     </Button>
@@ -653,7 +653,7 @@ function HomePageContent() {
                       disabled={page === 0}
                       onClick={() => setPage((p) => p - 1)}
                     >
-                      <ChevronRight className="ml-1 size-4" />
+                      <ChevronRight className="ms-1 size-4" />
                       قبلی
                     </Button>
                     {Array.from({ length: Math.min(totalPages, 5) }).map(
@@ -680,7 +680,7 @@ function HomePageContent() {
                       onClick={() => setPage((p) => p + 1)}
                     >
                       بعدی
-                      <ChevronLeft className="mr-1 size-4" />
+                      <ChevronLeft className="me-1 size-4" />
                     </Button>
                   </div>
                 )}

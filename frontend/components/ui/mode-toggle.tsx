@@ -52,7 +52,7 @@ export function ModeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        className="size-9"
+        className="size-9 max-sm:size-11"
         disabled
         aria-label="تغییر تم"
       >
@@ -68,7 +68,7 @@ export function ModeToggle() {
       variant="ghost"
       size="icon"
       onClick={cycle}
-      className="size-9 text-muted-foreground transition-colors hover:text-foreground"
+      className="size-9 text-muted-foreground transition-colors hover:text-foreground max-sm:size-11"
       aria-label={`تم فعلی: ${labels[current] || "روشن"}`}
       title={`تم فعلی: ${labels[current] || "روشن"}`}
     >

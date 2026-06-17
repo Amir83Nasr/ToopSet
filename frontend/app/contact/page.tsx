@@ -235,12 +235,7 @@ export default function ContactPage() {
                     {error && (
                       <p className="text-sm text-destructive">{error}</p>
                     )}
-                    <Button
-                      type="submit"
-                      disabled={submitting}
-                      size="lg"
-                      className="gap-2"
-                    >
+                    <Button type="submit" disabled={submitting}>
                       {submitting ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (

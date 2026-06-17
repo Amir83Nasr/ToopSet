@@ -185,7 +185,7 @@ export default function PublicCourtDetailPage() {
             مجموعه مورد نظر یافت نشد
           </p>
           <Button variant="outline" onClick={() => router.push("/")}>
-            <ArrowLeft className="ml-2 size-4" />
+            <ArrowLeft className="me-2 size-4" />
             بازگشت به صفحه اصلی
           </Button>
         </div>
@@ -217,13 +217,13 @@ export default function PublicCourtDetailPage() {
           <div className="mb-4 flex gap-2">
             <Button variant="outline" size="sm" asChild>
               <Link href="/dashboard/courts">
-                <LayoutDashboard className="ml-1.5 size-4" />
+                <LayoutDashboard className="ms-1.5 size-4" />
                 داشبورد مدیریت
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/dashboard/courts/${courtId}/edit`}>
-                <Pencil className="ml-1.5 size-4" />
+                <Pencil className="ms-1.5 size-4" />
                 ویرایش
               </Link>
             </Button>

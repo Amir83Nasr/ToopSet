@@ -274,6 +274,13 @@ Key models and their relationships:
 - Icons: Lucide for most icons, Hugeicons for specialized ones
 - Form fields use shadcn Input + Label components with consistent sizing
 
+### Mobile Design
+
+- **Apple HIG 44px touch target**: Global CSS in `frontend/app/globals.css` enforces `min-height: 44px` on buttons at viewports ≤ 767px. Uses exclusion selectors (`:not(.size-11):not(.h-11)`) to leave intentionally small buttons untouched.
+- **Critical buttons** (hamburger menu toggle, theme toggle) use `size-11` or `max-sm:size-11` for explicit 44px sizing on mobile.
+- **Hamburger menu Sheet**: On mobile, the sidebar/nav Sheet slides from the **physical right** in RTL mode (`side="right"` when `isRtl`). This ensures the sheet opens in the user's natural thumb zone.
+- **Sheet direction prop**: Mobile variant of `SheetContent` always passes `dir={dir || "rtl"}` to ensure correct RTL text direction inside slide-in panels.
+
 ### Tailwind CSS v4 Notes
 
 - Tailwind v4 uses `@import "tailwindcss"` instead of `@tailwind` directives

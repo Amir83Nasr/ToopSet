@@ -46,8 +46,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-sm">
       <div className="flex items-center gap-2 px-4">
-        <SidebarTrigger className="-ml-1" />
-        <span className="mr-2 flex items-center">
+        <SidebarTrigger className="-ms-1" />
+        <span className="me-2 flex items-center">
           <Separator orientation="vertical" className="h-4" />
         </span>
         <Breadcrumb>
@@ -71,7 +71,7 @@ export function SiteHeader() {
       <div className="px-4">
         <Button variant="outline" size="sm" asChild>
           <Link href="/">
-            <ExternalLink className="ml-1.5 size-4" />
+            <ExternalLink className="me-1.5 size-4" />
             بازگشت به صفحه اصلی
           </Link>
         </Button>
