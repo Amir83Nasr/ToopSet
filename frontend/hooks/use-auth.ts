@@ -77,14 +77,18 @@ export function useAuth() {
   )
 
   const register = useCallback(
-    async (data: RegisterRequest) => {
+    async (data: RegisterRequest, redirect?: string) => {
       const res = await api<AuthResponse>("/api/v1/auth/register", {
         method: "POST",
         body: JSON.stringify(data),
       })
       setTokens(res.access_token, res.refresh_token)
       setUser(res.user)
-      router.push("/dashboard")
+      if (redirect && redirect.startsWith("/")) {
+        router.push(redirect)
+      } else {
+        router.push("/dashboard")
+      }
     },
     [router]
   )

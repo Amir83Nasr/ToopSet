@@ -1,81 +1,60 @@
 # Tasks
 
-> Last updated: 2026-06-16
+> Last updated: 2026-06-17
 
 ## In Progress
 
-- [ ] **[Feature]** Real payment gateway integration — replace mock with Zibal/Parsian/Saman gateway
-- [ ] **[Feature]** Frontend location-based court search (API ready with haversine, needs UI)
-- [ ] **[Bug]** Reports page is cleared (empty `page.tsx`) — rebuild or remove from sidebar
-- [ ] **[Bug]** Admin dashboard page is cleared (empty `page.tsx`) — same issue
+*Nothing currently in progress.*
 
-## Up Next
+## Backlog
+
+- [ ] **[Feature]** Real payment gateway integration — replace mock with Zibal/Parsian/Saman
 
 - [ ] **[Feature]** SMS notification on booking confirmation — replace mock with Kavenegar/FarazSMS
+- [ ] **[Feature]** Frontend location-based court search (API ready, needs UI)
 - [ ] **[Feature]** User notification preferences — which notification types to receive
-- [ ] **[Feature]** Build admin dashboard page (was cleaned out, needs rebuilding)
-- [ ] **[Feature]** Build reports page (was cleaned out)
-
-## Icebox / Future
-
-- [ ] **[Refactor]** Split booking logic into focused service modules (booking + cancellation + payment)
+- [ ] **[Bug]** Reports & admin dashboard pages are cleared — rebuild or remove from sidebar
 - [ ] **[Feature]** Multi-court management for managers (currently limited to 1 court)
 - [ ] **[Feature]** Promo/discount codes
 - [ ] **[Feature]** Recurring bookings (weekly/monthly schedules)
-- [ ] **[Feature]** Multi-language support (FA/EN)
+- [ ] **[Refactor]** Split booking logic into focused service modules
 - [ ] **[Feature]** Court gallery management in dashboard UI
+- [ ] **[Feature]** Multi-language support (FA/EN)
 
 ## Done
 
-### 2026-06-16
-
-- [x] **[Chore]** Add rate limiting to auth endpoints (slowapi + Redis — login: 5/min, register: 3/min, refresh: 10/min)
-- [x] **[Bug]** Fix timezone issues in booking slots (added Asia/Tehran module, UTC conversion on store/read)
-
-### 2026-06-14
-
-- [x] **[Docs]** Add AGENTS.md with comprehensive project overview
-
-### 2026-06-12
-
-- [x] **[Bug]** Fix RTL layout issues in sidebar
-- [x] **[Feature]** Improve dashboard header (sticky + transparency)
-- [x] **[Fix]** Controlled input warning and redirect after registration
-
-### 2026-06-10
-
-- [x] **[Feature]** Court detail page overhaul
-- [x] **[Feature]** Schedule/time slot generation for managers
-
-### 2026-06-08
-
-- [x] **[Feature]** User avatar upload and management
-- [x] **[Feature]** Dashboard role-based sidebar (user/manager/admin)
-- [x] **[Feature]** Manager one-court limit enforced
-
-### 2026-06-05
-
-- [x] **[Feature]** Persian (Jalali) date picker integration
-- [x] **[Feature]** Court listing with sport type, search, price, location (haversine) filtering
-
-### 2026-06-01 — Initial feature set
-
-- [x] **[Feature]** User registration, login, profile with JWT
-- [x] **[Feature]** Wallet system — deposit, withdraw, balance, transactions, auto-refund on cancel
-- [x] **[Feature]** Booking system — create, pay (via wallet), cancel with penalty/reversal
-- [x] **[Feature]** Court CRUD with images/gallery management for managers
-- [x] **[Feature]** Admin features — court approval/rejection, users CRUD, hard-delete, broadcast
-- [x] **[Feature]** Review system with admin response
-- [x] **[Feature]** Contact form (public) with admin management
-- [x] **[Feature]** Favorites system
-- [x] **[Feature]** Notification system with read/unread/broadcast
-- [x] **[Feature]** Penalty system for late cancellations
-- [x] **[Feature]** Dashboard stats — user, manager, admin stats, revenue, charts
-- [x] **[Feature]** Audit log system with filtering, clear, delete
-- [x] **[Feature]** Platform settings management (key-value)
-- [x] **[Feature]** Prometheus metrics + monitoring middleware
-- [x] **[Feature]** Sentry error monitoring
-- [x] **[Feature]** Health check endpoint
-- [x] **[Chore]** Docker Compose (Postgres + Redis)
-- [x] **[Chore]** Pre-commit hooks (ruff, prettier, eslint, trailing whitespace)
-- [x] **[Chore]** CI/CD workflows (tests, lint, docker build)
+- [x] **[Chore]** Homepage redesign: streamlined to 4 sections, new hero, removed glow/separators (2026-06-17)
+- [x] **[Chore]** Remove dead pages (dashboard/favorites, /penalties, /wallet, /reviews) and unused public components (2026-06-17)
+- [x] **[Chore]** Clean up remaining glow effects — removed radial-gradient backgrounds from body CSS, removed blur glow div from about page (2026-06-17)
+- [x] **[Bug]** Fix dashboard court detail page "خطا در دریافت اطلاعات" — slots limit mismatch (limit=500 vs backend le=200) + fragile Promise.all (2026-06-16)
+- [x] **[Chore]** Add rate limiting to auth endpoints (2026-06-16)
+- [x] **[Bug]** Fix timezone issues in booking slots (2026-06-16)
+- [x] **[Docs]** Add AGENTS.md (2026-06-14)
+- [x] **[Bug]** Fix RTL layout in sidebar (2026-06-12)
+- [x] **[Feature]** Dashboard header sticky + transparency (2026-06-12)
+- [x] **[Fix]** Controlled input warning + redirect after registration (2026-06-12)
+- [x] **[Feature]** Court detail page overhaul (2026-06-10)
+- [x] **[Feature]** Schedule/time slot generation for managers (2026-06-10)
+- [x] **[Feature]** Avatar upload & management (2026-06-08)
+- [x] **[Feature]** Role-based sidebar (user/manager/admin) (2026-06-08)
+- [x] **[Feature]** Manager one-court limit enforced (2026-06-08)
+- [x] **[Feature]** Jalali date picker (2026-06-05)
+- [x] **[Feature]** Court listing with sport type, search, price, location filter (2026-06-05)
+- [x] **[Feature]** JWT auth — register, login, profile, avatar (2026-06-01)
+- [x] **[Feature]** Wallet — deposit, withdraw, balance, transactions, refund (2026-06-01)
+- [x] **[Feature]** Booking — create, pay (wallet), cancel with penalty/reversal (2026-06-01)
+- [x] **[Feature]** Court CRUD with image gallery (2026-06-01)
+- [x] **[Feature]** Admin — approve/reject courts, users CRUD, hard-delete, broadcast (2026-06-01)
+- [x] **[Feature]** Reviews with admin response (2026-06-01)
+- [x] **[Feature]** Contact form + admin management (2026-06-01)
+- [x] **[Feature]** Favorites (2026-06-01)
+- [x] **[Feature]** Notifications — read/unread/broadcast (2026-06-01)
+- [x] **[Feature]** Penalty system for late cancellations (2026-06-01)
+- [x] **[Feature]** Dashboard stats — user, manager, admin + revenue + charts (2026-06-01)
+- [x] **[Feature]** Audit logs — filter, clear, delete (2026-06-01)
+- [x] **[Feature]** Platform settings management (2026-06-01)
+- [x] **[Feature]** Prometheus + Sentry monitoring (2026-06-01)
+- [x] **[Feature]** Health check endpoint (2026-06-01)
+- [x] **[Chore]** Docker Compose (Postgres + Redis) (2026-06-01)
+- [x] **[Chore]** Pre-commit hooks (2026-06-01)
+- [x] **[Chore]** CI/CD workflows (2026-06-01)

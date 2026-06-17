@@ -408,3 +408,133 @@ make version-tag            # git tag v0.2.x + push (triggers CD)
 - Frontend: Browser DevTools console, Sentry breadcrumbs track all API calls
 - Token issues: Check localStorage, refresh logic in `api.ts`
 - DB issues: Check alembic migrations, SQLAlchemy logs
+
+---
+
+## Agent Development Guide
+
+### Commenting Conventions
+
+#### Frontend (TypeScript / TSX)
+
+- **Inline comments**: `// lowercase start, no trailing period`
+
+  ```ts
+  // fetch court details for each favorite
+  const data = await getFavorites(user.id);
+  ```
+
+- **Section headers**: `// ── Title ──` (em-dash, padded with spaces)
+
+  ```ts
+  // ── Types ──
+  // ── Helpers ──
+  // ── Page ──
+  ```
+
+- **eslint-disable-next-line**: placed immediately before the suppressed line, no extra blank line
+
+  ```ts
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setState(value);
+  ```
+
+- **No JSDoc/TSDoc** in application code — let well-named identifiers speak. Only use `/** */` for external-facing library exports if needed.
+
+#### Backend (Python)
+
+- **Inline comments**: `# lowercase start, no trailing period`
+
+  ```py
+  # fallback: replace numeric path segments with {id}
+  ```
+
+- **Section headers**: `# ── Title ──` (em-dash, padded with spaces, dashes to fill 60 chars)
+
+  ```py
+  # ── Path normalisation helper ───────────────────────────────────────────
+  # ── Global exception handlers ───────────────────────────────────────────
+  ```
+
+- **Multi-line logic comments**: capitalize first word if it reads as a sentence
+
+  ```py
+  # Pre-check related data to avoid FK violations
+  ```
+
+#### CSS
+
+- **Inline comments**: `/* lowercase start, no trailing period */`
+
+  ```css
+  /* neon border on hover */
+  ```
+
+- **Section headers**: `/* ── Title ── */` (single line)
+
+  ```css
+  /* ── Text selection ── */
+  ```
+
+#### General rules
+
+1. **Don't explain what** — explain **why**. If the code is clear without a comment, omit it.
+2. **No commented-out code** in committed files. Remove dead code, don't just comment it.
+3. **Keep comments short** — one line max. If you need more, the code needs refactoring.
+4. **Section separators** are 60 characters wide (title + dashes to fill).
+
+### Design System
+
+- Persian RTL UI (`dir="rtl"`, `lang="fa"`, IranYekanX font)
+- 48px grid pattern overlay on `#toopset-root::before`
+- Glassmorphism: `bg-background/80 backdrop-blur-xl`
+- Shimmer text gradient animation
+- View transition API for theme toggle
+- Dark mode: `oklch(0.13 0 0)` background, `oklch(0.17 0 0)` card/popover
+
+### Key Layout Rules
+
+- Max content width: `max-w-7xl` (1280px) with `px-4`
+- Vertical padding: `py-12` (48px = 1 grid), `md:py-24` (96px = 2 grids)
+- Fixed header: `h-16`, glass effect with `border-b bg-background/80 backdrop-blur-xl`
+- Footer: `bg-background` with `border-t`
+
+### No-Glow Policy
+
+No glow/shine/neon effects anywhere in the app. No `blur-*` decorative divs, no `bg-gradient-to-r` separator lines, no `radial-gradient` ambient backgrounds, no neon border hovers.
+
+### Routes
+
+| Path                          | Status | Description                                  |
+| ----------------------------- | ------ | -------------------------------------------- |
+| `/`                           | ✅     | Homepage (Hero + Search + Map + Courts Grid) |
+| `/about`                      | ✅     | About page                                   |
+| `/contact`                    | ✅     | Contact page                                 |
+| `/privacy`                    | ✅     | Privacy policy                               |
+| `/terms`                      | ✅     | Terms of service                             |
+| `/register`                   | ✅     | User registration                            |
+| `/login`                      | ✅     | User login                                   |
+| `/courts/[id]`                | ✅     | Court detail page                            |
+| `/book`                       | ✅     | Booking flow                                 |
+| `/dashboard`                  | ✅     | Dashboard (redirects by role)                |
+| `/dashboard/user`             | ✅     | User dashboard                               |
+| `/dashboard/manager`          | ✅     | Manager dashboard                            |
+| `/dashboard/admin`            | ✅     | Admin dashboard                              |
+| `/dashboard/bookings`         | ✅     | User bookings                                |
+| `/dashboard/courts`           | ✅     | Courts management                            |
+| `/dashboard/courts/create`    | ✅     | Create court                                 |
+| `/dashboard/courts/[id]`      | ✅     | Court detail (dashboard)                     |
+| `/dashboard/courts/[id]/edit` | ✅     | Edit court                                   |
+| `/dashboard/courts/schedule`  | ✅     | Schedule management                          |
+| `/dashboard/settings`         | ✅     | User settings                                |
+| `/dashboard/payments`         | ✅     | Payments list                                |
+| `/dashboard/contact`          | ✅     | Messages (admin)                             |
+| `/dashboard/notifications`    | ✅     | Notifications                                |
+| `/dashboard/reports`          | ✅     | Reports (manager)                            |
+| `/dashboard/users`            | ✅     | Users management (admin)                     |
+| `/dashboard/users/[id]`       | ✅     | User detail (admin)                          |
+| `/dashboard/admin/bookings`   | ✅     | All bookings (admin)                         |
+| `/dashboard/admin/courts`     | ✅     | All courts (admin)                           |
+| `/dashboard/admin/payments`   | ✅     | Payments management (admin)                  |
+| `/dashboard/admin/settings`   | ✅     | Platform settings (admin)                    |
+| `/dashboard/admin/logs`       | ✅     | Audit logs (admin)                           |

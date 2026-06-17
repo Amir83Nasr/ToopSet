@@ -84,7 +84,7 @@ export default function AdminPaymentsPage() {
         </div>
         <Button variant="outline" onClick={fetchPayments}>
           <RefreshCw className="ml-1.5 size-4" />
-          رفرش
+          بروزرسانی
         </Button>
       </div>
 

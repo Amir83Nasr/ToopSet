@@ -10,7 +10,6 @@ export default function NotFound() {
       className="relative flex min-h-screen items-center justify-center overflow-hidden p-4"
       dir="rtl"
     >
-      <div className="bg-grid pointer-events-none absolute inset-0 -z-10" />
       <div className="relative z-10 w-full max-w-sm text-center">
         <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-muted">
           <Frown className="size-8 text-muted-foreground" />

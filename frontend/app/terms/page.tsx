@@ -52,15 +52,7 @@ export default function TermsPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative flex-1 overflow-x-hidden">
-        {/* Neon orbs */}
-        <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
-        <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />
-
-        {/* Vertical side columns */}
-        <div className="bg-grid-side absolute inset-y-0 left-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 max-md:hidden" />
-        <div className="bg-grid-side absolute inset-y-0 right-[calc(50%+36rem)] w-12 border-x border-t border-b border-border/20 max-md:hidden" />
-
+      <main className="relative flex-1 overflow-x-hidden pt-16">
         <div className="relative mx-auto max-w-3xl px-4 py-16 md:py-24">
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
             قوانین و مقررات

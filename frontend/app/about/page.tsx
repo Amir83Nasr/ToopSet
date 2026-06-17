@@ -82,12 +82,9 @@ export default function AboutPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Hero */}
-        <section className="relative overflow-hidden border-b px-4 py-16 md:py-24">
-          <div className="bg-grid pointer-events-none absolute inset-0 opacity-50 dark:opacity-[0.15]" />
-          <div className="pointer-events-none absolute top-1/2 left-1/2 size-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
-
+        <section className="relative overflow-hidden px-4 py-16 md:py-24">
           <div className="relative z-10 mx-auto max-w-3xl text-center">
             <motion.div
               initial={{ opacity: 0, y: -8 }}
@@ -201,7 +198,7 @@ export default function AboutPage() {
         </section>
 
         {/* Features */}
-        <section className="border-t px-4 py-16 md:py-20">
+        <section className="px-4 py-16 md:py-20">
           <div className="mx-auto max-w-5xl">
             <div className="mb-12 text-center">
               <motion.h2
@@ -246,7 +243,7 @@ export default function AboutPage() {
         </section>
 
         {/* For Managers */}
-        <section className="border-t px-4 py-16 md:py-20">
+        <section className="px-4 py-16 md:py-20">
           <div className="mx-auto max-w-5xl">
             <div className="grid items-center gap-10 md:grid-cols-2">
               <motion.div
@@ -311,7 +308,7 @@ export default function AboutPage() {
         </section>
 
         {/* Stories */}
-        <section className="border-t px-4 py-16 md:py-20">
+        <section className="px-4 py-16 md:py-20">
           <div className="mx-auto max-w-5xl">
             <div className="mb-12 text-center">
               <motion.h2
@@ -348,7 +345,7 @@ export default function AboutPage() {
         </section>
 
         {/* CTA */}
-        <section className="border-t px-4 py-16 md:py-24">
+        <section className="px-4 py-16 md:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

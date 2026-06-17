@@ -138,20 +138,20 @@ export default function DashboardCourtDetailPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [courtRes, slotsRes] = await Promise.all([
-        api<CourtData>(`/api/v1/courts/${courtId}`),
-        api<{ slots: TimeSlot[]; total: number }>(
-          `/api/v1/courts/${courtId}/slots?limit=500`
-        ),
-      ])
+      const courtRes = await api<CourtData>(`/api/v1/courts/${courtId}`)
       setCourt(courtRes)
-      setAllSlots(slotsRes.slots)
-      try {
-        const revRes = await api<{ reviews: Review[]; total: number }>(
-          `/api/v1/courts/${courtId}/reviews?limit=3`
-        )
-        setRecentReviews(revRes.reviews || [])
-      } catch {} // reviews optional
+      // slots — independent; failure shouldn't block court data
+      api<{ slots: TimeSlot[]; total: number }>(
+        `/api/v1/courts/${courtId}/slots?limit=500`
+      )
+        .then((slotsRes) => setAllSlots(slotsRes.slots))
+        .catch(() => {}) // slots optional
+      // reviews — independent
+      api<{ reviews: Review[]; total: number }>(
+        `/api/v1/courts/${courtId}/reviews?limit=3`
+      )
+        .then((revRes) => setRecentReviews(revRes.reviews || []))
+        .catch(() => {}) // reviews optional
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) setNotFound(true)
       else toast.error("خطا در دریافت اطلاعات")
@@ -437,7 +437,6 @@ export default function DashboardCourtDetailPage() {
               reviews={recentReviews}
               averageRating={court.average_rating}
               total={recentReviews.length}
-              courtId={courtId}
             />
           )}
         </div>
@@ -624,7 +623,7 @@ export default function DashboardCourtDetailPage() {
                   key={slot.id}
                   className={`group flex items-center justify-between rounded-xl border-2 p-4 transition-all ${
                     slot.is_reserved
-                      ? "border-red-100 bg-red-50/40 dark:border-red-900/20 dark:bg-red-950/5"
+                      ? "border-destructive/30 bg-destructive/5 dark:border-destructive/20"
                       : "border-border/50 bg-card hover:border-primary/30 hover:shadow-sm"
                   }`}
                 >
@@ -661,7 +660,7 @@ export default function DashboardCourtDetailPage() {
                       className={`shrink-0 ${
                         slot.is_reserved
                           ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                          : "border-green-300 text-green-600 dark:border-green-700"
+                          : "border-primary/30 text-green-600 dark:border-primary/30"
                       }`}
                     >
                       {slot.is_reserved ? "رزرو شده" : "آزاد"}

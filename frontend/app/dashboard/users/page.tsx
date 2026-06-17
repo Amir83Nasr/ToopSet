@@ -208,16 +208,16 @@ export default function UsersPage() {
           <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fetchUsers()}>
+          <Button variant="outline" size="sm" onClick={() => fetchUsers()}>
             <RefreshCw className="ml-1.5 size-4" />
-            رفرش
+            بروزرسانی
           </Button>
         </div>
       </div>
 
       {/* Search & filter bar */}
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row">
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex flex-col gap-4 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -266,8 +266,8 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Loading state */}
       {loading ? (

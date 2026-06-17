@@ -160,15 +160,15 @@ export default function CourtsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fetchCourts()}>
+          <Button variant="outline" size="sm" onClick={() => fetchCourts()}>
             <RefreshCw className="ml-1.5 size-4" />
-            رفرش
+            بروزرسانی
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row">
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex flex-col gap-4 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -214,8 +214,8 @@ export default function CourtsPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">

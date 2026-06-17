@@ -82,12 +82,8 @@ export default function ContactPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex-1 overflow-x-hidden pt-16">
         <section className="relative overflow-hidden px-4 py-12 md:py-20">
-          <div className="neon-orb neon-orb-1 !top-[-120px] !right-[-80px]" />
-          <div className="neon-orb neon-orb-cyan !bottom-[-100px] !left-[-60px]" />
-          <div className="bg-grid pointer-events-none absolute inset-0" />
-
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}

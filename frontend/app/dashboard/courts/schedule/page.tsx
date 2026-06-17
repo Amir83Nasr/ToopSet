@@ -572,22 +572,24 @@ export default function SchedulePage() {
               <Label>روزهای هفته</Label>
               <div className="flex flex-wrap gap-2">
                 {PERSIAN_DAY_NAMES.map((name, index) => (
-                  <button
+                  <Button
                     key={index}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       const next = [...selectedDays]
                       next[index] = !next[index]
                       setSelectedDays(next)
                     }}
-                    className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all ${
+                    className={`rounded-full ${
                       selectedDays[index]
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-input bg-background text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     {name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -789,8 +791,8 @@ export default function SchedulePage() {
                                     past
                                       ? "border-muted bg-muted/20 opacity-60"
                                       : slot.is_reserved
-                                        ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20"
-                                        : "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/20"
+                                        ? "border-destructive/30 bg-destructive/5 dark:border-destructive/20"
+                                        : "border-primary/30 bg-primary/5 dark:border-primary/20"
                                   }`}
                                 >
                                   {/* Time */}

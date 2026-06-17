@@ -1,7 +1,21 @@
 "use client"
 
 import * as React from "react"
+import { flushSync } from "react-dom"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
+
+function toggleThemeWithTransition(
+  theme: string,
+  setTheme: (t: string) => void
+) {
+  if (typeof document !== "undefined" && document.startViewTransition) {
+    document.startViewTransition(() => {
+      flushSync(() => setTheme(theme))
+    })
+  } else {
+    setTheme(theme)
+  }
+}
 
 function ThemeProvider({
   children,
@@ -12,9 +26,9 @@ function ThemeProvider({
       attribute="class"
       defaultTheme="light"
       enableSystem
-      disableTransitionOnChange
       {...props}
     >
+      <ThemeClickTracker />
       <ThemeHotkey />
       {children}
     </NextThemesProvider>
@@ -32,6 +46,19 @@ function isTypingTarget(target: EventTarget | null) {
     target.tagName === "TEXTAREA" ||
     target.tagName === "SELECT"
   )
+}
+
+/* Track last click position for view-transition origin */
+function ThemeClickTracker() {
+  React.useEffect(() => {
+    function recordClick(e: MouseEvent) {
+      document.documentElement.style.setProperty("--theme-x", `${e.clientX}px`)
+      document.documentElement.style.setProperty("--theme-y", `${e.clientY}px`)
+    }
+    window.addEventListener("click", recordClick)
+    return () => window.removeEventListener("click", recordClick)
+  }, [])
+  return null
 }
 
 function ThemeHotkey() {
@@ -55,7 +82,10 @@ function ThemeHotkey() {
         return
       }
 
-      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+      toggleThemeWithTransition(
+        resolvedTheme === "dark" ? "light" : "dark",
+        setTheme
+      )
     }
 
     window.addEventListener("keydown", onKeyDown)

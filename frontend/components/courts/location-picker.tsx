@@ -16,6 +16,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   QOM_BOUNDS,
   QOM_CENTER,
@@ -95,20 +96,24 @@ function ZoomControls() {
 
   return (
     <div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-0.5">
-      <button
+      <Button
         ref={inRef}
         type="button"
-        className="flex size-8 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent"
+        variant="outline"
+        size="icon"
+        className="bg-card text-muted-foreground shadow-sm hover:bg-accent"
       >
         <Plus className="size-4" />
-      </button>
-      <button
+      </Button>
+      <Button
         ref={outRef}
         type="button"
-        className="flex size-8 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent"
+        variant="outline"
+        size="icon"
+        className="bg-card text-muted-foreground shadow-sm hover:bg-accent"
       >
         <Minus className="size-4" />
-      </button>
+      </Button>
     </div>
   )
 }
@@ -268,20 +273,22 @@ export function LocationPicker({
         </MapContainer>
       </div>
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="icon"
         onPointerDown={(e) => {
           e.stopPropagation()
           toggleFullscreen()
         }}
-        className="absolute right-3 bottom-3 z-[1000] flex size-8 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent"
+        className="absolute right-3 bottom-3 z-[1000] bg-card text-muted-foreground shadow-sm hover:bg-accent"
       >
         {fullscreen ? (
           <Minimize2 className="size-4" />
         ) : (
           <Maximize2 className="size-4" />
         )}
-      </button>
+      </Button>
 
       {!hasLocation && (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">

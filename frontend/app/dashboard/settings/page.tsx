@@ -320,10 +320,12 @@ export default function SettingsPage() {
                 {themeOptions.map(({ value, label, icon: Icon }) => {
                   const active = theme === value
                   return (
-                    <button
+                    <Button
                       key={value}
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setTheme(value)}
-                      className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-all ${
+                      className={`text-xs ${
                         active
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -331,7 +333,7 @@ export default function SettingsPage() {
                     >
                       <Icon className="size-3.5" />
                       {label}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>

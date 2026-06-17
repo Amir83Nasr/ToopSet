@@ -230,4 +230,15 @@ declare module "lucide-react" {
   export const Hand: Icon
   export const Calculator: Icon
   export const Store: Icon
+  export const Bath: Icon
+  export const GlassWater: Icon
+  export const LayoutGrid: Icon
+  export const ArmchairIcon: Icon
+  export const Fan: Icon
+  export const Car: Icon
+  export const DoorOpen: Icon
+  export const Volleyball: Icon
+  export const Swords: Icon
+  export const Footprints: Icon
+  export const MessageSquareText: Icon
 }

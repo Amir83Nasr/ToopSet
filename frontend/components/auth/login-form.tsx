@@ -144,15 +144,18 @@ export function LoginForm({
         <FieldDescription className="text-center">
           حساب کاربری ندارید؟{" "}
           {onRegisterClick ? (
-            <button
-              type="button"
-              onClick={onRegisterClick}
+            <Button type="button" variant="link" onClick={onRegisterClick}>
+              ثبت‌نام
+            </Button>
+          ) : (
+            <Link
+              href={
+                redirect
+                  ? `/register?redirect=${encodeURIComponent(redirect)}`
+                  : "/register"
+              }
               className="underline underline-offset-4"
             >
-              ثبت‌نام
-            </button>
-          ) : (
-            <Link href="/register" className="underline underline-offset-4">
               ثبت‌نام
             </Link>
           )}

@@ -33,12 +33,6 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
 import { HeroSection } from "@/components/public/hero-section"
-import { AboutSection } from "@/components/public/about-section"
-import { RolesSection } from "@/components/public/roles-section"
-import { HowItWorks } from "@/components/public/how-it-works"
-import { StatsBanner } from "@/components/public/stats-banner"
-import { SportsShowcase } from "@/components/public/sports-showcase"
-import { RecentReviews } from "@/components/public/recent-reviews"
 
 const CourtsMap = dynamic(
   () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
@@ -122,9 +116,7 @@ function HomePageContent() {
 
   // User geolocation for nearby courts
   const geo = useGeolocation()
-  const [maxDistance, _setMaxDistance] = useState("")
-
-  void _setMaxDistance
+  const [maxDistance] = useState("")
   const [locating, setLocating] = useState(false)
   const userLocation = useMemo(
     () =>
@@ -223,12 +215,6 @@ function HomePageContent() {
     return () => clearTimeout(timer)
   }, [authLoading, isAuthenticated, fetchCourts])
 
-  useEffect(() => {
-    // if (!authLoading && isAuthenticated) {
-    //   router.replace("/dashboard")
-    // }
-  }, [authLoading, isAuthenticated, router])
-
   function clearFilters() {
     setSearchText("")
     setSportFilter("all")
@@ -249,30 +235,13 @@ function HomePageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex flex-1 items-center justify-center overflow-x-hidden">
-          {/* Neon orbs */}
-          <div className="neon-orb neon-orb-1" />
-          <div className="neon-orb neon-orb-cyan max-lg:hidden" />
-          {/* Vertical hash side columns — like tailwindcss.com */}
-          <div className="bg-grid-side absolute inset-y-0 left-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
-          <div className="bg-grid-side absolute inset-y-0 right-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
+        <main className="relative flex flex-1 items-center justify-center overflow-x-hidden pt-16">
           <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </main>
         <SiteFooter />
       </div>
     )
   }
-
-  // if (isAuthenticated)
-  //   return (
-  //     <div className="flex min-h-svh flex-col">
-  //       <SiteHeader />
-  //       <div className="flex flex-1 items-center justify-center">
-  //         <p className="text-muted-foreground">در حال انتقال به داشبورد...</p>
-  //       </div>
-  //       <SiteFooter />
-  //     </div>
-  //   )
 
   const totalPages = Math.ceil(total / limit)
 
@@ -281,44 +250,16 @@ function HomePageContent() {
       {/* Site Header */}
       <SiteHeader />
 
-      <main className="relative overflow-x-hidden">
-        {/* Neon orbs — floating ambient glow */}
-        <div className="neon-orb neon-orb-1" />
-        <div className="neon-orb neon-orb-cyan" />
-        <div className="neon-orb neon-orb-purple" />
-        <div className="neon-orb neon-orb-pink" />
-
-        {/* Vertical hash side columns — like tailwindcss.com */}
-        <div className="bg-grid-side absolute inset-y-0 left-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
-        <div className="bg-grid-side absolute inset-y-0 right-[calc(50%+36rem)] z-10 w-12 border-x border-t border-b border-border/20 max-lg:hidden" />
-
+      <main className="relative overflow-x-hidden pt-16">
         {/* Hero Section */}
         <HeroSection />
 
-        {/* Stats Section */}
-        <StatsBanner />
-
-        {/* About Section */}
-        <AboutSection />
-
-        {/* Sports Showcase */}
-        <SportsShowcase />
-
-        {/* How It Works */}
-        <HowItWorks />
-
-        {/* Roles Section */}
-        <RolesSection />
-
-        {/* Recent Reviews */}
-        <RecentReviews />
-
         {/* Search & Filters */}
         <section
-          className="relative overflow-hidden px-4 py-16 md:py-20"
+          className="relative scroll-mt-16 overflow-hidden px-4 py-12 md:py-24"
           id="courts"
         >
-          <div className="relative z-10 mx-auto max-w-5xl">
+          <div className="relative z-10 mx-auto max-w-7xl">
             <div className="mb-10 text-center">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
                 جستجوی <span className="text-primary">سالن‌ها</span>
@@ -402,21 +343,23 @@ function HomePageContent() {
                     "handball",
                   ] as const
                 ).map((type) => (
-                  <button
+                  <Button
                     key={type}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setSportFilter(type)
                       setPage(0)
                     }}
-                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                    className={`rounded-full px-4 ${
                       sportFilter === type
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     }`}
                   >
                     {type === "all" ? "همه" : sportLabels[type]}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -481,49 +424,57 @@ function HomePageContent() {
                     <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
                       <Search className="size-3" />
                       {searchText}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => setSearchText("")}
-                        className="mr-1 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
-                      </button>
+                      </Button>
                     </span>
                   )}
                   {sportFilter !== "all" && (
                     <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
                       {sportLabels[sportFilter] || sportFilter}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => setSportFilter("all")}
-                        className="mr-1 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
-                      </button>
+                      </Button>
                     </span>
                   )}
                   {priceMin && (
                     <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
                       از {toPersianDigits(priceMin)}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => setPriceMin("")}
-                        className="mr-1 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
-                      </button>
+                      </Button>
                     </span>
                   )}
                   {priceMax && (
                     <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
                       تا {toPersianDigits(priceMax)}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => setPriceMax("")}
-                        className="mr-1 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
-                      </button>
+                      </Button>
                     </span>
                   )}
                 </div>
@@ -532,13 +483,9 @@ function HomePageContent() {
           </div>
         </section>
 
-        <div className="relative mx-auto max-w-5xl px-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-        </div>
-
         {/* Map */}
-        <section className="relative overflow-hidden px-4 py-16 md:py-20">
-          <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
+        <section className="relative overflow-hidden px-4 py-12 md:py-24">
+          <ScrollReveal className="relative z-10 mx-auto max-w-7xl">
             <div className="mb-8 text-center">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
                 موقعیت <span className="text-primary">سالن‌ها</span>
@@ -587,8 +534,8 @@ function HomePageContent() {
         </section>
 
         {/* Courts Grid */}
-        <section className="relative overflow-hidden px-4 py-16 md:py-20">
-          <ScrollReveal className="relative z-10 mx-auto max-w-5xl">
+        <section className="relative overflow-hidden px-4 py-12 md:py-24">
+          <ScrollReveal className="relative z-10 mx-auto max-w-6xl">
             <div className="mb-10 flex items-end justify-between">
               <div>
                 <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
@@ -597,12 +544,14 @@ function HomePageContent() {
                 <p className="mt-2 text-muted-foreground">
                   {toPersianDigits(total)} مجموعه پیدا شد
                   {hasActiveFilters && (
-                    <button
+                    <Button
+                      variant="link"
+                      size="sm"
                       onClick={clearFilters}
-                      className="mr-2 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                      className="mr-2 text-xs"
                     >
                       پاک کردن فیلتر
-                    </button>
+                    </Button>
                   )}
                 </p>
               </div>
@@ -697,7 +646,7 @@ function HomePageContent() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="mt-8 flex items-center justify-center gap-2">
+                  <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"

@@ -1,8 +1,6 @@
 "use client"
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, Star } from "lucide-react"
+import { Star } from "lucide-react"
 import { toPersianDigits } from "@/lib/utils"
 import {
   Stars,
@@ -15,7 +13,6 @@ interface CourtReviewsProps {
   reviews: Review[]
   averageRating: number
   total: number
-  courtId: number
 }
 
 function getReviewDistribution(reviews: Review[]): number[] {
@@ -30,7 +27,6 @@ export function CourtReviews({
   reviews,
   averageRating,
   total,
-  courtId,
 }: CourtReviewsProps) {
   if (!reviews || reviews.length === 0) return null
 
@@ -118,12 +114,9 @@ export function CourtReviews({
       </div>
 
       {total > 5 && (
-        <Button variant="outline" className="mt-4 w-full" asChild>
-          <Link href={`/courts/${courtId}/reviews`}>
-            مشاهده همه {toPersianDigits(total)} نظر
-            <ChevronLeft className="mr-2 size-4" />
-          </Link>
-        </Button>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          + {toPersianDigits(total - 5)} نظر دیگر
+        </p>
       )}
     </div>
   )

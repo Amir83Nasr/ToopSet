@@ -1,4 +1,18 @@
-import { Star } from "lucide-react"
+import {
+  Star,
+  Bath,
+  GlassWater,
+  LayoutGrid,
+  ArmchairIcon,
+  Fan,
+  Car,
+  DoorOpen,
+  Volleyball,
+  Swords,
+  Footprints,
+  Hand,
+  type LucideIcon,
+} from "lucide-react"
 import type { ReactNode } from "react"
 
 export interface CourtData {
@@ -41,6 +55,9 @@ export const sportLabels: Record<string, string> = {
   basketball: "بسکتبال",
   futsal: "فوتسال",
   handball: "هندبال",
+  football: "فوتبال",
+  tennis: "تنیس",
+  badminton: "بدمینتون",
 }
 
 export const sportColors: Record<string, string> = {
@@ -52,6 +69,19 @@ export const sportColors: Record<string, string> = {
     "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
   handball:
     "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+  football:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  tennis:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+  badminton: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
+}
+
+export const sportIcons: Record<string, LucideIcon> = {
+  volleyball: Volleyball,
+  basketball: Swords,
+  futsal: Footprints,
+  handball: Hand,
+  football: Footprints,
 }
 
 export const amenityLabels: Record<string, string> = {
@@ -62,6 +92,20 @@ export const amenityLabels: Record<string, string> = {
   air_conditioning: "تهویه مطبوع",
   parking: "پارکینگ",
   locker_room: "رختکن",
+  wifi: "اینترنت وای‌فای",
+  shower: "حمام",
+  canteen: "بوفه",
+  lighting: "نورافکن",
+}
+
+export const amenityIcons: Record<string, LucideIcon> = {
+  toilet: Bath,
+  water_cooler: GlassWater,
+  standard_flooring: LayoutGrid,
+  spectator_seating: ArmchairIcon,
+  air_conditioning: Fan,
+  parking: Car,
+  locker_room: DoorOpen,
 }
 
 export function formatTime(iso: string): string {

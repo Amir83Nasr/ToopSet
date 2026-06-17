@@ -86,13 +86,15 @@ export function AmenityCheckboxes({ value, onChange }: AmenityCheckboxesProps) {
                   <span className="font-medium">
                     {key.replace("custom_", "").replace(/_/g, " ")}
                   </span>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => handleRemoveCustom(key)}
                     className="text-muted-foreground hover:text-destructive"
                   >
                     <X className="size-3" />
-                  </button>
+                  </Button>
                 </span>
               ))}
             </div>

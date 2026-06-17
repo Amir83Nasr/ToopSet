@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Mail, Phone, MessageCircle, ArrowUp } from "lucide-react"
 import Image from "next/image"
+import { Button } from "@/components/ui/button"
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -11,21 +12,15 @@ const quickLinks = [
 ]
 
 const pageLinks = [
-  { href: "/#about", label: "درباره توپ‌سِت" },
+  { href: "/about", label: "درباره توپ‌سِت" },
   { href: "/terms", label: "قوانین و مقررات" },
   { href: "/privacy", label: "حریم خصوصی" },
 ]
 
 export function SiteFooter() {
   return (
-    <footer className="relative overflow-hidden border-t">
-      {/* Background */}
-      <div className="bg-grid pointer-events-none absolute inset-0 opacity-15 dark:opacity-[0.03]" />
-
-      {/* Top accent gradient */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-
-      <div className="relative mx-auto max-w-5xl px-4">
+    <footer className="relative overflow-hidden border-t bg-background">
+      <div className="relative mx-auto max-w-7xl px-4">
         {/* Main footer content */}
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
@@ -99,7 +94,7 @@ export function SiteFooter() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
                 <Phone className="size-4 shrink-0 text-primary/60" />
-                <span dir="ltr">۰۹۳۰-۶۸۵۳۳۶۳</span>
+                <span dir="ltr">۰۹۳۰۶۸۵۳۳۶۳</span>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
                 <Mail className="size-4 shrink-0 text-primary/60" />
@@ -120,26 +115,22 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Separator with gradient */}
-        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
             تمامی حقوق مادی و معنوی این وبسایت متعلق به توپ‌سِت می‌باشد.
           </p>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-all hover:gap-2 hover:text-foreground"
             aria-label="بازگشت به بالا"
+            className="text-xs text-muted-foreground hover:gap-2 hover:text-foreground"
           >
             <ArrowUp className="size-3.5" />
             بازگشت به بالا
-          </button>
+          </Button>
         </div>
-
-        {/* Bottom gradient line */}
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       </div>
     </footer>
   )

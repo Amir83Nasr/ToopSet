@@ -24,7 +24,9 @@ export default function RootLayout({
       <body>
         <link rel="preconnect" href="https://tile.openstreetmap.org" />
         <ThemeProvider>
-          <Providers>{children}</Providers>
+          <div id="toopset-root" className="relative">
+            <Providers>{children}</Providers>
+          </div>
         </ThemeProvider>
       </body>
     </html>

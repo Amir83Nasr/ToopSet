@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import {
   ArrowLeft,
-  MapPin,
   Building2,
   Phone,
   UserCircle,
@@ -26,10 +25,12 @@ import {
   LayoutDashboard,
   Users,
   X,
+  MapPin,
+  Clock,
 } from "lucide-react"
 import dynamic from "next/dynamic"
-import { CourtHero } from "@/components/courts/court-hero"
-import { CourtImageGallery } from "@/components/courts/court-image-gallery"
+import { CourtHeroGallery } from "@/components/courts/court-image-gallery"
+import { QuickStats } from "@/components/courts/court-hero"
 import { CourtAmenities } from "@/components/courts/court-amenities"
 import { CourtReviews } from "@/components/courts/court-reviews"
 import { CourtBooking } from "@/components/courts/court-booking"
@@ -49,7 +50,7 @@ const CourtLocationMap = dynamic(
     ),
   {
     ssr: false,
-    loading: () => <Skeleton className="h-56 w-full rounded-xl" />,
+    loading: () => <Skeleton className="h-56 w-full rounded-2xl" />,
   }
 )
 
@@ -57,20 +58,17 @@ function LoadingSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <Skeleton className="h-4 w-28 rounded-md" />
-      <Skeleton className="mt-6 h-[320px] w-full rounded-2xl" />
-      <div className="mt-8 space-y-2">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-5 w-72" />
-      </div>
+      <Skeleton className="mt-6 h-[400px] w-full rounded-3xl" />
+      <Skeleton className="mt-6 h-20 w-full rounded-2xl" />
       <div className="mt-8 grid gap-8 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-56 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="h-56 rounded-2xl" />
+          <Skeleton className="h-64 rounded-2xl" />
         </div>
         <div className="space-y-4">
-          <Skeleton className="h-40 rounded-xl" />
-          <Skeleton className="h-96 rounded-xl" />
+          <Skeleton className="h-40 rounded-2xl" />
+          <Skeleton className="h-96 rounded-2xl" />
         </div>
       </div>
     </div>
@@ -197,7 +195,7 @@ export default function PublicCourtDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="mx-auto max-w-6xl px-4 pt-6 pb-16">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 pt-6 pb-16">
         {/* Breadcrumb */}
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
@@ -205,6 +203,9 @@ export default function PublicCourtDetailPage() {
               <BreadcrumbLink href="/">خانه</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>جزئیات مجموعه</BreadcrumbPage>
+            </BreadcrumbItem>
             <BreadcrumbItem>
               <BreadcrumbPage>{court.name}</BreadcrumbPage>
             </BreadcrumbItem>
@@ -229,22 +230,82 @@ export default function PublicCourtDetailPage() {
           </div>
         )}
 
-        {/* Image Gallery */}
-        <CourtImageGallery images={court.images || []} courtName={court.name} />
-
-        {/* Court Hero */}
-        <CourtHero
-          court={court}
-          minPrice={minPrice}
+        {/* Hero Gallery — combined hero + image carousel */}
+        <CourtHeroGallery
+          images={court.images || []}
+          courtName={court.name}
+          courtId={court.id}
+          sportTypes={court.sport_types}
+          averageRating={court.average_rating}
           reviewsTotal={reviewsTotal}
+          minPrice={minPrice}
         />
+
+        {/* QuickStats Bar */}
+        <QuickStats court={court} reviewsTotal={reviewsTotal} />
 
         {/* Main Content + Sidebar */}
         <div className="grid gap-8 lg:grid-cols-5">
+          {/* ── Left column: main content ── */}
           <div className="space-y-8 lg:col-span-3">
+            {/* About Section */}
+            <div className="rounded-2xl border bg-card/80 p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md">
+              <SectionHeading
+                icon={<Building2 className="size-5" />}
+                title="درباره مجموعه"
+              />
+              <div className="space-y-4">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  مجموعه ورزشی <strong>{court.name}</strong> با دارا بودن{" "}
+                  {court.sport_types.length > 0 && (
+                    <>
+                      <strong>
+                        {toPersianDigits(court.sport_types.length)}
+                      </strong>{" "}
+                      رشته ورزشی مختلف (شامل{" "}
+                      {court.sport_types
+                        .map((s) => {
+                          const labels: Record<string, string> = {
+                            volleyball: "والیبال",
+                            basketball: "بسکتبال",
+                            futsal: "فوتسال",
+                            handball: "هندبال",
+                          }
+                          return labels[s] || s
+                        })
+                        .join("، ")}
+                      )
+                    </>
+                  )}{" "}
+                  آماده ارائه خدمات به ورزش‌دوستان عزیز می‌باشد. این مجموعه با
+                  ظرفیت <strong>{toPersianDigits(court.capacity)} نفر</strong> و
+                  با بهترین امکانات در خدمت شماست.
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-2.5">
+                    <MapPin className="size-4 text-primary" />
+                    <span className="text-muted-foreground">
+                      {court.address}
+                    </span>
+                  </div>
+                  {court.manager_name && (
+                    <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-2.5">
+                      <UserCircle className="size-4 text-primary" />
+                      <span className="text-muted-foreground">
+                        مدیر: {court.manager_name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Amenities */}
+            {court.amenities && <CourtAmenities amenities={court.amenities} />}
+
             {/* Location & Map */}
             {court.latitude != null && court.longitude != null && (
-              <div className="rounded-xl border bg-card p-5">
+              <div className="rounded-2xl border bg-card/80 p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md">
                 <SectionHeading
                   icon={<MapPin className="size-5" />}
                   title="موقعیت روی نقشه"
@@ -252,35 +313,33 @@ export default function PublicCourtDetailPage() {
                 <p className="mb-3 text-sm text-muted-foreground">
                   {court.address}
                 </p>
-                <CourtLocationMap
-                  latitude={court.latitude}
-                  longitude={court.longitude}
-                  name={court.name}
-                  height="280px"
-                  interactive
-                />
+                <div className="overflow-hidden rounded-xl ring-1 ring-border/50">
+                  <CourtLocationMap
+                    latitude={court.latitude}
+                    longitude={court.longitude}
+                    name={court.name}
+                    height="280px"
+                    interactive
+                  />
+                </div>
               </div>
             )}
-
-            {/* Amenities */}
-            {court.amenities && <CourtAmenities amenities={court.amenities} />}
 
             {/* Reviews */}
             <CourtReviews
               reviews={reviews}
               averageRating={court.average_rating}
               total={reviewsTotal}
-              courtId={courtId}
             />
           </div>
 
-          {/* Sidebar */}
-          <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+          {/* ── Right column: sidebar (sticky) ── */}
+          <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
             {/* Manager Info */}
             {(court.manager_name || court.manager_phone) && (
-              <div className="rounded-xl border bg-card shadow-sm">
-                <div className="flex items-center gap-3 border-b px-5 py-4">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+              <div className="rounded-2xl border bg-card/80 shadow-sm backdrop-blur-md transition-shadow hover:shadow-md">
+                <div className="flex items-center gap-3 border-b px-6 py-5">
+                  <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
                     <UserCircle className="size-5 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -292,8 +351,10 @@ export default function PublicCourtDetailPage() {
                 </div>
                 <div className="divide-y">
                   {court.manager_phone && (
-                    <div className="flex items-center gap-3 px-5 py-3 text-sm">
-                      <Phone className="size-4 shrink-0 text-primary" />
+                    <div className="flex items-center gap-3 px-6 py-3.5 text-sm transition-colors hover:bg-muted/20">
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Phone className="size-4 text-primary" />
+                      </div>
                       <a
                         href={`tel:${court.manager_phone}`}
                         className="font-medium text-primary hover:underline"
@@ -303,12 +364,16 @@ export default function PublicCourtDetailPage() {
                       </a>
                     </div>
                   )}
-                  <div className="flex items-center gap-3 px-5 py-3 text-sm text-muted-foreground">
-                    <MapPin className="size-4 shrink-0" />
+                  <div className="flex items-center gap-3 px-6 py-3.5 text-sm text-muted-foreground transition-colors hover:bg-muted/20">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <MapPin className="size-4" />
+                    </div>
                     <span className="truncate">{court.address}</span>
                   </div>
-                  <div className="flex items-center gap-3 px-5 py-3 text-sm text-muted-foreground">
-                    <Users className="size-4 shrink-0" />
+                  <div className="flex items-center gap-3 px-6 py-3.5 text-sm text-muted-foreground transition-colors hover:bg-muted/20">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <Users className="size-4" />
+                    </div>
                     <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
                   </div>
                 </div>
@@ -316,11 +381,11 @@ export default function PublicCourtDetailPage() {
             )}
 
             {/* Date Range Picker */}
-            <div className="rounded-xl border bg-card shadow-sm">
-              <div className="border-b px-5 py-4">
+            <div className="rounded-2xl border bg-card/80 shadow-sm backdrop-blur-md">
+              <div className="border-b px-6 py-5">
                 <h3 className="text-sm font-semibold">انتخاب بازه تاریخ</h3>
               </div>
-              <div className="space-y-3 p-4">
+              <div className="space-y-3 p-5">
                 <span className="block text-xs text-muted-foreground">
                   بازه مد نظر خود را انتخاب کنید
                 </span>
@@ -340,13 +405,13 @@ export default function PublicCourtDetailPage() {
                   {dateRange?.from && (
                     <Button
                       variant="outline"
+                      size="icon"
                       onClick={() => {
                         setDateRange(undefined)
                         setSelectedDate(today)
                       }}
                     >
-                      <X className="ml-1.5 size-4" />
-                      حذف فیلتر
+                      <X className="size-4" />
                     </Button>
                   )}
                 </div>

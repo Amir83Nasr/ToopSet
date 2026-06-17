@@ -99,7 +99,7 @@ function LocateButton() {
         btn.innerHTML =
           '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'
         btn.className =
-          "leaflet-control-zoom leaflet-bar part flex items-center justify-center cursor-pointer border border-gray-300 bg-white rounded-lg shadow-sm hover:bg-gray-100 transition-colors"
+          "leaflet-control-zoom leaflet-bar part flex items-center justify-center cursor-pointer border bg-background rounded-lg shadow-sm hover:bg-muted transition-colors"
         btn.style.cssText = "width:34px;height:34px;margin-bottom:4px"
         btn.title = "موقعیت من"
         btn.setAttribute("aria-label", "موقعیت من")

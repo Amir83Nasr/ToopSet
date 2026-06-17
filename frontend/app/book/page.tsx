@@ -456,7 +456,7 @@ function BookPageContent() {
                 <span className="text-muted-foreground">وضعیت</span>
                 <Badge
                   variant="outline"
-                  className="border-amber-300 text-amber-600"
+                  className="border-primary/30 text-amber-600"
                 >
                   منتظر پرداخت
                 </Badge>

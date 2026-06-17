@@ -64,10 +64,10 @@ export function CourtBooking({
   }, [])
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm">
-      <div className="border-b px-6 py-5">
+    <div className="rounded-2xl border bg-card/80 shadow-sm backdrop-blur-md transition-shadow hover:shadow-md">
+      <div className="border-b bg-gradient-to-r from-primary/5 via-transparent to-transparent px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
             <Calendar className="size-5 text-primary" />
           </div>
           <div>
@@ -94,8 +94,8 @@ export function CourtBooking({
                   onClick={() => onDateSelect(date)}
                   className={`flex min-w-[84px] shrink-0 flex-col items-center gap-1 rounded-xl border-2 py-3 text-sm transition-all ${
                     selectedDate === date
-                      ? "border-primary bg-primary text-primary-foreground shadow-md"
-                      : "border-border/50 bg-background/40 hover:border-primary/40 hover:bg-muted/30"
+                      ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      : "border-border/50 bg-background/40 hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm"
                   }`}
                 >
                   <span
@@ -157,7 +157,7 @@ export function CourtBooking({
                     disabled={slot.is_reserved}
                     className={`flex w-full items-center justify-between rounded-xl border-2 p-4 text-right transition-all ${
                       slot.is_reserved
-                        ? "border-red-100 bg-red-50/40 opacity-60 dark:border-red-900/20 dark:bg-red-950/5"
+                        ? "border-destructive/30 bg-destructive/5 opacity-60 dark:border-destructive/20"
                         : isSelected
                           ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20"
                           : "border-border/50 bg-background/40 hover:border-primary/40 hover:bg-muted/20 hover:shadow-sm"
@@ -201,7 +201,7 @@ export function CourtBooking({
                           ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
                           : isSelected
                             ? ""
-                            : "border-green-300 text-green-600 dark:border-green-700"
+                            : "border-primary/30 text-green-600 dark:border-primary/30"
                       }`}
                     >
                       {slot.is_reserved
@@ -219,7 +219,7 @@ export function CourtBooking({
 
         {/* Booking CTA */}
         {selectedSlot && !selectedSlot.is_reserved && (
-          <div className="mt-6 space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-5">
+          <div className="mt-6 space-y-4 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
                 مبلغ قابل پرداخت
@@ -229,7 +229,7 @@ export function CourtBooking({
               </span>
             </div>
             <Button
-              className="h-12 w-full text-base font-semibold shadow-sm"
+              className="h-12 w-full text-base font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30"
               size="lg"
               onClick={() => onBook(selectedSlot)}
             >

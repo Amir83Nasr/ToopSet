@@ -212,11 +212,7 @@ export default function AdminDashboardPage() {
   ]
 
   return (
-    <div className="bg-mesh relative min-h-screen overflow-x-hidden px-4 py-6">
-      {/* Ambient background orbs for depth */}
-      <div className="neon-orb neon-orb-1" />
-      <div className="neon-orb neon-orb-2" />
-
+    <div className="relative min-h-screen overflow-x-hidden px-4 py-6">
       <div className="relative z-10 mx-auto max-w-7xl">
         {/* Header */}
         <ScrollReveal>

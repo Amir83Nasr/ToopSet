@@ -27,7 +27,7 @@ async def list_slots(
     court_id: int,
     date: str | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     service: TimeSlotService = Depends(get_time_slot_service_public),
 ):
     return await service.list_slots(court_id, date=date, skip=skip, limit=limit)

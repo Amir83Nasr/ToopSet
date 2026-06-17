@@ -4,6 +4,7 @@ import { useCallback, useState } from "react"
 import Image from "next/image"
 import { toast } from "@/lib/toast"
 import { uploadFile, type UploadResult, ApiError } from "@/lib/api"
+import { Button } from "@/components/ui/button"
 import { ImagePlus, Loader2, Trash2 } from "lucide-react"
 
 interface ImageUploadProps {
@@ -81,13 +82,15 @@ export function ImageUpload({
               className="object-cover"
               sizes="96px"
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => removeImage(index)}
-              className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+              className="absolute inset-0 flex size-full items-center justify-center rounded-none bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
             >
               <Trash2 className="size-5 text-white" />
-            </button>
+            </Button>
           </div>
         ))}
 

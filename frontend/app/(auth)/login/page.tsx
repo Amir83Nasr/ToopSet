@@ -35,7 +35,7 @@ function LoginPageContent() {
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
             {reasonMessage && (
-              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/50 dark:text-amber-200">
+              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary dark:border-primary/20 dark:bg-primary/10 dark:text-primary">
                 {reasonMessage}
               </div>
             )}

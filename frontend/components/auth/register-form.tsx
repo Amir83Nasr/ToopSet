@@ -27,12 +27,14 @@ import type { UseAuthReturn } from "@/hooks/use-auth"
 
 interface Props {
   register: UseAuthReturn["register"]
+  redirect?: string
   onLoginClick?: () => void
   onSuccess?: () => void
 }
 
 export function RegisterForm({
   register: registerFn,
+  redirect,
   onLoginClick,
   onSuccess,
 }: Props) {
@@ -48,7 +50,7 @@ export function RegisterForm({
 
   async function onSubmit(data: RegisterInput) {
     try {
-      await registerFn(data)
+      await registerFn(data, redirect)
       onSuccess?.()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در ثبت‌نام")
@@ -166,13 +168,9 @@ export function RegisterForm({
         <FieldDescription className="text-center">
           قبلاً ثبت‌نام کرده‌اید؟{" "}
           {onLoginClick ? (
-            <button
-              type="button"
-              onClick={onLoginClick}
-              className="underline underline-offset-4"
-            >
+            <Button type="button" variant="link" onClick={onLoginClick}>
               ورود
-            </button>
+            </Button>
           ) : (
             <Link href="/login" className="underline underline-offset-4">
               ورود

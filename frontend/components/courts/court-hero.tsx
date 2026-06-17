@@ -1,80 +1,101 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
-import { FavoriteButton } from "@/components/courts/favorite-button"
 import { toPersianDigits } from "@/lib/utils"
 import {
-  sportColors,
-  sportLabels,
   Stars,
-  formatPrice,
+  sportLabels,
   type CourtData,
 } from "@/components/courts/court-shared"
-import { MapPin, Users, UserCircle } from "lucide-react"
+import { Users, Star, MessageSquareText, Swords } from "lucide-react"
 
-interface CourtHeroProps {
+interface QuickStatsProps {
   court: CourtData
-  minPrice: number | null
   reviewsTotal: number
 }
 
-export function CourtHero({ court, minPrice, reviewsTotal }: CourtHeroProps) {
+export function QuickStats({ court, reviewsTotal }: QuickStatsProps) {
+  const sportCount = court.sport_types?.length || 0
+
   return (
     <div className="mb-10">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {court.sport_types?.map((st) => (
-          <Badge key={st} className={sportColors[st] || ""} variant="secondary">
-            {sportLabels[st] || st}
-          </Badge>
-        ))}
-        <div className="mr-auto">
-          <FavoriteButton courtId={court.id} size="sm" />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            {court.name}
-          </h1>
-          <div className="mt-2 flex items-center gap-3">
-            <Stars rating={court.average_rating} size={16} />
-            <span className="text-sm font-semibold">
-              {toPersianDigits(court.average_rating.toFixed(1))}
-            </span>
-            {reviewsTotal > 0 && (
-              <span className="text-sm text-muted-foreground">
-                ({toPersianDigits(reviewsTotal)} نظر)
-              </span>
-            )}
+      <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-2xl border bg-card/50 px-6 py-4 backdrop-blur-sm">
+        {/* Capacity */}
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+            <Users className="size-5 text-primary" />
           </div>
-        </div>
-
-        {minPrice && (
-          <div className="shrink-0 rounded-xl border bg-background/60 px-5 py-3 text-center backdrop-blur-sm">
-            <p className="text-xs text-muted-foreground">قیمت هر سانس از</p>
-            <p className="text-xl font-bold text-primary">
-              {formatPrice(minPrice)}
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">
+              ظرفیت
+            </p>
+            <p className="text-sm font-bold">
+              {toPersianDigits(court.capacity)}{" "}
+              <span className="text-xs font-medium text-muted-foreground">
+                نفر
+              </span>
             </p>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <MapPin className="size-4 shrink-0 text-primary/60" />
-          <span className="max-w-[300px] truncate">{court.address}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Users className="size-4 shrink-0 text-primary/60" />
-          <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
-        </div>
-        {court.manager_name && (
-          <div className="flex items-center gap-1.5">
-            <UserCircle className="size-4 shrink-0 text-primary/60" />
-            <span>مدیر: {court.manager_name}</span>
+        <div className="hidden h-10 w-px bg-border/60 sm:block" />
+
+        {/* Sport types */}
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-chart-1/10">
+            <Swords className="size-5 text-chart-1" />
           </div>
-        )}
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">
+              رشته ورزشی
+            </p>
+            <p className="text-sm font-bold">
+              {toPersianDigits(sportCount)}{" "}
+              <span className="text-xs font-medium text-muted-foreground">
+                {sportCount === 1 ? "رشته" : "رشته"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden h-10 w-px bg-border/60 sm:block" />
+
+        {/* Rating */}
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/20">
+            <Star className="size-5 fill-amber-400 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">
+              امتیاز
+            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-bold">
+                {toPersianDigits(court.average_rating.toFixed(1))}
+              </p>
+              <Stars rating={court.average_rating} size={12} />
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden h-10 w-px bg-border/60 sm:block" />
+
+        {/* Reviews count */}
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/20">
+            <MessageSquareText className="size-5 text-sky-500" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">
+              نظرات
+            </p>
+            <p className="text-sm font-bold">
+              {toPersianDigits(reviewsTotal)}{" "}
+              <span className="text-xs font-medium text-muted-foreground">
+                نظر
+              </span>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
