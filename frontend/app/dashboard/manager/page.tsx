@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts"
 import {
@@ -26,6 +26,13 @@ import {
   Calendar,
   TrendingUp,
 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { TodayPreview } from "@/components/dashboard/manager/today-preview"
+import type { TimeSlot } from "@/components/dashboard/schedule/types"
 
 interface ManagerStats {
   my_courts: number
@@ -71,7 +78,7 @@ const quickActions = [
   },
   {
     title: "زمان‌بندی",
-    href: "/dashboard/courts/schedule",
+    href: "/dashboard/manager/schedule",
     icon: Calendar,
     variant: "outline" as const,
   },
@@ -86,6 +93,7 @@ const quickActions = [
 export default function ManagerDashboardPage() {
   const [stats, setStats] = useState<ManagerStats | null>(null)
   const [revenue, setRevenue] = useState<RevenueRow[]>([])
+  const [todaySlots, setTodaySlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -99,6 +107,24 @@ export default function ManagerDashboardPage() {
       ])
       setStats(statsData)
       setRevenue((revenueData || []).reverse().slice(-7))
+
+      // Fetch today's slots from the first court
+      try {
+        const courtsRes = await api<{ courts: { id: number }[] }>(
+          "/api/v1/courts?skip=0&limit=1"
+        )
+        if (courtsRes.courts.length > 0) {
+          const todayKey = new Date().toLocaleDateString("en-CA")
+          const slotsRes = await api<{ slots: TimeSlot[] }>(
+            `/api/v1/courts/${courtsRes.courts[0].id}/slots?skip=0&limit=100`
+          )
+          setTodaySlots(slotsRes.slots.filter((s: TimeSlot) =>
+            new Date(s.start_time).toLocaleDateString("en-CA") === todayKey
+          ))
+        }
+      } catch {
+        // Non-critical — TodayPreview just stays empty
+      }
     } catch (err) {
       const msg =
         err instanceof ApiError ? err.message : "خطا در دریافت اطلاعات"
@@ -166,9 +192,16 @@ export default function ManagerDashboardPage() {
             </Link>
           </Button>
         ))}
-        <Button variant="ghost" size="icon" onClick={fetchData}>
-          <RefreshCw className="size-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={fetchData}>
+              <RefreshCw className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>به‌روزرسانی</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Error state */}
@@ -223,6 +256,9 @@ export default function ManagerDashboardPage() {
             ))}
       </div>
 
+      {/* Today preview */}
+      <TodayPreview slots={todaySlots} loading={loading} />
+
       {/* Revenue chart + Summary */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Chart */}
@@ -251,7 +287,7 @@ export default function ManagerDashboardPage() {
                       fontSize={11}
                     />
                     <YAxis fontSize={11} />
-                    <Tooltip
+                    <RechartsTooltip
                       labelFormatter={(d) => formatDate(d as string)}
                       formatter={(value) => [
                         formatPersianNumber(Number(value) || 0) + " تومان",
