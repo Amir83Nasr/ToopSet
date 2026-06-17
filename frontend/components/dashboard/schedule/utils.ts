@@ -29,14 +29,6 @@ export function formatPersianDate(date: Date): string {
   })
 }
 
-export function formatPersianShortDate(date: Date): string {
-  return date.toLocaleDateString("fa-IR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  })
-}
-
 export function getDateKey(date: Date): string {
   return date.toLocaleDateString("en-CA")
 }
@@ -161,8 +153,8 @@ export function extractTemplateFromSlots(slots: TimeSlot[]): {
     if (!daySets[persianIdx]) daySets[persianIdx] = new Set()
     daySets[persianIdx].add("x")
 
-    const start = formatTime(slot.start_time)
-    const end = formatTime(slot.end_time)
+    const start = slot.start_time.slice(11, 16)
+    const end = slot.end_time.slice(11, 16)
     const key = `${start}-${end}`
     if (!templateMap.has(key)) {
       templateMap.set(key, {

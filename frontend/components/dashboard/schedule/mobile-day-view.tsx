@@ -28,9 +28,7 @@ export function MobileDayView({
   const days = useMemo(() => getWeekDays(weekStart), [weekStart])
   const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
     const today = new Date()
-    return days.findIndex(
-      (d) => getDateKey(d) === getDateKey(today)
-    )
+    return days.findIndex((d) => getDateKey(d) === getDateKey(today))
   })
 
   const currentIndex = selectedDayIndex === -1 ? 0 : selectedDayIndex
@@ -39,10 +37,10 @@ export function MobileDayView({
   const grouped = useMemo(() => groupSlotsByDateKey(slots, days), [slots, days])
   const daySlots = grouped[dateKey] ?? []
   const todayKey = getDateKey(new Date())
-  const isToday = dateKey === todayKey
 
   const goPrev = () => setSelectedDayIndex((i) => Math.max(0, i - 1))
-  const goNext = () => setSelectedDayIndex((i) => Math.min(days.length - 1, i + 1))
+  const goNext = () =>
+    setSelectedDayIndex((i) => Math.min(days.length - 1, i + 1))
 
   // Convert days to swipe-friendly format
   const dayOptions = days.map((d, i) => ({
@@ -55,7 +53,12 @@ export function MobileDayView({
     <div className="space-y-3">
       {/* Day selector */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={goPrev} disabled={currentIndex === 0}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={goPrev}
+          disabled={currentIndex === 0}
+        >
           <ChevronRight className="size-5" />
         </Button>
 
@@ -77,7 +80,12 @@ export function MobileDayView({
           ))}
         </div>
 
-        <Button variant="ghost" size="icon" onClick={goNext} disabled={currentIndex === days.length - 1}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={goNext}
+          disabled={currentIndex === days.length - 1}
+        >
           <ChevronLeft className="size-5" />
         </Button>
       </div>
@@ -87,9 +95,15 @@ export function MobileDayView({
         {daySlots.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12">
             <CalendarDays className="size-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">هیچ زمانی برای این روز تعریف نشده</p>
+            <p className="text-sm text-muted-foreground">
+              هیچ زمانی برای این روز تعریف نشده
+            </p>
             {onAddSlot && (
-              <Button variant="outline" size="sm" onClick={() => onAddSlot(currentDay)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onAddSlot(currentDay)}
+              >
                 <Plus className="ml-1 size-3.5" />
                 افزودن زمان
               </Button>
