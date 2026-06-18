@@ -11,6 +11,7 @@ __all__ = [
     "payments",
     "penalties",
     "reviews",
+    "settings",
     "time_slots",
     "uploads",
     "users",

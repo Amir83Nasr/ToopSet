@@ -169,7 +169,7 @@ export default function CourtsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-4">
+      <div className="rounded-lg border bg-card p-3">
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />

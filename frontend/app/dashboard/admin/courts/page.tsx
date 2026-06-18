@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -22,6 +23,14 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { toPersianDigits } from "@/lib/utils"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
 import {
   CheckCircle,
@@ -54,14 +63,19 @@ export default function AdminPendingCourtsPage() {
   const router = useRouter()
   const [courts, setCourts] = useState<PendingCourt[]>([])
   const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const limit = usePaginationLimit()
 
   const fetchCourts = useCallback(async () => {
     setLoading(true)
     try {
+      const params = new URLSearchParams()
+      params.set("skip", String(page * limit))
+      params.set("limit", String(limit))
       const res = await api<{ courts: PendingCourt[]; total: number }>(
-        "/api/v1/admin/pending-courts"
+        `/api/v1/admin/pending-courts?${params}`
       )
       setCourts(res.courts)
       setTotal(res.total)
@@ -70,7 +84,7 @@ export default function AdminPendingCourtsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, limit])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchCourts(), 0)
@@ -116,7 +130,7 @@ export default function AdminPendingCourtsPage() {
   )
 
   return (
-    <div className="flex flex-1 flex-col gap-6 px-4 py-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">
@@ -129,7 +143,10 @@ export default function AdminPendingCourtsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchCourts}
+          onClick={() => {
+            setPage(0)
+            fetchCourts()
+          }}
           disabled={loading}
         >
           <RefreshCw
@@ -178,11 +195,11 @@ export default function AdminPendingCourtsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>نام مجموعه</TableHead>
-                    <TableHead>مدیر</TableHead>
-                    <TableHead>ورزش‌ها</TableHead>
-                    <TableHead>ظرفیت</TableHead>
-                    <TableHead>تاریخ ثبت</TableHead>
-                    <TableHead className="w-40">عملیات</TableHead>
+                    <TableHead className="w-36">مدیر</TableHead>
+                    <TableHead className="w-40">ورزش‌ها</TableHead>
+                    <TableHead className="w-16">ظرفیت</TableHead>
+                    <TableHead className="w-24">تاریخ ثبت</TableHead>
+                    <TableHead className="w-44">عملیات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,6 +278,48 @@ export default function AdminPendingCourtsPage() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* Pagination */}
+              {total > limit && (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    صفحه {toPersianDigits(page + 1)} از{" "}
+                    {toPersianDigits(Math.ceil(total / limit))}
+                  </p>
+                  <Pagination className="mx-0 w-auto">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          text="قبلی"
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setPage((p) => p - 1)
+                          }}
+                          className={
+                            page === 0 ? "pointer-events-none opacity-50" : ""
+                          }
+                        />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationNext
+                          text="بعدی"
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setPage((p) => p + 1)
+                          }}
+                          className={
+                            page >= Math.ceil(total / limit) - 1
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </CardContent>
           </Card>
         </ScrollReveal>

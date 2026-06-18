@@ -4,9 +4,19 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -15,6 +25,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   CreditCard,
@@ -22,6 +39,7 @@ import {
   ChevronRight,
   AlertCircle,
   RefreshCw,
+  Search,
 } from "lucide-react"
 
 // --- Types ---
@@ -125,16 +143,32 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState<PaymentDetail[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const limit = 20
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const fetchPayments = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
+      const params = new URLSearchParams()
+      params.set("skip", String(page * limit))
+      params.set("limit", String(limit))
+      if (statusFilter !== "all") params.set("status", statusFilter)
+      if (debouncedSearch) params.set("search", debouncedSearch)
       const res = await api<PaymentListResponse>(
-        `/api/v1/payments/my?skip=${page * limit}&limit=${limit}`
+        `/api/v1/payments/my?${params}`
       )
       setPayments(res.payments)
       setTotal(res.total)
@@ -143,7 +177,7 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, statusFilter, debouncedSearch])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -291,9 +325,52 @@ export default function PaymentsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">پرداخت‌ها</h1>
-        <p className="text-muted-foreground">تاریخچه پرداخت‌های شما</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">پرداخت‌ها</h1>
+          <p className="text-muted-foreground">تاریخچه پرداخت‌های شما</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => fetchPayments()}>
+          <RefreshCw className="ml-1.5 size-4" />
+          بروزرسانی
+        </Button>
+      </div>
+
+      {/* Search & filter bar */}
+      <div className="rounded-lg border bg-card p-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="جستجوی مجموعه..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          <div>
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="همه وضعیت‌ها" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>وضعیت پرداخت</SelectLabel>
+                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value="success">موفق</SelectItem>
+                  <SelectItem value="pending">در انتظار</SelectItem>
+                  <SelectItem value="failed">ناموفق</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {loading

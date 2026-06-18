@@ -5,6 +5,7 @@ import * as React from "react"
 import { api } from "@/lib/api"
 import { toPersianDigits, toLocalDateStr, todayStr } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -30,17 +31,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import {
-  ChevronLeft,
-  ChevronRight,
-  ShieldX,
-  History,
-  RefreshCw,
-  Trash2,
-  X,
-} from "lucide-react"
+import { ShieldX, History, RefreshCw, Trash2, X } from "lucide-react"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import {
   AlertDialog,
@@ -169,7 +169,7 @@ export default function AdminLogsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingLogId, setDeletingLogId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const limit = 50
+  const limit = usePaginationLimit()
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -190,7 +190,7 @@ export default function AdminLogsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, actionFilter, dateFrom, dateTo])
+  }, [page, limit, actionFilter, dateFrom, dateTo])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchLogs(), 0)
@@ -260,7 +260,7 @@ export default function AdminLogsPage() {
                 setPage(0)
               }}
             >
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="همه عملیات" />
               </SelectTrigger>
               <SelectContent position="popper">
@@ -411,10 +411,10 @@ export default function AdminLogsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">تاریخ</TableHead>
-                  <TableHead className="text-right">ساعت</TableHead>
-                  <TableHead className="text-right">کاربر</TableHead>
-                  <TableHead className="text-right">عملیات</TableHead>
+                  <TableHead className="w-24 text-right">تاریخ</TableHead>
+                  <TableHead className="w-20 text-right">ساعت</TableHead>
+                  <TableHead className="w-32 text-right">کاربر</TableHead>
+                  <TableHead className="w-36 text-right">عملیات</TableHead>
                   <TableHead className="text-right">جزئیات</TableHead>
                   <TableHead className="w-16 text-right">عملیات</TableHead>
                 </TableRow>
@@ -468,29 +468,43 @@ export default function AdminLogsPage() {
             </Table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-3">
               <p className="text-sm text-muted-foreground">
                 صفحه {toPersianDigits(page + 1)} از{" "}
                 {toPersianDigits(totalPages)}
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronRight className="ml-1 size-4" /> قبلی
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  بعدی <ChevronLeft className="mr-1 size-4" />
-                </Button>
-              </div>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      text="قبلی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p - 1)
+                      }}
+                      className={
+                        page === 0 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      text="بعدی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p + 1)
+                      }}
+                      className={
+                        page >= totalPages - 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </div>

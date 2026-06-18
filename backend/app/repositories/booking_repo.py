@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking, BookingStatus
+from app.models.court import Court
 from app.models.time_slot import TimeSlot
+from app.models.user import User
 
 _BOOKING_STATUSES = [s.value for s in BookingStatus]
 
@@ -22,6 +24,7 @@ class BookingRepo:
         *,
         skip: int = 0,
         limit: int = 20,
+        status_filter: str | None = None,
     ) -> tuple[list[Booking], int]:
         query = (
             select(Booking)
@@ -30,6 +33,10 @@ class BookingRepo:
             .order_by(Booking.created_at.desc())
         )
         count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
+
+        if status_filter:
+            query = query.where(Booking.status == status_filter)
+            count_q = count_q.where(Booking.status == status_filter)
 
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))
@@ -64,16 +71,32 @@ class BookingRepo:
         *,
         skip: int = 0,
         limit: int = 20,
+        search: str | None = None,
         status_filter: str | None = None,
     ) -> tuple[list[Booking], int]:
-        query = select(Booking).options(
-            selectinload(Booking.slot).selectinload(TimeSlot.court),
-            selectinload(Booking.user),
+        query = (
+            select(Booking)
+            .options(
+                selectinload(Booking.slot).selectinload(TimeSlot.court),
+                selectinload(Booking.user),
+            )
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Court, TimeSlot.court_id == Court.id)
+            .outerjoin(User, Booking.user_id == User.id)
         )
-        count_q = select(func.count(Booking.id))
+        count_q = (
+            select(func.count(Booking.id))
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Court, TimeSlot.court_id == Court.id)
+            .outerjoin(User, Booking.user_id == User.id)
+        )
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
+        if search:
+            pattern = f"%{search}%"
+            query = query.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
+            count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
         query = query.order_by(Booking.created_at.desc())
         total = (await self.db.execute(count_q)).scalar_one()
         result = await self.db.execute(query.offset(skip).limit(limit))

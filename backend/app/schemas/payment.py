@@ -12,6 +12,7 @@ class PaymentDetailResponse(BaseModel):
     booking_id: int
     amount: float
     status: PaymentStatus
+    user_name: str = ""
     gateway_transaction_id: str | None = None
     gateway_name: str | None = None
     card_number: str | None = None

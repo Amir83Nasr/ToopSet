@@ -51,17 +51,70 @@ interface NavGroup {
 }
 
 const navGroups: NavGroup[] = [
+  // ── Dashboard (all roles) ──
+  {
+    label: "داشبورد",
+    roles: ["admin"],
+    items: [
+      {
+        title: "داشبورد",
+        url: "/dashboard/admin",
+        icon: LayoutDashboard,
+      },
+    ],
+  },
   {
     label: "داشبورد",
     roles: ["manager"],
     items: [
       {
-        title: "داشبورد مدیر",
+        title: "داشبورد",
         url: "/dashboard/manager",
         icon: LayoutDashboard,
       },
     ],
   },
+  {
+    label: "داشبورد",
+    roles: ["user"],
+    items: [
+      {
+        title: "داشبورد",
+        url: "/dashboard/user",
+        icon: LayoutDashboard,
+      },
+    ],
+  },
+
+  // ── Reports (admin) ──
+  {
+    label: "گزارشات",
+    roles: ["admin"],
+    items: [{ title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 }],
+  },
+
+  // ── Management (admin) ──
+  {
+    label: "مدیریت",
+    roles: ["admin"],
+    items: [
+      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
+      {
+        title: "رزروها",
+        url: "/dashboard/admin/bookings",
+        icon: Calendar,
+      },
+      { title: "کاربران", url: "/dashboard/users", icon: Users },
+      {
+        title: "پرداخت‌ها",
+        url: "/dashboard/admin/payments",
+        icon: CreditCard,
+      },
+      { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
+    ],
+  },
+
+  // ── Court management (manager) ──
   {
     label: "مدیریت مجموعه",
     roles: ["manager"],
@@ -74,25 +127,26 @@ const navGroups: NavGroup[] = [
       },
     ],
   },
+
+  // ── Bookings (user) ──
   {
-    label: "گزارشات",
-    roles: ["admin"],
-    items: [{ title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 }],
-  },
-  {
-    label: "مدیریت",
-    roles: ["admin"],
+    label: "رزروها",
+    roles: ["user"],
     items: [
-      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
-      { title: "کاربران", url: "/dashboard/users", icon: Users },
+      {
+        title: "رزروهای من",
+        url: "/dashboard/bookings",
+        icon: Calendar,
+      },
       {
         title: "پرداخت‌ها",
-        url: "/dashboard/admin/payments",
+        url: "/dashboard/payments",
         icon: CreditCard,
       },
-      { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
     ],
   },
+
+  // ── System settings (admin) ──
   {
     label: "تنظیمات سیستم",
     roles: ["admin"],
@@ -101,6 +155,8 @@ const navGroups: NavGroup[] = [
       { title: "لاگ‌ها", url: "/dashboard/admin/logs", icon: History },
     ],
   },
+
+  // ── General (all roles) ──
   {
     label: "سیستم",
     roles: ["admin", "manager", "user"],

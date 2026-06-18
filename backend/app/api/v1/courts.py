@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_manager
 from app.core.database import get_db
 from app.core.date_utils import parse_date_filter, parse_date_filter_end
+from app.core.upload import delete_upload
 from app.models.court import Court, SportType
 from app.models.court_image import CourtImage
 from app.models.user import User
@@ -157,6 +158,7 @@ async def delete_court_image(
     img = await db.get(CourtImage, image_id)
     if not img or img.court_id != court_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="تصویر یافت نشد")
+    delete_upload(img.url)
     await db.delete(img)
     await db.commit()
 

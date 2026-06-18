@@ -56,8 +56,17 @@ def delete_upload(relative_path: str | None) -> bool:
     if not relative_path:
         return False
     try:
-        # relative_path: /uploads/avatars/uuid.jpg
-        rel = relative_path.lstrip("/")
+        # Handle both relative (/uploads/avatars/uuid.jpg) and absolute
+        # (http://localhost:8000/uploads/avatars/uuid.jpg) URLs
+        path = relative_path
+        if "://" in path:
+            from urllib.parse import urlparse
+
+            path = urlparse(path).path
+        # Strip leading /uploads/ since BASE_UPLOAD_DIR already resolves to uploads/
+        rel = path.lstrip("/")
+        if rel.startswith("uploads/"):
+            rel = rel[len("uploads/") :]
         filepath = BASE_UPLOAD_DIR / rel
         if filepath.exists() and filepath.is_file():
             filepath.unlink()

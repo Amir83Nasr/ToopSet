@@ -216,6 +216,8 @@ declare module "lucide-react" {
   export const ShieldAlert: Icon
   export const History: Icon
   export const Settings2: Icon
+  export const Construction: Icon
+  export const Wrench: Icon
   export const Save: Icon
   export const Tag: Icon
   export const Type: Icon

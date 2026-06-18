@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -38,10 +39,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
 import {
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   RefreshCw,
   Search,
@@ -92,7 +98,7 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
-  const limit = 20
+  const limit = usePaginationLimit()
 
   // Delete user dialog
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
@@ -127,7 +133,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, roleFilter, statusFilter])
+  }, [page, limit, search, roleFilter, statusFilter])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchUsers(), 0)
@@ -223,8 +229,8 @@ export default function UsersPage() {
       </div>
 
       {/* Search & filter bar */}
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="rounded-lg border bg-card p-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -306,22 +312,18 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">ردیف</TableHead>
                 <TableHead className="text-right">نام</TableHead>
-                <TableHead className="text-right">تلفن</TableHead>
-                <TableHead className="text-right">نقش</TableHead>
-                <TableHead className="text-right">وضعیت</TableHead>
-                <TableHead className="text-right">تاریخ ثبت‌نام</TableHead>
-                <TableHead className="text-right">عملیات</TableHead>
+                <TableHead className="w-36 text-right">تلفن</TableHead>
+                <TableHead className="w-32 text-right">نقش</TableHead>
+                <TableHead className="w-20 text-right">وضعیت</TableHead>
+                <TableHead className="w-24 text-right">تاریخ ثبت‌نام</TableHead>
+                <TableHead className="w-48 text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u, idx) => {
+              {users.map((u) => {
                 return (
                   <TableRow key={u.id}>
-                    <TableCell className="text-right text-muted-foreground">
-                      {toPersianDigits(page * limit + idx + 1)}
-                    </TableCell>
                     <TableCell className="text-right font-medium">
                       {u.full_name}
                     </TableCell>
@@ -403,31 +405,43 @@ export default function UsersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-3">
               <p className="text-sm text-muted-foreground">
                 صفحه {toPersianDigits(page + 1)} از{" "}
                 {toPersianDigits(totalPages)}
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronRight className="ml-1 size-4" />
-                  قبلی
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  بعدی
-                  <ChevronLeft className="mr-1 size-4" />
-                </Button>
-              </div>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      text="قبلی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p - 1)
+                      }}
+                      className={
+                        page === 0 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      text="بعدی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p + 1)
+                      }}
+                      className={
+                        page >= totalPages - 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </div>

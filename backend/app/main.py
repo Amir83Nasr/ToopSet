@@ -23,6 +23,7 @@ from app.api.v1.notifications import router as notifications_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.penalties import router as penalties_router
 from app.api.v1.reviews import router as reviews_router
+from app.api.v1.settings import router as settings_router
 from app.api.v1.time_slots import router as time_slots_router
 from app.api.v1.time_slots import slot_detail_router
 from app.api.v1.uploads import router as uploads_router
@@ -181,6 +182,7 @@ app.include_router(slot_detail_router, prefix="/api/v1")
 app.include_router(bookings_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(reviews_router, prefix="/api/v1")
+app.include_router(settings_router, prefix="/api/v1")
 app.include_router(uploads_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(payments_router, prefix="/api/v1")

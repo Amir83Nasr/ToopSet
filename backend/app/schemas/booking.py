@@ -30,7 +30,7 @@ class BookingResponse(BaseModel):
 
 
 class BookingListResponse(BaseModel):
-    bookings: list[BookingResponse]
+    bookings: list[BookingDetailResponse]
     total: int
 
 

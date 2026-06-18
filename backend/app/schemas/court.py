@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.court import SportType
 
@@ -16,6 +16,15 @@ class CourtImageResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+_SPORT_MAP: dict[str, str] = {
+    "والیبال": "volleyball",
+    "بسکتبال": "basketball",
+    "فوتسال": "futsal",
+    "هندبال": "handball",
+    "فوتبال": "football",
+}
+
+
 class CourtBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     sport_types: list[SportType] = Field(..., min_length=1)
@@ -24,6 +33,13 @@ class CourtBase(BaseModel):
     longitude: float = Field(..., ge=-180, le=180)
     capacity: int = Field(..., gt=0)
     amenities: dict | None = None
+
+    @field_validator("sport_types", mode="before")
+    @classmethod
+    def _normalize_sport_types(cls, v: object) -> object:
+        if isinstance(v, list):
+            return [_SPORT_MAP.get(item, item) for item in v]
+        return v
 
 
 class CourtCreate(CourtBase):

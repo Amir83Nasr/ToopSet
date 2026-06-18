@@ -300,9 +300,9 @@ function BookPageContent() {
         </BreadcrumbList>
       </Breadcrumb>
       {/* Back button */}
-      <Button variant="ghost" className="mb-4 w-fit" asChild>
+      <Button variant="outline" size="sm" className="mb-4 w-fit" asChild>
         <Link href={`/courts/${courtId}`}>
-          <ArrowRight className="ml-2 size-4" />
+          <ArrowRight className="me-1.5 size-4" />
           بازگشت به صفحه مجموعه
         </Link>
       </Button>

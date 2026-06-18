@@ -204,10 +204,14 @@ export function SiteHeader() {
           ) : (
             <>
               <Link href="/register">
-                <Button variant="outline">ثبت‌نام</Button>
+                <Button variant="outline" size="sm" className="px-4">
+                  ثبت‌نام
+                </Button>
               </Link>
               <Link href="/login">
-                <Button>ورود</Button>
+                <Button className="px-4" size="sm">
+                  ورود
+                </Button>
               </Link>
             </>
           )}

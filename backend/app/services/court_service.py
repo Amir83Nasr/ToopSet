@@ -10,6 +10,7 @@ from app.api.deps import get_current_manager, get_current_user_optional
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.redis_client import get_redis
+from app.core.upload import delete_upload as delete_file
 from app.models.court import Court, SportType
 from app.models.court_image import CourtImage
 from app.models.user import User
@@ -157,6 +158,7 @@ class CourtService:
                 )
             )
             for img in result.scalars().all():
+                delete_file(img.url)
                 await self.repo.db.delete(img)
             await self.repo.db.commit()
         if data.images:
@@ -197,6 +199,9 @@ class CourtService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
             )
+        # delete image files before removing the court record
+        for img in court.court_images or []:
+            delete_file(img.url)
         await self.repo.delete(court)
         await log_action(
             self.repo.db,

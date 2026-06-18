@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -35,14 +36,22 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
+import { Input } from "@/components/ui/input"
 import {
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   ShieldX,
   XCircle,
   CalendarCheck,
+  RefreshCw,
+  Search,
 } from "lucide-react"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 interface AdminBooking {
   id: number
@@ -91,11 +100,21 @@ export default function AdminBookingsPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
   const [cancellingBooking, setCancellingBooking] =
     useState<AdminBooking | null>(null)
   const [cancellingLoading, setCancellingLoading] = useState(false)
-  const limit = 20
+  const limit = usePaginationLimit()
 
   const fetchBookings = useCallback(async () => {
     setLoading(true)
@@ -105,6 +124,7 @@ export default function AdminBookingsPage() {
       params.set("limit", String(limit))
       if (statusFilter && statusFilter !== "all")
         params.set("status", statusFilter)
+      if (debouncedSearch) params.set("search", debouncedSearch)
       const res = await api<{ bookings: AdminBooking[]; total: number }>(
         `/api/v1/bookings/all?${params}`
       )
@@ -115,7 +135,7 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, statusFilter])
+  }, [page, limit, statusFilter, debouncedSearch])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchBookings(), 0)
@@ -151,34 +171,55 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">مدیریت رزروها</h1>
           <p className="text-muted-foreground">همه رزروهای سیستم</p>
         </div>
-        <div>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => {
-              setStatusFilter(v)
-              setPage(0)
-            }}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="همه وضعیت‌ها" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectGroup>
-                <SelectLabel>وضعیت رزرو</SelectLabel>
-                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                <SelectItem value="pending_payment">
-                  در انتظار پرداخت
-                </SelectItem>
-                <SelectItem value="confirmed">تایید شده</SelectItem>
-                <SelectItem value="cancelled">لغو شده</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => fetchBookings()}>
+            <RefreshCw className="ml-1.5 size-4" />
+            بروزرسانی
+          </Button>
+        </div>
+      </div>
+
+      {/* Search & filter bar */}
+      <div className="rounded-lg border bg-card p-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="جستجوی کاربر یا مجموعه..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          <div>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="همه وضعیت‌ها" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>وضعیت رزرو</SelectLabel>
+                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value="pending_payment">
+                    در انتظار پرداخت
+                  </SelectItem>
+                  <SelectItem value="confirmed">تایید شده</SelectItem>
+                  <SelectItem value="cancelled">لغو شده</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -226,20 +267,24 @@ export default function AdminBookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>کاربر</TableHead>
+                <TableHead className="w-32">کاربر</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>ساعت</TableHead>
-                <TableHead>مبلغ</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
+                <TableHead className="w-24">تاریخ</TableHead>
+                <TableHead className="w-28">ساعت</TableHead>
+                <TableHead className="w-28">مبلغ</TableHead>
+                <TableHead className="w-20">وضعیت</TableHead>
+                <TableHead className="w-32 text-left">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {bookings.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell className="font-medium">{b.user_name}</TableCell>
-                  <TableCell>{b.court_name}</TableCell>
+                  <TableCell className="max-w-32 truncate">
+                    {b.user_name}
+                  </TableCell>
+                  <TableCell className="max-w-48 truncate">
+                    {b.court_name}
+                  </TableCell>
                   <TableCell>
                     {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
                   </TableCell>
@@ -275,29 +320,43 @@ export default function AdminBookingsPage() {
             </TableBody>
           </Table>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-3">
               <p className="text-sm text-muted-foreground">
                 صفحه {toPersianDigits(page + 1)} از{" "}
                 {toPersianDigits(totalPages)}
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronRight className="ml-1 size-4" /> قبلی
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  بعدی <ChevronLeft className="mr-1 size-4" />
-                </Button>
-              </div>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      text="قبلی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p - 1)
+                      }}
+                      className={
+                        page === 0 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      text="بعدی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p + 1)
+                      }}
+                      className={
+                        page >= totalPages - 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </div>

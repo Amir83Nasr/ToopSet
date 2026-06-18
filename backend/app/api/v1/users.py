@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.user import (
     ToggleActiveResponse,
     UpdateUserRoleRequest,
+    UserAdminResponse,
     UserDetailResponse,
     UserListResponse,
 )
@@ -25,9 +26,30 @@ async def list_users(
     service: UserService = Depends(get_user_service),
     _: User = Depends(get_current_admin),
 ):
-    return await service.list_users(
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    cache_params = {
+        "skip": skip,
+        "limit": limit,
+        "search": search,
+        "role": role,
+        "is_active": is_active,
+    }
+    cached = await get_cached_admin_list("users", cache_params)
+    if cached is not None:
+        return UserListResponse.model_validate(cached)
+
+    raw_users, total = await service.repo.list_users(
         skip=skip, limit=limit, search=search, role=role, is_active=is_active
     )
+
+    response = UserListResponse(
+        users=[UserAdminResponse.model_validate(u) for u in raw_users],
+        total=total,
+    )
+
+    await cache_admin_list("users", cache_params, response.model_dump(mode="json"))
+    return response
 
 
 @router.get("/{user_id}", response_model=UserDetailResponse, summary="User details (admin)")
@@ -48,7 +70,11 @@ async def update_user_role(
     service: UserService = Depends(get_user_service),
     current_user: User = Depends(get_current_admin),
 ):
-    return await service.update_role(current_user, user_id, data.role.value)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.update_role(current_user, user_id, data.role.value)
+    await invalidate_admin_list_cache("users")
+    return result
 
 
 @router.patch(
@@ -61,4 +87,8 @@ async def toggle_user_active(
     service: UserService = Depends(get_user_service),
     current_user: User = Depends(get_current_admin),
 ):
-    return await service.toggle_active(current_user, user_id)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.toggle_active(current_user, user_id)
+    await invalidate_admin_list_cache("users")
+    return result

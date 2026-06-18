@@ -4,8 +4,19 @@ import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -14,9 +25,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import { CreditCard, ShieldX, RefreshCw } from "lucide-react"
+import { CreditCard, ShieldX, RefreshCw, Search } from "lucide-react"
 
 interface AdminPayment {
   id: number
@@ -45,24 +63,54 @@ function formatAmount(amount: number): string {
 export default function AdminPaymentsPage() {
   const { user } = useAuth()
   const [payments, setPayments] = useState<AdminPayment[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const limit = usePaginationLimit()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const fetchPayments = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api<PaymentListResponse>("/api/v1/payments/all")
+      const params = new URLSearchParams()
+      params.set("skip", String(page * limit))
+      params.set("limit", String(limit))
+      if (statusFilter !== "all") params.set("status", statusFilter)
+      if (debouncedSearch) params.set("search", debouncedSearch)
+      const res = await api<PaymentListResponse>(
+        `/api/v1/payments/all?${params}`
+      )
       setPayments(res.payments)
+      setTotal(res.total)
     } catch {
       toast.error("خطا در دریافت اطلاعات پرداخت‌ها")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, limit, statusFilter, debouncedSearch])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchPayments()
+    const timer = setTimeout(() => fetchPayments(), 0)
+    return () => clearTimeout(timer)
   }, [fetchPayments])
+
+  const paymentStatusLabels: Record<string, string> = {
+    success: "موفق",
+    pending: "در انتظار",
+    failed: "ناموفق",
+  }
+
+  const totalPages = Math.ceil(total / limit)
 
   if (user && user.role !== "admin") {
     return (
@@ -82,10 +130,54 @@ export default function AdminPaymentsPage() {
           </h1>
           <p className="text-muted-foreground">مشاهده تمام تراکنش‌های سیستم</p>
         </div>
-        <Button variant="outline" size={"sm"} onClick={fetchPayments}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setPage(0)
+            fetchPayments()
+          }}
+        >
           <RefreshCw className="ml-1.5 size-4" />
           بروزرسانی
         </Button>
+      </div>
+
+      {/* Search & filter bar */}
+      <div className="rounded-lg border bg-card p-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="جستجوی کاربر یا مجموعه..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          <div>
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="همه وضعیت‌ها" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>وضعیت پرداخت</SelectLabel>
+                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value="success">موفق</SelectItem>
+                  <SelectItem value="pending">در انتظار</SelectItem>
+                  <SelectItem value="failed">ناموفق</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -135,27 +227,77 @@ export default function AdminPaymentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>تاریخ</TableHead>
+                <TableHead className="w-28">تاریخ</TableHead>
                 <TableHead>کاربر</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead>مبلغ</TableHead>
-                <TableHead>وضعیت</TableHead>
+                <TableHead className="w-28">مبلغ</TableHead>
+                <TableHead className="w-20">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {payments.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>{formatDate(p.created_at)}</TableCell>
-                  <TableCell>{p.user_name}</TableCell>
-                  <TableCell>{p.court_name}</TableCell>
-                  <TableCell>{formatAmount(p.amount)}</TableCell>
-                  <TableCell>
-                    {p.status === "success" ? "موفق" : p.status}
+                  <TableCell className="w-28">
+                    {formatDate(p.created_at)}
+                  </TableCell>
+                  <TableCell className="max-w-40 truncate">
+                    {p.user_name}
+                  </TableCell>
+                  <TableCell className="max-w-48 truncate">
+                    {p.court_name}
+                  </TableCell>
+                  <TableCell className="w-28">
+                    {formatAmount(p.amount)}
+                  </TableCell>
+                  <TableCell className="w-20">
+                    {paymentStatusLabels[p.status] || p.status}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                صفحه {toPersianDigits(page + 1)} از{" "}
+                {toPersianDigits(totalPages)}
+              </p>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      text="قبلی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p - 1)
+                      }}
+                      className={
+                        page === 0 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      text="بعدی"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage((p) => p + 1)
+                      }}
+                      className={
+                        page >= totalPages - 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
       )}
     </div>

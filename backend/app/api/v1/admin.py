@@ -69,6 +69,20 @@ async def list_logs(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    cache_params = {
+        "skip": skip,
+        "limit": limit,
+        "action": action,
+        "user_id": user_id,
+        "date_from": str(date_from) if date_from else None,
+        "date_to": str(date_to) if date_to else None,
+    }
+    cached = await get_cached_admin_list("logs", cache_params)
+    if cached is not None:
+        return LogListResponse.model_validate(cached)
+
     repo = LogRepo(db)
     logs, total = await repo.list(
         skip=skip,
@@ -84,6 +98,13 @@ async def list_logs(
         if log.user:
             resp.user_name = log.user.full_name
         log_responses.append(resp)
+
+    await cache_admin_list(
+        "logs",
+        cache_params,
+        {"logs": [r.model_dump(mode="json") for r in log_responses], "total": total},
+        ttl=30,
+    )
     return LogListResponse(logs=log_responses, total=total)
 
 
@@ -92,8 +113,11 @@ async def clear_logs(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     repo = LogRepo(db)
     await repo.clear_all()
+    await invalidate_admin_list_cache("logs")
     await log_action(
         db, _.id, "logs_cleared", f"پاکسازی لاگ‌ها | تمام لاگ‌ها توسط ادمین '{_.full_name}' پاک شد"
     )
@@ -105,8 +129,11 @@ async def delete_log(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     repo = LogRepo(db)
     await repo.delete_by_id(log_id)
+    await invalidate_admin_list_cache("logs")
 
 
 # ── Court approval (pending courts) ──────────────────────────────────
@@ -124,12 +151,30 @@ class CourtApprovalResponse(BaseModel):
 
 @router.get("/pending-courts", summary="Pending court approvals")
 async def list_pending_courts(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    from sqlalchemy import select
+    from sqlalchemy import func, select
 
-    result = await db.execute(select(Court).where(Court.is_active == False))
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    cache_params = {"skip": skip, "limit": limit}
+    cached = await get_cached_admin_list("pending_courts", cache_params)
+    if cached is not None:
+        return cached
+
+    count_q = select(func.count(Court.id)).where(Court.is_active == False)
+    total = (await db.execute(count_q)).scalar_one()
+
+    result = await db.execute(
+        select(Court)
+        .where(Court.is_active == False)
+        .order_by(Court.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
     courts = result.scalars().all()
 
     courts_data = []
@@ -146,7 +191,10 @@ async def list_pending_courts(
                 "created_at": c.created_at.isoformat() if c.created_at else None,
             }
         )
-    return {"courts": courts_data, "total": len(courts_data)}
+
+    result_data = {"courts": courts_data, "total": total}
+    await cache_admin_list("pending_courts", cache_params, result_data)
+    return result_data
 
 
 @router.post("/courts/{court_id}/approve", response_model=CourtResponse, summary="Approve court")
@@ -155,10 +203,12 @@ async def approve_court(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
     from app.services.court_service import CourtService
 
     service = CourtService(db=db, current_user=_)
     result = await service.toggle_court_status(court_id, is_active=True)
+    await invalidate_admin_list_cache("pending_courts")
     await log_action(
         db, _.id, "court_approved", f"تایید مجموعه | مجموعه (id={court_id}) توسط ادمین تایید شد"
     )
@@ -173,12 +223,17 @@ async def reject_court(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     repo = CourtRepo(db)
     court = await repo.get_by_id(court_id)
     if not court:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
     name = court.name
+    for img in court.court_images or []:
+        delete_upload(img.url)
     await repo.delete(court)
+    await invalidate_admin_list_cache("pending_courts")
     await log_action(
         db, _.id, "court_rejected", f"رد مجموعه | '{name}' (id={court_id}) توسط ادمین رد شد"
     )
@@ -200,6 +255,8 @@ async def hard_delete_court(
     court = await repo.get_by_id(court_id)
     if not court:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+    for img in court.court_images or []:
+        delete_upload(img.url)
     await repo.delete(court)
     await log_action(
         db,
@@ -263,10 +320,13 @@ async def hard_delete_user(
             detail="این کاربر دارای رزرو، نظر یا جریمه است. ابتدا آن‌ها را حذف کنید.",
         )
 
+    from app.services.cache_service import invalidate_admin_list_cache
+
     name = user.full_name
     delete_upload(user.avatar_url)
     await db.delete(user)
     await db.commit()
+    await invalidate_admin_list_cache("users")
     await log_action(
         db, _.id, "user_deleted", f"حذف دائمی کاربر | '{name}' (id={user_id}) توسط ادمین حذف شد"
     )
@@ -325,7 +385,14 @@ async def force_delete_user(
                 await db.execute(delete(Booking).where(Booking.id.in_(booking_ids)))
             await db.execute(delete(TimeSlot).where(TimeSlot.court_id == cid))
 
-        # b) Court images and reviews
+        # b) Court images — delete files first, then remove records
+        image_urls = (
+            (await db.execute(select(CourtImage.url).where(CourtImage.court_id == cid)))
+            .scalars()
+            .all()
+        )
+        for url in image_urls:
+            delete_upload(url)
         await db.execute(delete(CourtImage).where(CourtImage.court_id == cid))
         await db.execute(delete(Review).where(Review.court_id == cid))
 
@@ -349,6 +416,9 @@ async def force_delete_user(
     await db.execute(delete(User).where(User.id == user_id))
     await db.commit()
 
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("users")
     await log_action(
         db,
         _.id,
@@ -442,6 +512,11 @@ async def seed_default_settings(
         {"key": "cancel_window_hours", "value": "24", "description": "مهلت کنسل کردن (ساعت)"},
         {"key": "rules_text", "value": "", "description": "متن قوانین و مقررات"},
         {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
+        {
+            "key": "pagination_limit",
+            "value": "15",
+            "description": "تعداد آیتم در هر صفحه برای جداول",
+        },
     ]
     count = 0
     for d in defaults:

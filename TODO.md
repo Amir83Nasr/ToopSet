@@ -1,29 +1,38 @@
 # Tasks
 
-> Last updated: 2026-06-17 — label additions
+> Last updated: 2026-06-18 — server-side pagination-aware search/filter for bookings & payments
 
 ## In Progress
 
 *Nothing currently in progress.*
 
+## Next Up
+
+- [ ] **[P1] [Feature]** Real payment gateway integration — replace mock with Zibal/Parsian/Saman
+- [ ] **[P1] [Feature]** Multi-court management for managers
+
 ## Backlog
 
-- [ ] **[Feature]** Real payment gateway integration — replace mock with Zibal/Parsian/Saman
-
-- [ ] **[Feature]** SMS notification on booking confirmation — replace mock with Kavenegar/FarazSMS
-- [ ] **[Feature]** Frontend location-based court search (API ready, needs UI)
-- [ ] **[Feature]** User notification preferences — which notification types to receive
-- [ ] **[Bug]** Reports & admin dashboard pages are cleared — rebuild or remove from sidebar
-- [ ] **[Feature]** Multi-court management for managers
-- [ ] **[Feature]** Promo/discount codes
-- [ ] **[Feature]** Recurring bookings (weekly/monthly schedules)
-- [ ] **[Refactor]** Split booking logic into focused service modules
-- [ ] **[Feature]** Court gallery management in dashboard UI
-- [ ] **[Feature]** Multi-language support (FA/EN)
+- [ ] **[P1] [Feature]** SMS notification on booking confirmation — replace mock with Kavenegar/FarazSMS
+- [ ] **[P1] [Feature]** Frontend location-based court search (API ready, needs UI)
+- [ ] **[P2] [Feature]** User notification preferences — which notification types to receive
+- [ ] **[P2] [Feature]** Promo/discount codes
+- [ ] **[P2] [Feature]** Recurring bookings (weekly/monthly schedules)
+- [ ] **[P2] [Refactor]** Split booking logic into focused service modules
+- [ ] **[P2] [Feature]** Court gallery management in dashboard UI
+- [ ] **[P2] [Feature]** Multi-language support (FA/EN)
 
 ## Done
 
+- [x] **[Feature]** Pagination-aware search/filter for bookings & payments — backend query params (`search`, `status`) on all 4 list endpoints, frontend sends filters to backend instead of useMemo client-side filtering (2026-06-18)
+- [x] **[Bug]** Fix courts admin 500 error — missing `فوتبال` in SportType enum + _SPORT_MAP (2026-06-18)
+- [x] **[Bug]** Fix payments page empty — add missing `/my` endpoint for user payments + add `user_name` to `PaymentDetailResponse` for admin table (2026-06-18)
+- [x] **[Perf]** Table optimization — pagination for payments & pending-courts, Redis caching for all admin list endpoints, cache invalidation on mutations (2026-06-17)
+- [x] **[Bug]** Fix admin bookings route collision (`/all` shadowed by `/{booking_id}`) — reorder FastAPI routes, remove duplicate code (2026-06-17)
+- [x] **[Bug]** Fix courts 500 error — Persian sport_type values in DB vs English SportType enum → add `@field_validator` mapping (2026-06-17)
+- [x] **[Bug]** Fix user booking list missing court_name/slot info — switch schema to `BookingDetailResponse` with joined data (2026-06-17)
 - [x] **[Feature]** Manager schedule management redesign — weekly grid, bulk generator, quick slot form, today preview (2026-06-17)
+- [x] **[Docs]** Formal Persian academic proposal (پروپوزال) for bachelor's computer engineering project presentation — saved to docs/proposal.md (2026-06-17)
 - [x] **[Chore]** Init CLAUDE.md + project-level `.claude/settings.json` for auto-context and permissionless workflow (2026-06-17)
 - [x] **[Chore]** Style empty sidebar pages (reports, admin/settings) with consistent Card-based empty states (2026-06-17)
 - [x] **[Chore]** Replace hardcoded badge/status colors with theme CSS variables across admin, notifications, manager, bookings, and courts pages (2026-06-17)

@@ -29,6 +29,7 @@ const breadcrumbLabels: Record<string, string> = {
   admin: "مدیریت سیستم",
   courts: "مجموعه‌ها",
   create: "ایجاد",
+  edit: "ویرایش",
   schedule: "مدیریت زمان",
   bookings: "رزروها",
   payments: "پرداخت‌ها",
@@ -42,12 +43,18 @@ const breadcrumbLabels: Record<string, string> = {
   profile: "پروفایل",
 }
 
+function getLabel(seg: string): string {
+  if (breadcrumbLabels[seg]) return breadcrumbLabels[seg]
+  if (/^\d+$/.test(seg)) return "جزئیات"
+  return seg
+}
+
 export function SiteHeader() {
   const pathname = usePathname()
   const segments = pathname.split("/").filter(Boolean)
 
   const breadcrumbs = segments.map((seg, i) => ({
-    label: breadcrumbLabels[seg] || seg,
+    label: getLabel(seg),
     href: "/" + segments.slice(0, i + 1).join("/"),
   }))
 

@@ -23,7 +23,6 @@ from app.schemas.booking import (
     BookingCreate,
     BookingDetailResponse,
     BookingListResponse,
-    BookingResponse,
     PaymentResponse,
 )
 from app.services.payment_service import (
@@ -50,14 +49,35 @@ class BookingService:
         *,
         skip: int = 0,
         limit: int = 20,
+        status_filter: str | None = None,
     ) -> BookingListResponse:
         bookings, total = await self.booking_repo.list_by_user(
-            self.current_user.id, skip=skip, limit=limit
+            self.current_user.id, skip=skip, limit=limit, status_filter=status_filter
         )
-        return BookingListResponse(
-            bookings=[BookingResponse.model_validate(b) for b in bookings],
-            total=total,
-        )
+        result = []
+        for b in bookings:
+            slot = await self.slot_repo.get_by_id(b.slot_id)
+            court = slot.court if slot else None
+            result.append(
+                BookingDetailResponse(
+                    id=b.id,
+                    user_id=b.user_id,
+                    slot_id=b.slot_id,
+                    status=b.status,
+                    price_paid=float(b.price_paid),
+                    participants_count=b.participants_count,
+                    penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
+                    created_at=b.created_at,
+                    updated_at=b.updated_at,
+                    expires_at=b.expires_at,
+                    court_name=court.name if court else "",
+                    court_address=court.address if court else "",
+                    slot_start_time=slot.start_time if slot else None,
+                    slot_end_time=slot.end_time if slot else None,
+                    payment=None,
+                )
+            )
+        return BookingListResponse(bookings=result, total=total)
 
     async def list_completed_bookings(
         self,
@@ -68,10 +88,30 @@ class BookingService:
         bookings, total = await self.booking_repo.list_completed_by_user(
             self.current_user.id, skip=skip, limit=limit
         )
-        return BookingListResponse(
-            bookings=[BookingResponse.model_validate(b) for b in bookings],
-            total=total,
-        )
+        result = []
+        for b in bookings:
+            slot = await self.slot_repo.get_by_id(b.slot_id)
+            court = slot.court if slot else None
+            result.append(
+                BookingDetailResponse(
+                    id=b.id,
+                    user_id=b.user_id,
+                    slot_id=b.slot_id,
+                    status=b.status,
+                    price_paid=float(b.price_paid),
+                    participants_count=b.participants_count,
+                    penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
+                    created_at=b.created_at,
+                    updated_at=b.updated_at,
+                    expires_at=b.expires_at,
+                    court_name=court.name if court else "",
+                    court_address=court.address if court else "",
+                    slot_start_time=slot.start_time if slot else None,
+                    slot_end_time=slot.end_time if slot else None,
+                    payment=None,
+                )
+            )
+        return BookingListResponse(bookings=result, total=total)
 
     async def get_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
@@ -432,10 +472,11 @@ class BookingService:
         *,
         skip: int = 0,
         limit: int = 20,
+        search: str | None = None,
         status_filter: str | None = None,
     ) -> AdminBookingListResponse:
         bookings, total = await self.booking_repo.list_all(
-            skip=skip, limit=limit, status_filter=status_filter
+            skip=skip, limit=limit, search=search, status_filter=status_filter
         )
         result = []
         for b in bookings:

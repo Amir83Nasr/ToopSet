@@ -3,39 +3,46 @@
 ## Every conversation start
 
 1. Read `AGENTS.md` for full project context
-2. Review the overall project structure (backend + frontend)
-3. Check `docs/tasks.md` for current work status
-4. Check `git status` and `git log --oneline -5` for recent changes
+2. Check `TODO.md` for current work status
+3. Check `git status` and `git log --oneline -5` for recent changes
 
-## Task tracking
+## Task tracking — MANDATORY
 
-- When starting work on any task, immediately update `docs/tasks.md` — move or add the task to **In Progress** so the user can monitor
-- Keep `docs/tasks.md` updated throughout — mark tasks done, add new ones, update "Last updated" date
-- Keep `AGENTS.md` synced with any architecture/routing/convention changes
-- Update this file (`CLAUDE.md`) when project structure or conventions change significantly
+> **CRITICAL:** Tasks **must** be moved to **In Progress** immediately when work begins.
+
+1. **Start of any task** → immediately update `TODO.md`: move or add the task to **In Progress**
+2. **Throughout** → keep `TODO.md` updated — mark done, add new, update date
+3. **Architecture/convention changes** → sync `AGENTS.md`
+4. **Workflow changes** → update this file
 
 ## Capabilities & permissions
 
-- **Skills**: Use available skills wherever they apply — skill usage is fully permitted
-- **Agents**: Automatically delegate between different agent types (Explore, Plan, code-reviewer, etc.) as needed for the task — no restriction on agent switching
-- **Commands**: Full unrestricted access to all bash, git, npm, pip, alembic, and any other dev commands — no permission restrictions
-
-## Key project facts
-
-- **Version**: 0.3.1 — Persian sports venue booking platform
-- **Backend**: Python 3.12+ / FastAPI / SQLAlchemy async / PostgreSQL / Redis
-- **Frontend**: Next.js 16 (App Router) / TypeScript (strict) / Tailwind CSS v4 / shadcn/ui
-- **Auth**: JWT (access + refresh), localStorage, auto-refresh
-- **Layout**: RTL Persian (`dir="rtl"`, `lang="fa"`) — IranYekanX font
-- **License**: Proprietary — All rights reserved
-- **Pre-commit hooks active**: ruff, prettier, eslint
+- **Skills**: Use available skills wherever they apply
+- **Agents**: Freely delegate between agent types (Explore, Plan, code-reviewer, etc.)
+- **Commands**: Full unrestricted bash, git, npm, pip, alembic access — no permission prompts
 
 ## Baseline behaviors
 
-- Allowed: Full bash access, git, npm, pip, alembic, etc.
-- No prompt for permissions on standard dev commands
-- Persian UI text, English code/comments/commits
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`, etc.
-- **Pre-commit hooks** — must pass successfully before committing. Fix any hook failures (ESLint, prettier, ruff, etc.) before creating the commit. Never use `--no-verify` to bypass checks.
-- **Tests** — run `make test` before every commit. All tests must pass. Fix failures before committing.
-- **shadcn** — always check and use shadcn/ui components, blocks, and patterns when implementing UI. Prefer their documented API over custom solutions.
+- Persian UI text + Persian digits everywhere (use `toPersianDigits()` / `<PersianNum>`)
+- English code/comments/commits
+- See `AGENTS.md` for all project reference (stack, architecture, commands, conventions, routes).
+
+## Committing — MANDATORY
+
+> Every commit must follow these rules. No exceptions.
+
+1. **Format:** `type(scope): message` — imperative mood, English only.
+   - Good: `feat(auth): add refresh token rotation`
+   - Bad: `Added refresh token`, `fix bug`, `changes`
+2. **One logical change per commit** — don't bundle unrelated fixes.
+3. **Pre-commit hooks** — must pass. Fix failures (ESLint, prettier, ruff) before committing. Never `--no-verify`.
+4. **Tests** — run `make test` before every commit. All must pass.
+5. **Conventional commit types:**
+   - `feat:` new feature
+   - `fix:` bug fix
+   - `refactor:` code change with no behavior change
+   - `perf:` performance improvement
+   - `chore:` tooling, deps, CI, linting
+   - `docs:` documentation only
+   - `style:` formatting, whitespace (not CSS)
+   - `test:` adding/fixing tests

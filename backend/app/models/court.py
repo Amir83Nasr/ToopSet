@@ -16,6 +16,7 @@ class SportType(str, enum.Enum):
     BASKETBALL = "basketball"
     FUTSAL = "futsal"
     HANDBALL = "handball"
+    FOOTBALL = "football"
 
 
 class Court(Base):
