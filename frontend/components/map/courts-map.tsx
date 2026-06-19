@@ -4,12 +4,7 @@ import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import { toPersianDigits } from "@/lib/utils"
-import {
-  QOM_BOUNDS,
-  QOM_CENTER,
-  DEFAULT_ZOOM,
-  CLOSE_ZOOM,
-} from "@/lib/map-utils"
+import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM } from "@/lib/map-utils"
 import { createCourtIcon, createUserLocationIcon } from "@/lib/map-utils"
 
 const sportLabels: Record<string, string> = {
