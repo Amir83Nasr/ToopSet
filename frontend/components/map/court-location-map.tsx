@@ -1,8 +1,13 @@
 "use client"
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
-import { QOM_BOUNDS } from "@/lib/map-utils"
-import { createDefaultPinIcon } from "@/lib/map-utils"
+import { useEffect, useRef, useState } from "react"
+import L, {
+  createNeshanMap,
+  DEFAULT_ZOOM,
+  createDefaultPinIcon,
+} from "@/lib/neshan-map"
+import "@neshan-maps-platform/leaflet/dist/leaflet.css"
 
 interface CourtLocationMapProps {
   latitude: number
@@ -19,28 +24,53 @@ export function CourtLocationMap({
   height = "200px",
   interactive = false,
 }: CourtLocationMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any | null>(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return
+
+    const map = createNeshanMap(containerRef.current, {
+      center: [latitude, longitude],
+      zoom: DEFAULT_ZOOM,
+      zoomControl: interactive,
+      dragging: interactive,
+      scrollWheelZoom: interactive,
+    })
+
+    mapRef.current = map
+    setReady(true)
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+    }
+  }, [latitude, longitude, interactive])
+
+  // Add marker once map is ready
+  useEffect(() => {
+    if (!mapRef.current || !ready) return
+
+    const marker = L.marker([latitude, longitude], {
+      icon: createDefaultPinIcon(),
+    })
+    marker
+      .bindPopup(
+        `<div class="text-right font-sans" dir="rtl"><strong>${name}</strong></div>`
+      )
+      .addTo(mapRef.current)
+
+    mapRef.current.setView([latitude, longitude], 15)
+
+    return () => {
+      marker.remove()
+    }
+  }, [ready, latitude, longitude, name])
+
   return (
     <div className="overflow-hidden rounded-xl border" style={{ height }}>
-      <MapContainer
-        center={[latitude, longitude]}
-        zoom={15}
-        scrollWheelZoom={interactive}
-        dragging={interactive}
-        zoomControl={interactive}
-        attributionControl={false}
-        maxBounds={QOM_BOUNDS}
-        maxBoundsViscosity={1.0}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-        <Marker position={[latitude, longitude]} icon={createDefaultPinIcon()}>
-          <Popup>
-            <div className="text-right font-sans" dir="rtl">
-              <strong>{name}</strong>
-            </div>
-          </Popup>
-        </Marker>
-      </MapContainer>
+      <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
     </div>
   )
 }

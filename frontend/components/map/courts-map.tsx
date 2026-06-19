@@ -1,11 +1,23 @@
 "use client"
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
-import L from "leaflet"
+import {
+  Component,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
+import L, {
+  createNeshanMap,
+  DEFAULT_ZOOM,
+  QOM_CENTER,
+  createCourtIcon,
+  createUserLocationIcon,
+} from "@/lib/neshan-map"
+import "@neshan-maps-platform/leaflet/dist/leaflet.css"
 import { toPersianDigits } from "@/lib/utils"
-import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM } from "@/lib/map-utils"
-import { createCourtIcon, createUserLocationIcon } from "@/lib/map-utils"
 
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
@@ -39,91 +51,100 @@ const starIcon =
 
 const renderStars = (rating: number) => starIcon.repeat(Math.floor(rating))
 
-function MapController({
-  courts,
-  userLocation,
-}: {
-  courts: CourtsMapProps["courts"]
-  userLocation?: CourtsMapProps["userLocation"]
-}) {
-  const map = useMap()
-  const prevIdsRef = useRef("")
-  const prevUserRef = useRef("")
+/* ── Locate button as a Leaflet control ── */
 
-  useEffect(() => {
-    const ids = JSON.stringify(courts.map((c) => c.id))
-    const userKey = userLocation
-      ? `${userLocation.latitude},${userLocation.longitude}`
-      : ""
-
-    if (ids !== prevIdsRef.current) {
-      prevIdsRef.current = ids
-      if (courts.length > 0) {
-        try {
-          const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
-          if (userLocation) {
-            markers.push(
-              L.marker([userLocation.latitude, userLocation.longitude])
-            )
-          }
-          const group = new L.FeatureGroup(markers)
-          const bounds = group.getBounds()
-          if (bounds.isValid()) {
-            map.fitBounds(bounds.pad(0.15))
-          }
-        } catch {
-          // ignore fitBounds errors
-        }
+function addLocateControl(map: any) {
+  const LocateControl = L.Control.extend({
+    options: { position: "topleft" },
+    onAdd() {
+      const btn = L.DomUtil.create("button")
+      btn.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'
+      btn.className =
+        "leaflet-control-zoom leaflet-bar part flex items-center justify-center cursor-pointer border border-gray-300 bg-white rounded-lg shadow-sm hover:bg-gray-100 transition-colors"
+      btn.style.cssText = "width:34px;height:34px;margin-bottom:4px"
+      btn.title = "موقعیت من"
+      btn.setAttribute("aria-label", "موقعیت من")
+      btn.onclick = () => {
+        map.locate({ setView: true, maxZoom: 15 })
       }
-    }
+      return btn
+    },
+  })
 
-    if (userLocation && userKey !== prevUserRef.current) {
-      prevUserRef.current = userKey
-      map.setView(
-        [userLocation.latitude, userLocation.longitude],
-        map.getZoom() || DEFAULT_ZOOM
-      )
+  const control = new LocateControl()
+  map.addControl(control)
+  return () => {
+    try {
+      map.removeControl(control)
+    } catch {
+      /* ignore */
     }
-  }, [courts, map, userLocation])
-
-  return null
+  }
 }
 
-/* ── Custom Leaflet locate button ── */
+/* ── Internal hook: keeps markers & popups in sync ── */
 
-function LocateButton() {
-  const map = useMap()
+function renderCourtMarkers(map: any, courts: Court[]) {
+  // Remove existing court markers (keep any user location markers)
+  const toRemove: any[] = []
+  map.eachLayer((layer: any) => {
+    if (layer instanceof L.Marker && !("_isUser" in layer)) {
+      toRemove.push(layer)
+    }
+  })
+  toRemove.forEach((m: any) => m.remove())
 
-  useEffect(() => {
-    const LocateControl = L.Control.extend({
-      options: { position: "topleft" },
-      onAdd() {
-        const btn = L.DomUtil.create("button")
-        btn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'
-        btn.className =
-          "leaflet-control-zoom leaflet-bar part flex items-center justify-center cursor-pointer border border-gray-300 bg-white rounded-lg shadow-sm hover:bg-gray-100 transition-colors"
-        btn.style.cssText = "width:34px;height:34px;margin-bottom:4px"
-        btn.title = "موقعیت من"
-        btn.setAttribute("aria-label", "موقعیت من")
-        btn.onclick = () => {
-          map.locate({ setView: true, maxZoom: 15 })
-        }
-        return btn
-      },
+  // Add fresh markers
+  courts.forEach((court) => {
+    const marker = L.marker([court.latitude, court.longitude], {
+      icon: createCourtIcon(court.sport_types?.[0]),
     })
 
-    const control = new LocateControl()
-    map.addControl(control)
-    return () => {
-      map.removeControl(control)
-    }
-  }, [map])
+    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="min-width:180px">
+      <h3 class="mb-1 text-sm font-semibold">${court.name}</h3>
+      <p class="mb-1.5 text-xs text-gray-500">${court.sport_types?.map((st) => sportLabels[st] || st).join("، ") || ""}</p>
+      <p class="mb-1.5 max-w-50 truncate text-xs text-gray-500">${court.address}</p>
+      <div class="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
+        <span>ظرفیت: ${toPersianDigits(court.capacity)} نفر</span>
+        <span class="inline-flex items-center gap-0.5" dir="ltr">${renderStars(court.average_rating)} ${court.average_rating.toFixed(1)}</span>
+      </div>
+      <a href="/courts/${court.id}" class="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700">مشاهده مجموعه</a>
+    </div>`
 
-  return null
+    marker.bindPopup(popupHtml)
+    marker.addTo(map)
+  })
 }
 
-/* ── Error boundary for map failures ── */
+function renderUserMarker(
+  map: any,
+  location: { latitude: number; longitude: number } | null
+) {
+  // Remove any existing user marker
+  const toRemove: any[] = []
+  map.eachLayer((layer: any) => {
+    if (layer instanceof L.Marker && "_isUser" in layer) {
+      toRemove.push(layer)
+    }
+  })
+  toRemove.forEach((m: any) => m.remove())
+
+  if (!location) return
+
+  const marker = L.marker([location.latitude, location.longitude], {
+    icon: createUserLocationIcon(),
+    zIndexOffset: 1000,
+  })
+  ;(marker as any)._isUser = true
+  marker.bindPopup(
+    '<div class="text-right font-sans" dir="rtl"><strong>موقعیت شما</strong></div>'
+  )
+  marker.addTo(map)
+}
+
+/* ── Error boundary ── */
+
 class MapErrorBoundary extends Component<
   { children: ReactNode; height: string },
   { hasError: boolean }
@@ -154,37 +175,94 @@ class MapErrorBoundary extends Component<
   }
 }
 
-function UserMarker({
-  location,
-}: {
-  location: { latitude: number; longitude: number }
-}) {
-  return (
-    <Marker
-      position={[location.latitude, location.longitude]}
-      icon={createUserLocationIcon()}
-      zIndexOffset={1000}
-    >
-      <Popup>
-        <div className="text-right font-sans" dir="rtl">
-          <strong>موقعیت شما</strong>
-        </div>
-      </Popup>
-    </Marker>
-  )
-}
+/* ── Main component ── */
 
 export function CourtsMap({
   courts,
   height = "400px",
   userLocation,
 }: CourtsMapProps) {
-  const defaultCenter = useMemo(() => QOM_CENTER, [])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any | null>(null)
+  const [ready, setReady] = useState(false)
+  const prevIdsRef = useRef("")
+  const prevUserRef = useRef("")
 
-  const mapKey = useMemo(
-    () => `map-${courts.map((c) => c.id).join("-") || "empty"}`,
+  // Create map once
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return
+
+    const map = createNeshanMap(containerRef.current, {
+      center: QOM_CENTER,
+      zoom: DEFAULT_ZOOM,
+    })
+
+    mapRef.current = map
+    addLocateControl(map)
+    setReady(true)
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+    }
+  }, [])
+
+  // Sync courts to map
+  const courtIds = useMemo(
+    () => JSON.stringify(courts.map((c) => c.id)),
     [courts]
   )
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    if (courtIds === prevIdsRef.current) return
+    prevIdsRef.current = courtIds
+
+    renderCourtMarkers(map, courts)
+    renderUserMarker(map, userLocation ?? null)
+
+    // Fit bounds
+    if (courts.length > 0) {
+      try {
+        const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
+        if (userLocation) {
+          markers.push(
+            L.marker([userLocation.latitude, userLocation.longitude])
+          )
+        }
+        const group = new L.FeatureGroup(markers)
+        const bounds = group.getBounds()
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.15))
+        }
+      } catch {
+        // ignore fitBounds errors
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courtIds, ready, userLocation])
+
+  // Sync user location
+  const userKey = userLocation
+    ? `${userLocation.latitude},${userLocation.longitude}`
+    : ""
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    if (userKey === prevUserRef.current) return
+    prevUserRef.current = userKey
+
+    renderUserMarker(map, userLocation ?? null)
+
+    if (userLocation) {
+      map.setView(
+        [userLocation.latitude, userLocation.longitude],
+        map.getZoom() || DEFAULT_ZOOM
+      )
+    }
+  }, [userKey, ready, userLocation])
 
   if (courts.length === 0) {
     return (
@@ -202,64 +280,7 @@ export function CourtsMap({
   return (
     <MapErrorBoundary height={height}>
       <div className="overflow-hidden rounded-xl border" style={{ height }}>
-        <MapContainer
-          key={mapKey}
-          center={defaultCenter}
-          zoom={DEFAULT_ZOOM}
-          style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom={true}
-          maxBounds={QOM_BOUNDS}
-          maxBoundsViscosity={1.0}
-          minZoom={10}
-          maxZoom={18}
-          attributionControl={false}
-        >
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-          <MapController courts={courts} userLocation={userLocation} />
-          <LocateButton />
-          {userLocation && <UserMarker location={userLocation} />}
-          {courts.map((court) => (
-            <Marker
-              key={court.id}
-              position={[court.latitude, court.longitude]}
-              icon={createCourtIcon(court.sport_types?.[0])}
-            >
-              <Popup>
-                <div
-                  className="text-right font-sans"
-                  dir="rtl"
-                  style={{ minWidth: 180 }}
-                >
-                  <h3 className="mb-1 text-sm font-semibold">{court.name}</h3>
-                  <p className="mb-1.5 text-xs text-gray-500">
-                    {court.sport_types
-                      ?.map((st) => sportLabels[st] || st)
-                      .join("، ")}
-                  </p>
-                  <p className="mb-1.5 max-w-50 truncate text-xs text-gray-500">
-                    {court.address}
-                  </p>
-                  <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
-                    <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
-                    <span
-                      className="inline-flex items-center gap-0.5"
-                      dir="ltr"
-                    >
-                      {renderStars(court.average_rating)}{" "}
-                      {court.average_rating.toFixed(1)}
-                    </span>
-                  </div>
-                  <a
-                    href={`/courts/${court.id}`}
-                    className="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
-                  >
-                    مشاهده مجموعه
-                  </a>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
       </div>
     </MapErrorBoundary>
   )
