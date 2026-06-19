@@ -13,8 +13,8 @@ export default L
 
 /* ── Config ── */
 
-const API_KEY = "service.a0b5a348f76749519f65161c312b8112"
-const MAP_TYPE = "dreamy"
+const API_KEY = "service.22d38395eac545c6a974c23b4696c650"
+const MAP_TYPE = "standard-day"
 
 /** Qom bounds — restrict panning */
 export const QOM_BOUNDS = [
@@ -28,9 +28,41 @@ export const CLOSE_ZOOM = 15
 
 /* ── Helpers ── */
 
+/** Strip Neshan watermark after the map loads. */
+function removeNeshanWatermark(el: HTMLElement, map: any) {
+  function strip() {
+    // Remove any <a> linking to neshan.org inside the map container
+    el.querySelectorAll(
+      'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"]'
+    ).forEach((a) => {
+      a.remove()
+    })
+    // Remove any Leaflet control that contains Neshan branding
+    el.querySelectorAll(
+      ".leaflet-control, .leaflet-bottom a, .leaflet-bottom img"
+    ).forEach((node) => {
+      if (
+        node instanceof HTMLElement &&
+        (node.innerHTML.includes("neshan") ||
+          node.innerHTML.includes("نشان") ||
+          node.innerHTML.includes("Neshan"))
+      ) {
+        node.remove()
+      }
+    })
+  }
+
+  // Run on load, then retry a few times (watermark may load async)
+  map.once("load", () => {
+    strip()
+    setTimeout(strip, 200)
+    setTimeout(strip, 800)
+  })
+}
+
 /** Create a Neshan map on the given DOM element. */
 export function createNeshanMap(el: HTMLElement, extra?: any): any {
-  return new L.Map(el, {
+  const map = new L.Map(el, {
     key: API_KEY,
     maptype: MAP_TYPE,
     center: QOM_CENTER,
@@ -42,6 +74,10 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
     attributionControl: false,
     ...extra,
   })
+
+  removeNeshanWatermark(el, map)
+
+  return map
 }
 
 /* ── Marker icons ── */
@@ -113,5 +149,19 @@ export function createDefaultPinIcon(): any {
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
+  })
+}
+
+export function createSearchPinIcon(): any {
+  return L.divIcon({
+    html: `<div class="flex items-center justify-center w-11 h-11 rounded-full shadow-xl border-2 border-white" style="background-color:var(--primary)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+    </div>`,
+    className: "",
+    iconSize: [44, 44],
+    iconAnchor: [22, 44],
+    popupAnchor: [0, -44],
   })
 }

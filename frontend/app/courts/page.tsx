@@ -43,7 +43,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
-import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
 
@@ -69,6 +68,7 @@ import {
   Users,
   X,
   Navigation,
+  Map,
 } from "lucide-react"
 
 interface Court {
@@ -115,6 +115,23 @@ function CourtsPageContent() {
   )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
 
+  // Map location filter (set by clicking the map)
+  const [mapLocation, setMapLocation] = useState<{
+    latitude: number
+    longitude: number
+  } | null>(
+    (() => {
+      const lat = searchParams.get("lat")
+      const lng = searchParams.get("lng")
+      return lat && lng
+        ? { latitude: parseFloat(lat), longitude: parseFloat(lng) }
+        : null
+    })()
+  )
+
+  // Map panel visibility toggle
+  const [showMap, setShowMap] = useState(false)
+
   // User geolocation for nearby courts
   const geo = useGeolocation()
   const [maxDistance] = useState("")
@@ -152,9 +169,13 @@ function CourtsPageContent() {
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
     // Nearby courts: only filter by distance when user explicitly clicked "نزدیک به من"
-    if (sortBy === "distance" && userLocation) {
-      params.set("ref_lat", String(userLocation.latitude))
-      params.set("ref_lon", String(userLocation.longitude))
+    // Reference coordinate for distance-based filtering
+    // Map location (set via map click) takes priority over geolocation
+    const refCoord =
+      mapLocation || (sortBy === "distance" ? userLocation : null)
+    if (refCoord) {
+      params.set("ref_lat", String(refCoord.latitude))
+      params.set("ref_lon", String(refCoord.longitude))
       if (maxDistance) params.set("max_distance_km", maxDistance)
     }
     return params.toString()
@@ -166,6 +187,7 @@ function CourtsPageContent() {
     sortBy,
     userLocation,
     maxDistance,
+    mapLocation,
   ])
 
   // Sync filters to URL
@@ -174,10 +196,14 @@ function CourtsPageContent() {
     if (searchText) params.set("q", searchText)
     if (selectedSports.length) params.set("sports", selectedSports.join(","))
     if (sortBy !== "default") params.set("sort", sortBy)
+    if (mapLocation) {
+      params.set("lat", String(mapLocation.latitude))
+      params.set("lng", String(mapLocation.longitude))
+    }
     const qs = params.toString()
     const url = qs ? `/courts?${qs}` : "/courts"
     router.replace(url, { scroll: false })
-  }, [searchText, selectedSports, sortBy, router])
+  }, [searchText, selectedSports, sortBy, mapLocation, router])
 
   const fetchCourts = useCallback(async () => {
     setCourtsLoading(true)
@@ -194,6 +220,12 @@ function CourtsPageContent() {
     }
   }, [apiParams])
 
+  const handleMapClick = useCallback((lat: number, lng: number) => {
+    setMapLocation({ latitude: lat, longitude: lng })
+    setSortBy("distance")
+    setPage(0)
+  }, [])
+
   useEffect(() => {
     const timer = setTimeout(() => fetchCourts(), 0)
     return () => clearTimeout(timer)
@@ -203,11 +235,15 @@ function CourtsPageContent() {
     setSearchText("")
     setSelectedSports([])
     setSortBy("default")
+    setMapLocation(null)
     setPage(0)
   }
 
   const hasActiveFilters =
-    searchText || selectedSports.length > 0 || sortBy !== "default"
+    searchText ||
+    selectedSports.length > 0 ||
+    sortBy !== "default" ||
+    mapLocation !== null
 
   const totalPages = Math.ceil(total / limit)
 
@@ -230,9 +266,7 @@ function CourtsPageContent() {
 
             <div
               className={`rounded-xl border bg-card p-4 md:p-6 ${
-                hasActiveFilters
-                  ? "border-primary/30 ring-1 ring-primary/10"
-                  : ""
+                hasActiveFilters ? "" : ""
               }`}
             >
               {/* Row 1: Search + Sort + Near Me */}
@@ -298,6 +332,16 @@ function CourtsPageContent() {
                   />
                   {userLocation ? "نزدیک به من" : "موقعیت من"}
                 </Button>
+
+                <Button
+                  variant={showMap ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setShowMap((v) => !v)}
+                >
+                  <Map className="size-4" />
+                  نقشه
+                </Button>
               </div>
 
               {/* Row 2: Sport type pills */}
@@ -343,6 +387,47 @@ function CourtsPageContent() {
                   </Button>
                 ))}
               </div>
+
+              {/* ── Collapsible map panel ── */}
+              {showMap && (
+                <div className="mt-4 overflow-hidden rounded-xl border">
+                  <CourtsMap
+                    courts={featuredCourts}
+                    height="400px"
+                    userLocation={userLocation}
+                    mapLocation={mapLocation}
+                    onMapClick={handleMapClick}
+                  />
+                </div>
+              )}
+
+              {/* Geo status — moved from old map section */}
+              {(geo.loading || geo.error) && (
+                <div className="mt-3">
+                  {geo.loading && (
+                    <div className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
+                      <div className="size-2 animate-pulse rounded-full bg-blue-500" />
+                      در حال دریافت موقعیت شما...
+                    </div>
+                  )}
+                  {geo.error && (
+                    <div className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="size-4 shrink-0" />
+                        <span>
+                          موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده
+                          نمی‌شوند
+                        </span>
+                      </div>
+                      {geo.permissionState === "denied" && (
+                        <span className="text-xs text-muted-foreground">
+                          فعال‌سازی در تنظیمات مرورگر
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Active filters */}
               <div className="mt-2 mr-auto flex items-center gap-2">
@@ -398,6 +483,24 @@ function CourtsPageContent() {
                       </Button>
                     </span>
                   ))}
+                  {mapLocation && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      <MapPin className="size-3" />
+                      موقعیت انتخاب شده
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => {
+                          setMapLocation(null)
+                          setPage(0)
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -593,50 +696,6 @@ function CourtsPageContent() {
               )}
             </div>
           </div>
-        </section>
-
-        {/* Map */}
-        <section className="relative overflow-hidden px-4 py-12 md:py-24">
-          <ScrollReveal className="relative z-10 mx-auto max-w-7xl px-4">
-            <div className="mb-8 text-center">
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                موقعیت <span className="text-primary">سالن‌ها</span>
-              </h2>
-              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-                نزدیک‌ترین مجموعه‌های ورزشی به خود را پیدا کنید
-              </p>
-            </div>
-            {/* Location status */}
-            {geo.loading && (
-              <div className="mb-3 flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
-                <div className="size-2 animate-pulse rounded-full bg-blue-500" />
-                در حال دریافت موقعیت شما...
-              </div>
-            )}
-            {geo.error && (
-              <div className="mb-3 flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                <div className="flex items-center gap-2">
-                  <MapPin className="size-4 shrink-0" />
-                  <span>
-                    موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده
-                    نمی‌شوند
-                  </span>
-                </div>
-                {geo.permissionState === "denied" && (
-                  <span className="text-xs text-muted-foreground">
-                    فعال‌سازی در تنظیمات مرورگر
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="overflow-hidden rounded-xl border bg-card">
-              <CourtsMap
-                courts={featuredCourts}
-                height="500px"
-                userLocation={userLocation}
-              />
-            </div>
-          </ScrollReveal>
         </section>
       </main>
 

@@ -15,6 +15,8 @@ import L, {
   QOM_CENTER,
   createCourtIcon,
   createUserLocationIcon,
+  createSearchPinIcon,
+  getSportColor,
 } from "@/lib/neshan-map"
 import "@neshan-maps-platform/leaflet/dist/leaflet.css"
 import { toPersianDigits } from "@/lib/utils"
@@ -37,13 +39,22 @@ interface Court {
   capacity: number
   is_active: boolean
   average_rating: number
-  images?: { image_url: string }[]
+  base_price: number | null
+  images?: string[]
+  court_images?: { id: number; url: string; order: number }[]
+}
+
+function formatPrice(price: number | null): string {
+  if (price == null) return "—"
+  return `${new Intl.NumberFormat("fa-IR").format(price)} تومان`
 }
 
 interface CourtsMapProps {
   courts: Court[]
   height?: string
   userLocation?: { latitude: number; longitude: number } | null
+  mapLocation?: { latitude: number; longitude: number } | null
+  onMapClick?: (lat: number, lng: number) => void
 }
 
 const starIcon =
@@ -86,10 +97,14 @@ function addLocateControl(map: any) {
 /* ── Internal hook: keeps markers & popups in sync ── */
 
 function renderCourtMarkers(map: any, courts: Court[]) {
-  // Remove existing court markers (keep any user location markers)
+  // Remove existing court markers (keep any user location / search pin markers)
   const toRemove: any[] = []
   map.eachLayer((layer: any) => {
-    if (layer instanceof L.Marker && !("_isUser" in layer)) {
+    if (
+      layer instanceof L.Marker &&
+      !("_isUser" in layer) &&
+      !("_isSearch" in layer)
+    ) {
       toRemove.push(layer)
     }
   })
@@ -101,15 +116,44 @@ function renderCourtMarkers(map: any, courts: Court[]) {
       icon: createCourtIcon(court.sport_types?.[0]),
     })
 
-    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="min-width:180px">
-      <h3 class="mb-1 text-sm font-semibold">${court.name}</h3>
-      <p class="mb-1.5 text-xs text-gray-500">${court.sport_types?.map((st) => sportLabels[st] || st).join("، ") || ""}</p>
-      <p class="mb-1.5 max-w-50 truncate text-xs text-gray-500">${court.address}</p>
-      <div class="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
-        <span>ظرفیت: ${toPersianDigits(court.capacity)} نفر</span>
-        <span class="inline-flex items-center gap-0.5" dir="ltr">${renderStars(court.average_rating)} ${court.average_rating.toFixed(1)}</span>
+    const primarySport = court.sport_types?.[0] || ""
+    const accentColor = getSportColor(primarySport)
+
+    // Sport type badges with sport-specific colors
+    const badgesHtml =
+      court.sport_types
+        ?.map((st) => {
+          const c = getSportColor(st)
+          return `<span class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight" style="background-color:${c}18;color:${c}">${sportLabels[st] || st}</span>`
+        })
+        .join(" ") || ""
+
+    // Price section (only if available)
+    const priceHtml =
+      court.base_price != null
+        ? `<div class="mb-2 rounded-md px-3 py-1.5 text-center text-xs font-semibold" style="background-color:${accentColor}0d;color:${accentColor}">${formatPrice(court.base_price)}</div>`
+        : ""
+
+    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="position:relative;min-width:220px;padding-right:8px">
+      <div style="position:absolute;top:4px;right:0;bottom:4px;width:3px;border-radius:999px;background-color:${accentColor}"></div>
+      <div class="flex flex-wrap gap-1 mb-2">${badgesHtml}</div>
+      <h3 class="text-sm font-bold leading-snug mb-1.5 text-gray-900 dark:text-gray-100">${court.name}</h3>
+      <div class="flex items-start gap-1.5 mb-2 text-xs text-gray-500 dark:text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span class="leading-normal line-clamp-2">${court.address}</span>
       </div>
-      <a href="/courts/${court.id}" class="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700">مشاهده مجموعه</a>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-1">
+          ${renderStars(court.average_rating)}
+          <span class="text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-300">${court.average_rating.toFixed(1)}</span>
+        </div>
+        <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>${toPersianDigits(court.capacity)}</span>
+        </div>
+      </div>
+      ${priceHtml}
+      <a href="/courts/${court.id}" class="block w-full rounded-md px-3 py-1.5 text-center text-xs font-medium text-white transition-opacity hover:opacity-90" style="background-color:${accentColor}">مشاهده مجموعه</a>
     </div>`
 
     marker.bindPopup(popupHtml)
@@ -139,6 +183,32 @@ function renderUserMarker(
   ;(marker as any)._isUser = true
   marker.bindPopup(
     '<div class="text-right font-sans" dir="rtl"><strong>موقعیت شما</strong></div>'
+  )
+  marker.addTo(map)
+}
+
+function renderSearchPin(
+  map: any,
+  location: { latitude: number; longitude: number } | null
+) {
+  // Remove any existing search pin
+  const toRemove: any[] = []
+  map.eachLayer((layer: any) => {
+    if (layer instanceof L.Marker && "_isSearch" in layer) {
+      toRemove.push(layer)
+    }
+  })
+  toRemove.forEach((m: any) => m.remove())
+
+  if (!location) return
+
+  const marker = L.marker([location.latitude, location.longitude], {
+    icon: createSearchPinIcon(),
+    zIndexOffset: 1001,
+  })
+  ;(marker as any)._isSearch = true
+  marker.bindPopup(
+    '<div class="text-right font-sans" dir="rtl"><strong>محدوده جستجو</strong></div>'
   )
   marker.addTo(map)
 }
@@ -181,6 +251,8 @@ export function CourtsMap({
   courts,
   height = "400px",
   userLocation,
+  mapLocation,
+  onMapClick,
 }: CourtsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any | null>(null)
@@ -206,6 +278,18 @@ export function CourtsMap({
       mapRef.current = null
     }
   }, [])
+
+  // Map click handler for location selection
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready || !onMapClick) return
+
+    const onClick = (e: any) => onMapClick(e.latlng.lat, e.latlng.lng)
+    map.on("click", onClick)
+    return () => {
+      map.off("click", onClick)
+    }
+  }, [ready, onMapClick])
 
   // Sync courts to map
   const courtIds = useMemo(
@@ -263,6 +347,18 @@ export function CourtsMap({
       )
     }
   }, [userKey, ready, userLocation])
+
+  // Sync search pin
+  const mapLocationKey = mapLocation
+    ? `${mapLocation.latitude},${mapLocation.longitude}`
+    : ""
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+
+    renderSearchPin(map, mapLocation ?? null)
+  }, [mapLocationKey, ready, mapLocation])
 
   return (
     <MapErrorBoundary height={height}>
