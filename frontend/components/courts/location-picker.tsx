@@ -256,7 +256,7 @@ export function LocationPicker({
           attributionControl={false}
           zoomControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
           <ZoomControls />
           <ClickHandler onPlace={handlePlace} />
           <FullscreenWatcher fullscreen={fullscreen} />

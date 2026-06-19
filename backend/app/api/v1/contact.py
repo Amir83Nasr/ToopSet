@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,11 +45,25 @@ async def list_contact_messages(
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    cache_params = {"skip": skip, "limit": limit}
+    cached = await get_cached_admin_list("contact_messages", cache_params)
+    if cached is not None:
+        response.headers["X-Cache"] = "HIT"
+        return [ContactResponse.model_validate(item) for item in cached]
+
     result = await db.execute(
         select(ContactMessage).order_by(ContactMessage.created_at.desc()).offset(skip).limit(limit)
     )
-    return list(result.scalars().all())
+    messages = list(result.scalars().all())
+    await cache_admin_list(
+        "contact_messages", cache_params, [m.model_dump(mode="json") for m in messages]
+    )
+    response.headers["X-Cache"] = "MISS"
+    return messages
 
 
 @router.delete(
@@ -62,8 +76,11 @@ async def delete_contact_message(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     msg = await db.get(ContactMessage, message_id)
     if msg:
         await db.delete(msg)
         await db.commit()
+    await invalidate_admin_list_cache("contact_messages")
     return None

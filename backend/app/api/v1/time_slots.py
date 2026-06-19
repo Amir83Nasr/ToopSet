@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import get_current_manager
 from app.models.user import User
@@ -29,8 +29,11 @@ async def list_slots(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=1000),
     service: TimeSlotService = Depends(get_time_slot_service_public),
+    response: Response = None,
 ):
-    return await service.list_slots(court_id, date=date, skip=skip, limit=limit)
+    result = await service.list_slots(court_id, date=date, skip=skip, limit=limit)
+    response.headers["X-Cache"] = "HIT" if getattr(service, "_from_cache", False) else "MISS"
+    return result
 
 
 @router.post(

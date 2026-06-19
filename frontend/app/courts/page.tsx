@@ -17,7 +17,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FavoriteButton } from "@/components/courts/favorite-button"
 import { Input } from "@/components/ui/input"
-import { Slider } from "@/components/ui/slider"
 import {
   Select,
   SelectContent,
@@ -27,6 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
@@ -121,8 +127,6 @@ function CourtsPageContent() {
     searchParams.get("sport") || "all"
   )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
-  const [priceMin, setPriceMin] = useState(searchParams.get("price_min") || "")
-  const [priceMax, setPriceMax] = useState(searchParams.get("price_max") || "")
 
   // User geolocation for nearby courts
   const geo = useGeolocation()
@@ -142,8 +146,6 @@ function CourtsPageContent() {
       setSearchText(searchParams.get("q") || "")
       setSportFilter(searchParams.get("sport") || "all")
       setSortBy(searchParams.get("sort") || "default")
-      setPriceMin(searchParams.get("price_min") || "")
-      setPriceMax(searchParams.get("price_max") || "")
       initialized.current = true
     }
   }, [searchParams])
@@ -153,12 +155,9 @@ function CourtsPageContent() {
     const params = new URLSearchParams()
     params.set("skip", String(page * limit))
     params.set("limit", String(limit))
-    params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
     if (sportFilter && sportFilter !== "all")
       params.set("sport_type", sportFilter)
-    if (priceMin && Number(priceMin) > 0) params.set("price_min", priceMin)
-    if (priceMax && Number(priceMax) < 500000) params.set("price_max", priceMax)
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
@@ -170,17 +169,7 @@ function CourtsPageContent() {
       if (maxDistance) params.set("max_distance_km", maxDistance)
     }
     return params.toString()
-  }, [
-    page,
-    limit,
-    searchText,
-    sportFilter,
-    priceMin,
-    priceMax,
-    sortBy,
-    userLocation,
-    maxDistance,
-  ])
+  }, [page, limit, searchText, sportFilter, sortBy, userLocation, maxDistance])
 
   // Sync filters to URL
   useEffect(() => {
@@ -188,12 +177,10 @@ function CourtsPageContent() {
     if (searchText) params.set("q", searchText)
     if (sportFilter && sportFilter !== "all") params.set("sport", sportFilter)
     if (sortBy !== "default") params.set("sort", sortBy)
-    if (priceMin) params.set("price_min", priceMin)
-    if (priceMax) params.set("price_max", priceMax)
     const qs = params.toString()
     const url = qs ? `/courts?${qs}` : "/courts"
     router.replace(url, { scroll: false })
-  }, [searchText, sportFilter, sortBy, priceMin, priceMax, router])
+  }, [searchText, sportFilter, sortBy, router])
 
   const fetchCourts = useCallback(async () => {
     setCourtsLoading(true)
@@ -219,17 +206,11 @@ function CourtsPageContent() {
     setSearchText("")
     setSportFilter("all")
     setSortBy("default")
-    setPriceMin("")
-    setPriceMax("")
     setPage(0)
   }
 
   const hasActiveFilters =
-    searchText ||
-    (sportFilter && sportFilter !== "all") ||
-    sortBy !== "default" ||
-    priceMin ||
-    priceMax
+    searchText || (sportFilter && sportFilter !== "all") || sortBy !== "default"
 
   const totalPages = Math.ceil(total / limit)
 
@@ -331,6 +312,7 @@ function CourtsPageContent() {
                     "basketball",
                     "futsal",
                     "handball",
+                    "football",
                   ] as const
                 ).map((type) => (
                   <Button
@@ -351,45 +333,6 @@ function CourtsPageContent() {
                     {type === "all" ? "همه" : sportLabels[type]}
                   </Button>
                 ))}
-              </div>
-
-              {/* Row 3: Price range slider */}
-              <div className="mt-4 px-1">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    محدوده قیمت
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {toPersianDigits(
-                      new Intl.NumberFormat("fa-IR").format(
-                        Number(priceMin) || 0
-                      )
-                    )}{" "}
-                    —{" "}
-                    {toPersianDigits(
-                      new Intl.NumberFormat("fa-IR").format(
-                        Number(priceMax) || 500000
-                      )
-                    )}{" "}
-                    تومان
-                  </span>
-                </div>
-                <Slider
-                  min={0}
-                  max={500000}
-                  step={10000}
-                  value={[Number(priceMin) || 0, Number(priceMax) || 500000]}
-                  onValueChange={([min, max]) => {
-                    setPriceMin(String(min))
-                    setPriceMax(String(max))
-                    setPage(0)
-                  }}
-                  className="w-full"
-                />
-                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/50">
-                  <span>صفر</span>
-                  <span>{toPersianDigits("۵۰۰")} هزار</span>
-                </div>
               </div>
 
               {/* Row 4: Active filters */}
@@ -439,34 +382,6 @@ function CourtsPageContent() {
                       </Button>
                     </span>
                   )}
-                  {priceMin && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
-                      از {toPersianDigits(priceMin)}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setPriceMin("")}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </span>
-                  )}
-                  {priceMax && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
-                      تا {toPersianDigits(priceMax)}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setPriceMax("")}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </span>
-                  )}
                 </div>
               )}
             </div>
@@ -493,25 +408,23 @@ function CourtsPageContent() {
               {courtsLoading ? (
                 <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="overflow-hidden rounded-xl border bg-card"
-                    >
+                    <Card key={i}>
                       <div className="h-1 w-full bg-muted" />
-                      <div className="p-5">
+                      <CardHeader>
                         <div className="flex gap-1.5">
                           <Skeleton className="h-5 w-14 rounded-full" />
                           <Skeleton className="h-5 w-16 rounded-full" />
                         </div>
-                        <Skeleton className="mt-3 h-5 w-44" />
-                        <Skeleton className="mt-2 h-3 w-52" />
-                        <div className="mt-4 flex items-center justify-between border-t pt-3">
+                        <Skeleton className="mt-1 h-5 w-44" />
+                        <Skeleton className="mt-1 h-3 w-52" />
+                      </CardHeader>
+                      <CardFooter>
+                        <div className="flex w-full items-center justify-between">
                           <Skeleton className="h-3 w-20" />
                           <Skeleton className="h-3 w-10" />
                         </div>
-                        <Skeleton className="mt-4 h-8 w-full rounded-lg" />
-                      </div>
-                    </div>
+                      </CardFooter>
+                    </Card>
                   ))}
                 </div>
               ) : featuredCourts.length === 0 ? (
@@ -547,69 +460,75 @@ function CourtsPageContent() {
                       >
                         <Link
                           href={`/courts/${court.id}`}
-                          className="group relative block overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+                          className="group block"
                         >
-                          {/* Sport-color accent bar */}
-                          <div
-                            className={`h-1 w-full ${
-                              sportAccentColors[court.sport_types?.[0]] ||
-                              "bg-muted"
-                            }`}
-                          />
+                          <Card className="transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg">
+                            {/* Sport-color accent bar */}
+                            <div
+                              className={`h-1 w-full ${
+                                sportAccentColors[court.sport_types?.[0]] ||
+                                "bg-muted"
+                              }`}
+                            />
 
-                          <div className="p-5">
-                            {/* Top row: badges + favorite */}
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex flex-wrap gap-1.5">
-                                {court.sport_types?.map((st) => (
-                                  <Badge
-                                    key={st}
-                                    className={`shrink-0 text-[10px] ${
-                                      sportColors[st]
-                                    }`}
-                                    variant="secondary"
-                                  >
-                                    {sportLabels[st]}
-                                  </Badge>
-                                ))}
+                            <CardHeader>
+                              {/* Badges + favorite */}
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {court.sport_types?.map((st) => (
+                                    <Badge
+                                      key={st}
+                                      className={`shrink-0 text-[10px] ${
+                                        sportColors[st]
+                                      }`}
+                                      variant="secondary"
+                                    >
+                                      {sportLabels[st]}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <FavoriteButton courtId={court.id} />
                               </div>
-                              <FavoriteButton courtId={court.id} />
-                            </div>
 
-                            {/* Name */}
-                            <h3 className="mt-3 text-lg leading-tight font-bold transition-colors group-hover:text-primary">
-                              {court.name}
-                            </h3>
+                              {/* Name */}
+                              <CardTitle className="mt-1 text-lg leading-tight transition-colors group-hover:text-primary">
+                                {court.name}
+                              </CardTitle>
 
-                            {/* Address */}
-                            <div className="mt-1.5 flex items-start gap-1.5 text-xs text-muted-foreground">
-                              <MapPin className="mt-0.5 size-3.5 shrink-0" />
-                              <span className="line-clamp-1">
-                                {court.address}
-                              </span>
-                            </div>
+                              {/* Address */}
+                              <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
+                                <MapPin className="mt-0.5 size-3.5 shrink-0" />
+                                <span className="line-clamp-1">
+                                  {court.address}
+                                </span>
+                              </p>
+                            </CardHeader>
 
                             {/* Info row: capacity + rating */}
-                            <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3">
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Users className="size-3.5" />
-                                <span>
-                                  ظرفیت {toPersianDigits(court.capacity)}
-                                </span>
+                            <CardContent className="py-0">
+                              <div className="flex items-center justify-between gap-2 border-t pt-4">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Users className="size-3.5" />
+                                  <span>
+                                    ظرفیت {toPersianDigits(court.capacity)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs font-semibold">
+                                  <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                                  <span>{court.average_rating.toFixed(1)}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1 text-xs font-semibold">
-                                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-                                <span>{court.average_rating.toFixed(1)}</span>
-                              </div>
-                            </div>
+                            </CardContent>
 
                             {/* Price */}
-                            <div className="mt-4 rounded-lg bg-primary/5 px-3 py-2 text-center">
-                              <span className="text-sm font-bold text-primary">
-                                {formatPrice(court.base_price)}
-                              </span>
-                            </div>
-                          </div>
+                            <CardFooter>
+                              <div className="w-full rounded-lg bg-primary/5 px-3 py-2 text-center">
+                                <span className="text-sm font-bold text-primary">
+                                  {formatPrice(court.base_price)}
+                                </span>
+                              </div>
+                            </CardFooter>
+                          </Card>
                         </Link>
                       </motion.div>
                     ))}

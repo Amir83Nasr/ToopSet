@@ -378,64 +378,6 @@
   background-clip: text;
 }
 
-/* ── Map custom controls (locate + zoom) ── */
-
-.map-controls-group {
-  display: flex;
-  flex-direction: column;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-}
-
-.map-ctrl-btn {
-  width: 38px !important;
-  height: 38px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: hsl(var(--foreground)) !important;
-  background: hsl(var(--card)) !important;
-  border: none !important;
-  border-bottom: 1px solid hsl(var(--border)) !important;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-  padding: 0;
-  margin: 0;
-  font-size: 0;
-  line-height: 1;
-}
-
-.map-ctrl-btn:last-child {
-  border-bottom: none !important;
-}
-
-.map-ctrl-btn:hover {
-  background: hsl(var(--accent)) !important;
-  color: hsl(var(--foreground)) !important;
-  z-index: 1;
-  position: relative;
-}
-
-.map-ctrl-btn:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: -2px;
-}
-
-/* smooth map tiles */
-
-.map-tiles {
-  filter: brightness(1.02) saturate(0.98);
-}
-
-.dark .map-tiles {
-  filter: brightness(0.85) saturate(0.9) hue-rotate(5deg);
-}
-
 /* hide leaflet attribution */
 
 .leaflet-control-attribution {

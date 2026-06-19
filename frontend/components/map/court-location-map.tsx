@@ -32,7 +32,7 @@ export function CourtLocationMap({
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
         <Marker position={[latitude, longitude]} icon={createDefaultPinIcon()}>
           <Popup>
             <div className="text-right font-sans" dir="rtl">

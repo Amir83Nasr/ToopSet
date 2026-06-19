@@ -4,7 +4,12 @@ import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import { toPersianDigits } from "@/lib/utils"
-import { QOM_BOUNDS, QOM_CENTER, DEFAULT_ZOOM } from "@/lib/map-utils"
+import {
+  QOM_BOUNDS,
+  QOM_CENTER,
+  DEFAULT_ZOOM,
+  CLOSE_ZOOM,
+} from "@/lib/map-utils"
 import { createCourtIcon, createUserLocationIcon } from "@/lib/map-utils"
 
 const sportLabels: Record<string, string> = {
@@ -89,71 +94,34 @@ function MapController({
   return null
 }
 
-/* ── Custom Leaflet control: locate + zoom in/out ── */
+/* ── Custom Leaflet locate button ── */
 
-function MapControls() {
+function LocateButton() {
   const map = useMap()
 
   useEffect(() => {
-    const CustomControl = L.Control.extend({
+    const LocateControl = L.Control.extend({
       options: { position: "topleft" },
       onAdd() {
-        const container = L.DomUtil.create("div")
-        if (!container) return
-        container.className = "map-controls-group"
-
-        // Locate button
-        const locateBtn = L.DomUtil.create("button")
-        if (!locateBtn) return
-        locateBtn.innerHTML =
+        const btn = L.DomUtil.create("button")
+        btn.innerHTML =
           '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'
-        locateBtn.className = "map-ctrl-btn map-ctrl-locate"
-        locateBtn.title = "موقعیت من"
-        locateBtn.setAttribute("aria-label", "موقعیت من")
-        locateBtn.onclick = () => {
+        btn.className =
+          "leaflet-control-zoom leaflet-bar part flex items-center justify-center cursor-pointer border border-gray-300 bg-white rounded-lg shadow-sm hover:bg-gray-100 transition-colors"
+        btn.style.cssText = "width:34px;height:34px;margin-bottom:4px"
+        btn.title = "موقعیت من"
+        btn.setAttribute("aria-label", "موقعیت من")
+        btn.onclick = () => {
           map.locate({ setView: true, maxZoom: 15 })
         }
-
-        // Zoom in
-        const zoomInBtn = L.DomUtil.create("button")
-        if (!zoomInBtn) return
-        zoomInBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-        zoomInBtn.className = "map-ctrl-btn map-ctrl-zoom-in"
-        zoomInBtn.title = "بزرگ‌نمایی"
-        zoomInBtn.setAttribute("aria-label", "بزرگ‌نمایی")
-        zoomInBtn.onclick = () => {
-          map.zoomIn()
-        }
-
-        // Zoom out
-        const zoomOutBtn = L.DomUtil.create("button")
-        if (!zoomOutBtn) return
-        zoomOutBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-        zoomOutBtn.className = "map-ctrl-btn map-ctrl-zoom-out"
-        zoomOutBtn.title = "کوچک‌نمایی"
-        zoomOutBtn.setAttribute("aria-label", "کوچک‌نمایی")
-        zoomOutBtn.onclick = () => {
-          map.zoomOut()
-        }
-
-        container.appendChild(locateBtn)
-        container.appendChild(zoomInBtn)
-        container.appendChild(zoomOutBtn)
-
-        return container
+        return btn
       },
     })
 
-    const control = new CustomControl()
+    const control = new LocateControl()
     map.addControl(control)
     return () => {
-      try {
-        map.removeControl(control)
-      } catch {
-        /* ignore */
-      }
+      map.removeControl(control)
     }
   }, [map])
 
@@ -250,11 +218,10 @@ export function CourtsMap({
           minZoom={10}
           maxZoom={18}
           attributionControl={false}
-          zoomControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
           <MapController courts={courts} userLocation={userLocation} />
-          <MapControls />
+          <LocateButton />
           {userLocation && <UserMarker location={userLocation} />}
           {courts.map((court) => (
             <Marker

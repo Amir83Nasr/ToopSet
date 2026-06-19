@@ -215,6 +215,7 @@ async def approve_court(
     service = CourtService(db=db, current_user=_)
     result = await service.toggle_court_status(court_id, is_active=True)
     await invalidate_admin_list_cache("pending_courts")
+    await invalidate_admin_list_cache("courts")
     await log_action(
         db, _.id, "court_approved", f"تایید مجموعه | مجموعه (id={court_id}) توسط ادمین تایید شد"
     )
@@ -240,6 +241,7 @@ async def reject_court(
         delete_upload(img.url)
     await repo.delete(court)
     await invalidate_admin_list_cache("pending_courts")
+    await invalidate_admin_list_cache("courts")
     await log_action(
         db, _.id, "court_rejected", f"رد مجموعه | '{name}' (id={court_id}) توسط ادمین رد شد"
     )
@@ -267,6 +269,7 @@ async def hard_delete_court(
     from app.services.cache_service import invalidate_admin_list_cache
 
     await invalidate_admin_list_cache("pending_courts")
+    await invalidate_admin_list_cache("courts")
     await log_action(
         db,
         _.id,
@@ -464,13 +467,27 @@ async def hard_delete_review(
 async def list_settings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    cache_params = {}
+    cached = await get_cached_admin_list("settings", cache_params)
+    if cached is not None:
+        response.headers["X-Cache"] = "HIT"
+        return [SettingResponse.model_validate(item) for item in cached]
+
     from sqlalchemy import select
 
     from app.models.setting import Setting
 
     result = await db.execute(select(Setting).order_by(Setting.key))
-    return result.scalars().all()
+    settings = result.scalars().all()
+    await cache_admin_list(
+        "settings", cache_params, [s.model_dump(mode="json") for s in settings], ttl=120
+    )
+    response.headers["X-Cache"] = "MISS"
+    return settings
 
 
 @router.put(
@@ -491,6 +508,9 @@ async def update_setting(
     setting.value = data.value
     await db.commit()
     await db.refresh(setting)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("settings")
     await log_action(
         db,
         _.id,
@@ -534,6 +554,9 @@ async def seed_default_settings(
             db.add(Setting(**d))
             count += 1
     await db.commit()
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("settings")
     await log_action(db, _.id, "settings_seeded", f"مقداردهی تنظیمات | {count} تنظیم جدید اضافه شد")
     return {"seeded": count}
 

@@ -49,10 +49,14 @@ class TimeSlotService:
         if not court:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
 
+        # Track whether response came from Redis (for X-Cache header)
+        self._from_cache = False
+
         # Try Redis cache (first page only for simplicity)
         if skip == 0 and limit <= 50:
             cached = await get_cached_slot_list(court_id, date=date)
             if cached is not None:
+                self._from_cache = True
                 # cached contains full result for the page
                 return TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
 

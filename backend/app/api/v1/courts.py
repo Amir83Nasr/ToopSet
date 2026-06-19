@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,8 +41,32 @@ async def list_courts(
     max_distance_km: float | None = None,
     sort: str | None = Query("default", enum=["default", "price_asc", "price_desc", "rating"]),
     service: CourtService = Depends(get_court_service_public),
+    response: Response = None,
 ):
-    return await service.list_courts(
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    # Build cache params only from filter keys (skip/limit affect pagination)
+    cache_params = {
+        "skip": skip,
+        "limit": limit,
+        "sport_type": sport_type.value if sport_type else None,
+        "search": search,
+        "is_active": is_active,
+        "date_from": date_from,
+        "date_to": date_to,
+        "price_min": price_min,
+        "price_max": price_max,
+        "ref_lat": ref_lat,
+        "ref_lon": ref_lon,
+        "max_distance_km": max_distance_km,
+        "sort": sort,
+    }
+    cached = await get_cached_admin_list("courts", cache_params)
+    if cached is not None:
+        response.headers["X-Cache"] = "HIT"
+        return CourtListResponse.model_validate(cached)
+
+    result = await service.list_courts(
         skip=skip,
         limit=limit,
         sport_type=sport_type,
@@ -57,6 +81,9 @@ async def list_courts(
         max_distance_km=max_distance_km,
         sort=sort or "default",
     )
+    await cache_admin_list("courts", cache_params, result.model_dump(mode="json"))
+    response.headers["X-Cache"] = "MISS"
+    return result
 
 
 @router.get("/{court_id}/reviews", response_model=ReviewListResponse, summary="Court reviews")
@@ -88,7 +115,11 @@ async def create_court(
     data: CourtCreate,
     service: CourtService = Depends(get_court_service),
 ):
-    return await service.create_court(data)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.create_court(data)
+    await invalidate_admin_list_cache("courts")
+    return result
 
 
 @router.patch("/{court_id}", response_model=CourtResponse, summary="Update court")
@@ -97,7 +128,11 @@ async def update_court(
     data: CourtUpdate,
     service: CourtService = Depends(get_court_service),
 ):
-    return await service.update_court(court_id, data)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.update_court(court_id, data)
+    await invalidate_admin_list_cache("courts")
+    return result
 
 
 @router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete court")
@@ -106,7 +141,10 @@ async def delete_court(
     service: CourtService = Depends(get_court_service),
     _: User = Depends(get_current_manager),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     await service.delete_court(court_id)
+    await invalidate_admin_list_cache("courts")
 
 
 # ── Image management ─────────────────────────────────────────────
