@@ -92,24 +92,6 @@ const sportLabels: Record<string, string> = {
   football: "فوتبال",
 }
 
-const sportAccentColors: Record<string, string> = {
-  volleyball: "bg-blue-500",
-  basketball: "bg-orange-500",
-  futsal: "bg-green-500",
-  handball: "bg-purple-500",
-  football: "bg-red-500",
-}
-
-const sportColors: Record<string, string> = {
-  volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  basketball:
-    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  handball:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  football: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-}
-
 function formatPrice(price: number | null): string {
   if (price == null) return "—"
   return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
@@ -128,8 +110,8 @@ function CourtsPageContent() {
 
   // Filters from URL
   const [searchText, setSearchText] = useState(searchParams.get("q") || "")
-  const [sportFilter, setSportFilter] = useState(
-    searchParams.get("sport") || "all"
+  const [selectedSports, setSelectedSports] = useState<string[]>(
+    searchParams.get("sports")?.split(",").filter(Boolean) || []
   )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
 
@@ -149,7 +131,9 @@ function CourtsPageContent() {
   useEffect(() => {
     if (!initialized.current) {
       setSearchText(searchParams.get("q") || "")
-      setSportFilter(searchParams.get("sport") || "all")
+      setSelectedSports(
+        searchParams.get("sports")?.split(",").filter(Boolean) || []
+      )
       setSortBy(searchParams.get("sort") || "default")
       initialized.current = true
     }
@@ -162,8 +146,7 @@ function CourtsPageContent() {
     params.set("limit", String(limit))
     params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
-    if (sportFilter && sportFilter !== "all")
-      params.set("sport_type", sportFilter)
+    selectedSports.forEach((st) => params.append("sport_types", st))
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
@@ -175,18 +158,26 @@ function CourtsPageContent() {
       if (maxDistance) params.set("max_distance_km", maxDistance)
     }
     return params.toString()
-  }, [page, limit, searchText, sportFilter, sortBy, userLocation, maxDistance])
+  }, [
+    page,
+    limit,
+    searchText,
+    selectedSports,
+    sortBy,
+    userLocation,
+    maxDistance,
+  ])
 
   // Sync filters to URL
   useEffect(() => {
     const params = new URLSearchParams()
     if (searchText) params.set("q", searchText)
-    if (sportFilter && sportFilter !== "all") params.set("sport", sportFilter)
+    if (selectedSports.length) params.set("sports", selectedSports.join(","))
     if (sortBy !== "default") params.set("sort", sortBy)
     const qs = params.toString()
     const url = qs ? `/courts?${qs}` : "/courts"
     router.replace(url, { scroll: false })
-  }, [searchText, sportFilter, sortBy, router])
+  }, [searchText, selectedSports, sortBy, router])
 
   const fetchCourts = useCallback(async () => {
     setCourtsLoading(true)
@@ -210,13 +201,13 @@ function CourtsPageContent() {
 
   function clearFilters() {
     setSearchText("")
-    setSportFilter("all")
+    setSelectedSports([])
     setSortBy("default")
     setPage(0)
   }
 
   const hasActiveFilters =
-    searchText || (sportFilter && sportFilter !== "all") || sortBy !== "default"
+    searchText || selectedSports.length > 0 || sortBy !== "default"
 
   const totalPages = Math.ceil(total / limit)
 
@@ -327,13 +318,25 @@ function CourtsPageContent() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setSportFilter(type)
+                      if (type === "all") {
+                        setSelectedSports([])
+                      } else {
+                        setSelectedSports((prev) =>
+                          prev.includes(type)
+                            ? prev.filter((t) => t !== type)
+                            : [...prev, type]
+                        )
+                      }
                       setPage(0)
                     }}
                     className={`rounded-full px-4 ${
-                      sportFilter === type
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      type === "all"
+                        ? selectedSports.length === 0
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                        : selectedSports.includes(type)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     }`}
                   >
                     {type === "all" ? "همه" : sportLabels[type]}
@@ -374,26 +377,33 @@ function CourtsPageContent() {
                       </Button>
                     </span>
                   )}
-                  {sportFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
-                      {sportLabels[sportFilter] || sportFilter}
+                  {selectedSports.map((st) => (
+                    <span
+                      key={st}
+                      className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs"
+                    >
+                      {sportLabels[st] || st}
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-xs"
-                        onClick={() => setSportFilter("all")}
+                        onClick={() =>
+                          setSelectedSports((prev) =>
+                            prev.filter((t) => t !== st)
+                          )
+                        }
                         className="text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
                       </Button>
                     </span>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
 
             {/* ── Results grid ── */}
-            <div className="mt-14">
+            <div className="mt-6">
               {/* Results count */}
               <div className="mb-6 flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
@@ -469,15 +479,7 @@ function CourtsPageContent() {
                           href={`/courts/${court.id}`}
                           className="group block"
                         >
-                          <Card className="transition-colors duration-150 hover:border-primary/30">
-                            {/* Sport-color accent bar */}
-                            <div
-                              className={`h-1 w-full rounded-t-xl ${
-                                sportAccentColors[court.sport_types?.[0]] ||
-                                "bg-muted"
-                              }`}
-                            />
-
+                          <Card className="transition-shadow duration-150 hover:shadow-md">
                             <CardHeader>
                               {/* Badges + favorite */}
                               <div className="flex items-start justify-between gap-2">
@@ -485,9 +487,7 @@ function CourtsPageContent() {
                                   {court.sport_types?.map((st) => (
                                     <Badge
                                       key={st}
-                                      className={`shrink-0 text-[10px] ${
-                                        sportColors[st]
-                                      }`}
+                                      className="shrink-0 bg-muted-foreground/10 text-[10px] text-muted-foreground"
                                       variant="secondary"
                                     >
                                       {sportLabels[st]}
@@ -513,7 +513,7 @@ function CourtsPageContent() {
 
                             {/* Info row: capacity + rating */}
                             <CardContent className="py-0">
-                              <div className="flex items-center justify-between gap-2 border-t pt-3">
+                              <div className="flex items-center justify-between gap-2 pt-3">
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                   <Users className="size-3.5" />
                                   <span>
@@ -549,7 +549,7 @@ function CourtsPageContent() {
 
                   {/* Pagination — admin dashboard style */}
                   {totalPages > 1 && (
-                    <div className="mt-8 flex items-center justify-between border-t px-4 py-3">
+                    <div className="flex items-center justify-between px-2 py-3">
                       <p className="text-sm text-muted-foreground">
                         صفحه {toPersianDigits(page + 1)} از{" "}
                         {toPersianDigits(totalPages)}

@@ -29,6 +29,8 @@
 
 ## Committing — MANDATORY
 
+> **Never commit without explicit user instruction.** Regardless of what the task or summary says, wait for the user to say "commit" or "کامیت کن" before committing. No exceptions.
+>
 > Every commit must follow these rules. No exceptions.
 
 1. **Format:** `type(scope): message` — imperative mood, English only.

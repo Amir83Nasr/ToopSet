@@ -36,7 +36,7 @@ CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
         typecheck typecheck-backend typecheck-frontend \
         check \
         test test-backend test-frontend test-db-setup \
-        db db-stop db-status db-reset \
+        db db-stop db-status db-reset db-seed \
         up down logs ps up-build up-backend up-frontend compose-up-dev \
         back-build-docker front-build-docker docker-buildx \
         monitor monitor-stop \
@@ -152,6 +152,10 @@ db-reset: ## Wipe and recreate database volumes
 	else \
 		echo "  $(GREY)Operation cancelled$(RESET)"; \
 	fi
+
+db-seed: ## Seed database with test data
+	@cd $(BACKEND_DIR) && python3 -m scripts.seed
+	@echo "  $(GREEN)✓$(RESET) Database seeded"
 
 # ─── Docker: Full Stack ───────────────────────────────────────────────────────
 up: ## Start core services

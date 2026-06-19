@@ -1,6 +1,6 @@
 # Tasks
 
-> Last updated: 2026-06-18 — server-side pagination-aware search/filter for bookings & payments
+> Last updated: 2026-06-19 — comprehensive seed data & cleanup
 
 ## In Progress
 
@@ -23,6 +23,8 @@
 - [ ] **[P2] [Feature]** Multi-language support (FA/EN)
 
 ## Done
+
+- [x] **[Chore]** Seed data: 20 Persian users, 15 Qom courts, 14-day slots, 38 bookings, payments, reviews, logs, transactions (2026-06-19)
 
 - [x] **[Feature]** Pagination-aware search/filter for bookings & payments — backend query params (`search`, `status`) on all 4 list endpoints, frontend sends filters to backend instead of useMemo client-side filtering (2026-06-18)
 - [x] **[Bug]** Fix courts admin 500 error — missing `فوتبال` in SportType enum + _SPORT_MAP (2026-06-18)

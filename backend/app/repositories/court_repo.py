@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from math import asin, cos, radians, sin, sqrt
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -30,7 +30,7 @@ class CourtRepo:
         *,
         skip: int = 0,
         limit: int = 20,
-        sport_type: SportType | None = None,
+        sport_types: list[SportType] | None = None,
         is_active: bool | None = True,
         search: str | None = None,
         manager_id: int | None = None,
@@ -49,9 +49,10 @@ class CourtRepo:
         )
         count_query = select(Court.id)
 
-        if sport_type:
-            query = query.where(Court.sport_types.any(sport_type.value))
-            count_query = count_query.where(Court.sport_types.any(sport_type.value))
+        if sport_types:
+            cond = or_(Court.sport_types.any(st.value) for st in sport_types)
+            query = query.where(cond)
+            count_query = count_query.where(cond)
         if is_active is not None:
             query = query.where(Court.is_active == is_active)
             count_query = count_query.where(Court.is_active == is_active)
@@ -86,8 +87,9 @@ class CourtRepo:
         from sqlalchemy import func as sa_func
 
         count_q = select(sa_func.count()).select_from(Court)
-        if sport_type:
-            count_q = count_q.where(Court.sport_types.any(sport_type.value))
+        if sport_types:
+            count_cond = or_(Court.sport_types.any(st.value) for st in sport_types)
+            count_q = count_q.where(count_cond)
         if is_active is not None:
             count_q = count_q.where(Court.is_active == is_active)
         if manager_id is not None:

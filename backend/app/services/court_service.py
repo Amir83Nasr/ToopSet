@@ -35,7 +35,7 @@ class CourtService:
         *,
         skip: int = 0,
         limit: int = 20,
-        sport_type: SportType | None = None,
+        sport_types: list[SportType] | None = None,
         search: str | None = None,
         is_active: bool | None = None,  # Changed default from None to allow explicit control
         date_from: datetime | None = None,
@@ -61,7 +61,7 @@ class CourtService:
         courts, total = await self.repo.list(
             skip=skip,
             limit=limit,
-            sport_type=sport_type,
+            sport_types=sport_types,
             is_active=is_active,
             manager_id=manager_id,
             search=search,

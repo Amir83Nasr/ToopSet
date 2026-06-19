@@ -29,7 +29,7 @@ router = APIRouter(prefix="/courts", tags=["courts"])
 async def list_courts(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    sport_type: SportType | None = None,
+    sport_types: list[SportType] | None = Query(None),
     search: str | None = None,
     is_active: bool | None = None,
     date_from: str | None = Query(None),
@@ -49,7 +49,7 @@ async def list_courts(
     cache_params = {
         "skip": skip,
         "limit": limit,
-        "sport_type": sport_type.value if sport_type else None,
+        "sport_types": [st.value for st in sport_types] if sport_types else None,
         "search": search,
         "is_active": is_active,
         "date_from": date_from,
@@ -69,7 +69,7 @@ async def list_courts(
     result = await service.list_courts(
         skip=skip,
         limit=limit,
-        sport_type=sport_type,
+        sport_types=sport_types,
         search=search,
         is_active=is_active,
         date_from=parse_date_filter(date_from) if date_from else None,
