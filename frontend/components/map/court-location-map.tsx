@@ -30,21 +30,30 @@ export function CourtLocationMap({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    let destroyed = false
 
-    const map = createNeshanMap(containerRef.current, {
-      center: [latitude, longitude],
-      zoom: DEFAULT_ZOOM,
-      zoomControl: interactive,
-      dragging: interactive,
-      scrollWheelZoom: interactive,
+    const raf = requestAnimationFrame(() => {
+      if (destroyed || !containerRef.current) return
+
+      const map = createNeshanMap(containerRef.current, {
+        center: [latitude, longitude],
+        zoom: DEFAULT_ZOOM,
+        zoomControl: interactive,
+        dragging: interactive,
+        scrollWheelZoom: interactive,
+      })
+
+      mapRef.current = map
+      setReady(true)
     })
 
-    mapRef.current = map
-    setReady(true)
-
     return () => {
-      map.remove()
-      mapRef.current = null
+      destroyed = true
+      cancelAnimationFrame(raf)
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
     }
   }, [latitude, longitude, interactive])
 

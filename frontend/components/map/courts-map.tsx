@@ -260,22 +260,31 @@ export function CourtsMap({
   const prevIdsRef = useRef("")
   const prevUserRef = useRef("")
 
-  // Create map once
+  // Create map once (deferred with rAF to avoid Strict Mode double-invoke races)
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    let destroyed = false
 
-    const map = createNeshanMap(containerRef.current, {
-      center: QOM_CENTER,
-      zoom: DEFAULT_ZOOM,
+    const raf = requestAnimationFrame(() => {
+      if (destroyed || !containerRef.current) return
+
+      const map = createNeshanMap(containerRef.current, {
+        center: QOM_CENTER,
+        zoom: DEFAULT_ZOOM,
+      })
+
+      mapRef.current = map
+      addLocateControl(map)
+      setReady(true)
     })
 
-    mapRef.current = map
-    addLocateControl(map)
-    setReady(true)
-
     return () => {
-      map.remove()
-      mapRef.current = null
+      destroyed = true
+      cancelAnimationFrame(raf)
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
     }
   }, [])
 

@@ -13,7 +13,7 @@ export default L
 
 /* ── Config ── */
 
-const API_KEY = "service.22d38395eac545c6a974c23b4696c650"
+const API_KEY = process.env.NEXT_PUBLIC_NESHAN_API_KEY
 const MAP_TYPE = "standard-day"
 
 /** Qom bounds — restrict panning */
@@ -31,6 +31,10 @@ export const CLOSE_ZOOM = 15
 /** Strip Neshan watermark after the map loads. */
 function removeNeshanWatermark(el: HTMLElement, map: any) {
   function strip() {
+    // Remove Leaflet attribution control (bottom-left corner)
+    el.querySelectorAll(".leaflet-control-attribution").forEach((n) =>
+      n.remove()
+    )
     // Remove any <a> linking to neshan.org inside the map container
     el.querySelectorAll(
       'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"]'
@@ -50,6 +54,10 @@ function removeNeshanWatermark(el: HTMLElement, map: any) {
         node.remove()
       }
     })
+    // Remove any remaining .leaflet-bottom .leaflet-left containers (sign watermark area)
+    el.querySelectorAll(".leaflet-bottom.leaflet-left").forEach((n) =>
+      n.remove()
+    )
   }
 
   // Run on load, then retry a few times (watermark may load async)

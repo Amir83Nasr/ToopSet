@@ -134,24 +134,33 @@ export function LocationPicker({
     }
   }
 
-  // Create map once
+  // Create map once (deferred with rAF to avoid Strict Mode double-invoke races)
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
+    let destroyed = false
 
-    const map = createNeshanMap(mapContainerRef.current, {
-      center: QOM_CENTER,
-      zoom: DEFAULT_ZOOM,
-      zoomControl: false,
+    const raf = requestAnimationFrame(() => {
+      if (destroyed || !mapContainerRef.current) return
+
+      const map = createNeshanMap(mapContainerRef.current, {
+        center: QOM_CENTER,
+        zoom: DEFAULT_ZOOM,
+        zoomControl: false,
+      })
+
+      mapRef.current = map
+      addZoomControls(map)
+      setReady(true)
     })
 
-    mapRef.current = map
-    addZoomControls(map)
-    setReady(true)
-
     return () => {
-      map.remove()
-      mapRef.current = null
-      markerRef.current = null
+      destroyed = true
+      cancelAnimationFrame(raf)
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+        markerRef.current = null
+      }
     }
   }, [])
 
