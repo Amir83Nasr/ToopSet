@@ -69,3 +69,4 @@ backend/uploads/*
 *.tsbuildinfo
 next-env.d.ts
 *.pid
+.playwright-mcp/
