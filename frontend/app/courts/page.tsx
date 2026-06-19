@@ -33,6 +33,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
@@ -60,8 +67,6 @@ import {
   MapPin,
   Search,
   Users,
-  ChevronLeft,
-  ChevronRight,
   X,
   Navigation,
 } from "lucide-react"
@@ -155,6 +160,7 @@ function CourtsPageContent() {
     const params = new URLSearchParams()
     params.set("skip", String(page * limit))
     params.set("limit", String(limit))
+    params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
     if (sportFilter && sportFilter !== "all")
       params.set("sport_type", sportFilter)
@@ -232,7 +238,7 @@ function CourtsPageContent() {
             </div>
 
             <div
-              className={`rounded-xl border bg-card p-4 shadow-sm transition-all md:p-6 ${
+              className={`rounded-xl border bg-card p-4 md:p-6 ${
                 hasActiveFilters
                   ? "border-primary/30 ring-1 ring-primary/10"
                   : ""
@@ -326,7 +332,7 @@ function CourtsPageContent() {
                     }}
                     className={`rounded-full px-4 ${
                       sportFilter === type
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     }`}
                   >
@@ -335,7 +341,7 @@ function CourtsPageContent() {
                 ))}
               </div>
 
-              {/* Row 4: Active filters */}
+              {/* Active filters */}
               <div className="mt-2 mr-auto flex items-center gap-2">
                 {hasActiveFilters && (
                   <Button
@@ -446,7 +452,7 @@ function CourtsPageContent() {
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.1 }}
                     variants={{
-                      visible: { transition: { staggerChildren: 0.08 } },
+                      visible: { transition: { staggerChildren: 0.05 } },
                     }}
                     className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
                   >
@@ -454,18 +460,19 @@ function CourtsPageContent() {
                       <motion.div
                         key={court.id}
                         variants={{
-                          hidden: { opacity: 0, y: 16 },
+                          hidden: { opacity: 0, y: 8 },
                           visible: { opacity: 1, y: 0 },
                         }}
+                        transition={{ duration: 0.2 }}
                       >
                         <Link
                           href={`/courts/${court.id}`}
                           className="group block"
                         >
-                          <Card className="transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg">
+                          <Card className="transition-colors duration-150 hover:border-primary/30">
                             {/* Sport-color accent bar */}
                             <div
-                              className={`h-1 w-full ${
+                              className={`h-1 w-full rounded-t-xl ${
                                 sportAccentColors[court.sport_types?.[0]] ||
                                 "bg-muted"
                               }`}
@@ -491,12 +498,12 @@ function CourtsPageContent() {
                               </div>
 
                               {/* Name */}
-                              <CardTitle className="mt-1 text-lg leading-tight transition-colors group-hover:text-primary">
+                              <CardTitle className="mt-1.5 text-base leading-snug transition-colors duration-150 group-hover:text-primary">
                                 {court.name}
                               </CardTitle>
 
                               {/* Address */}
-                              <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <p className="mt-0.5 flex items-start gap-1.5 text-xs text-muted-foreground">
                                 <MapPin className="mt-0.5 size-3.5 shrink-0" />
                                 <span className="line-clamp-1">
                                   {court.address}
@@ -506,7 +513,7 @@ function CourtsPageContent() {
 
                             {/* Info row: capacity + rating */}
                             <CardContent className="py-0">
-                              <div className="flex items-center justify-between gap-2 border-t pt-4">
+                              <div className="flex items-center justify-between gap-2 border-t pt-3">
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                   <Users className="size-3.5" />
                                   <span>
@@ -515,63 +522,72 @@ function CourtsPageContent() {
                                 </div>
                                 <div className="flex items-center gap-1 text-xs font-semibold">
                                   <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-                                  <span>{court.average_rating.toFixed(1)}</span>
+                                  <span className="tabular-nums">
+                                    {toPersianDigits(
+                                      court.average_rating.toFixed(1)
+                                    )}
+                                  </span>
                                 </div>
                               </div>
                             </CardContent>
 
-                            {/* Price */}
-                            <CardFooter>
-                              <div className="w-full rounded-lg bg-primary/5 px-3 py-2 text-center">
-                                <span className="text-sm font-bold text-primary">
-                                  {formatPrice(court.base_price)}
-                                </span>
-                              </div>
-                            </CardFooter>
+                            {/* Price — only if available */}
+                            {court.base_price != null && (
+                              <CardFooter>
+                                <div className="w-full rounded-md bg-primary/5 px-3 py-2 text-center">
+                                  <span className="text-sm font-semibold text-primary">
+                                    {formatPrice(court.base_price)}
+                                  </span>
+                                </div>
+                              </CardFooter>
+                            )}
                           </Card>
                         </Link>
                       </motion.div>
                     ))}
                   </motion.div>
 
-                  {/* Pagination */}
+                  {/* Pagination — admin dashboard style */}
                   {totalPages > 1 && (
-                    <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page === 0}
-                        onClick={() => setPage((p) => p - 1)}
-                      >
-                        <ChevronRight className="ms-1 size-4" />
-                        قبلی
-                      </Button>
-                      {Array.from({ length: Math.min(totalPages, 5) }).map(
-                        (_, i) => {
-                          const pageNum =
-                            Math.max(0, Math.min(page - 2, totalPages - 5)) + i
-                          if (pageNum >= totalPages) return null
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={page === pageNum ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setPage(pageNum)}
-                            >
-                              {toPersianDigits(pageNum + 1)}
-                            </Button>
-                          )
-                        }
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page >= totalPages - 1}
-                        onClick={() => setPage((p) => p + 1)}
-                      >
-                        بعدی
-                        <ChevronLeft className="me-1 size-4" />
-                      </Button>
+                    <div className="mt-8 flex items-center justify-between border-t px-4 py-3">
+                      <p className="text-sm text-muted-foreground">
+                        صفحه {toPersianDigits(page + 1)} از{" "}
+                        {toPersianDigits(totalPages)}
+                      </p>
+                      <Pagination className="mx-0 w-auto">
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              text="قبلی"
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setPage((p) => p - 1)
+                              }}
+                              className={
+                                page === 0
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }
+                            />
+                          </PaginationItem>
+                          <PaginationItem>
+                            <PaginationNext
+                              text="بعدی"
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setPage((p) => p + 1)
+                              }}
+                              className={
+                                page >= totalPages - 1
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
                     </div>
                   )}
                 </>
