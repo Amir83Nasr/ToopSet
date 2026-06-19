@@ -264,22 +264,19 @@ export function CourtsMap({
     }
   }, [userKey, ready, userLocation])
 
-  if (courts.length === 0) {
-    return (
-      <div
-        className="flex items-center justify-center rounded-xl border bg-muted"
-        style={{ height }}
-      >
-        <p className="text-sm text-muted-foreground">
-          هیچ مجموعه‌ای برای نمایش وجود ندارد
-        </p>
-      </div>
-    )
-  }
-
   return (
     <MapErrorBoundary height={height}>
-      <div className="overflow-hidden rounded-xl border" style={{ height }}>
+      <div
+        className="relative overflow-hidden rounded-xl border"
+        style={{ height }}
+      >
+        {courts.length === 0 && (
+          <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
+            <p className="rounded-full bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
+              هیچ مجموعه‌ای برای نمایش وجود ندارد
+            </p>
+          </div>
+        )}
         <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
       </div>
     </MapErrorBoundary>

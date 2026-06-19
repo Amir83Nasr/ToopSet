@@ -425,7 +425,6 @@ function CourtsPageContent() {
                 <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i}>
-                      <div className="h-1 w-full bg-muted" />
                       <CardHeader>
                         <div className="flex gap-1.5">
                           <Skeleton className="h-5 w-14 rounded-full" />
@@ -628,12 +627,6 @@ function CourtsPageContent() {
                     فعال‌سازی در تنظیمات مرورگر
                   </span>
                 )}
-              </div>
-            )}
-            {userLocation && (
-              <div className="mb-3 flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-green-700 dark:text-green-300">
-                <MapPin className="size-4 shrink-0" />
-                <span>نمایش مجموعه‌های نزدیک به موقعیت شما</span>
               </div>
             )}
             <div className="overflow-hidden rounded-xl border bg-card">
