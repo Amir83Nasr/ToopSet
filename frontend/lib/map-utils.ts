@@ -19,6 +19,7 @@ const sportColors: Record<string, string> = {
   basketball: "#ea580c",
   futsal: "#16a34a",
   handball: "#7c3aed",
+  football: "#dc2626",
 }
 
 /* ── SVG pin background template ── */
@@ -40,6 +41,7 @@ const sportIcons: Record<string, string> = {
   basketball: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M10 2v16M2 6c4 2 12 2 16 0M2 14c4-2 12-2 16 0" stroke="#fff" stroke-width="0.8" opacity="0.7"/></svg>`,
   futsal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M6 6l8 8M14 6l-8 8" stroke="#fff" stroke-width="1" opacity="0.5"/><path d="M10 2a8 8 0 010 16" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.4"/></svg>`,
   handball: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#fff" stroke-width="1.4"/><circle cx="7" cy="7" r="1.5" fill="#fff"/><circle cx="13" cy="7" r="1.5" fill="#fff"/><path d="M7 14c0-2 2.5-3 6-2" stroke="#fff" stroke-width="1" fill="none"/></svg>`,
+  football: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M10 2l3 4-1 5-2 2-2-2-1-5 3-4z" stroke="#fff" stroke-width="0.7" fill="none"/><path d="M4 8l4 1 2 3-1 4" stroke="#fff" stroke-width="0.7" fill="none"/><path d="M16 8l-4 1-2 3 1 4" stroke="#fff" stroke-width="0.7" fill="none"/></svg>`,
 }
 
 export function getSportColor(sportType?: string): string {

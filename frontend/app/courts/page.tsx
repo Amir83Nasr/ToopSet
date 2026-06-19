@@ -1,0 +1,726 @@
+"use client"
+
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useGeolocation } from "@/hooks/use-geolocation"
+import { api } from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { FavoriteButton } from "@/components/courts/favorite-button"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { motion } from "framer-motion"
+import dynamic from "next/dynamic"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { SiteHeader } from "@/components/public/site-header"
+import { SiteFooter } from "@/components/public/site-footer"
+
+const CourtsMap = dynamic(
+  () => import("@/components/map/courts-map").then((m) => m.CourtsMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex items-center justify-center rounded-xl border bg-muted"
+        style={{ height: "500px" }}
+      >
+        <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
+      </div>
+    ),
+  }
+)
+import {
+  Building2,
+  Star,
+  MapPin,
+  Search,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Navigation,
+} from "lucide-react"
+
+interface Court {
+  id: number
+  name: string
+  sport_types: string[]
+  address: string
+  latitude: number
+  longitude: number
+  capacity: number
+  is_active: boolean
+  average_rating: number
+  base_price: number | null
+}
+
+const sportLabels: Record<string, string> = {
+  volleyball: "والیبال",
+  basketball: "بسکتبال",
+  futsal: "فوتسال",
+  handball: "هندبال",
+  football: "فوتبال",
+}
+
+const sportAccentColors: Record<string, string> = {
+  volleyball: "bg-blue-500",
+  basketball: "bg-orange-500",
+  futsal: "bg-green-500",
+  handball: "bg-purple-500",
+  football: "bg-red-500",
+}
+
+const sportColors: Record<string, string> = {
+  volleyball: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  basketball:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  futsal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  handball:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  football: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+}
+
+function formatPrice(price: number | null): string {
+  if (price == null) return "—"
+  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
+}
+
+function CourtsPageContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const [featuredCourts, setFeaturedCourts] = useState<Court[]>([])
+  const [total, setTotal] = useState(0)
+  const [courtsLoading, setCourtsLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const limit = 12
+  const initialized = useRef(false)
+
+  // Filters from URL
+  const [searchText, setSearchText] = useState(searchParams.get("q") || "")
+  const [sportFilter, setSportFilter] = useState(
+    searchParams.get("sport") || "all"
+  )
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
+  const [priceMin, setPriceMin] = useState(searchParams.get("price_min") || "")
+  const [priceMax, setPriceMax] = useState(searchParams.get("price_max") || "")
+
+  // User geolocation for nearby courts
+  const geo = useGeolocation()
+  const [maxDistance] = useState("")
+  const [locating, setLocating] = useState(false)
+  const userLocation = useMemo(
+    () =>
+      geo.latitude && geo.longitude
+        ? { latitude: geo.latitude, longitude: geo.longitude }
+        : null,
+    [geo.latitude, geo.longitude]
+  )
+
+  // Sync URL -> state on mount
+  useEffect(() => {
+    if (!initialized.current) {
+      setSearchText(searchParams.get("q") || "")
+      setSportFilter(searchParams.get("sport") || "all")
+      setSortBy(searchParams.get("sort") || "default")
+      setPriceMin(searchParams.get("price_min") || "")
+      setPriceMax(searchParams.get("price_max") || "")
+      initialized.current = true
+    }
+  }, [searchParams])
+
+  // Build API params
+  const apiParams = useMemo(() => {
+    const params = new URLSearchParams()
+    params.set("skip", String(page * limit))
+    params.set("limit", String(limit))
+    params.set("is_active", "true")
+    if (searchText) params.set("search", searchText)
+    if (sportFilter && sportFilter !== "all")
+      params.set("sport_type", sportFilter)
+    if (priceMin && Number(priceMin) > 0) params.set("price_min", priceMin)
+    if (priceMax && Number(priceMax) < 500000) params.set("price_max", priceMax)
+    if (sortBy === "price_asc") params.set("sort", "price_asc")
+    if (sortBy === "price_desc") params.set("sort", "price_desc")
+    if (sortBy === "rating") params.set("sort", "rating")
+    if (sortBy === "distance") params.set("sort", "distance")
+    // Nearby courts: only filter by distance when user explicitly clicked "نزدیک به من"
+    if (sortBy === "distance" && userLocation) {
+      params.set("ref_lat", String(userLocation.latitude))
+      params.set("ref_lon", String(userLocation.longitude))
+      if (maxDistance) params.set("max_distance_km", maxDistance)
+    }
+    return params.toString()
+  }, [
+    page,
+    limit,
+    searchText,
+    sportFilter,
+    priceMin,
+    priceMax,
+    sortBy,
+    userLocation,
+    maxDistance,
+  ])
+
+  // Sync filters to URL
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (searchText) params.set("q", searchText)
+    if (sportFilter && sportFilter !== "all") params.set("sport", sportFilter)
+    if (sortBy !== "default") params.set("sort", sortBy)
+    if (priceMin) params.set("price_min", priceMin)
+    if (priceMax) params.set("price_max", priceMax)
+    const qs = params.toString()
+    const url = qs ? `/courts?${qs}` : "/courts"
+    router.replace(url, { scroll: false })
+  }, [searchText, sportFilter, sortBy, priceMin, priceMax, router])
+
+  const fetchCourts = useCallback(async () => {
+    setCourtsLoading(true)
+    try {
+      const res = await api<{ courts: Court[]; total: number }>(
+        `/api/v1/courts?${apiParams}`
+      )
+      setFeaturedCourts(res.courts)
+      setTotal(res.total)
+    } catch {
+      // API may not be available
+    } finally {
+      setCourtsLoading(false)
+    }
+  }, [apiParams])
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchCourts(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchCourts])
+
+  function clearFilters() {
+    setSearchText("")
+    setSportFilter("all")
+    setSortBy("default")
+    setPriceMin("")
+    setPriceMax("")
+    setPage(0)
+  }
+
+  const hasActiveFilters =
+    searchText ||
+    (sportFilter && sportFilter !== "all") ||
+    sortBy !== "default" ||
+    priceMin ||
+    priceMax
+
+  const totalPages = Math.ceil(total / limit)
+
+  return (
+    <div className="flex min-h-svh flex-col">
+      <SiteHeader />
+
+      <main className="relative overflow-x-hidden pt-16">
+        {/* Search & Filters */}
+        <section className="relative overflow-hidden px-4 py-12 md:py-24">
+          <div className="relative z-10 mx-auto max-w-7xl px-4">
+            <div className="mb-10 text-center">
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                جستجوی <span className="text-primary">سالن‌ها</span>
+              </h2>
+              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+                مجموعه ورزشی مورد نظر خود را پیدا کنید
+              </p>
+            </div>
+
+            <div
+              className={`rounded-xl border bg-card p-4 shadow-sm transition-all md:p-6 ${
+                hasActiveFilters
+                  ? "border-primary/30 ring-1 ring-primary/10"
+                  : ""
+              }`}
+            >
+              {/* Row 1: Search + Sort + Near Me */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="relative">
+                    <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="جستجوی نام مجموعه، آدرس..."
+                      value={searchText}
+                      onChange={(e) => {
+                        setSearchText(e.target.value)
+                        setPage(0)
+                      }}
+                      className="pr-9"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Select
+                    value={sortBy}
+                    onValueChange={(v) => {
+                      setSortBy(v)
+                      setPage(0)
+                    }}
+                  >
+                    <SelectTrigger className="w-35">
+                      <SelectValue placeholder="مرتب‌سازی" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectGroup>
+                        <SelectLabel>مرتب‌سازی</SelectLabel>
+                        <SelectItem value="default">پیش‌فرض</SelectItem>
+                        <SelectItem value="price_asc">
+                          قیمت: کم به زیاد
+                        </SelectItem>
+                        <SelectItem value="price_desc">
+                          قیمت: زیاد به کم
+                        </SelectItem>
+                        <SelectItem value="rating">امتیاز</SelectItem>
+                        <SelectItem value="distance">نزدیک‌ترین</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  variant={userLocation ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    setLocating(true)
+                    setSortBy("distance")
+                    setPage(0)
+                    if (!userLocation) geo.requestLocation()
+                    setTimeout(() => setLocating(false), 3000)
+                  }}
+                  disabled={locating}
+                >
+                  <Navigation
+                    className={`size-4 ${locating ? "animate-spin" : ""}`}
+                  />
+                  {userLocation ? "نزدیک به من" : "موقعیت من"}
+                </Button>
+              </div>
+
+              {/* Row 2: Sport type pills */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(
+                  [
+                    "all",
+                    "volleyball",
+                    "basketball",
+                    "futsal",
+                    "handball",
+                  ] as const
+                ).map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSportFilter(type)
+                      setPage(0)
+                    }}
+                    className={`rounded-full px-4 ${
+                      sportFilter === type
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    }`}
+                  >
+                    {type === "all" ? "همه" : sportLabels[type]}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Row 3: Price range slider */}
+              <div className="mt-4 px-1">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    محدوده قیمت
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {toPersianDigits(
+                      new Intl.NumberFormat("fa-IR").format(
+                        Number(priceMin) || 0
+                      )
+                    )}{" "}
+                    —{" "}
+                    {toPersianDigits(
+                      new Intl.NumberFormat("fa-IR").format(
+                        Number(priceMax) || 500000
+                      )
+                    )}{" "}
+                    تومان
+                  </span>
+                </div>
+                <Slider
+                  min={0}
+                  max={500000}
+                  step={10000}
+                  value={[Number(priceMin) || 0, Number(priceMax) || 500000]}
+                  onValueChange={([min, max]) => {
+                    setPriceMin(String(min))
+                    setPriceMax(String(max))
+                    setPage(0)
+                  }}
+                  className="w-full"
+                />
+                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/50">
+                  <span>صفر</span>
+                  <span>{toPersianDigits("۵۰۰")} هزار</span>
+                </div>
+              </div>
+
+              {/* Row 4: Active filters */}
+              <div className="mt-2 mr-auto flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
+                  >
+                    <X className="size-3.5" />
+                    حذف فیلترها
+                  </Button>
+                )}
+              </div>
+
+              {/* Filter chips */}
+              {hasActiveFilters && (
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
+                  {searchText && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      <Search className="size-3" />
+                      {searchText}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setSearchText("")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </span>
+                  )}
+                  {sportFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      {sportLabels[sportFilter] || sportFilter}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setSportFilter("all")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </span>
+                  )}
+                  {priceMin && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      از {toPersianDigits(priceMin)}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setPriceMin("")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </span>
+                  )}
+                  {priceMax && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                      تا {toPersianDigits(priceMax)}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setPriceMax("")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Results grid ── */}
+            <div className="mt-14">
+              {/* Results count */}
+              <div className="mb-6 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {toPersianDigits(total)} مجموعه پیدا شد
+                  {hasActiveFilters && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="me-2 text-xs"
+                    >
+                      پاک کردن فیلتر
+                    </Button>
+                  )}
+                </p>
+              </div>
+
+              {courtsLoading ? (
+                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="overflow-hidden rounded-xl border bg-card"
+                    >
+                      <div className="h-1 w-full bg-muted" />
+                      <div className="p-5">
+                        <div className="flex gap-1.5">
+                          <Skeleton className="h-5 w-14 rounded-full" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                        </div>
+                        <Skeleton className="mt-3 h-5 w-44" />
+                        <Skeleton className="mt-2 h-3 w-52" />
+                        <div className="mt-4 flex items-center justify-between border-t pt-3">
+                          <Skeleton className="h-3 w-20" />
+                          <Skeleton className="h-3 w-10" />
+                        </div>
+                        <Skeleton className="mt-4 h-8 w-full rounded-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : featuredCourts.length === 0 ? (
+                <div className="flex flex-col items-center gap-4 rounded-xl border bg-card py-20 text-center">
+                  <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+                    <Building2 className="size-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-lg text-muted-foreground">
+                    هیچ مجموعه‌ای با فیلترهای انتخاب شده یافت نشد
+                  </p>
+                  <Button variant="outline" onClick={clearFilters}>
+                    پاک کردن فیلترها
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.1 }}
+                    variants={{
+                      visible: { transition: { staggerChildren: 0.08 } },
+                    }}
+                    className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+                  >
+                    {featuredCourts.map((court) => (
+                      <motion.div
+                        key={court.id}
+                        variants={{
+                          hidden: { opacity: 0, y: 16 },
+                          visible: { opacity: 1, y: 0 },
+                        }}
+                      >
+                        <Link
+                          href={`/courts/${court.id}`}
+                          className="group relative block overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+                        >
+                          {/* Sport-color accent bar */}
+                          <div
+                            className={`h-1 w-full ${
+                              sportAccentColors[court.sport_types?.[0]] ||
+                              "bg-muted"
+                            }`}
+                          />
+
+                          <div className="p-5">
+                            {/* Top row: badges + favorite */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex flex-wrap gap-1.5">
+                                {court.sport_types?.map((st) => (
+                                  <Badge
+                                    key={st}
+                                    className={`shrink-0 text-[10px] ${
+                                      sportColors[st]
+                                    }`}
+                                    variant="secondary"
+                                  >
+                                    {sportLabels[st]}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <FavoriteButton courtId={court.id} />
+                            </div>
+
+                            {/* Name */}
+                            <h3 className="mt-3 text-lg leading-tight font-bold transition-colors group-hover:text-primary">
+                              {court.name}
+                            </h3>
+
+                            {/* Address */}
+                            <div className="mt-1.5 flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <MapPin className="mt-0.5 size-3.5 shrink-0" />
+                              <span className="line-clamp-1">
+                                {court.address}
+                              </span>
+                            </div>
+
+                            {/* Info row: capacity + rating */}
+                            <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Users className="size-3.5" />
+                                <span>
+                                  ظرفیت {toPersianDigits(court.capacity)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs font-semibold">
+                                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                                <span>{court.average_rating.toFixed(1)}</span>
+                              </div>
+                            </div>
+
+                            {/* Price */}
+                            <div className="mt-4 rounded-lg bg-primary/5 px-3 py-2 text-center">
+                              <span className="text-sm font-bold text-primary">
+                                {formatPrice(court.base_price)}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 0}
+                        onClick={() => setPage((p) => p - 1)}
+                      >
+                        <ChevronRight className="ms-1 size-4" />
+                        قبلی
+                      </Button>
+                      {Array.from({ length: Math.min(totalPages, 5) }).map(
+                        (_, i) => {
+                          const pageNum =
+                            Math.max(0, Math.min(page - 2, totalPages - 5)) + i
+                          if (pageNum >= totalPages) return null
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={page === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setPage(pageNum)}
+                            >
+                              {toPersianDigits(pageNum + 1)}
+                            </Button>
+                          )
+                        }
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= totalPages - 1}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        بعدی
+                        <ChevronLeft className="me-1 size-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Map */}
+        <section className="relative overflow-hidden px-4 py-12 md:py-24">
+          <ScrollReveal className="relative z-10 mx-auto max-w-7xl px-4">
+            <div className="mb-8 text-center">
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                موقعیت <span className="text-primary">سالن‌ها</span>
+              </h2>
+              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+                نزدیک‌ترین مجموعه‌های ورزشی به خود را پیدا کنید
+              </p>
+            </div>
+            {/* Location status */}
+            {geo.loading && (
+              <div className="mb-3 flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
+                <div className="size-2 animate-pulse rounded-full bg-blue-500" />
+                در حال دریافت موقعیت شما...
+              </div>
+            )}
+            {geo.error && (
+              <div className="mb-3 flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                <div className="flex items-center gap-2">
+                  <MapPin className="size-4 shrink-0" />
+                  <span>
+                    موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده
+                    نمی‌شوند
+                  </span>
+                </div>
+                {geo.permissionState === "denied" && (
+                  <span className="text-xs text-muted-foreground">
+                    فعال‌سازی در تنظیمات مرورگر
+                  </span>
+                )}
+              </div>
+            )}
+            {userLocation && (
+              <div className="mb-3 flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-green-700 dark:text-green-300">
+                <MapPin className="size-4 shrink-0" />
+                <span>نمایش مجموعه‌های نزدیک به موقعیت شما</span>
+              </div>
+            )}
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <CourtsMap
+                courts={featuredCourts}
+                height="500px"
+                userLocation={userLocation}
+              />
+            </div>
+          </ScrollReveal>
+        </section>
+      </main>
+
+      <SiteFooter />
+    </div>
+  )
+}
+
+export default function CourtsPage() {
+  return (
+    <Suspense fallback={null}>
+      <CourtsPageContent />
+    </Suspense>
+  )
+}

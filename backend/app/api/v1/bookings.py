@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
@@ -53,12 +53,14 @@ async def list_all_bookings_admin(
     status: str | None = None,
     service: BookingService = Depends(get_booking_service_admin),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
     cache_params = {"skip": skip, "limit": limit, "search": search, "status": status}
     cached = await get_cached_admin_list("bookings", cache_params)
     if cached is not None:
+        response.headers["X-Cache"] = "HIT"
         return AdminBookingListResponse.model_validate(cached)
 
     result = await service.list_all_bookings(
@@ -66,6 +68,7 @@ async def list_all_bookings_admin(
     )
 
     await cache_admin_list("bookings", cache_params, result.model_dump(mode="json"), ttl=30)
+    response.headers["X-Cache"] = "MISS"
     return result
 
 
@@ -103,6 +106,7 @@ async def pay_booking(
 
     result = await service.pay_booking(booking_id)
     await invalidate_admin_list_cache("bookings")
+    await invalidate_admin_list_cache("payments")
     return result
 
 

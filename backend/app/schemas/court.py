@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -69,6 +70,7 @@ class CourtResponse(CourtBase):
     court_images: list[CourtImageResponse] | None = None
     is_active: bool
     average_rating: float
+    base_price: Decimal | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

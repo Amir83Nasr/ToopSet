@@ -44,7 +44,7 @@ import { getInitials, toPersianDigits } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/#courts", label: "جستجوی سالن‌ها" },
+  { href: "/courts", label: "جستجوی سالن‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 

@@ -311,7 +311,8 @@ No glow/shine/neon effects anywhere. No `blur-*` decorative divs, no `bg-gradien
 
 | Path | Status | Description |
 | ---- | ------ | ----------- |
-| `/` | ✅ | Homepage (Hero + Search + Map + Courts Grid) |
+| `/` | ✅ | Homepage (Hero) |
+| `/courts` | ✅ | Court listing (Search + Map + Courts Grid) |
 | `/about` | ✅ | About page |
 | `/contact` | ✅ | Contact page |
 | `/privacy` | ✅ | Privacy policy |

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,6 +68,7 @@ async def list_logs(
     date_to: datetime | None = None,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
@@ -81,6 +82,7 @@ async def list_logs(
     }
     cached = await get_cached_admin_list("logs", cache_params)
     if cached is not None:
+        response.headers["X-Cache"] = "HIT"
         return LogListResponse.model_validate(cached)
 
     repo = LogRepo(db)
@@ -105,6 +107,7 @@ async def list_logs(
         {"logs": [r.model_dump(mode="json") for r in log_responses], "total": total},
         ttl=30,
     )
+    response.headers["X-Cache"] = "MISS"
     return LogListResponse(logs=log_responses, total=total)
 
 
@@ -155,6 +158,7 @@ async def list_pending_courts(
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
     from sqlalchemy import func, select
 
@@ -163,6 +167,7 @@ async def list_pending_courts(
     cache_params = {"skip": skip, "limit": limit}
     cached = await get_cached_admin_list("pending_courts", cache_params)
     if cached is not None:
+        response.headers["X-Cache"] = "HIT"
         return cached
 
     count_q = select(func.count(Court.id)).where(Court.is_active == False)
@@ -194,6 +199,7 @@ async def list_pending_courts(
 
     result_data = {"courts": courts_data, "total": total}
     await cache_admin_list("pending_courts", cache_params, result_data)
+    response.headers["X-Cache"] = "MISS"
     return result_data
 
 
@@ -258,6 +264,9 @@ async def hard_delete_court(
     for img in court.court_images or []:
         delete_upload(img.url)
     await repo.delete(court)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("pending_courts")
     await log_action(
         db,
         _.id,

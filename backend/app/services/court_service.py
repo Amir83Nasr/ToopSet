@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
@@ -73,8 +74,9 @@ class CourtService:
             ref_lon=ref_lon,
             max_distance_km=max_distance_km,
         )
+        prices = await self.repo.get_min_prices([c.id for c in courts])
         return CourtListResponse(
-            courts=[self._to_response(c) for c in courts],
+            courts=[self._to_response(c, min_price=prices.get(c.id)) for c in courts],
             total=total,
         )
 
@@ -86,7 +88,8 @@ class CourtService:
             self.current_user is None or self.current_user.role not in ("admin", "manager")
         ):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        return self._to_response(court)
+        prices = await self.repo.get_min_prices([court_id])
+        return self._to_response(court, min_price=prices.get(court_id))
 
     async def create_court(self, data: CourtCreate) -> CourtResponse:
         if self.current_user.role != "manager":
@@ -138,7 +141,8 @@ class CourtService:
             "court_created",
             f"ایجاد مجموعه | '{court.name}' (id={court.id}) - {len(urls)} تصویر",
         )
-        return self._to_response(court)
+        prices = await self.repo.get_min_prices([court.id])
+        return self._to_response(court, min_price=prices.get(court.id))
 
     async def update_court(self, court_id: int, data: CourtUpdate) -> CourtResponse:
         court = await self.repo.get_by_id(court_id)
@@ -189,7 +193,8 @@ class CourtService:
             "court_updated",
             " — ".join(details_parts),
         )
-        return self._to_response(updated)
+        prices = await self.repo.get_min_prices([court_id])
+        return self._to_response(updated, min_price=prices.get(court_id))
 
     async def delete_court(self, court_id: int) -> None:
         court = await self.repo.get_by_id(court_id)
@@ -227,10 +232,13 @@ class CourtService:
             "court_toggled",
             f"تغییر وضعیت مجموعه | '{court.name}' (id={court_id}) → {status_label}",
         )
-        return self._to_response(updated)
+        prices = await self.repo.get_min_prices([court_id])
+        return self._to_response(updated, min_price=prices.get(court_id))
 
-    def _to_response(self, court: Court) -> CourtResponse:
+    def _to_response(self, court: Court, min_price: Decimal | None = None) -> CourtResponse:
         resp = CourtResponse.model_validate(court)
+        if min_price is not None:
+            resp.base_price = min_price
         if court.manager:
             resp.manager_name = court.manager.full_name
             resp.manager_phone = court.manager.phone

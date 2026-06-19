@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from math import asin, cos, radians, sin, sqrt
 
 from sqlalchemy import func, select
@@ -192,3 +193,19 @@ class CourtRepo:
     async def delete(self, court: Court) -> None:
         await self.db.delete(court)
         await self.db.commit()
+
+    async def get_min_prices(self, court_ids: list[int]) -> dict[int, Decimal | None]:
+        """Return {court_id: min_base_price} for un-reserved time slots."""
+        if not court_ids:
+            return {}
+        from sqlalchemy import func as sa_func
+
+        result = await self.db.execute(
+            select(TimeSlot.court_id, sa_func.min(TimeSlot.base_price))
+            .where(
+                TimeSlot.court_id.in_(court_ids),
+                TimeSlot.is_reserved == False,
+            )
+            .group_by(TimeSlot.court_id)
+        )
+        return {row[0]: row[1] for row in result.all()}

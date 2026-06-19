@@ -1,13 +1,12 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function HeroSection() {
-  function scrollToCourts() {
-    document.getElementById("courts")?.scrollIntoView({ behavior: "smooth" })
-  }
+  const router = useRouter()
 
   return (
     <section className="relative overflow-hidden py-12 md:py-24">
@@ -63,7 +62,7 @@ export function HeroSection() {
               className="flex flex-col gap-3 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5"
             >
               <Button
-                onClick={scrollToCourts}
+                onClick={() => router.push("/courts")}
                 className="w-full px-3 font-semibold sm:w-auto"
               >
                 <span>شروع رزرو آنلاین</span>
@@ -72,7 +71,7 @@ export function HeroSection() {
 
               <Button
                 variant="outline"
-                onClick={scrollToCourts}
+                onClick={() => router.push("/courts")}
                 className="w-full px-3 font-semibold sm:w-auto"
               >
                 <Map className="size-4 shrink-0" />

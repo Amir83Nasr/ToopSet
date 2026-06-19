@@ -10,8 +10,8 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    phone: str
-    password: str
+    phone: str = Field(..., examples=["09306853363"])
+    password: str = Field(..., examples=["Amir83Nasr"])
 
 
 class RefreshRequest(BaseModel):

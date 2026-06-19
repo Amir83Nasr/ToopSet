@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.deps import get_current_admin
 from app.models.user import User
@@ -25,6 +25,7 @@ async def list_users(
     is_active: bool | None = None,
     service: UserService = Depends(get_user_service),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
@@ -37,19 +38,21 @@ async def list_users(
     }
     cached = await get_cached_admin_list("users", cache_params)
     if cached is not None:
+        response.headers["X-Cache"] = "HIT"
         return UserListResponse.model_validate(cached)
 
     raw_users, total = await service.repo.list_users(
         skip=skip, limit=limit, search=search, role=role, is_active=is_active
     )
 
-    response = UserListResponse(
+    result = UserListResponse(
         users=[UserAdminResponse.model_validate(u) for u in raw_users],
         total=total,
     )
 
-    await cache_admin_list("users", cache_params, response.model_dump(mode="json"))
-    return response
+    await cache_admin_list("users", cache_params, result.model_dump(mode="json"))
+    response.headers["X-Cache"] = "MISS"
+    return result
 
 
 @router.get("/{user_id}", response_model=UserDetailResponse, summary="User details (admin)")

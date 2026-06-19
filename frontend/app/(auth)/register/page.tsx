@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -8,7 +9,7 @@ import { RegisterForm } from "@/components/auth/register-form"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 
-export default function RegisterPage() {
+function RegisterPageInner() {
   const { register } = useAuth()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || undefined
@@ -37,5 +38,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageInner />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
+import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import { toPersianDigits } from "@/lib/utils"
@@ -12,6 +12,7 @@ const sportLabels: Record<string, string> = {
   basketball: "بسکتبال",
   futsal: "فوتسال",
   handball: "هندبال",
+  football: "فوتبال",
 }
 
 interface Court {
@@ -88,37 +89,106 @@ function MapController({
   return null
 }
 
-function LocateButton() {
+/* ── Custom Leaflet control: locate + zoom in/out ── */
+
+function MapControls() {
   const map = useMap()
 
   useEffect(() => {
-    const LocateControl = L.Control.extend({
+    const CustomControl = L.Control.extend({
       options: { position: "topleft" },
       onAdd() {
-        const btn = L.DomUtil.create("button")
-        btn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'
-        btn.className =
-          "leaflet-control-zoom leaflet-bar part flex items-center justify-center cursor-pointer border bg-background rounded-lg shadow-sm hover:bg-muted transition-colors"
-        btn.style.cssText = "width:34px;height:34px;margin-bottom:4px"
-        btn.title = "موقعیت من"
-        btn.setAttribute("aria-label", "موقعیت من")
+        const container = L.DomUtil.create("div")
+        if (!container) return
+        container.className = "map-controls-group"
 
-        btn.onclick = () => {
+        // Locate button
+        const locateBtn = L.DomUtil.create("button")
+        if (!locateBtn) return
+        locateBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'
+        locateBtn.className = "map-ctrl-btn map-ctrl-locate"
+        locateBtn.title = "موقعیت من"
+        locateBtn.setAttribute("aria-label", "موقعیت من")
+        locateBtn.onclick = () => {
           map.locate({ setView: true, maxZoom: 15 })
         }
-        return btn
+
+        // Zoom in
+        const zoomInBtn = L.DomUtil.create("button")
+        if (!zoomInBtn) return
+        zoomInBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+        zoomInBtn.className = "map-ctrl-btn map-ctrl-zoom-in"
+        zoomInBtn.title = "بزرگ‌نمایی"
+        zoomInBtn.setAttribute("aria-label", "بزرگ‌نمایی")
+        zoomInBtn.onclick = () => {
+          map.zoomIn()
+        }
+
+        // Zoom out
+        const zoomOutBtn = L.DomUtil.create("button")
+        if (!zoomOutBtn) return
+        zoomOutBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+        zoomOutBtn.className = "map-ctrl-btn map-ctrl-zoom-out"
+        zoomOutBtn.title = "کوچک‌نمایی"
+        zoomOutBtn.setAttribute("aria-label", "کوچک‌نمایی")
+        zoomOutBtn.onclick = () => {
+          map.zoomOut()
+        }
+
+        container.appendChild(locateBtn)
+        container.appendChild(zoomInBtn)
+        container.appendChild(zoomOutBtn)
+
+        return container
       },
     })
 
-    const control = new LocateControl()
+    const control = new CustomControl()
     map.addControl(control)
     return () => {
-      map.removeControl(control)
+      try {
+        map.removeControl(control)
+      } catch {
+        /* ignore */
+      }
     }
   }, [map])
 
   return null
+}
+
+/* ── Error boundary for map failures ── */
+class MapErrorBoundary extends Component<
+  { children: ReactNode; height: string },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; height: string }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="flex items-center justify-center rounded-xl border bg-muted"
+          style={{ height: this.props.height }}
+        >
+          <p className="text-sm text-muted-foreground">
+            بارگذاری نقشه با خطا مواجه شد
+          </p>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 function UserMarker({
@@ -160,69 +230,75 @@ export function CourtsMap({
         style={{ height }}
       >
         <p className="text-sm text-muted-foreground">
-          هیچ مجموعهی برای نمایش وجود ندارد
+          هیچ مجموعه‌ای برای نمایش وجود ندارد
         </p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border" style={{ height }}>
-      <MapContainer
-        key={mapKey}
-        center={defaultCenter}
-        zoom={DEFAULT_ZOOM}
-        style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={true}
-        maxBounds={QOM_BOUNDS}
-        maxBoundsViscosity={1.0}
-        minZoom={10}
-        maxZoom={18}
-        attributionControl={false}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <MapController courts={courts} userLocation={userLocation} />
-        <LocateButton />
-        {userLocation && <UserMarker location={userLocation} />}
-        {courts.map((court) => (
-          <Marker
-            key={court.id}
-            position={[court.latitude, court.longitude]}
-            icon={createCourtIcon(court.sport_types?.[0])}
-          >
-            <Popup>
-              <div
-                className="text-right font-sans"
-                dir="rtl"
-                style={{ minWidth: 180 }}
-              >
-                <h3 className="mb-1 text-sm font-semibold">{court.name}</h3>
-                <p className="mb-1.5 text-xs text-gray-500">
-                  {court.sport_types
-                    ?.map((st) => sportLabels[st] || st)
-                    .join("، ")}
-                </p>
-                <p className="mb-1.5 max-w-50 truncate text-xs text-gray-500">
-                  {court.address}
-                </p>
-                <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
-                  <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
-                  <span className="inline-flex items-center gap-0.5" dir="ltr">
-                    {renderStars(court.average_rating)}{" "}
-                    {court.average_rating.toFixed(1)}
-                  </span>
-                </div>
-                <a
-                  href={`/courts/${court.id}`}
-                  className="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+    <MapErrorBoundary height={height}>
+      <div className="overflow-hidden rounded-xl border" style={{ height }}>
+        <MapContainer
+          key={mapKey}
+          center={defaultCenter}
+          zoom={DEFAULT_ZOOM}
+          style={{ height: "100%", width: "100%" }}
+          scrollWheelZoom={true}
+          maxBounds={QOM_BOUNDS}
+          maxBoundsViscosity={1.0}
+          minZoom={10}
+          maxZoom={18}
+          attributionControl={false}
+          zoomControl={false}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <MapController courts={courts} userLocation={userLocation} />
+          <MapControls />
+          {userLocation && <UserMarker location={userLocation} />}
+          {courts.map((court) => (
+            <Marker
+              key={court.id}
+              position={[court.latitude, court.longitude]}
+              icon={createCourtIcon(court.sport_types?.[0])}
+            >
+              <Popup>
+                <div
+                  className="text-right font-sans"
+                  dir="rtl"
+                  style={{ minWidth: 180 }}
                 >
-                  مشاهده مجموعه
-                </a>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
-    </div>
+                  <h3 className="mb-1 text-sm font-semibold">{court.name}</h3>
+                  <p className="mb-1.5 text-xs text-gray-500">
+                    {court.sport_types
+                      ?.map((st) => sportLabels[st] || st)
+                      .join("، ")}
+                  </p>
+                  <p className="mb-1.5 max-w-50 truncate text-xs text-gray-500">
+                    {court.address}
+                  </p>
+                  <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-500">
+                    <span>ظرفیت: {toPersianDigits(court.capacity)} نفر</span>
+                    <span
+                      className="inline-flex items-center gap-0.5"
+                      dir="ltr"
+                    >
+                      {renderStars(court.average_rating)}{" "}
+                      {court.average_rating.toFixed(1)}
+                    </span>
+                  </div>
+                  <a
+                    href={`/courts/${court.id}`}
+                    className="mt-1 inline-block rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    مشاهده مجموعه
+                  </a>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
+    </MapErrorBoundary>
   )
 }

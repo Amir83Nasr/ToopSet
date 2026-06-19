@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/#courts", label: "جستجوی سالن‌ها" },
+  { href: "/courts", label: "جستجوی سالن‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 

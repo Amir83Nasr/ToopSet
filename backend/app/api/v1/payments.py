@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
@@ -69,12 +69,14 @@ async def list_all_payments(
     status: str | None = None,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
+    response: Response = None,
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
     cache_params = {"skip": skip, "limit": limit, "search": search, "status": status}
     cached = await get_cached_admin_list("payments", cache_params)
     if cached is not None:
+        response.headers["X-Cache"] = "HIT"
         return PaymentListResponse.model_validate(cached)
 
     repo = PaymentRepo(db)
@@ -87,4 +89,5 @@ async def list_all_payments(
     )
 
     await cache_admin_list("payments", cache_params, result.model_dump(mode="json"))
+    response.headers["X-Cache"] = "MISS"
     return result
