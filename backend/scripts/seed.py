@@ -322,6 +322,25 @@ def assign_manager(users: list[User]) -> User:
 
 
 async def seed():
+    # Clean existing data in dependency-safe order before dropping schema
+    async with async_session_factory() as db:
+        for table in (
+            Penalty.__table__,
+            WalletTransaction.__table__,
+            Notification.__table__,
+            Log.__table__,
+            Review.__table__,
+            Favorite.__table__,
+            Payment.__table__,
+            Booking.__table__,
+            TimeSlot.__table__,
+            Wallet.__table__,
+            Court.__table__,
+            User.__table__,
+        ):
+            await db.execute(table.delete())
+        await db.commit()
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -488,7 +507,7 @@ async def seed():
         for b in bookings:
             b.slot.is_reserved = True
 
-        # ── Payments (only for confirmed bookings) ──
+        # ── Payments (confirmed → success, pending_payment → 30% failed) ──
         for b in bookings:
             if b.status == BookingStatus.CONFIRMED:
                 card, bank = random_card()
@@ -517,28 +536,6 @@ async def seed():
                             card_number=None,
                         )
                     )
-
-        # also add 2 standalone failed/pending payments
-        payments.append(
-            Payment(
-                booking_id=bookings[0].id,
-                amount=bookings[0].price_paid,
-                status="failed",
-                gateway_name="ملی‌پی",
-                gateway_transaction_id=None,
-                card_number=None,
-            )
-        )
-        payments.append(
-            Payment(
-                booking_id=bookings[3].id,
-                amount=bookings[3].price_paid,
-                status="pending",
-                gateway_name=None,
-                gateway_transaction_id=None,
-                card_number=None,
-            )
-        )
 
         db.add_all(payments)
         await db.flush()
@@ -610,7 +607,7 @@ async def seed():
                 notes.append(
                     Notification(
                         user_id=b.user_id,
-                        type_="booking_status",
+                        type="booking_status",
                         message=f"رزرو شما با وضعیت {status_text} به‌روزرسانی شد",
                     )
                 )
@@ -618,7 +615,7 @@ async def seed():
         notes.append(
             Notification(
                 user_id=admin.id,
-                type_="broadcast",
+                type="broadcast",
                 message="سامانه توپ‌ست به مناسبت عید سعید قربان تا ۵۰٪ تخفیف دارد",
                 is_read=False,
             )
@@ -626,7 +623,7 @@ async def seed():
         notes.append(
             Notification(
                 user_id=admin.id,
-                type_="broadcast",
+                type="broadcast",
                 message="مجموعه ورزشی جدید «کوثر» به سامانه اضافه شد",
                 is_read=False,
             )
