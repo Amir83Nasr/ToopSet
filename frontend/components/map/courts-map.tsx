@@ -57,11 +57,6 @@ interface CourtsMapProps {
   onMapClick?: (lat: number, lng: number) => void
 }
 
-const starIcon =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15" stroke-width="1"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>'
-
-const renderStars = (rating: number) => starIcon.repeat(Math.floor(rating))
-
 /* ── Locate button as a Leaflet control ── */
 
 function addLocateControl(map: any) {
@@ -116,9 +111,6 @@ function renderCourtMarkers(map: any, courts: Court[]) {
       icon: createCourtIcon(court.sport_types?.[0]),
     })
 
-    const primarySport = court.sport_types?.[0] || ""
-    const accentColor = getSportColor(primarySport)
-
     // Sport type badges with sport-specific colors
     const badgesHtml =
       court.sport_types
@@ -131,32 +123,21 @@ function renderCourtMarkers(map: any, courts: Court[]) {
     // Price section (only if available)
     const priceHtml =
       court.base_price != null
-        ? `<div class="mb-2 rounded-md px-3 py-1.5 text-center text-xs font-semibold" style="background-color:${accentColor}0d;color:${accentColor}">${formatPrice(court.base_price)}</div>`
+        ? `<div class="mb-2 rounded-md px-3 py-1.5 text-center text-xs font-semibold" style="background-color:var(--color-muted);color:var(--color-primary)">${formatPrice(court.base_price)}</div>`
         : ""
 
-    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="position:relative;min-width:220px;padding-right:8px">
-      <div style="position:absolute;top:4px;right:0;bottom:4px;width:3px;border-radius:999px;background-color:${accentColor}"></div>
+    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="position:relative;min-width:220px">
       <div class="flex flex-wrap gap-1 mb-2">${badgesHtml}</div>
-      <h3 class="text-sm font-bold leading-snug mb-1.5 text-gray-900 dark:text-gray-100">${court.name}</h3>
-      <div class="flex items-start gap-1.5 mb-2 text-xs text-gray-500 dark:text-gray-400">
+      <h3 class="text-sm font-bold leading-snug mb-1.5" style="color:var(--color-popover-foreground)">${court.name}</h3>
+      <div class="flex items-start gap-1.5 mb-2 text-xs" style="color:var(--color-muted-foreground)">
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <span class="leading-normal line-clamp-2">${court.address}</span>
       </div>
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-1">
-          ${renderStars(court.average_rating)}
-          <span class="text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-300">${court.average_rating.toFixed(1)}</span>
-        </div>
-        <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span>${toPersianDigits(court.capacity)}</span>
-        </div>
-      </div>
       ${priceHtml}
-      <a href="/courts/${court.id}" class="block w-full rounded-md px-3 py-1.5 text-center text-xs font-medium text-white transition-opacity hover:opacity-90" style="background-color:${accentColor}">مشاهده مجموعه</a>
+      <a href="/courts/${court.id}" class="block w-full rounded-md px-3 py-1.5 text-center text-xs font-medium text-white transition-opacity hover:opacity-90" style="background-color:var(--color-primary)">مشاهده مجموعه</a>
     </div>`
 
-    marker.bindPopup(popupHtml)
+    marker.bindPopup(popupHtml, { className: "theme-popup" })
     marker.addTo(map)
   })
 }
@@ -182,7 +163,8 @@ function renderUserMarker(
   })
   ;(marker as any)._isUser = true
   marker.bindPopup(
-    '<div class="text-right font-sans" dir="rtl"><strong>موقعیت شما</strong></div>'
+    '<div class="text-right font-sans" dir="rtl" style="color:var(--color-popover-foreground)"><strong>موقعیت شما</strong></div>',
+    { className: "theme-popup" }
   )
   marker.addTo(map)
 }
@@ -208,7 +190,8 @@ function renderSearchPin(
   })
   ;(marker as any)._isSearch = true
   marker.bindPopup(
-    '<div class="text-right font-sans" dir="rtl"><strong>محدوده جستجو</strong></div>'
+    '<div class="text-right font-sans" dir="rtl" style="color:var(--color-popover-foreground)"><strong>محدوده جستجو</strong></div>',
+    { className: "theme-popup" }
   )
   marker.addTo(map)
 }

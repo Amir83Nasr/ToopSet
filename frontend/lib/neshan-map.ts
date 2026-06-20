@@ -28,44 +28,52 @@ export const CLOSE_ZOOM = 15
 
 /* ── Helpers ── */
 
-/** Strip Neshan watermark after the map loads. */
-function removeNeshanWatermark(el: HTMLElement, map: any) {
+/** Strip Neshan watermark + leaflet attribution — uses MutationObserver to catch async injection. */
+function removeNeshanWatermark(el: HTMLElement, _map: any) {
   function strip() {
-    // Remove Leaflet attribution control (bottom-left corner)
-    el.querySelectorAll(".leaflet-control-attribution").forEach((n) =>
-      n.remove()
+    // Remove Neshan-branded links anywhere in the map container
+    el.querySelectorAll(
+      'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"], a[href*="openstreetmap"]'
+    ).forEach((a) => a.remove())
+    // Remove Neshan-branded images
+    el.querySelectorAll(
+      'img[src*="neshan"], img[src*="nsh"], img[src*="Neshan"]'
+    ).forEach((img) => img.remove())
+    // Remove attribution flag icon (OSM / Neshan)
+    el.querySelectorAll(".leaflet-attribution-flag").forEach((flag) =>
+      flag.remove()
     )
-    // Remove any <a> linking to neshan.org inside the map container
+    // Remove any node containing Neshan text (watermark, attribution)
     el.querySelectorAll(
-      'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"]'
-    ).forEach((a) => {
-      a.remove()
-    })
-    // Remove any Leaflet control that contains Neshan branding
-    el.querySelectorAll(
-      ".leaflet-control, .leaflet-bottom a, .leaflet-bottom img"
+      ".leaflet-control-attribution, .leaflet-bottom a"
     ).forEach((node) => {
       if (
         node instanceof HTMLElement &&
-        (node.innerHTML.includes("neshan") ||
-          node.innerHTML.includes("نشان") ||
-          node.innerHTML.includes("Neshan"))
+        (node.innerHTML.toLowerCase().includes("neshan") ||
+          node.innerHTML.includes("نشان"))
       ) {
         node.remove()
       }
     })
-    // Remove any remaining .leaflet-bottom .leaflet-left containers (sign watermark area)
-    el.querySelectorAll(".leaflet-bottom.leaflet-left").forEach((n) =>
-      n.remove()
-    )
   }
 
-  // Run on load, then retry a few times (watermark may load async)
-  map.once("load", () => {
+  strip()
+
+  // Watch for async injections (watermark loads long after map init)
+  const observer = new MutationObserver(() => strip())
+  observer.observe(el, { childList: true, subtree: true })
+
+  // Cleanup observer when map is destroyed
+  _map.once("unload", () => observer.disconnect())
+
+  // Extra safety: keep polling for a few seconds in case the observer misses something
+  let attempts = 0
+  const interval = setInterval(() => {
     strip()
-    setTimeout(strip, 200)
-    setTimeout(strip, 800)
-  })
+    attempts++
+    if (attempts > 20) clearInterval(interval) // ~10 seconds
+  }, 500)
+  _map.once("unload", () => clearInterval(interval))
 }
 
 /** Create a Neshan map on the given DOM element. */
@@ -118,10 +126,9 @@ export function getSportColor(sportType?: string): string {
 }
 
 export function createCourtIcon(sportType?: string): any {
-  const color = getSportColor(sportType)
   const path = sportSvgPaths[sportType || ""] || sportSvgPaths.volleyball
   return L.divIcon({
-    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:${color}">
+    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:var(--color-primary)">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0.5">
         <path d="${path}"/>
       </svg>

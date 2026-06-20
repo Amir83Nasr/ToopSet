@@ -23,11 +23,6 @@ build/
 # ── IDE / Editor ──────────────────────────────────────────
 .vscode/
 .idea/
-.omo/
-.agents/
-.kilo/
-.claude/
-superpowers/
 *.swp
 *.swo
 *.swn

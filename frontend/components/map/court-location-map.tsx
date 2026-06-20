@@ -66,7 +66,8 @@ export function CourtLocationMap({
     })
     marker
       .bindPopup(
-        `<div class="text-right font-sans" dir="rtl"><strong>${name}</strong></div>`
+        `<div class="text-right font-sans" dir="rtl" style="color:var(--color-popover-foreground)"><strong>${name}</strong></div>`,
+        { className: "theme-popup" }
       )
       .addTo(mapRef.current)
 

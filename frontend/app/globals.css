@@ -383,6 +383,14 @@
 .leaflet-control-attribution {
   display: none !important;
 }
+.leaflet-attribution-flag {
+  display: none !important;
+}
+/* Hide any copyright/attribution link at the bottom of Neshan maps */
+.leaflet-bottom a,
+.leaflet-bottom .leaflet-control-attribution {
+  display: none !important;
+}
 
 /* scrollbar hide utility */
 
@@ -499,6 +507,32 @@
 .shimmer-text {
   background-size: 200% 100%;
   animation: shimmer-text 4s ease-in-out infinite;
+}
+
+/* ── Leaflet popup theming ── */
+/* Override Leaflet's default #fff background + #333 color with app CSS vars */
+
+.leaflet-popup.theme-popup .leaflet-popup-content-wrapper {
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup.theme-popup .leaflet-popup-tip {
+  background: var(--color-popover);
+}
+
+.leaflet-popup.theme-popup .leaflet-popup-content {
+  margin: 14px 18px;
+  font-family: "IranYekanX", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  direction: rtl;
 }
 
 /* ── Remove Card ring when it wraps a Table ── */
