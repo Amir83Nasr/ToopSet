@@ -1,4 +1,4 @@
-# توپ‌سِت
+# ToopSet
 
 **ToopSet** — Online sports court booking platform for Qom, Iran.
 
@@ -27,14 +27,14 @@ Pre-launch. SMS and payment gateways are mocked.
 
 ## Docs
 
-| File | Content |
-|------|---------|
-| [architect.md](context/architect.md) | Architecture & data flow |
-| [backend.md](context/backend.md) | Models, services, key decisions |
-| [frontend.md](context/frontend.md) | Pages, components, API, maps |
-| [ui.md](context/ui.md) | Theming, layout, conventions |
-| [commands.md](context/commands.md) | Makefile reference |
-| [commit.md](context/commit.md) | Commit conventions |
+| File                                 | Content                         |
+| ------------------------------------ | ------------------------------- |
+| [architect.md](context/architect.md) | Architecture & data flow        |
+| [backend.md](context/backend.md)     | Models, services, key decisions |
+| [frontend.md](context/frontend.md)   | Pages, components, API, maps    |
+| [ui.md](context/ui.md)               | Theming, layout, conventions    |
+| [commands.md](context/commands.md)   | Makefile reference              |
+| [commit.md](context/commit.md)       | Commit conventions              |
 
 ## Version
 
