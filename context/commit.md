@@ -33,6 +33,14 @@
 | `ui`        | shadcn components, styling          |
 | `config`    | Makefile, env, Docker, CI           |
 
+## Language
+
+All commits **MUST be written in English only** — both the title line
+(`<type>(<scope>): <description>`) and the body. This ensures a consistent
+git history that is readable by developers regardless of Persian literacy.
+The only Persian content allowed is file names or data values that are
+natively in Persian.
+
 ## Examples
 
 ```

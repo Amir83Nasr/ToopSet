@@ -1,6 +1,6 @@
 # Project Overview — ToopSet (توپ‌سِت)
 
-**Generated:** 2026-06-20 — Snapshot from `docs read`
+**Generated:** 2026-06-20 — Snapshot from `/review` skill code scan
 
 ---
 
@@ -9,27 +9,50 @@
 - **Name:** ToopSet (توپ‌سِت) — Online sports court booking platform for Qom, Iran
 - **Version:** 0.4.0
 - **Stack:** Next.js 16 (Turbopack) + FastAPI + PostgreSQL 17 + Redis 7 + Docker Compose
-- **Branch:** `main` (ahead of `origin/main` by 11 commits)
+- **Branch:** `main` (all changes committed)
 - **Maps:** Neshan Maps SDK via `@neshan-maps-platform/leaflet` — Qom-bounded
+- **Working tree:** Clean (no uncommitted changes)
 
 ## TODO Status
 
-- **Backlog:** Real SMS provider (OTP production blocker), Frontend component tests
 - **In Progress:** (empty)
-- **Done:** (empty)
+- **Done:** Frontend Component Tests (47 Vitest tests with shared mocks)
+- **Backlog (13 items):**
+  - Booking Confirmation Animation + Share (canvas-confetti installed)
+  - Manager Revenue & Booking Analytics (recharts installed)
+  - Advanced OTP UX (framer-motion installed)
+  - Monthly Booking Calendar View
+  - Review Enhancements (Photos + Helpful Votes)
+  - Court Photo Gallery Management
+  - Wallet Top-Up UX
+  - Performance & SEO (next/bundle-analyzer installed)
+  - Real-time Notifications (WebSocket)
+  - E2E Tests with Playwright
+  - Real Payment Gateway (mock currently)
+  - Real SMS Provider (mock currently)
+  - (also listed: Manager Dashboard Schedule Grid, Bulk Slot Generation)
 
 ## Documentation Coverage
 
-All 7 context docs present: architect, backend, frontend, ui, commands, config, commit. MEMORY.md (this file) was empty — freshly written now.
+All 7 context docs present: architect, backend, frontend, ui, commands, config, commit. MEMORY.md refreshed.
 
-## Discrepancies Found (docs vs actual code)
+## Actual Code Counts vs Doc Claims
 
-| Doc Claim                                            | Actual                                       | Status            |
-| ---------------------------------------------------- | -------------------------------------------- | ----------------- |
-| 18 api/v1 routers                                    | 16 router files                              | Off by 2          |
-| 9 services                                           | 10 (`user_service.py` exists but not listed) | Missing service   |
-| 9 courts components                                  | 10 (`location-picker.tsx` exists)            | Missing component |
-| Frontend lib/ has `error-context.tsx` and `toast.ts` | Not mentioned in frontend.md                 | Missing entries   |
+| Layer | Doc Claims | Actual | Notes |
+| --- | --- | --- | --- |
+| Backend routers | 18 | 16 | off by 2 |
+| Services | 9 | 10 | missing user_service.py |
+| Repositories | 10 | 11 | off by 1 |
+| Core modules | 12 | 13 | missing logging_config.py |
+| Schemas | ~15 | 14 + 1 error | ~15 becomes exact 15 |
+| DB models | 15 | 15 | exact match |
+| Alembic migrations | 8 | 9 | missing 1 version |
+| Court components | 9 | 10 | missing location-picker.tsx |
+| UI components | 40+ | 36 | off by ~4 |
+| Frontend hooks | 4 | 4 | exact match |
+| Frontend lib files | — | 7 | error-context.tsx & toast.ts undocumented |
+| Tests (backend) | — | 4 | auth, bookings, courts, health |
+| Tests (frontend) | — | 8 | 47 Vitest tests |
 
 ## Architecture Snapshot
 
@@ -37,43 +60,50 @@ All 7 context docs present: architect, backend, frontend, ui, commands, config, 
 
 - **api/v1/:** 16 routers — admin, auth, bookings, contact, courts, dashboard, favorites, notifications, payments, penalties, reviews, settings, time_slots, uploads, users, wallet
 - **api/deps.py:** 4 auth deps — optional, required, manager, admin
-- **core/:** 12 modules — config, database, security (JWT), redis, timezone, upload, exceptions, metrics, logging, rate-limiter, health, date_utils
-- **models/:** 15 SQLAlchemy ORM models — User, Court, CourtImage, TimeSlot, Booking, Payment, Wallet, WalletTransaction, Review, Penalty, Favorite, Notification, ContactMessage, Setting, Log
+- **core/:** 13 modules — config, database, security (JWT), redis, timezone, upload, exceptions, metrics, logging, logging_config, rate_limiter, health, date_utils
+- **models/:** 15 ORM models — User, Court, CourtImage, TimeSlot, Booking, Payment, Wallet, WalletTransaction, Review, Penalty, Favorite, Notification, ContactMessage, Setting, Log
 - **services/:** 10 services — auth, booking, cache, court, dashboard, favorite, payment, review, time_slot, user
 - **repositories/:** 11 repos — booking, court, favorite, log, notification, payment, penalty, review, time_slot, user, wallet
-- **schemas/:** 15 Pydantic v2 schemas
+- **schemas/:** 14 Pydantic v2 schemas + 1 error schema
+- **migrations/:** 9 Alembic versions
+- **tests/:** 4 test files (auth, bookings, courts, health)
 
 ### Frontend (Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui)
 
-- **App pages:** Landing, auth (login/register), courts (list + detail by [id]), booking, dashboard (user/manager/admin splits), contact, about, privacy, terms
-- **Dashboard sub-routes:** admin (bookings, courts, payments, logs, settings), manager (schedule), user, plus shared: settings, payments, contact, bookings, notifications, reports, users, courts (create/[id]/edit)
-- **Components:** 36 shadcn/ui primitives, 3 auth, 10 courts, 2 map, 3 public, 3 dashboard
+- **App pages:** Landing, auth (login/register), courts (list + detail by [id]), booking, dashboard (admin/manager/user/ shared), contact, about, privacy, terms
+- **Dashboard sub-routes (11):** admin, bookings, contact, courts, manager, notifications, payments, reports, settings, user, users
+- **Components (64+):** 36 shadcn/ui primitives, 3 auth, 10 courts, 2 map, 3 public, 1 theme, 8 dashboard (schedule, sidebar, nav, header, today-preview)
 - **Hooks:** use-auth, use-geolocation, use-mobile, use-pagination-limit
-- **Lib:** api (HTTP client), cookies, error-context, neshan-map, toast, utils, validations
+- **Lib:** api, cookies, error-context, neshan-map, toast, utils, validations
 - **Types:** api, auth, lucide-react declarations, neshan-maps-platform declarations
-- **Maps:** Wraps `@neshan-maps-platform/leaflet`, Qom-bounded, watermark removal via MutationObserver
+- **Tests:** 8 test files (47 tests) — auth-guard, login-form, register-form, court-booking, court-shared, site-header, hero-section, favorite-button
 
-### Key Features
+### Key Features Present in Code
 
 - RTL + Persian (IranYekanX font, Persian digits, Jalali dates via @daypicker/persian)
 - Dark mode (next-themes + CSS vars)
 - Optimistic concurrency for booking (TimeSlot.version)
 - JWT auth with token version (single-device enforcement)
-- Mock SMS (console) + Mock payment (success/fraud/timeout)
+- Mock SMS (console print)
+- Mock payment (success/fraud/timeout)
 - 10-minute payment window with background cleanup
 - Cancellation penalties: <2h block, 2-24h 50%, 24h+ free refund
+- Maps: Neshan SDK, Qom-bounded, watermark removal via MutationObserver
+- Rate limiting on auth endpoints (3/min register, 5/min login)
 
-## Git State
+## Documented Dependencies Already Installed (for backlog items)
 
-- 11 commits ahead of origin/main
-- Uncommitted changes: 7 modified files (.gitignore, README.md deleted, some frontend files)
-- Untracked: .claude/, CLAUDE.md, TODO.md, VERSION, context/
-- Recent work: map watermark fix, map integration in filter, multi-select sport filter, Neshan SDK migration, seed data refinements, dashboard schedule management features
+- `canvas-confetti` — for booking confirmation animation
+- `recharts` — for revenue analytics charts
+- `framer-motion` — for advanced OTP UX transitions
+- `@next/bundle-analyzer` — for performance optimization
 
-## Key Observations
+## Observations
 
-1. The project is pre-launch — SMS and payment gateways are mocked
-2. Good documentation coverage but minor count discrepancies (outdated by ~2 files)
-3. Recent commits focus on map integration and dashboard schedule management
-4. `frontend/app/about/page.tsx`, `globals.css`, and both map components have unstaged changes
-5. The `context/` directory and CLAUDE.md are newly created and not yet committed
+1. **Pre-launch**: Payment and SMS are both mocked — real gateways need setup
+2. **Doc drift**: Several count discrepancies (routers -2, services +1, repos +1, core +1, migrations +1, courts +1) — docs need syncing
+3. **Lib/ undocumented**: `error-context.tsx` and `toast.ts` exist in `lib/` but aren't described in `frontend.md`
+4. **Migrations exist but path differs**: Migrations live at `backend/migrations/` not `backend/app/migrations/` as described in `backend.md`
+5. **Good test coverage**: 47 frontend tests + 4 backend test files
+6. **All commits synced**: Working tree is clean (no uncommitted changes vs prior MEMORY.md which listed 7 modified files)
+7. **Recent commits focus**: Map integration, Neshan migration, dashboard features, test suite

@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative overflow-x-hidden pt-16">
+      <main className="relative flex-1 pt-16">
         <HeroSection />
       </main>
       <SiteFooter />

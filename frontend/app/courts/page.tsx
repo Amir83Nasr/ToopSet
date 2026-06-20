@@ -251,7 +251,7 @@ function CourtsPageContent() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
 
-      <main className="relative overflow-x-hidden pt-16">
+      <main className="relative flex-1 pt-16">
         {/* Search & Filters */}
         <section className="relative overflow-hidden px-4 py-12 md:py-24">
           <div className="relative z-10 mx-auto max-w-7xl px-4">

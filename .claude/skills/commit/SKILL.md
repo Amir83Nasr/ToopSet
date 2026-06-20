@@ -83,8 +83,9 @@ Use this decision guide:
    no period at the end. Max ~72 chars.
 
 4. **Body (optional)** — only if the change needs explanation.
-   Explain *what* and *why*, not *how*. Use Persian for the body
-   if the user prefers.
+   Explain *what* and *why*, not *how*. The body **must also be
+   in English** — the entire commit message (title + body) must
+   be English-only per project convention.
 
 ### Step 3: Show the message to the user
 
@@ -95,7 +96,7 @@ Display the proposed commit message clearly. Something like:
 
   feat(courts): add sport filter with multi-select badges
 
-  فیلتر ورزشی با قابلیت انتخاب چندتایی به صفحه دادگاه‌ها اضافه شد
+  Multi-select sport filter with mono-color badge display on court cards.
 
 ────────────────────────────────────
 Changes staged:
@@ -171,9 +172,8 @@ Then show the user the commit output:
 
 ## Persian support
 
-Since this is a Persian project:
-- The commit description text should be in English per
-  Conventional Commits convention (type/scope/description are
-  always English)
-- The body can be in Persian for explaining context
-- When asking for approval, use Persian if the user spoke Persian
+Since this is a Persian project but commits must be English-only:
+- All commit message text (title + body) is English — never Persian
+- When talking to the user, use Persian if they spoke Persian
+- The interaction language (asking for approval, explaining errors)
+  is separate from the commit message language

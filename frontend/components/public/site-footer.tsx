@@ -20,7 +20,7 @@ const pageLinks = [
 export function SiteFooter() {
   return (
     <footer className="relative overflow-hidden border-t bg-background">
-      <div className="relative mx-auto max-w-7xl px-4">
+      <div className="relative mx-auto max-w-7xl">
         {/* Main footer content */}
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
