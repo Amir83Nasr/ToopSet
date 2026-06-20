@@ -301,11 +301,11 @@ export default function DashboardCourtDetailPage() {
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button
-          variant="ghost"
-          className="w-fit"
+          variant="outline"
+          size="sm"
           onClick={() => router.push("/dashboard/courts")}
         >
-          <ArrowRight className="ml-2 size-4" />
+          <ArrowRight className="ml-1 size-4" />
           بازگشت به لیست
         </Button>
         <div className="flex items-center gap-2">

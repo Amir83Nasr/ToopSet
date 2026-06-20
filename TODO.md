@@ -19,6 +19,11 @@ Updated: 2026-06-20
 
 ## In Progress
 
+- [ ] **Edit Sports Complex** — Edit page for sports complex details (public-facing). (started: 2026-06-20)
+- [ ] **Remove Admin Edit Page** — Remove the redundant admin edit page for courts. (started: 2026-06-20)
+- [ ] **Public Sports Complex Page** — Public-facing page for viewing sports complex information. (started: 2026-06-20)
+
 ## Done
 
+- [x] **feat(config): update commit, review, and todo skills with post-commit workflow** (completed: 2026-06-20)
 - [x] **Frontend Component Tests** — Add Vitest tests for key UI components (login/register forms, court card, court booking, reviews, site header, dashboard pages). Only 1 stub test currently exists. Vitest already configured with 60% coverage threshold. (completed: 2026-06-20)

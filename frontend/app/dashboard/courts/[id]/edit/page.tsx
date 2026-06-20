@@ -125,9 +125,10 @@ export default function EditCourtPage() {
         </p>
         <Button
           variant="outline"
+          size="sm"
           onClick={() => router.push("/dashboard/courts")}
         >
-          <ArrowRight className="ml-2 size-4" />
+          <ArrowRight className="ml-1.5 size-4" />
           بازگشت به لیست
         </Button>
       </div>
@@ -136,8 +137,13 @@ export default function EditCourtPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Button variant="ghost" className="mb-4" onClick={() => router.back()}>
-        <ArrowRight className="ml-2 size-4" />
+      <Button
+        variant="outline"
+        size="sm"
+        className="mb-4"
+        onClick={() => router.back()}
+      >
+        <ArrowRight className="ml-1.5 size-4" />
         بازگشت
       </Button>
       <Card>

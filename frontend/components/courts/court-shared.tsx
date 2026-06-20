@@ -62,18 +62,19 @@ export const sportLabels: Record<string, string> = {
 
 export const sportColors: Record<string, string> = {
   volleyball:
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
   basketball:
-    "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
   futsal:
-    "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
   handball:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
   football:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
   tennis:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-  badminton: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
+  badminton:
+    "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
 }
 
 export const sportIcons: Record<string, LucideIcon> = {

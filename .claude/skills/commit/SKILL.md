@@ -10,6 +10,9 @@ description: >
   checks on the approved changes, and finally commits. Always use this when
   the user asks to commit changes, even if they also mention a specific commit
   message — show your draft for approval rather than committing directly.
+  Before the final commit, updates TODO.md (marks task as Done or adds
+  it) and context/MEMORY.md (records the latest commit) so these
+  changes are included in the commit itself.
 ---
 
 # commit
@@ -133,7 +136,43 @@ Now that the user has approved the message, run `make precommit`
   6. After fixing, proceed to commit (Step 5). No need to ask for
      approval again — the user already approved the message.
 
-### Step 5: Commit
+### Step 5: Update TODO.md and MEMORY.md (pre-commit)
+
+Before the final commit, update TODO.md and MEMORY.md so these
+changes are included in the commit itself.
+
+**Update TODO.md — mark relevant task as Done:**
+1. Read `TODO.md` from the project root.
+2. Check if the committed work matches an item in `## In Progress`:
+   - Compare the commit topic/scope/description against task descriptions
+   - If a match is found, move it to `## Done` (same format as `todo done`):
+     - Change `[ ]` to `[x]`, append `(completed: YYYY-MM-DD)`
+     - Remove from In Progress, place at top of Done
+3. If nothing matches in In Progress, check `## Backlog` for a match
+   and move it directly to Done.
+4. If no match anywhere in the Todo list, add a new entry to `## Done`
+   based on the commit message:
+   ```
+   - [x] <type>(<scope>): <description> (completed: YYYY-MM-DD)
+   ```
+5. Always update the `Updated: YYYY-MM-DD` line if present.
+
+**Update `context/MEMORY.md` — record the latest commit:**
+Read `context/MEMORY.md`, find the most recent commit entry (or the
+end of the file), and append or update with:
+```markdown
+### Latest Commit
+- **Hash:** `<short-hash>`
+- **Message:** `<type>(<scope>): <description>`
+- **Date:** YYYY-MM-DD HH:MM
+```
+If a "Latest Commit" section already exists, replace it rather than
+duplicating.
+
+After both files are updated, **stage them** with `git add -A`
+so the changes are included in the upcoming commit.
+
+### Step 6: Commit
 
 ```
 git commit -m "<type>(<scope>): <description>" -m "<body>"

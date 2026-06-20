@@ -184,7 +184,7 @@ export default function PublicCourtDetailPage() {
             مجموعه مورد نظر یافت نشد
           </p>
           <Button variant="outline" size="sm" onClick={() => router.push("/")}>
-            <ArrowLeft className="me-1.5 size-4" />
+            <ArrowLeft className="me-1 size-4" />
             بازگشت به صفحه اصلی
           </Button>
         </div>
