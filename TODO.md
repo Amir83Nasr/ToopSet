@@ -25,5 +25,6 @@ Updated: 2026-06-20
 
 ## Done
 
+- [x] **feat(dashboard): add search, type/status filters, caching, and broadcast modal to notifications** (completed: 2026-06-20)
 - [x] **feat(config): update commit, review, and todo skills with post-commit workflow** (completed: 2026-06-20)
 - [x] **Frontend Component Tests** — Add Vitest tests for key UI components (login/register forms, court card, court booking, reviews, site header, dashboard pages). Only 1 stub test currently exists. Vitest already configured with 60% coverage threshold. (completed: 2026-06-20)

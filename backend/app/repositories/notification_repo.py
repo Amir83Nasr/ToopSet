@@ -17,6 +17,8 @@ class NotificationRepo:
         skip: int = 0,
         limit: int = 20,
         unread_only: bool = False,
+        search: str | None = None,
+        type_filter: str | None = None,
     ) -> tuple[list[Notification], int]:
         query = select(Notification).where(Notification.user_id == user_id)
         count_q = select(func.count(Notification.id)).where(Notification.user_id == user_id)
@@ -24,6 +26,14 @@ class NotificationRepo:
         if unread_only:
             query = query.where(Notification.is_read == False)
             count_q = count_q.where(Notification.is_read == False)
+
+        if search:
+            query = query.where(Notification.message.ilike(f"%{search}%"))
+            count_q = count_q.where(Notification.message.ilike(f"%{search}%"))
+
+        if type_filter:
+            query = query.where(Notification.type == type_filter)
+            count_q = count_q.where(Notification.type == type_filter)
 
         query = query.order_by(Notification.created_at.desc())
 

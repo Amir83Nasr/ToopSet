@@ -35,11 +35,14 @@ async def broadcast_notification(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     repo = NotificationRepo(db)
     count = await repo.create_for_all_users(type_=data.type, message=data.message)
     await log_action(
         db, _.id, "broadcast", f"اعلان همگانی | ارسال به {count} کاربر: {data.message[:100]}"
     )
+    await invalidate_admin_list_cache("notifications")
     return {"success": True, "count": count}
 
 

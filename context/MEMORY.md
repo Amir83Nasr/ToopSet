@@ -2,6 +2,6 @@
 
 ## Latest Commit
 
-- **Hash:** `6d29acf`
-- **Message:** feat(config): update commit, review, and todo skills with post-commit workflow
+- **Hash:** `c8b9d43`
+- **Message:** feat(dashboard): add search, type/status filters, caching, and broadcast modal to notifications
 - **Date:** 2026-06-20

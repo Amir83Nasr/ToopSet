@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -17,17 +17,44 @@ async def list_notifications(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False),
+    search: str | None = Query(None),
+    notification_type: str | None = Query(None, alias="type"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    response: Response = None,
 ):
+    from app.services.cache_service import cache_admin_list, get_cached_admin_list
+
+    cache_params = {
+        "user_id": current_user.id,
+        "skip": skip,
+        "limit": limit,
+        "unread_only": unread_only,
+        "search": search,
+        "type": notification_type,
+    }
+    cached = await get_cached_admin_list("notifications", cache_params)
+    if cached is not None:
+        response.headers["X-Cache"] = "HIT"
+        return NotificationListResponse.model_validate(cached)
+
     repo = NotificationRepo(db)
     notifications, total = await repo.list_by_user(
-        current_user.id, skip=skip, limit=limit, unread_only=unread_only
+        current_user.id,
+        skip=skip,
+        limit=limit,
+        unread_only=unread_only,
+        search=search,
+        type_filter=notification_type,
     )
-    return NotificationListResponse(
+    result = NotificationListResponse(
         notifications=[NotificationResponse.model_validate(n) for n in notifications],
         total=total,
     )
+
+    await cache_admin_list("notifications", cache_params, result.model_dump(mode="json"))
+    response.headers["X-Cache"] = "MISS"
+    return result
 
 
 @router.get("/unread-count", summary="Unread notification count")
@@ -50,6 +77,8 @@ async def mark_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     repo = NotificationRepo(db)
     n = await repo.mark_read(notification_id)
     if not n:
@@ -58,6 +87,7 @@ async def mark_read(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="شما به این اعلان دسترسی ندارید"
         )
+    await invalidate_admin_list_cache("notifications")
     return NotificationResponse.model_validate(n)
 
 
@@ -66,6 +96,9 @@ async def mark_all_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.services.cache_service import invalidate_admin_list_cache
+
     repo = NotificationRepo(db)
     await repo.mark_all_read(current_user.id)
+    await invalidate_admin_list_cache("notifications")
     return {"success": True}
