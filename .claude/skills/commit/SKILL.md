@@ -145,29 +145,57 @@ changes are included in the commit itself.
 1. Read `TODO.md` from the project root.
 2. Check if the committed work matches an item in `## In Progress`:
    - Compare the commit topic/scope/description against task descriptions
-   - If a match is found, move it to `## Done` (same format as `todo done`):
+   - If a match is found, move it to `## Done`:
      - Change `[ ]` to `[x]`, append `(completed: YYYY-MM-DD)`
      - Remove from In Progress, place at top of Done
+     - Keep the **original Task name** (the more descriptive title from
+       In Progress, not the commit message) — it already has good detail.
 3. If nothing matches in In Progress, check `## Backlog` for a match
-   and move it directly to Done.
+   and move it directly to Done (keeping the original Backlog description).
 4. If no match anywhere in the Todo list, add a new entry to `## Done`
-   based on the commit message:
+   with a **descriptive task name** based on the changes, not just the
+   commit message. Convert the commit into a clear, detailed title:
    ```
-   - [x] <type>(<scope>): <description> (completed: YYYY-MM-DD)
+   - [x] **Detailed task title** — What was actually done, the feature or fix
+         in plain terms, with enough context to understand. (completed: YYYY-MM-DD)
    ```
-5. Always update the `Updated: YYYY-MM-DD` line if present.
+   For example, instead of:
+   ```
+   - [x] feat(ui): add button component variants (completed: 2026-06-20)
+   ```
+   Write:
+   ```
+   - [x] **Add Button Component Variants** — Implement default, secondary,
+         destructive, outline, ghost, and link variants for the Button shadcn
+         component with proper sizing and state handling. (completed: 2026-06-20)
+   ```
+5. **Blank line separation** — Every Done item must be separated by a blank
+   line. The existing Done section already has blank lines between items;
+   preserve this format when adding new entries.
+6. Always update the `Updated: YYYY-MM-DD` line if present.
 
-**Update `context/MEMORY.md` — record the latest commit:**
-Read `context/MEMORY.md`, find the most recent commit entry (or the
-end of the file), and append or update with:
+**Update `context/MEMORY.md` — record the latest commit (keep up to 5):**
+Read `context/MEMORY.md`, find the `## Recent Commits` section (or
+`## Latest Commit` — migrate old format if needed).
+
+Add the new commit at the top of the list:
 ```markdown
-### Latest Commit
-- **Hash:** `<short-hash>`
-- **Message:** `<type>(<scope>): <description>`
-- **Date:** YYYY-MM-DD HH:MM
+- **`<short-hash>`** — `<type>(<scope>): <description>` (YYYY-MM-DD)
 ```
-If a "Latest Commit" section already exists, replace it rather than
-duplicating.
+
+If there are already 5 entries, remove the oldest (last) one so the
+list stays at 5 maximum. Only remove entries when the list exceeds 5.
+
+If the file currently uses the old single-entry format (`## Latest Commit`
+with Hash/Message/Date fields), replace that section entirely with the
+new multi-commit format:
+```markdown
+## Recent Commits
+
+- **`<short-hash>`** — `<type>(<scope>): <description>` (YYYY-MM-DD)
+```
+
+Each entry is a single bullet line — no separate Hash/Message/Date fields.
 
 After both files are updated, **stage them** with `git add -A`
 so the changes are included in the upcoming commit.

@@ -304,8 +304,8 @@ export function ComponentName({ prop1, prop2 }: Props) {
 
 ### Layout
 
-- **Dashboard:** `AuthGuard` → `ErrorBoundary` → `SidebarProvider` → `AppSidebar` + `SidebarInset` → `SiteHeader` + children
-- **Public:** `SiteHeader` → `<main>` + sections → `SiteFooter`
+- **Dashboard:** `AuthGuard` → `ErrorBoundary` → `SidebarProvider` → `AppSidebar` (variant="inset", side="right") + `SidebarInset` → `SiteHeader` + `#dash-content` (children)
+- **Public pages (homepage, court detail):** `SiteHeader` → `<main className="relative flex-1 pt-16">` + sections → `SiteFooter`
 - **Courts listing:** Filters row → map panel (collapsible) → results grid → pagination
 
 ### Dashboard Block
@@ -315,7 +315,7 @@ SidebarProvider (CSS vars: --sidebar-width, --header-height)
 ├── AppSidebar (variant="inset", collapsible="icon", side="right")
 └── SidebarInset (overflow-y-auto)
     ├── SiteHeader (breadcrumb + mode-toggle)
-    └── #dash-content (grid background) → {children}
+    └── #dash-content (flex flex-col gap-4 p-4) → {children}
 ```
 
 ### Courts Listing Block
@@ -334,16 +334,43 @@ main
     └── Pagination (prev/next)
 ```
 
-### Court Detail Block
+### Court Detail Block (Public)
 
 ```text
-CourtHero (hero image + sport badges overlay)
-CourtImageGallery (carousel)
-main
-├── Info section (address, capacity, sports, amenities)
-├── CourtReviews
-└── CourtBooking (date picker + slot grid + book button + payment)
-CourtLocationMap (non-interactive, 200px)
+div.flex.min-h-svh.flex-col
+├── SiteHeader (fixed, z-50)
+├── main.relative.flex-1.pt-16
+│   ├── CourtHeroGallery (carousel + hero overlay + badges + rating + price)
+│   ├── div.mx-auto.max-w-7xl.px-4
+│   │   ├── QuickStats (capacity / sport count / rating / reviews)
+│   │   └── div.grid.lg:grid-cols-5.gap-8
+│   │       ├── left (lg:col-span-3)
+│   │       │   ├── About card (name, address, manager, description)
+│   │       │   ├── CourtAmenities (amenities grid)
+│   │       │   ├── Location & Map (dynamic CourtLocationMap)
+│   │       │   └── CourtReviews (rating bars + review cards)
+│   │       └── right (lg:col-span-2, lg:sticky lg:top-24)
+│   │           ├── Manager Info card (name, phone, address)
+│   │           └── CourtBooking (7-day date picker + slot list + CTA)
+└── SiteFooter
+```
+
+### Court Detail Block (Dashboard Edit)
+
+```text
+div.flex.flex-1.flex-col.gap-6
+├── Top bar (back | toggle active | public view | [delete] | save)
+├── div.grid.lg:grid-cols-5.gap-6
+│   ├── left (lg:col-span-3)
+│   │   ├── Card: Basic Info (name + sport type checkboxes)
+│   │   ├── Card: Location (textarea + LocationPicker)
+│   │   ├── Card: Capacity (PersianInput)
+│   │   ├── Card: Amenities (AmenityCheckboxes)
+│   │   └── Card: Images (ImageUpload)
+│   └── right (lg:col-span-2, lg:sticky)
+│       ├── Stats bar (total/available/reserved)
+│       ├── Date nav + Add Slot dialog
+│       └── Slot list (scrollable)
 ```
 
 ## Tailwind v4 Conventions
@@ -370,9 +397,10 @@ CourtLocationMap (non-interactive, 200px)
 - **Notification colors:** info (blue), success (green), error (red) — each with bg variant
 - **Grid pattern:** Fixed background overlay on `#toopset-root` and `#dash-content` with radial gradient mask
 - **Scrollbar:** 6px thin scrollbar with rounded thumb
+- **Scroll-lock shift fix:** `html` has `scrollbar-gutter: stable` + `overflow-y: auto` (reserve scrollbar space always). When Radix popups open, `react-remove-scroll-bar` injects `body[data-scroll-locked] { margin-right: 17px !important; overflow: hidden !important; }`. We override both at `globals.css:341` via `html body[data-scroll-locked]` (higher specificity) — neutralizes the double-compensation and prevents Chrome from overriding `html`'s viewport scrollbar.
 - **Selection:** Tinted primary color for selected text
 - **Glass effect:** `.glass-card` class (backdrop-blur + semi-transparent card bg)
-- **Gradient text:** `.text-gradient-primary` (primary → chart-2 gradient)
+- **No shimmer/text-gradient effects:** `.shimmer-text`, `.text-gradient-primary`, and similar animated-text-gradient effects are **not allowed** in any component or page. The homepage `hero-section.tsx` is the only exception (single usage, grandfathered in). New pages must use solid color text or static styles only.
 - **Sonner toasts:** RTL overrides, IranYekanX font, custom padding/border-radius
 
 ## Map Components

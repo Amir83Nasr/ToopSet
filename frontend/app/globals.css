@@ -332,6 +332,22 @@
   }
 }
 
+/* ── Prevent modal open scroll-lock shift (RTL) ── */
+
+/* react-remove-scroll-bar adds margin-right to body when modals/dialogs
+   open, to compensate for the disappearing scrollbar. But we already have
+   scrollbar-gutter: stable on html which reserves scrollbar space at all
+   times. The extra margin causes a visible shift. Neutralise it. */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+  /* Also override overflow:hidden — Chrome can let body's overflow override
+     html's viewport scrollbar when body has overflow:hidden, even when html
+     has explicit overflow-y:auto + scrollbar-gutter:stable. Setting
+     overflow:visible on body keeps the scrollbar on html where it belongs. */
+  overflow: visible !important;
+}
+
 /* ── Mobile touch target minimum ── */
 
 @media (max-width: 767px) {

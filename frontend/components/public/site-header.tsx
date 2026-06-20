@@ -19,6 +19,15 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
+  Building2,
+  CreditCard,
+  Users,
+  Bell,
+  BarChart3,
+  History,
+  MessageSquare,
+  UserCircle,
+  Calendar,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -151,20 +160,164 @@ export function SiteHeader() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+
+                    {/* Dashboard (role-based) */}
                     <DropdownMenuItem
-                      onSelect={() => router.push("/dashboard")}
+                      onSelect={() =>
+                        router.push(
+                          user.role === "admin"
+                            ? "/dashboard/admin"
+                            : user.role === "manager"
+                              ? "/dashboard/manager"
+                              : "/dashboard/user"
+                        )
+                      }
                       className="cursor-pointer"
                     >
                       <LayoutDashboard className="me-2 size-4" />
                       داشبورد
                     </DropdownMenuItem>
+
+                    {/* ── Admin panel items ── */}
+                    {user.role === "admin" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>مدیریت</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/courts")}
+                          className="cursor-pointer"
+                        >
+                          <Building2 className="me-2 size-4" />
+                          مجموعه‌ها
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push("/dashboard/admin/bookings")
+                          }
+                          className="cursor-pointer"
+                        >
+                          <Calendar className="me-2 size-4" />
+                          رزروها
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/users")}
+                          className="cursor-pointer"
+                        >
+                          <Users className="me-2 size-4" />
+                          کاربران
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push("/dashboard/admin/payments")
+                          }
+                          className="cursor-pointer"
+                        >
+                          <CreditCard className="me-2 size-4" />
+                          پرداخت‌ها
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/contact")}
+                          className="cursor-pointer"
+                        >
+                          <MessageSquare className="me-2 size-4" />
+                          پیام‌ها
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>گزارشات</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/reports")}
+                          className="cursor-pointer"
+                        >
+                          <BarChart3 className="me-2 size-4" />
+                          گزارشات
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>تنظیمات سیستم</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push("/dashboard/admin/settings")
+                          }
+                          className="cursor-pointer"
+                        >
+                          <Settings className="me-2 size-4" />
+                          تنظیمات
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/admin/logs")}
+                          className="cursor-pointer"
+                        >
+                          <History className="me-2 size-4" />
+                          لاگ‌ها
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    {/* ── Manager panel items ── */}
+                    {user.role === "manager" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>مدیریت مجموعه</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/courts")}
+                          className="cursor-pointer"
+                        >
+                          <Building2 className="me-2 size-4" />
+                          مجموعه‌ها
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push("/dashboard/manager/schedule")
+                          }
+                          className="cursor-pointer"
+                        >
+                          <Calendar className="me-2 size-4" />
+                          زمان‌بندی
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    {/* ── User panel items ── */}
+                    {user.role === "user" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>رزروها</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/bookings")}
+                          className="cursor-pointer"
+                        >
+                          <Calendar className="me-2 size-4" />
+                          رزروهای من
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => router.push("/dashboard/payments")}
+                          className="cursor-pointer"
+                        >
+                          <CreditCard className="me-2 size-4" />
+                          پرداخت‌ها
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    {/* ── General (all roles) ── */}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>سیستم</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onSelect={() => router.push("/dashboard/notifications")}
+                      className="cursor-pointer"
+                    >
+                      <Bell className="me-2 size-4" />
+                      اعلان‌ها
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() => router.push("/dashboard/settings")}
                       className="cursor-pointer"
                     >
-                      <Settings className="me-2 size-4" />
-                      تنظیمات
+                      <UserCircle className="me-2 size-4" />
+                      پروفایل
                     </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => setLogoutDialogOpen(true)}

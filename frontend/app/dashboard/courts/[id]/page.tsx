@@ -3,18 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { useForm, Controller, useWatch } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { courtUpdateSchema, type CourtUpdateInput } from "@/lib/validations"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -37,16 +37,27 @@ import {
 import { Label } from "@/components/ui/label"
 import { TimePicker } from "@/components/ui/time-picker"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PersianInput } from "@/components/ui/persian-input"
 import { toast } from "@/lib/toast"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import type { DateRange } from "@daypicker/react"
+import dynamic from "next/dynamic"
+import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
+import { ImageUpload } from "@/components/courts/image-upload"
 import {
-  ArrowRight,
-  Pencil,
-  CalendarPlus,
+  formatTime,
+  formatPrice,
+  formatDate,
+  type CourtData,
+  type TimeSlot,
+} from "@/components/courts/court-shared"
+import {
+  Building2,
   MapPin,
-  Star,
+  Image as ImageIcon,
   Users,
-  UserCircle,
-  Phone,
+  Settings2,
+  CalendarPlus,
   Loader2,
   Trash2,
   ToggleRight,
@@ -56,49 +67,43 @@ import {
   CalendarDays,
   CheckCircle2,
   XCircle,
+  ArrowRight,
+  Save,
+  ArrowLeft,
 } from "lucide-react"
-import { PersianInput } from "@/components/ui/persian-input"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
-import type { DateRange } from "@daypicker/react"
-import dynamic from "next/dynamic"
-import { CourtImageGallery } from "@/components/courts/court-image-gallery"
-import { CourtAmenities } from "@/components/courts/court-amenities"
-import { CourtReviews } from "@/components/courts/court-reviews"
-import {
-  sportLabels,
-  sportColors,
-  Stars,
-  formatTime,
-  formatPrice,
-  formatDate,
-  type CourtData,
-  type TimeSlot,
-  type Review,
-} from "@/components/courts/court-shared"
 
-const CourtLocationMap = dynamic(
+const LocationPicker = dynamic(
   () =>
-    import("@/components/map/court-location-map").then(
-      (m) => m.CourtLocationMap
-    ),
-  { ssr: false, loading: () => <Skeleton className="h-48 w-full rounded-xl" /> }
+    import("@/components/courts/location-picker").then((m) => ({
+      default: m.LocationPicker,
+    })),
+  { ssr: false }
 )
 
-export default function DashboardCourtDetailPage() {
+const sportTypes = [
+  { value: "volleyball", label: "والیبال" },
+  { value: "basketball", label: "بسکتبال" },
+  { value: "futsal", label: "فوتسال" },
+  { value: "handball", label: "هندبال" },
+]
+
+export default function DashboardCourtEditPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const courtId = Number(params.id)
 
   const [court, setCourt] = useState<CourtData | null>(null)
-  const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Slot management state
+  const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createCount, setCreateCount] = useState(0)
   const [createTotal, setCreateTotal] = useState(0)
-  const [recentReviews, setRecentReviews] = useState<Review[]>([])
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -106,10 +111,41 @@ export default function DashboardCourtDetailPage() {
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
 
+  // Edit form state
+  const [courtImages, setCourtImages] = useState<string[]>([])
+  const [imageTempIds, setImageTempIds] = useState<string[]>([])
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting, isDirty },
+    watch,
+  } = useForm<CourtUpdateInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(courtUpdateSchema) as any,
+    defaultValues: {
+      name: "",
+      sport_types: [],
+      address: "",
+      latitude: undefined,
+      longitude: undefined,
+      capacity: 10,
+      amenities: {},
+    },
+  })
+  const watchSportTypes = (watch("sport_types") || []) as string[]
+  const latitudeWatch = watch("latitude")
+  const longitudeWatch = watch("longitude")
+
   const canManage = user?.role === "manager" || user?.role === "admin"
   const isAdmin = user?.role === "admin"
 
-  const next7Days = useMemo(() => {
+  // ── Date helpers ──
+
+  const next30Days = useMemo(() => {
     const result: string[] = []
     for (let i = 0; i < 30; i++) {
       const d = new Date()
@@ -119,7 +155,7 @@ export default function DashboardCourtDetailPage() {
     return result
   }, [])
 
-  const activeDate = next7Days[activeDateIndex] || next7Days[0]
+  const activeDate = next30Days[activeDateIndex] || next30Days[0]
 
   const slotsForDate = useMemo(
     () => allSlots.filter((s) => s.start_time.startsWith(activeDate)),
@@ -136,34 +172,79 @@ export default function DashboardCourtDetailPage() {
     [allSlots]
   )
 
+  // ── Fetch data ──
+
   const fetchData = useCallback(async () => {
     try {
       const courtRes = await api<CourtData>(`/api/v1/courts/${courtId}`)
       setCourt(courtRes)
-      // slots — independent; failure shouldn't block court data
+      // Populate form
+      reset({
+        name: courtRes.name,
+        sport_types: courtRes.sport_types as CourtUpdateInput["sport_types"],
+        address: courtRes.address,
+        latitude: courtRes.latitude,
+        longitude: courtRes.longitude,
+        capacity: courtRes.capacity,
+        amenities: courtRes.amenities || {},
+      })
+      setCourtImages(courtRes.images || [])
+      // Slots
       api<{ slots: TimeSlot[]; total: number }>(
         `/api/v1/courts/${courtId}/slots?limit=500`
       )
         .then((slotsRes) => setAllSlots(slotsRes.slots))
-        .catch(() => {}) // slots optional
-      // reviews — independent
-      api<{ reviews: Review[]; total: number }>(
-        `/api/v1/courts/${courtId}/reviews?limit=3`
-      )
-        .then((revRes) => setRecentReviews(revRes.reviews || []))
-        .catch(() => {}) // reviews optional
+        .catch(() => {})
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) setNotFound(true)
       else toast.error("خطا در دریافت اطلاعات")
     } finally {
       setLoading(false)
     }
-  }, [courtId])
+  }, [courtId, reset])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchData(), 0)
     return () => clearTimeout(timer)
   }, [fetchData])
+
+  // ── Edit form submit ──
+
+  async function onSubmit(data: CourtUpdateInput) {
+    setSaving(true)
+    try {
+      await api(`/api/v1/courts/${courtId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ ...data, images: courtImages }),
+      })
+      toast.success("تغییرات با موفقیت ذخیره شد")
+      fetchData()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ذخیره تغییرات"
+      toast.error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function toggleSport(value: string) {
+    const current = watchSportTypes
+    if (current.includes(value)) {
+      setValue(
+        "sport_types",
+        current.filter((s) => s !== value) as CourtUpdateInput["sport_types"],
+        { shouldValidate: true, shouldDirty: true }
+      )
+    } else {
+      setValue(
+        "sport_types",
+        [...current, value] as CourtUpdateInput["sport_types"],
+        { shouldValidate: true, shouldDirty: true }
+      )
+    }
+  }
+
+  // ── Slot management ──
 
   async function handleCreateSlot(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -201,7 +282,7 @@ export default function DashboardCourtDetailPage() {
           }),
         })
         successCount++
-      } catch {} // skip failed
+      } catch {}
       setCreateCount(i + 1)
     }
     if (successCount > 0) {
@@ -257,19 +338,22 @@ export default function DashboardCourtDetailPage() {
     [courtId, fetchData]
   )
 
+  // ── Loading / 404 ──
+
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col gap-6 p-6">
+      <div className="flex flex-1 flex-col gap-6">
         <Skeleton className="h-8 w-32" />
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-3">
-            <Skeleton className="h-75 w-full rounded-2xl" />
-            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-xl" />
             <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
           </div>
           <div className="space-y-4 lg:col-span-2">
             <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-96 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
           </div>
         </div>
       </div>
@@ -296,28 +380,24 @@ export default function DashboardCourtDetailPage() {
   const { dayName, dayNum, month } = formatDate(activeDate)
   const activeDateLabel = `${dayName} ${dayNum} ${month}`
 
+  const isFormValid = watchSportTypes.length > 0
+
   return (
     <div className="flex flex-1 flex-col gap-6">
-      {/* Top bar */}
+      {/* ══════ Top bar ══════ */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => router.push("/dashboard/courts")}
         >
-          <ArrowRight className="ml-1 size-4" />
-          بازگشت به لیست
+          <ArrowLeft className="ml-1.5 size-4" />
+          برگشت
         </Button>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleToggleActive}>
             <ToggleRight data-icon="inline-start" />
             {court.is_active ? "غیرفعال‌سازی" : "فعال‌سازی"}
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/courts/${courtId}/edit`}>
-              <Pencil className="ml-1.5 size-4" />
-              ویرایش
-            </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/courts/${courtId}`}>
@@ -335,112 +415,299 @@ export default function DashboardCourtDetailPage() {
               حذف
             </Button>
           )}
+          <Button
+            type="submit"
+            form="edit-form"
+            size="sm"
+            disabled={!isFormValid || isSubmitting || saving}
+          >
+            {saving || isSubmitting ? (
+              <>
+                <Loader2 className="ml-1.5 size-4 animate-spin" />
+                در حال ذخیره...
+              </>
+            ) : (
+              <>
+                <Save className="ml-1.5 size-4" />
+                ذخیره
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
+      {/* ══════ Main grid ══════ */}
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* ====== Left column: Court info ====== */}
+        {/* ====== Left column: Edit form ====== */}
         <div className="space-y-6 lg:col-span-3">
-          {/* Image Gallery */}
-          <CourtImageGallery
-            images={court.images || []}
-            courtName={court.name}
-          />
-
-          {/* Court info card */}
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between pb-3">
-              <div>
-                <CardTitle className="text-xl">{court.name}</CardTitle>
-                <CardDescription className="mt-1">
-                  <div className="flex flex-wrap gap-1.5">
-                    {court.sport_types?.map((st) => (
-                      <Badge
-                        key={st}
-                        className={sportColors[st] || ""}
-                        variant="secondary"
-                      >
-                        {sportLabels[st] || st}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardDescription>
-              </div>
-              <Stars rating={court.average_rating} size={16} />
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-x-6 gap-y-3 md:grid-cols-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{court.address}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="size-4 shrink-0 text-muted-foreground" />
-                  <span>ظرفیت {toPersianDigits(court.capacity)} نفر</span>
-                </div>
-                {court.manager_name && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <UserCircle className="size-4 shrink-0 text-muted-foreground" />
-                    <span>مدیر: {court.manager_name}</span>
-                  </div>
-                )}
-                {court.manager_phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="size-4 shrink-0 text-muted-foreground" />
-                    <a
-                      href={`tel:${court.manager_phone}`}
-                      className="text-primary hover:underline"
-                    >
-                      {court.manager_phone}
-                    </a>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <Star className="size-4 fill-amber-400 text-amber-400" />
-                  <span>
-                    {toPersianDigits(court.average_rating.toFixed(1))}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Badge variant={court.is_active ? "default" : "secondary"}>
-                    {court.is_active ? "فعال" : "غیرفعال"}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Amenities */}
-          {court.amenities && <CourtAmenities amenities={court.amenities} />}
-
-          {/* Map */}
-          {court.latitude != null && court.longitude != null && (
+          <form
+            id="edit-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
+            {/* ── Basic Info ── */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">موقعیت روی نقشه</CardTitle>
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Building2 className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">اطلاعات پایه</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      نام و نوع ورزش‌های مجموعه
+                    </p>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="p-0">
-                <CourtLocationMap
-                  latitude={court.latitude}
-                  longitude={court.longitude}
-                  name={court.name}
-                  height="220px"
+              <CardContent className="space-y-5 pt-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">نام مجموعه</Label>
+                  <Input
+                    id="name"
+                    placeholder="مثلاً مجموعه ورزشی آزادی"
+                    {...register("name")}
+                  />
+                  {errors.name?.message && (
+                    <p className="text-xs text-destructive">
+                      {String(errors.name.message)}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>نوع ورزش‌های موجود</Label>
+                  <p className="text-xs text-muted-foreground">
+                    حداقل یک نوع ورزش را انتخاب کنید
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {sportTypes.map((sport) => {
+                      const checked = watchSportTypes.includes(sport.value)
+                      return (
+                        <label
+                          key={sport.value}
+                          className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-all ${
+                            checked
+                              ? "border-primary bg-primary/5 shadow-sm"
+                              : "border-border hover:border-primary/30 hover:bg-accent/30"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleSport(sport.value)}
+                          />
+                          <span className="font-medium">{sport.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {errors.sport_types?.message && (
+                    <p className="text-xs text-destructive">
+                      {String(errors.sport_types.message)}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Location ── */}
+            <Card>
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <MapPin className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">موقعیت و آدرس</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      مکان دقیق مجموعه را مشخص کنید
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="address">آدرس کامل</Label>
+                  <Textarea
+                    id="address"
+                    placeholder="استان، شهر، خیابان، پلاک"
+                    className="min-h-20"
+                    {...register("address")}
+                  />
+                  {errors.address?.message && (
+                    <p className="text-xs text-destructive">
+                      {String(errors.address.message)}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>موقعیت روی نقشه</Label>
+                  <p className="text-xs text-muted-foreground">
+                    روی نقشه کلیک کنید یا نشانگر را بکشید
+                  </p>
+                  <LocationPicker
+                    latitude={latitudeWatch ?? null}
+                    longitude={longitudeWatch ?? null}
+                    onLocationChange={(lat, lng, address) => {
+                      setValue("latitude", lat, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                      setValue("longitude", lng, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                      if (address)
+                        setValue("address", address, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                    }}
+                  />
+                  {(errors.latitude?.message || errors.longitude?.message) && (
+                    <p className="text-xs text-destructive">
+                      {String(
+                        errors.latitude?.message || errors.longitude?.message
+                      )}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Capacity ── */}
+            <Card>
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Users className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">ظرفیت</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      تعداد نفراتی که هم‌زمان می‌توانند حضور داشته باشند
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-5">
+                <Controller
+                  name="capacity"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="capacity">ظرفیت مجموعه</Label>
+                      <PersianInput
+                        id="capacity"
+                        placeholder="۱۰"
+                        value={field.value}
+                        onChange={(e) =>
+                          field.onChange(
+                            Number.parseInt(e.target.value, 10) || 0
+                          )
+                        }
+                        onBlur={field.onBlur}
+                        className="max-w-30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      {errors.capacity?.message && (
+                        <p className="text-xs text-destructive">
+                          {String(errors.capacity.message)}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 />
               </CardContent>
             </Card>
-          )}
 
-          {/* Reviews */}
-          {recentReviews.length > 0 && (
-            <CourtReviews
-              reviews={recentReviews}
-              averageRating={court.average_rating}
-              total={recentReviews.length}
-            />
-          )}
+            {/* ── Amenities ── */}
+            <Card>
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Settings2 className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">امکانات</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      امکانات موجود در مجموعه را انتخاب کنید
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-5">
+                <Controller
+                  name="amenities"
+                  control={control}
+                  render={({ field }) => (
+                    <AmenityCheckboxes
+                      value={(field.value || {}) as Record<string, boolean>}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* ── Images ── */}
+            <Card>
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ImageIcon className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">تصاویر</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      حداقل ۳ تصویر از مجموعه آپلود کنید
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-5">
+                <ImageUpload
+                  images={courtImages}
+                  onChange={setCourtImages}
+                  tempIds={imageTempIds}
+                  onTempIdsChange={setImageTempIds}
+                />
+              </CardContent>
+            </Card>
+
+            {/* ── Submit ── */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:text-right">
+                  <div className="flex-1 text-center sm:text-right">
+                    <h3 className="text-sm font-semibold">ذخیره تغییرات</h3>
+                    <p className="text-xs text-muted-foreground">
+                      تغییرات خود را ذخیره کنید
+                    </p>
+                  </div>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="h-11 min-w-40 gap-2"
+                    disabled={!isFormValid || isSubmitting || saving}
+                  >
+                    {saving || isSubmitting ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        در حال ذخیره...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="size-4" />
+                        ذخیره تغییرات
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </form>
         </div>
 
-        {/* ====== Right column: Time slots ====== */}
+        {/* ====== Right column: Slot Management ====== */}
         <div className="space-y-4 lg:sticky lg:top-6 lg:col-span-2 lg:self-start">
           {/* Stats bar */}
           <Card>
@@ -450,7 +717,7 @@ export default function DashboardCourtDetailPage() {
                   <p className="text-2xl font-bold">
                     {toPersianDigits(allSlots.length)}
                   </p>
-                  <p className="text-xs text-muted-foreground">کل زمان‌ها</p>
+                  <p className="text-xs text-muted-foreground">کل</p>
                 </div>
                 <div className="h-10 w-px bg-border" />
                 <div>
@@ -464,13 +731,13 @@ export default function DashboardCourtDetailPage() {
                   <p className="text-2xl font-bold text-red-500">
                     {toPersianDigits(totalReserved)}
                   </p>
-                  <p className="text-xs text-muted-foreground">رزرو شده</p>
+                  <p className="text-xs text-muted-foreground">رزرو</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Date navigation + Add button */}
+          {/* Date navigation + Add slot */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-2">
@@ -496,10 +763,10 @@ export default function DashboardCourtDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    disabled={activeDateIndex >= next7Days.length - 1}
+                    disabled={activeDateIndex >= next30Days.length - 1}
                     onClick={() =>
                       setActiveDateIndex((i) =>
-                        Math.min(next7Days.length - 1, i + 1)
+                        Math.min(next30Days.length - 1, i + 1)
                       )
                     }
                   >
@@ -521,9 +788,9 @@ export default function DashboardCourtDetailPage() {
                       }}
                     >
                       <DialogHeader>
-                        <DialogTitle>افزودن زمان جدید</DialogTitle>
+                        <DialogTitle>افزودن سانس جدید</DialogTitle>
                         <DialogDescription>
-                          برای مجموعه {court.name} زمان جدید ثبت کنید
+                          برای مجموعه {court.name} سانس جدید ثبت کنید
                         </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleCreateSlot} className="space-y-4">
@@ -588,7 +855,7 @@ export default function DashboardCourtDetailPage() {
                                 {toPersianDigits(createTotal)}
                               </>
                             ) : (
-                              "ثبت زمان‌ها"
+                              "ثبت سانس‌ها"
                             )}
                           </Button>
                         </DialogFooter>
@@ -600,7 +867,7 @@ export default function DashboardCourtDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Slot cards */}
+          {/* Slot list */}
           <div className="space-y-2">
             {slotsForDate.length === 0 ? (
               <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
@@ -628,20 +895,20 @@ export default function DashboardCourtDetailPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div
-                      className={`flex size-12 items-center justify-center rounded-xl ${
+                      className={`flex size-11 items-center justify-center rounded-xl ${
                         slot.is_reserved
                           ? "bg-red-100 text-red-500 dark:bg-red-900/20"
                           : "bg-green-100 text-green-600 dark:bg-green-900/20"
                       }`}
                     >
                       {slot.is_reserved ? (
-                        <XCircle className="size-6" />
+                        <XCircle className="size-5" />
                       ) : (
-                        <CheckCircle2 className="size-6" />
+                        <CheckCircle2 className="size-5" />
                       )}
                     </div>
                     <div>
-                      <p className="text-base leading-tight font-bold">
+                      <p className="text-sm leading-tight font-bold">
                         {formatTime(slot.start_time)}
                         <span className="mx-1.5 text-muted-foreground/40">
                           —
@@ -662,7 +929,7 @@ export default function DashboardCourtDetailPage() {
                           : "border-primary/30 text-green-600 dark:border-primary/30"
                       }`}
                     >
-                      {slot.is_reserved ? "رزرو شده" : "آزاد"}
+                      {slot.is_reserved ? "رزرو" : "آزاد"}
                     </Badge>
                     {!slot.is_reserved && canManage && (
                       <Button
@@ -682,7 +949,7 @@ export default function DashboardCourtDetailPage() {
         </div>
       </div>
 
-      {/* Delete confirmation */}
+      {/* ══════ Delete court dialog ══════ */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

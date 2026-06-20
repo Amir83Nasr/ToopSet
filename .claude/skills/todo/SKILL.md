@@ -34,6 +34,16 @@ from conversation.
 - **Guess topic from context** — if the user doesn't provide a task description,
   infer the topic from the recent conversation or what you were just working on,
   and ask the user to confirm before adding
+- **Use detailed descriptions** — always write tasks with rich details (what was
+  done, key components/files, notable patterns). Never use a bare commit message
+  as the Done entry. Follow the format with a bold title, em-dash separator,
+  and a paragraph of specifics. See existing Done entries as examples.
+- **Keep empty section headers** — when a section becomes empty after moving
+  an item (e.g. In Progress → Done), keep the `## In Progress` header in place
+  rather than deleting it. Sections are structural, not content.
+- **Blank lines between tasks** — every list item in TODO.md must be separated
+  by a blank line. Never write consecutive `- [ ]` lines without a blank line
+  between them.
 
 ## Commands
 
@@ -54,6 +64,7 @@ Adds a new task to `## Backlog`.
 ```
 - [ ] fix login bug
 ```
+(with a blank line before/after the item — items must never touch)
 
 ### `todo inprogress <task description>`
 
@@ -71,6 +82,7 @@ Adds a new task to `## In Progress`.
 ```
 - [ ] fix login bug (started: 2026-06-20)
 ```
+(with a blank line before/after — items must never touch)
 
 ### `todo done`
 
@@ -84,10 +96,12 @@ Marks the current in-progress task as done.
 - If nothing is in In Progress, tell the user and suggest items from Backlog
   or using "todo start".
 
-**Format:**
+**Format (use detailed description, not a bare commit message):**
 ```
-- [x] fix login bug (completed: 2026-06-20)
+- [x] **Task Title** — Detailed description of what was done, key changes,
+  files modified, and notable patterns used. (completed: 2026-06-20)
 ```
+(with a blank line before/after — items must never touch)
 
 ### `todo start`
 
@@ -121,6 +135,8 @@ Updated: YYYY-MM-DD
 
 - [ ] Item one
 
+- [ ] Another item
+
 ## In Progress
 
 - [ ] Current task (started: YYYY-MM-DD)
@@ -129,6 +145,9 @@ Updated: YYYY-MM-DD
 
 - [x] Completed task (completed: YYYY-MM-DD)
 ```
+
+**Note:** Every list item must be separated by a blank line — never
+write consecutive `- [ ]` lines without a blank line between them.
 
 If TODO.md doesn't exist, create it with the standard sections.
 
@@ -143,3 +162,10 @@ If TODO.md doesn't exist, create it with the standard sections.
 - **Task already exists** — check all sections first. Don't duplicate. If
   moving between states, delete from the old section.
 - **Date updates** — keep the `Updated: YYYY-MM-DD` line current.
+- **Section becomes empty** — keep the `##` header in place rather than
+  removing it. An empty section is fine; a missing header is a structural
+  change. Only delete the header if the entire section is intentionally
+  removed from the format.
+- **Blank lines** — every list item in ALL sections must be separated by
+  a blank line. Consecutive items without blank line separation is a
+  formatting violation. Write `- [ ]\n\n- [ ]`, never `- [ ]\n- [ ]`.
