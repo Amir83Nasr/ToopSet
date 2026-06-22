@@ -33,6 +33,28 @@ Updated: 2026-06-23
 
 ## In Progress
 
+- [ ] Manager court management page (started: 2026-06-23)
+
+- [ ] Public court page (started: 2026-06-23)
+
+- [ ] Booking confirmation and payment flow (started: 2026-06-23)
+
+- [ ] Add new time slot entries (started: 2026-06-23)
+
+- [ ] Court profile section for manager dashboard (started: 2026-06-23)
+
+- [ ] Time slot display tables (started: 2026-06-23)
+
+- [ ] Dashboard settings section (started: 2026-06-23)
+
+- [ ] Logo fix and update (started: 2026-06-23)
+
+- [ ] Add app screenshots (started: 2026-06-23)
+
+- [ ] Add images and logo to README.md (started: 2026-06-23)
+
+- [ ] Profile page layout (started: 2026-06-23)
+
 ## Done
 
 - [x] **Update Seed Data with Timezone-Aware Time Slots and Court Ratings** — Fixed `backend/scripts/seed.py` to use timezone-aware datetimes (`now_iran()` / `iran_to_utc()`) for time slot generation, covering 60 future days with 5 fixed daily schedules per court (total 4,500 slots). Added `court.average_rating` calculation with SQL aggregation after review creation. Added 16 new review entries to ensure all 15 courts have at least 1-2 ratings. Fixed duplicate `booking_id` issue in review matching with `used_booking_ids` tracking. Ran seed to populate database with proper ratings (3.0–5.0 range) and future-dated slots. (completed: 2026-06-20)

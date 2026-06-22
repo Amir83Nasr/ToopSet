@@ -79,30 +79,30 @@ const result = await api<BookingResponse>("/api/v1/bookings", {
 
 ## Dashboard Pages
 
-| Route                          | Role          | Content                                               |
-| ------------------------------ | ------------- | ----------------------------------------------------- |
-| `/dashboard`                   | any           | Redirects to role-specific                            |
-| `/dashboard/user`              | user          | My bookings, wallet, settings                         |
-| `/dashboard/bookings`          | any           | Bookings list for current user                        |
-| `/dashboard/payments`          | any           | Payment history for current user                      |
-| `/dashboard/notifications`     | any           | Notification list with filters and broadcast (admin)  |
-| `/dashboard/settings`          | any           | User settings/profile                                 |
-| `/dashboard/contact`           | any           | Contact messages                                      |
-| `/dashboard/reports`           | manager/admin | Revenue & booking analytics                           |
-| `/dashboard/manager`           | manager       | Manager home (today preview)                          |
-| `/dashboard/manager/schedule`  | manager       | Weekly schedule grid, bulk slot generation            |
-| `/dashboard/courts`            | manager       | Court list                                            |
-| `/dashboard/courts/[id]`       | manager       | Court detail + inline edit dialog                     |
-| `/dashboard/courts/create`     | manager       | Create new court                                      |
-| `/dashboard/courts/schedule`   | manager       | Schedule management                                   |
-| `/dashboard/admin`             | admin         | Admin home                                           |
-| `/dashboard/admin/bookings`    | admin         | All bookings (search, type/status filters)            |
-| `/dashboard/admin/courts`      | admin         | All courts management                                 |
-| `/dashboard/users`             | admin         | All users management                                  |
-| `/dashboard/users/[id]`        | admin         | User detail                                          |
-| `/dashboard/admin/payments`    | admin         | All payments management                               |
-| `/dashboard/admin/logs`        | admin         | System audit logs                                     |
-| `/dashboard/admin/settings`    | admin         | System settings                                       |
+| Route                         | Role          | Content                                              |
+| ----------------------------- | ------------- | ---------------------------------------------------- |
+| `/dashboard`                  | any           | Redirects to role-specific                           |
+| `/dashboard/user`             | user          | My bookings, wallet, settings                        |
+| `/dashboard/bookings`         | any           | Bookings list for current user                       |
+| `/dashboard/payments`         | any           | Payment history for current user                     |
+| `/dashboard/notifications`    | any           | Notification list with filters and broadcast (admin) |
+| `/dashboard/settings`         | any           | User settings/profile                                |
+| `/dashboard/contact`          | any           | Contact messages                                     |
+| `/dashboard/reports`          | manager/admin | Revenue & booking analytics                          |
+| `/dashboard/manager`          | manager       | Manager home (today preview)                         |
+| `/dashboard/manager/schedule` | manager       | Weekly schedule grid, bulk slot generation           |
+| `/dashboard/courts`           | manager       | Court list                                           |
+| `/dashboard/courts/[id]`      | manager       | Court detail + inline edit dialog                    |
+| `/dashboard/courts/create`    | manager       | Create new court                                     |
+| `/dashboard/courts/schedule`  | manager       | Schedule management                                  |
+| `/dashboard/admin`            | admin         | Admin home                                           |
+| `/dashboard/admin/bookings`   | admin         | All bookings (search, type/status filters)           |
+| `/dashboard/admin/courts`     | admin         | All courts management                                |
+| `/dashboard/users`            | admin         | All users management                                 |
+| `/dashboard/users/[id]`       | admin         | User detail                                          |
+| `/dashboard/admin/payments`   | admin         | All payments management                              |
+| `/dashboard/admin/logs`       | admin         | System audit logs                                    |
+| `/dashboard/admin/settings`   | admin         | System settings                                      |
 
 To add a page:
 
