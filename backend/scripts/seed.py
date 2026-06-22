@@ -6,6 +6,7 @@ from decimal import Decimal
 from passlib.context import CryptContext
 
 from app.core.database import Base, async_session_factory, engine
+from app.core.timezone import iran_to_utc, now_iran
 from app.models.booking import Booking, BookingStatus
 from app.models.court import Court, SportType
 from app.models.favorite import Favorite
@@ -388,23 +389,32 @@ async def seed():
         db.add_all(wallets)
         await db.flush()
 
-        # ── Time slots (next 14 days, 3 slots per court) ──
-        now = datetime.now()
+        # ── Time slots (next 60 days, 5 fixed slots per court per day) ──
+        now = now_iran()
         slots: list[TimeSlot] = []
-        slot_hours = [9, 12, 15, 18, 21]
+        # Fixed slot schedules: (hour, minute, duration_hours)
+        slot_schedules = [
+            (9, 0, 2),  # 09:00 – 11:00
+            (11, 0, 2),  # 11:00 – 13:00
+            (13, 0, 2),  # 13:00 – 15:00
+            (15, 0, 2),  # 15:00 – 17:00
+            (17, 0, 2),  # 17:00 – 19:00
+            (19, 0, 2),  # 19:00 – 21:00
+            (21, 0, 2),  # 21:00 – 23:00
+        ]
         for court in courts:
-            for day_offset in range(14):
-                # 3 random slots per day (from 5 possible)
-                for hour in random.sample(slot_hours, 3):
-                    start = now.replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(
-                        days=day_offset
-                    )
-                    end = start + timedelta(hours=2)
+            for day_offset in range(60):
+                # 60 days × 7 slots = 420 slots per court — pick 5 random per day
+                for hour, minute, duration in random.sample(slot_schedules, 5):
+                    start_iran = now.replace(
+                        hour=hour, minute=minute, second=0, microsecond=0
+                    ) + timedelta(days=day_offset)
+                    end_iran = start_iran + timedelta(hours=duration)
                     slots.append(
                         TimeSlot(
                             court_id=court.id,
-                            start_time=start,
-                            end_time=end,
+                            start_time=iran_to_utc(start_iran),
+                            end_time=iran_to_utc(end_iran),
                             base_price=random_price(),
                         )
                     )
@@ -511,7 +521,7 @@ async def seed():
         for b in bookings:
             if b.status == BookingStatus.CONFIRMED:
                 card, bank = random_card()
-                paid = b.created_at or datetime.now()
+                paid = b.created_at or now_iran()
                 payments.append(
                     Payment(
                         booking_id=b.id,
@@ -568,13 +578,33 @@ async def seed():
             (11, 12, "فوتسال عالی، کفپوش استاندارد. عالیه", 5),
             (13, 13, "جدید و مدرسه، امکانات کامل داره", 4),
             (14, 14, "خیلی خوبه، پیشنهاد میکنم حتما بیان", 4),
+            # Extra reviews for courts with only 1 review — ensure every court has ≥2
+            (4, 5, "والیبال عالی، همیشه سالن تمیز و مرتب هست", 4),
+            (19, 5, "تخته‌ها نو شده بودن، کیفیت خوبی داشت", 4),
+            (5, 7, "چمن مصنوعی خیلی باکیفیته، عالی بود", 5),
+            (11, 7, "زمین فوتبال بزرگ و استاندارد، دوباره میام", 5),
+            (7, 9, "تنیس روی میز هم داره، جای خوبیه", 4),
+            (13, 9, "محوطه مرتب و تمیز، آرامش خوبی داره", 4),
+            (8, 10, "سالن هندبال کاملاً استاندارد و خوب", 5),
+            (14, 10, "نورپردازی عالی و سرویس‌های بهداشتی تمیز", 4),
+            (9, 11, "بسکتبال عالی، حلقه‌ها استاندارد هستن", 4),
+            (14, 11, "فضای بزرگ با سقف بلند، برای مسابقه عالیه", 5),
+            (10, 12, "زمین فوتسال کوچیک ولی دنج، خوبه", 3),
+            (15, 12, "کیفیت فوتسال خوبه، پارکینگ نزدیک داره", 4),
+            (12, 13, "جدیدترین سالن قم، همه چی عالیه", 5),
+            (15, 13, "سالن بزرگ و مدرس، کفپوش عالی", 4),
+            (13, 14, "فضای بزرگ و چندمنظوره، خوبه", 4),
+            (16, 14, "جای خوبی برای بسکتبال و والیبال", 4),
         ]
 
         reviews: list[Review] = []
+        used_booking_ids: set[int] = set()
         for i, (ui, ci, comment, rating) in enumerate(review_data):
-            # find a booking by this user for this court
+            # find a booking by this user for this court that hasn't been used yet
             booking = None
             for b in bookings:
+                if b.id in used_booking_ids:
+                    continue
                 if b.user_id == regular_users[ui % len(regular_users)].id:
                     slot = None
                     for s in slots:
@@ -586,6 +616,7 @@ async def seed():
                         break
 
             if booking:
+                used_booking_ids.add(booking.id)
                 reviews.append(
                     Review(
                         user_id=regular_users[ui % len(regular_users)].id,
@@ -598,6 +629,17 @@ async def seed():
 
         db.add_all(reviews)
         await db.flush()
+
+        # ── Update court average_rating from reviews ──
+        from sqlalchemy import func as sa_func
+        from sqlalchemy import select
+
+        for court in courts:
+            result = await db.execute(
+                select(sa_func.avg(Review.rating)).where(Review.court_id == court.id)
+            )
+            avg = result.scalar()
+            court.average_rating = round(float(avg), 1) if avg else 0.0
 
         # ── Notifications ──
         notes: list[Notification] = []

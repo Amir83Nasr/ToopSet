@@ -93,8 +93,12 @@ Marks the current in-progress task as done.
   - Delete it from In Progress
   - Place it at the top of `## Done`
 - If multiple items exist in In Progress, ask which one is done.
-- If nothing is in In Progress, tell the user and suggest items from Backlog
-  or using "todo start".
+- If nothing is in In Progress AND the user provided a description (e.g. "todo
+  done fix login bug"), add it directly to Done (as if it was just completed).
+- If nothing is in In Progress AND the user didn't provide a description, infer
+  the topic from the recent conversation/current work, then ask:
+  > "Mark this as done: `<inferred task>`? (yes/no)"
+  Only add if confirmed.
 
 **Format (use detailed description, not a bare commit message):**
 ```
@@ -157,8 +161,10 @@ If TODO.md doesn't exist, create it with the standard sections.
 - **Multiple items in In Progress on "todo done"** — ask which one.
 - **Backlog is empty on "todo start"** — suggest brainstorming or ask what
   to work on.
-- **Nothing in In Progress on "todo done"** — tell the user and suggest
-  starting something first.
+- **Nothing in In Progress on "todo done"** — if the user provided a
+  description, add it directly to Done. If no description was given, infer the
+  task from the recent conversation context and ask for confirmation before
+  adding to Done.
 - **Task already exists** — check all sections first. Don't duplicate. If
   moving between states, delete from the old section.
 - **Date updates** — keep the `Updated: YYYY-MM-DD` line current.

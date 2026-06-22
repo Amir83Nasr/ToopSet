@@ -157,7 +157,7 @@ export default function AdminPendingCourtsPage() {
       </div>
 
       {loading ? (
-        <Card>
+        <Card className="min-h-0 flex-1">
           <CardHeader>
             <Skeleton className="h-5 w-32" />
           </CardHeader>
@@ -170,8 +170,8 @@ export default function AdminPendingCourtsPage() {
           </CardContent>
         </Card>
       ) : courts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
+        <Card className="min-h-0 flex-1">
+          <CardContent className="flex h-full flex-col items-center justify-center py-16">
             <CheckCircle className="mb-4 size-12 text-muted-foreground" />
             <p className="text-lg text-muted-foreground">
               هیچ مجموعه‌ای در انتظار تایید نیست
@@ -183,105 +183,113 @@ export default function AdminPendingCourtsPage() {
         </Card>
       ) : (
         <ScrollReveal>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShieldAlert className="size-4" />
-                {formatPersianNumber(total)} مجموعه در انتظار تایید
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>نام مجموعه</TableHead>
-                    <TableHead className="w-36">مدیر</TableHead>
-                    <TableHead className="w-40">ورزش‌ها</TableHead>
-                    <TableHead className="w-16">ظرفیت</TableHead>
-                    <TableHead className="w-24">تاریخ ثبت</TableHead>
-                    <TableHead className="w-44">عملیات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {courts.map((court) => (
-                    <TableRow
-                      key={court.id}
-                      className="cursor-pointer"
-                      onClick={() =>
-                        router.push(`/dashboard/courts/${court.id}`)
-                      }
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="size-4 shrink-0 text-muted-foreground" />
-                          {court.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{court.manager_name}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {court.sport_types.map((sport) => (
-                            <Badge
-                              key={sport}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {sport}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {formatPersianNumber(court.capacity)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {court.created_at ? formatDate(court.created_at) : "-"}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button asChild variant="outline" size="icon-sm">
-                                <Link
-                                  href={`/courts/${court.id}`}
-                                  target="_blank"
-                                >
-                                  <ExternalLink className="size-4" />
-                                </Link>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>مشاهده مجموعه</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            disabled={actionLoading === court.id}
-                            onClick={() => handleApprove(court.id)}
-                          >
-                            <CheckCircle className="ml-1 size-4" />
-                            تایید
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={actionLoading === court.id}
-                            onClick={() => handleReject(court.id)}
-                          >
-                            <XCircle className="ml-1 size-4" />
-                            رد
-                          </Button>
-                        </div>
-                      </TableCell>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Card className="flex min-h-0 flex-1 flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldAlert className="size-4" />
+                  {formatPersianNumber(total)} مجموعه در انتظار تایید
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="min-h-0 flex-1 overflow-auto p-0 *:data-[slot=table-container]:overflow-visible *:data-[slot=table-container]:rounded-none *:data-[slot=table-container]:border-0">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
+                    <TableRow>
+                      <TableHead>نام مجموعه</TableHead>
+                      <TableHead className="w-36">مدیر</TableHead>
+                      <TableHead className="w-40">ورزش‌ها</TableHead>
+                      <TableHead className="w-16">ظرفیت</TableHead>
+                      <TableHead className="w-24">تاریخ ثبت</TableHead>
+                      <TableHead className="w-44">عملیات</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {courts.map((court) => (
+                      <TableRow
+                        key={court.id}
+                        className="cursor-pointer"
+                        onClick={() =>
+                          router.push(`/dashboard/courts/${court.id}`)
+                        }
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="size-4 shrink-0 text-muted-foreground" />
+                            {court.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{court.manager_name}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {court.sport_types.map((sport) => (
+                              <Badge
+                                key={sport}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {sport}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {formatPersianNumber(court.capacity)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {court.created_at
+                            ? formatDate(court.created_at)
+                            : "-"}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="icon-sm"
+                                >
+                                  <Link
+                                    href={`/courts/${court.id}`}
+                                    target="_blank"
+                                  >
+                                    <ExternalLink className="size-4" />
+                                  </Link>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>مشاهده مجموعه</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              disabled={actionLoading === court.id}
+                              onClick={() => handleApprove(court.id)}
+                            >
+                              <CheckCircle className="ml-1 size-4" />
+                              تایید
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={actionLoading === court.id}
+                              onClick={() => handleReject(court.id)}
+                            >
+                              <XCircle className="ml-1 size-4" />
+                              رد
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
 
               {/* Pagination */}
               {total > limit && (
-                <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center justify-between border-t px-4 py-3">
                   <p className="text-sm text-muted-foreground">
                     صفحه {toPersianDigits(page + 1)} از{" "}
                     {toPersianDigits(Math.ceil(total / limit))}
@@ -320,8 +328,8 @@ export default function AdminPendingCourtsPage() {
                   </Pagination>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </Card>
+          </div>
         </ScrollReveal>
       )}
     </div>

@@ -8,13 +8,13 @@ Route (api/v1/*.py) → Service (services/*.py) → Repository (repositories/*.p
 
 | Layer                  | Responsibility                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------ |
-| `api/v1/` (18 routers) | HTTP handlers, input validation, response marshalling                                |
+| `api/v1/` (16 routers) | HTTP handlers, input validation, response marshalling                                |
 | `api/deps.py`          | 4 auth deps (optional, required, manager, admin)                                     |
-| `core/` (12 modules)   | Config, DB, Redis, JWT, timezone, exceptions, upload, metrics, logging, rate-limiter |
-| `services/` (9)        | Business logic                                                                       |
-| `repositories/` (10)   | Async SQLAlchemy queries                                                             |
+| `core/` (13 modules)   | Config, DB, Redis, JWT, timezone, date_utils, exceptions, upload, metrics, logging, rate-limiter |
+| `services/` (10)       | Business logic                                                                       |
+| `repositories/` (11)   | Async SQLAlchemy queries                                                             |
 | `models/` (15)         | SQLAlchemy ORM models                                                                |
-| `schemas/` (~15)       | Pydantic v2 request/response                                                         |
+| `schemas/` (14)        | Pydantic v2 request/response                                                         |
 
 ## Data Flow
 

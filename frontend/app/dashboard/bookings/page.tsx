@@ -318,7 +318,7 @@ export default function BookingsPage() {
                 <TableHead>مبلغ</TableHead>
                 <TableHead>تعداد</TableHead>
                 <TableHead>وضعیت</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
+                <TableHead className="text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -387,7 +387,7 @@ export default function BookingsPage() {
                 <TableHead className="w-28">مبلغ</TableHead>
                 <TableHead className="w-16">تعداد</TableHead>
                 <TableHead className="w-20">وضعیت</TableHead>
-                <TableHead className="w-40 text-left">عملیات</TableHead>
+                <TableHead className="w-40 text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

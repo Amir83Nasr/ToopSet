@@ -6,6 +6,7 @@
 make db              # Start Postgres + Redis via Docker
 make dev-backend     # uvicorn --reload :8000
 make dev-frontend    # next dev --turbopack :3000
+make build           # Build frontend for production
 ```
 
 ## Docker Full Stack
@@ -36,6 +37,7 @@ make lint            # ruff (backend) + eslint (frontend)
 make format          # ruff format + prettier
 make typecheck       # mypy + tsc
 make check           # ALL lint + format + typecheck (run before push)
+make check           # ALL lint + format + typecheck (run before push)
 ```
 
 ## Testing
@@ -64,5 +66,6 @@ make install-backend   # pip install -r requirements.txt
 make install-frontend  # npm install
 make doctor            # Check system requirements
 make clean             # Remove build artifacts
+make install-precommit # Install pre-commit hooks
 make precommit         # Run pre-commit hooks
 ```

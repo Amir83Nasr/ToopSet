@@ -15,7 +15,6 @@ import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FavoriteButton } from "@/components/courts/favorite-button"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -583,20 +582,17 @@ function CourtsPageContent() {
                         >
                           <Card className="transition-shadow duration-150 hover:shadow-md">
                             <CardHeader>
-                              {/* Badges + favorite */}
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex flex-wrap gap-1.5">
-                                  {court.sport_types?.map((st) => (
-                                    <Badge
-                                      key={st}
-                                      className="shrink-0 bg-muted-foreground/10 text-[10px] text-muted-foreground"
-                                      variant="secondary"
-                                    >
-                                      {sportLabels[st]}
-                                    </Badge>
-                                  ))}
-                                </div>
-                                <FavoriteButton courtId={court.id} />
+                              {/* Sport badges */}
+                              <div className="flex flex-wrap gap-1.5">
+                                {court.sport_types?.map((st) => (
+                                  <Badge
+                                    key={st}
+                                    className="shrink-0 bg-muted-foreground/10 text-[10px] text-muted-foreground"
+                                    variant="secondary"
+                                  >
+                                    {sportLabels[st]}
+                                  </Badge>
+                                ))}
                               </div>
 
                               {/* Name */}

@@ -110,6 +110,12 @@ export default function AdminPaymentsPage() {
     failed: "ناموفق",
   }
 
+  const paymentStatusStyles: Record<string, string> = {
+    success: "bg-status-confirmed-bg text-status-confirmed",
+    pending: "bg-status-pending-bg text-status-pending",
+    failed: "bg-status-cancelled-bg text-status-cancelled",
+  }
+
   const totalPages = Math.ceil(total / limit)
 
   if (user && user.role !== "admin") {
@@ -181,9 +187,9 @@ export default function AdminPaymentsPage() {
       </div>
 
       {loading ? (
-        <div>
+        <div className="min-h-0 flex-1 overflow-auto rounded-xl border *:data-[slot=table-container]:overflow-visible *:data-[slot=table-container]:rounded-none *:data-[slot=table-container]:border-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>کاربر</TableHead>
@@ -230,7 +236,7 @@ export default function AdminPaymentsPage() {
                 <TableHead className="w-28">تاریخ</TableHead>
                 <TableHead>کاربر</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead className="w-28">مبلغ</TableHead>
+                <TableHead className="w-48">مبلغ</TableHead>
                 <TableHead className="w-20">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
@@ -246,11 +252,15 @@ export default function AdminPaymentsPage() {
                   <TableCell className="max-w-48 truncate">
                     {p.court_name}
                   </TableCell>
-                  <TableCell className="w-28">
+                  <TableCell className="w-36">
                     {formatAmount(p.amount)}
                   </TableCell>
                   <TableCell className="w-20">
-                    {paymentStatusLabels[p.status] || p.status}
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${paymentStatusStyles[p.status] || ""}`}
+                    >
+                      {paymentStatusLabels[p.status] || p.status}
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}

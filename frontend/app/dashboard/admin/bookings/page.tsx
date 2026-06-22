@@ -234,7 +234,7 @@ export default function AdminBookingsPage() {
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>
                 <TableHead>وضعیت</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
+                <TableHead className="text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,7 +273,7 @@ export default function AdminBookingsPage() {
                 <TableHead className="w-28">ساعت</TableHead>
                 <TableHead className="w-28">مبلغ</TableHead>
                 <TableHead className="w-20">وضعیت</TableHead>
-                <TableHead className="w-32 text-left">عملیات</TableHead>
+                <TableHead className="w-32 text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

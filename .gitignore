@@ -65,3 +65,6 @@ backend/uploads/*
 next-env.d.ts
 *.pid
 .playwright-mcp/
+
+# ── AI ─────────────────────────────────────────────────────
+*-workspace/

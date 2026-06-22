@@ -250,116 +250,118 @@ export default function CourtsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right">نام</TableHead>
-                <TableHead className="text-right">ورزش</TableHead>
-                <TableHead className="text-right">آدرس</TableHead>
-                <TableHead className="text-right">امتیاز</TableHead>
-                <TableHead className="text-right">وضعیت</TableHead>
-                {user?.role === "admin" && (
-                  <TableHead className="text-right">مدیر</TableHead>
-                )}
-                <TableHead className="text-right">عملیات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {courts.map((court) => (
-                <TableRow
-                  key={court.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/dashboard/courts/${court.id}`)}
-                >
-                  <TableCell className="text-right font-medium">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="size-4 shrink-0 text-muted-foreground" />
-                      {court.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-wrap gap-1">
-                      {court.sport_types?.map((st) => (
-                        <Badge
-                          key={st}
-                          className={sportColors[st] || ""}
-                          variant="secondary"
-                        >
-                          {sportLabels[st] || st}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-50 truncate text-right">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="size-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{court.address}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center gap-1">
-                      <Star className="size-3.5 fill-amber-400 text-amber-400" />
-                      <span>
-                        {toPersianDigits(
-                          court.average_rating?.toFixed(1) || "0.0"
-                        )}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={
-                        court.is_active
-                          ? "inline-flex items-center gap-1.5 rounded-full bg-status-confirmed-bg px-2.5 py-0.5 text-xs font-medium text-status-confirmed"
-                          : "inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-                      }
-                    >
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-auto rounded-xl border *:data-[slot=table-container]:overflow-visible *:data-[slot=table-container]:rounded-none *:data-[slot=table-container]:border-0">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                  <TableHead className="text-right">نام</TableHead>
+                  <TableHead className="text-right">ورزش</TableHead>
+                  <TableHead className="text-right">آدرس</TableHead>
+                  <TableHead className="text-right">امتیاز</TableHead>
+                  <TableHead className="text-right">وضعیت</TableHead>
+                  {user?.role === "admin" && (
+                    <TableHead className="text-right">مدیر</TableHead>
+                  )}
+                  <TableHead className="text-right">عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {courts.map((court) => (
+                  <TableRow
+                    key={court.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/courts/${court.id}`)}
+                  >
+                    <TableCell className="text-right font-medium">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 shrink-0 text-muted-foreground" />
+                        {court.name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex flex-wrap gap-1">
+                        {court.sport_types?.map((st) => (
+                          <Badge
+                            key={st}
+                            className={sportColors[st] || ""}
+                            variant="secondary"
+                          >
+                            {sportLabels[st] || st}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-50 truncate text-right">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="size-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{court.address}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center gap-1">
+                        <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                        <span>
+                          {toPersianDigits(
+                            court.average_rating?.toFixed(1) || "0.0"
+                          )}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
                       <span
                         className={
                           court.is_active
-                            ? "size-1.5 rounded-full bg-status-confirmed"
-                            : "size-1.5 rounded-full bg-muted-foreground"
+                            ? "inline-flex items-center gap-1.5 rounded-full bg-status-confirmed-bg px-2.5 py-0.5 text-xs font-medium text-status-confirmed"
+                            : "inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
                         }
-                      />
-                      {court.is_active ? "فعال" : "غیرفعال"}
-                    </span>
-                  </TableCell>
-                  {user?.role === "admin" && (
-                    <TableCell className="text-right">
-                      {court.manager_name || "—"}
+                      >
+                        <span
+                          className={
+                            court.is_active
+                              ? "size-1.5 rounded-full bg-status-confirmed"
+                              : "size-1.5 rounded-full bg-muted-foreground"
+                          }
+                        />
+                        {court.is_active ? "فعال" : "غیرفعال"}
+                      </span>
                     </TableCell>
-                  )}
-                  <TableCell className="text-right">
-                    <div
-                      className="flex items-center gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {user?.role === "admin" && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleActive(court)}
-                          >
-                            <ToggleRight data-icon="inline-start" />
-                            {court.is_active ? "غیرفعال کردن" : "فعال کردن"}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setDeleteCourt(court)}
-                          >
-                            <Trash2 size={4} />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    {user?.role === "admin" && (
+                      <TableCell className="text-right">
+                        {court.manager_name || "—"}
+                      </TableCell>
+                    )}
+                    <TableCell className="text-right">
+                      <div
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {user?.role === "admin" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleToggleActive(court)}
+                            >
+                              <ToggleRight data-icon="inline-start" />
+                              {court.is_active ? "غیرفعال کردن" : "فعال کردن"}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setDeleteCourt(court)}
+                            >
+                              <Trash2 size={4} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">

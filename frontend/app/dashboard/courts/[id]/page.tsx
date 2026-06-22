@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useForm, Controller, useWatch } from "react-hook-form"
@@ -12,9 +12,9 @@ import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -46,30 +46,20 @@ import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
 import {
   formatTime,
-  formatPrice,
-  formatDate,
   type CourtData,
   type TimeSlot,
 } from "@/components/courts/court-shared"
+import { SlotCalendar } from "@/components/courts/slot-calendar"
 import {
   Building2,
   MapPin,
-  Image as ImageIcon,
-  Users,
-  Settings2,
   CalendarPlus,
   Loader2,
   Trash2,
-  ToggleRight,
   Eye,
-  ChevronLeft,
-  ChevronRight,
   CalendarDays,
-  CheckCircle2,
-  XCircle,
   ArrowRight,
   Save,
-  ArrowLeft,
 } from "lucide-react"
 
 const LocationPicker = dynamic(
@@ -107,9 +97,17 @@ export default function DashboardCourtEditPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [activeDateIndex, setActiveDateIndex] = useState(0)
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
+  const [selectedDays, setSelectedDays] = useState<boolean[]>([
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+  ])
 
   // Edit form state
   const [courtImages, setCourtImages] = useState<string[]>([])
@@ -141,36 +139,6 @@ export default function DashboardCourtEditPage() {
   const longitudeWatch = watch("longitude")
 
   const canManage = user?.role === "manager" || user?.role === "admin"
-  const isAdmin = user?.role === "admin"
-
-  // ── Date helpers ──
-
-  const next30Days = useMemo(() => {
-    const result: string[] = []
-    for (let i = 0; i < 30; i++) {
-      const d = new Date()
-      d.setDate(d.getDate() + i)
-      result.push(d.toLocaleDateString("en-CA"))
-    }
-    return result
-  }, [])
-
-  const activeDate = next30Days[activeDateIndex] || next30Days[0]
-
-  const slotsForDate = useMemo(
-    () => allSlots.filter((s) => s.start_time.startsWith(activeDate)),
-    [allSlots, activeDate]
-  )
-
-  const totalAvailable = useMemo(
-    () => allSlots.filter((s) => !s.is_reserved).length,
-    [allSlots]
-  )
-
-  const totalReserved = useMemo(
-    () => allSlots.filter((s) => s.is_reserved).length,
-    [allSlots]
-  )
 
   // ── Fetch data ──
 
@@ -252,6 +220,10 @@ export default function DashboardCourtEditPage() {
       toast.error("لطفاً بازه تاریخ را انتخاب کنید")
       return
     }
+    if (!selectedDays.some(Boolean)) {
+      toast.error("حداقل یک روز از هفته را انتخاب کنید")
+      return
+    }
     if (!startTime || !endTime) {
       toast.error("لطفاً ساعت شروع و پایان را وارد کنید")
       return
@@ -264,7 +236,11 @@ export default function DashboardCourtEditPage() {
     const to = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from)
     const current = new Date(from)
     while (current <= to) {
-      dates.push(current.toLocaleDateString("en-CA"))
+      // Filter by selected days of week
+      const persianDayIndex = (current.getDay() + 1) % 7 // 0=Sat … 6=Fri
+      if (selectedDays[persianDayIndex]) {
+        dates.push(current.toLocaleDateString("en-CA"))
+      }
       current.setDate(current.getDate() + 1)
     }
     setCreateCount(0)
@@ -295,20 +271,6 @@ export default function DashboardCourtEditPage() {
     setDialogOpen(false)
     setDateRange(undefined)
   }
-
-  const handleToggleActive = useCallback(async () => {
-    if (!court) return
-    try {
-      await api(`/api/v1/courts/${courtId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ is_active: !court.is_active }),
-      })
-      toast.success(court.is_active ? "مجموعه غیرفعال شد" : "مجموعه فعال شد")
-      fetchData()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "خطا")
-    }
-  }, [court, courtId, fetchData])
 
   const handleDelete = useCallback(async () => {
     setDeleting(true)
@@ -343,19 +305,9 @@ export default function DashboardCourtEditPage() {
   if (loading) {
     return (
       <div className="flex flex-1 flex-col gap-6">
-        <Skeleton className="h-8 w-32" />
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
-            <Skeleton className="h-64 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-32 w-full rounded-xl" />
-          </div>
-          <div className="space-y-4 lg:col-span-2">
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-12 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-          </div>
-        </div>
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-10 w-80 rounded-lg" />
+        <Skeleton className="h-125 w-full rounded-xl" />
       </div>
     )
   }
@@ -377,44 +329,20 @@ export default function DashboardCourtEditPage() {
     )
   }
 
-  const { dayName, dayNum, month } = formatDate(activeDate)
-  const activeDateLabel = `${dayName} ${dayNum} ${month}`
-
   const isFormValid = watchSportTypes.length > 0
 
   return (
     <div className="flex flex-1 flex-col gap-6">
       {/* ══════ Top bar ══════ */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/dashboard/courts")}
-        >
-          <ArrowLeft className="ml-1.5 size-4" />
-          برگشت
-        </Button>
+        <h1 className="text-xl font-bold tracking-tight">{court.name}</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleToggleActive}>
-            <ToggleRight data-icon="inline-start" />
-            {court.is_active ? "غیرفعال‌سازی" : "فعال‌سازی"}
-          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/courts/${courtId}`}>
               <Eye className="ml-1.5 size-4" />
               صفحه عمومی
             </Link>
           </Button>
-          {isAdmin && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="ml-1.5 size-4" />
-              حذف
-            </Button>
-          )}
           <Button
             type="submit"
             form="edit-form"
@@ -436,518 +364,437 @@ export default function DashboardCourtEditPage() {
         </div>
       </div>
 
-      {/* ══════ Main grid ══════ */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* ====== Left column: Edit form ====== */}
-        <div className="space-y-6 lg:col-span-3">
-          <form
-            id="edit-form"
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-6"
-          >
-            {/* ── Basic Info ── */}
+      {/* ══════ Tabbed Content ══════ */}
+      <Tabs defaultValue="basic" className="flex flex-1 flex-col">
+        <TabsList className="w-fit self-start">
+          <TabsTrigger value="basic" className="gap-2.5 px-6 py-3 text-base">
+            <Building2 className="size-5" />
+            مشخصات
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-2.5 px-6 py-3 text-base">
+            <CalendarDays className="size-5" />
+            زمان‌بندی
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ═══ مشخصات Tab ═══ */}
+        <TabsContent value="basic" className="mt-8 min-h-125 flex-1">
+          <form id="edit-form" onSubmit={handleSubmit(onSubmit)}>
             <Card>
-              <CardHeader className="border-b pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Building2 className="size-5" />
+              <CardContent className="space-y-8 p-6">
+                {/* ── اطلاعات اصلی ── */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-6 w-1 rounded-full bg-primary/60" />
+                    <h3 className="text-sm font-semibold text-foreground">
+                      اطلاعات اصلی
+                    </h3>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">اطلاعات پایه</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      نام و نوع ورزش‌های مجموعه
-                    </p>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">نام مجموعه</Label>
+                      <Input
+                        id="name"
+                        placeholder="مثلاً مجموعه ورزشی آزادی"
+                        className="h-10"
+                        {...register("name")}
+                      />
+                      {errors.name?.message && (
+                        <p className="text-xs text-destructive">
+                          {String(errors.name.message)}
+                        </p>
+                      )}
+                    </div>
+                    <Controller
+                      name="capacity"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="capacity">ظرفیت (نفر)</Label>
+                          <PersianInput
+                            id="capacity"
+                            placeholder="۱۰"
+                            value={field.value}
+                            onChange={(e) =>
+                              field.onChange(
+                                Number.parseInt(e.target.value, 10) || 0
+                              )
+                            }
+                            onBlur={field.onBlur}
+                            className="h-10"
+                          />
+                          {errors.capacity?.message && (
+                            <p className="text-xs text-destructive">
+                              {String(errors.capacity.message)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    />
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-5 pt-5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">نام مجموعه</Label>
-                  <Input
-                    id="name"
-                    placeholder="مثلاً مجموعه ورزشی آزادی"
-                    {...register("name")}
-                  />
-                  {errors.name?.message && (
-                    <p className="text-xs text-destructive">
-                      {String(errors.name.message)}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>نوع ورزش‌های موجود</Label>
-                  <p className="text-xs text-muted-foreground">
-                    حداقل یک نوع ورزش را انتخاب کنید
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
+
+                <Separator />
+
+                {/* ── ورزش‌های قابل ارائه ── */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-6 w-1 rounded-full bg-primary/60" />
+                    <h3 className="text-sm font-semibold text-foreground">
+                      ورزش‌های قابل ارائه
+                    </h3>
+                    {errors.sport_types?.message && (
+                      <span className="mr-auto text-xs text-destructive">
+                        {String(errors.sport_types.message)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {sportTypes.map((sport) => {
                       const checked = watchSportTypes.includes(sport.value)
                       return (
                         <label
                           key={sport.value}
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-all ${
+                          className={`group flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 text-sm transition-all ${
                             checked
-                              ? "border-primary bg-primary/5 shadow-sm"
+                              ? "border-primary bg-primary/4 shadow-sm ring-1 ring-primary/20"
                               : "border-border hover:border-primary/30 hover:bg-accent/30"
                           }`}
                         >
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggleSport(sport.value)}
-                          />
-                          <span className="font-medium">{sport.label}</span>
+                          <div
+                            className={`flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+                              checked
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-muted-foreground/30 group-hover:border-primary/50"
+                            }`}
+                          >
+                            {checked && (
+                              <svg
+                                className="size-3"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                              >
+                                <path
+                                  d="M2.5 6L5 8.5L9.5 3.5"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium text-foreground/90">
+                            {sport.label}
+                          </span>
                         </label>
                       )
                     })}
                   </div>
-                  {errors.sport_types?.message && (
-                    <p className="text-xs text-destructive">
-                      {String(errors.sport_types.message)}
-                    </p>
-                  )}
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* ── Location ── */}
-            <Card>
-              <CardHeader className="border-b pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <MapPin className="size-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">موقعیت و آدرس</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      مکان دقیق مجموعه را مشخص کنید
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5 pt-5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="address">آدرس کامل</Label>
-                  <Textarea
-                    id="address"
-                    placeholder="استان، شهر، خیابان، پلاک"
-                    className="min-h-20"
-                    {...register("address")}
-                  />
-                  {errors.address?.message && (
-                    <p className="text-xs text-destructive">
-                      {String(errors.address.message)}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>موقعیت روی نقشه</Label>
-                  <p className="text-xs text-muted-foreground">
-                    روی نقشه کلیک کنید یا نشانگر را بکشید
-                  </p>
-                  <LocationPicker
-                    latitude={latitudeWatch ?? null}
-                    longitude={longitudeWatch ?? null}
-                    onLocationChange={(lat, lng, address) => {
-                      setValue("latitude", lat, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                      setValue("longitude", lng, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                      if (address)
-                        setValue("address", address, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        })
-                    }}
-                  />
-                  {(errors.latitude?.message || errors.longitude?.message) && (
-                    <p className="text-xs text-destructive">
-                      {String(
-                        errors.latitude?.message || errors.longitude?.message
-                      )}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                <Separator />
 
-            {/* ── Capacity ── */}
-            <Card>
-              <CardHeader className="border-b pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Users className="size-5" />
+                {/* ── موقعیت مکانی ── */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-6 w-1 rounded-full bg-primary/60" />
+                    <h3 className="text-sm font-semibold text-foreground">
+                      موقعیت مکانی
+                    </h3>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">ظرفیت</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      تعداد نفراتی که هم‌زمان می‌توانند حضور داشته باشند
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5 pt-5">
-                <Controller
-                  name="capacity"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="capacity">ظرفیت مجموعه</Label>
-                      <PersianInput
-                        id="capacity"
-                        placeholder="۱۰"
-                        value={field.value}
-                        onChange={(e) =>
-                          field.onChange(
-                            Number.parseInt(e.target.value, 10) || 0
-                          )
-                        }
-                        onBlur={field.onBlur}
-                        className="max-w-30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="address">آدرس</Label>
+                      <Textarea
+                        id="address"
+                        placeholder="استان، شهر، خیابان، پلاک"
+                        className="min-h-24"
+                        {...register("address")}
                       />
-                      {errors.capacity?.message && (
+                      {errors.address?.message && (
                         <p className="text-xs text-destructive">
-                          {String(errors.capacity.message)}
+                          {String(errors.address.message)}
                         </p>
                       )}
                     </div>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* ── Amenities ── */}
-            <Card>
-              <CardHeader className="border-b pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Settings2 className="size-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">امکانات</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      امکانات موجود در مجموعه را انتخاب کنید
-                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="size-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          موقعیت روی نقشه — کلیک کنید یا نشانگر را بکشید
+                        </span>
+                      </div>
+                      <LocationPicker
+                        latitude={latitudeWatch ?? null}
+                        longitude={longitudeWatch ?? null}
+                        onLocationChange={(lat, lng, address) => {
+                          setValue("latitude", lat, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          })
+                          setValue("longitude", lng, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          })
+                          if (address)
+                            setValue("address", address, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            })
+                        }}
+                      />
+                      {(errors.latitude?.message ||
+                        errors.longitude?.message) && (
+                        <p className="text-xs text-destructive">
+                          {String(
+                            errors.latitude?.message ||
+                              errors.longitude?.message
+                          )}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-5">
-                <Controller
-                  name="amenities"
-                  control={control}
-                  render={({ field }) => (
-                    <AmenityCheckboxes
-                      value={(field.value || {}) as Record<string, boolean>}
-                      onChange={field.onChange}
+
+                <Separator />
+
+                {/* ── امکانات + تصاویر ── */}
+                <div className="grid gap-8 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-6 w-1 rounded-full bg-primary/60" />
+                      <h3 className="text-sm font-semibold text-foreground">
+                        امکانات
+                      </h3>
+                    </div>
+                    <Controller
+                      name="amenities"
+                      control={control}
+                      render={({ field }) => (
+                        <AmenityCheckboxes
+                          value={(field.value || {}) as Record<string, boolean>}
+                          onChange={field.onChange}
+                        />
+                      )}
                     />
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* ── Images ── */}
-            <Card>
-              <CardHeader className="border-b pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <ImageIcon className="size-5" />
                   </div>
-                  <div>
-                    <CardTitle className="text-base">تصاویر</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      حداقل ۳ تصویر از مجموعه آپلود کنید
-                    </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-6 w-1 rounded-full bg-primary/60" />
+                      <h3 className="text-sm font-semibold text-foreground">
+                        تصاویر
+                      </h3>
+                    </div>
+                    <ImageUpload
+                      images={courtImages}
+                      onChange={setCourtImages}
+                      tempIds={imageTempIds}
+                      onTempIdsChange={setImageTempIds}
+                    />
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-5">
-                <ImageUpload
-                  images={courtImages}
-                  onChange={setCourtImages}
-                  tempIds={imageTempIds}
-                  onTempIdsChange={setImageTempIds}
-                />
-              </CardContent>
-            </Card>
-
-            {/* ── Submit ── */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex flex-col items-center gap-4 sm:flex-row sm:text-right">
-                  <div className="flex-1 text-center sm:text-right">
-                    <h3 className="text-sm font-semibold">ذخیره تغییرات</h3>
-                    <p className="text-xs text-muted-foreground">
-                      تغییرات خود را ذخیره کنید
-                    </p>
-                  </div>
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="h-11 min-w-40 gap-2"
-                    disabled={!isFormValid || isSubmitting || saving}
-                  >
-                    {saving || isSubmitting ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        در حال ذخیره...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="size-4" />
-                        ذخیره تغییرات
-                      </>
-                    )}
-                  </Button>
                 </div>
               </CardContent>
             </Card>
           </form>
-        </div>
+        </TabsContent>
 
-        {/* ====== Right column: Slot Management ====== */}
-        <div className="space-y-4 lg:sticky lg:top-6 lg:col-span-2 lg:self-start">
-          {/* Stats bar */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-around text-center">
-                <div>
-                  <p className="text-2xl font-bold">
-                    {toPersianDigits(allSlots.length)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">کل</p>
-                </div>
-                <div className="h-10 w-px bg-border" />
-                <div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {toPersianDigits(totalAvailable)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">آزاد</p>
-                </div>
-                <div className="h-10 w-px bg-border" />
-                <div>
-                  <p className="text-2xl font-bold text-red-500">
-                    {toPersianDigits(totalReserved)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">رزرو</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Date navigation + Add slot */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={activeDateIndex <= 0}
-                    onClick={() =>
-                      setActiveDateIndex((i) => Math.max(0, i - 1))
-                    }
-                  >
-                    <ChevronRight className="size-4" />
+        {/* ═══ Scheduling Tab ═══ */}
+        <TabsContent value="schedule" className="mt-8 min-h-125 space-y-4">
+          {/* Add button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              مشاهده و مدیریت سانس‌ها در تقویم هفتگی
+            </p>
+            {canManage && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <CalendarPlus className="ml-1.5 size-4" />
+                    افزودن سانس
                   </Button>
-                  <div className="min-w-0 text-center">
-                    <p className="text-sm leading-tight font-semibold">
-                      {activeDateLabel}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {toPersianDigits(slotsForDate.length)} سانس
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={activeDateIndex >= next30Days.length - 1}
-                    onClick={() =>
-                      setActiveDateIndex((i) =>
-                        Math.min(next30Days.length - 1, i + 1)
-                      )
-                    }
-                  >
-                    <ChevronLeft className="size-4" />
-                  </Button>
-                </div>
-                {canManage && (
-                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <CalendarPlus className="ml-1.5 size-4" />
-                        افزودن
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent
-                      onOpenAutoFocus={() => {
-                        setStartTime("")
-                        setEndTime("")
-                      }}
-                    >
-                      <DialogHeader>
-                        <DialogTitle>افزودن سانس جدید</DialogTitle>
-                        <DialogDescription>
-                          برای مجموعه {court.name} سانس جدید ثبت کنید
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleCreateSlot} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>بازه تاریخ</Label>
-                          <DateRangePicker
-                            value={dateRange}
-                            onChange={setDateRange}
-                            placeholder="از تاریخ تا تاریخ"
-                          />
-                          {dateRange?.from && dateRange?.to && (
-                            <p className="text-xs text-muted-foreground">
-                              {dateRange.from.toLocaleDateString("fa-IR")} تا{" "}
-                              {dateRange.to.toLocaleDateString("fa-IR")}
-                              {dateRange.from.toLocaleDateString("en-CA") !==
-                                dateRange.to.toLocaleDateString("en-CA") &&
-                                ` (${toPersianDigits(
-                                  Math.ceil(
-                                    (dateRange.to.getTime() -
-                                      dateRange.from.getTime()) /
-                                      (1000 * 60 * 60 * 24) +
-                                      1
-                                  )
-                                )} روز)`}
-                            </p>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>ساعت شروع</Label>
-                            <TimePicker
-                              value={startTime}
-                              onChange={setStartTime}
-                              placeholder="--:--"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>ساعت پایان</Label>
-                            <TimePicker
-                              value={endTime}
-                              onChange={setEndTime}
-                              placeholder="--:--"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="base_price">قیمت (تومان)</Label>
-                          <PersianInput
-                            id="base_price"
-                            name="base_price"
-                            min="0"
-                            placeholder="۵۰۰۰۰۰"
-                            required
-                          />
-                        </div>
-                        <DialogFooter>
-                          <Button type="submit" disabled={creating}>
-                            {creating ? (
-                              <>
-                                <Loader2 className="ml-1.5 size-4 animate-spin" />
-                                {toPersianDigits(createCount)}/
-                                {toPersianDigits(createTotal)}
-                              </>
-                            ) : (
-                              "ثبت سانس‌ها"
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Slot list */}
-          <div className="space-y-2">
-            {slotsForDate.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-                <CalendarDays className="size-10 opacity-30" />
-                <div>
-                  <p className="text-sm font-medium">
-                    سانسی برای این تاریخ ثبت نشده
-                  </p>
-                  <p className="mt-1 text-xs opacity-70">
-                    {canManage
-                      ? "از دکمه افزودن استفاده کنید"
-                      : "تاریخ دیگری انتخاب کنید"}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              slotsForDate.map((slot) => (
-                <div
-                  key={slot.id}
-                  className={`group flex items-center justify-between rounded-xl border-2 p-4 transition-all ${
-                    slot.is_reserved
-                      ? "border-destructive/30 bg-destructive/5 dark:border-destructive/20"
-                      : "border-border/50 bg-card hover:border-primary/30 hover:shadow-sm"
-                  }`}
+                </DialogTrigger>
+                <DialogContent
+                  onOpenAutoFocus={() => {
+                    setStartTime("")
+                    setEndTime("")
+                  }}
                 >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`flex size-11 items-center justify-center rounded-xl ${
-                        slot.is_reserved
-                          ? "bg-red-100 text-red-500 dark:bg-red-900/20"
-                          : "bg-green-100 text-green-600 dark:bg-green-900/20"
-                      }`}
-                    >
-                      {slot.is_reserved ? (
-                        <XCircle className="size-5" />
-                      ) : (
-                        <CheckCircle2 className="size-5" />
-                      )}
+                  <DialogHeader>
+                    <DialogTitle>افزودن سانس جدید</DialogTitle>
+                    <DialogDescription>
+                      برای مجموعه {court.name} سانس جدید ثبت کنید
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateSlot} className="space-y-5">
+                    {/* ── Row 1: Date + Time ── */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>بازه تاریخ</Label>
+                        <DateRangePicker
+                          value={dateRange}
+                          onChange={setDateRange}
+                          placeholder="از تاریخ تا تاریخ"
+                        />
+                        {dateRange?.from && dateRange?.to && (
+                          <p className="text-[11px] leading-tight text-muted-foreground/70">
+                            {dateRange.from.toLocaleDateString("fa-IR")} تا{" "}
+                            {dateRange.to.toLocaleDateString("fa-IR")}
+                            {dateRange.from.toLocaleDateString("en-CA") !==
+                              dateRange.to.toLocaleDateString("en-CA") &&
+                              ` (${toPersianDigits(
+                                Math.ceil(
+                                  (dateRange.to.getTime() -
+                                    dateRange.from.getTime()) /
+                                    (1000 * 60 * 60 * 24) +
+                                    1
+                                )
+                              )} روز)`}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label>ساعت</Label>
+                        <div className="flex items-center gap-2">
+                          <TimePicker
+                            value={startTime}
+                            onChange={setStartTime}
+                            placeholder="شروع"
+                          />
+                          <span className="shrink-0 text-xs text-muted-foreground/50">
+                            تا
+                          </span>
+                          <TimePicker
+                            value={endTime}
+                            onChange={setEndTime}
+                            placeholder="پایان"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm leading-tight font-bold">
-                        {formatTime(slot.start_time)}
-                        <span className="mx-1.5 text-muted-foreground/40">
-                          —
-                        </span>
-                        {formatTime(slot.end_time)}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {formatPrice(slot.base_price)}
-                      </p>
+
+                    <div className="h-px bg-border/60" />
+
+                    {/* ── Row 2: Days of week ── */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>روزهای هفته</Label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedDays([
+                                true,
+                                true,
+                                true,
+                                true,
+                                true,
+                                true,
+                                true,
+                              ])
+                            }
+                            className="text-xs font-medium text-primary/70 transition-colors hover:text-primary"
+                          >
+                            انتخاب همه
+                          </button>
+                          <span className="text-muted-foreground/20">·</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedDays([
+                                false,
+                                false,
+                                false,
+                                false,
+                                false,
+                                false,
+                                false,
+                              ])
+                            }
+                            className="text-xs font-medium text-muted-foreground/50 transition-colors hover:text-muted-foreground/80"
+                          >
+                            پاک کردن
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          "شنبه",
+                          "یکشنبه",
+                          "دوشنبه",
+                          "سه‌شنبه",
+                          "چهارشنبه",
+                          "پنجشنبه",
+                          "جمعه",
+                        ].map((name, i) => (
+                          <button
+                            key={name}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDays((prev) => {
+                                const next = [...prev]
+                                next[i] = !next[i]
+                                return next
+                              })
+                            }}
+                            className={`rounded-full px-3 py-1.5 text-xs leading-none font-medium transition-all ${
+                              selectedDays[i]
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "bg-muted/50 text-muted-foreground/60 hover:bg-muted/80"
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={slot.is_reserved ? "secondary" : "outline"}
-                      className={`shrink-0 ${
-                        slot.is_reserved
-                          ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                          : "border-primary/30 text-green-600 dark:border-primary/30"
-                      }`}
-                    >
-                      {slot.is_reserved ? "رزرو" : "آزاد"}
-                    </Badge>
-                    {!slot.is_reserved && canManage && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                        onClick={() => handleDeleteSlot(slot)}
-                      >
-                        <Trash2 className="size-4 text-destructive" />
+
+                    <div className="h-px bg-border/60" />
+
+                    {/* ── Row 3: Price ── */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="base_price">قیمت هر سانس (تومان)</Label>
+                      <PersianInput
+                        id="base_price"
+                        name="base_price"
+                        min="0"
+                        placeholder="۵۰۰۰۰۰"
+                        required
+                      />
+                    </div>
+
+                    <DialogFooter className="pt-2">
+                      <Button type="submit" disabled={creating}>
+                        {creating ? (
+                          <>
+                            <Loader2 className="ml-1.5 size-4 animate-spin" />
+                            {toPersianDigits(createCount)}/
+                            {toPersianDigits(createTotal)}
+                          </>
+                        ) : (
+                          <>
+                            <CalendarPlus className="ml-1.5 size-4" />
+                            ثبت سانس‌ها
+                          </>
+                        )}
                       </Button>
-                    )}
-                  </div>
-                </div>
-              ))
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
-        </div>
-      </div>
+
+          {/* Weekly calendar */}
+          <SlotCalendar
+            slots={allSlots}
+            loading={false}
+            canManage={canManage}
+            onSlotDelete={handleDeleteSlot}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* ══════ Delete court dialog ══════ */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

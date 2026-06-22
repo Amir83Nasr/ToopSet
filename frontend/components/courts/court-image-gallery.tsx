@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { X, ChevronRight, ChevronLeft } from "lucide-react"
 import { toPersianDigits } from "@/lib/utils"
-import { FavoriteButton } from "@/components/courts/favorite-button"
 import {
   Stars,
   formatPrice,
@@ -139,20 +138,17 @@ export function CourtHeroGallery({
 
           {/* ── Hero overlay content ── */}
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-6 sm:p-8 lg:p-10">
-            {/* Top row: sport badges + favorite */}
-            <div className="pointer-events-auto flex items-start justify-between gap-4">
-              <div className="flex flex-wrap gap-2">
-                {sportTypes.map((st) => (
-                  <Badge
-                    key={st}
-                    variant="secondary"
-                    className={`border-0 shadow-lg backdrop-blur-md ${sportColors[st] || ""}`}
-                  >
-                    {sportLabels[st] || st}
-                  </Badge>
-                ))}
-              </div>
-              <FavoriteButton courtId={courtId} size="sm" />
+            {/* Top row: sport badges */}
+            <div className="pointer-events-auto flex flex-wrap gap-2">
+              {sportTypes.map((st) => (
+                <Badge
+                  key={st}
+                  variant="secondary"
+                  className={`border-0 shadow-lg backdrop-blur-md ${sportColors[st] || ""}`}
+                >
+                  {sportLabels[st] || st}
+                </Badge>
+              ))}
             </div>
 
             {/* Bottom row: name + rating + price */}

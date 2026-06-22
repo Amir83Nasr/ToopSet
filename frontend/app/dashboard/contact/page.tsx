@@ -149,7 +149,7 @@ export default function ContactMessagesPage() {
                   <TableHead>فرستنده</TableHead>
                   <TableHead>موضوع</TableHead>
                   <TableHead>تاریخ</TableHead>
-                  <TableHead className="text-left">عملیات</TableHead>
+                  <TableHead className="text-right">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

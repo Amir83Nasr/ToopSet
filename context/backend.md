@@ -5,14 +5,17 @@
 ## Directory
 
 ```
-backend/app/
-├── api/v1/       # 18 routers
-├── core/         # 12 infrastructure modules
-├── models/       # 15 SQLAlchemy models
-├── schemas/      # ~15 Pydantic v2 schemas
-├── services/     # 9 business logic services
-├── repositories/ # 10 data access repos
-└── migrations/   # Alembic (8 versions)
+backend/
+├── app/
+│   ├── api/v1/       # 16 routers
+│   ├── core/         # 13 infrastructure modules
+│   ├── models/       # 15 SQLAlchemy models
+│   ├── schemas/      # 14 Pydantic v2 schemas
+│   ├── services/     # 10 business logic services
+│   └── repositories/ # 11 data access repos
+├── scripts/          # Seed, migration helpers
+├── tests/            # pytest integration tests
+└── migrations/       # Alembic (9 versions)
 ```
 
 ## Database Models (15)
@@ -42,11 +45,12 @@ backend/app/
 - TimeSlot (1) ↔ Booking (1) — unique slot_id
 - Booking (1) ↔ Payment (1), Review (1) — unique FKs
 
-## Services (9)
+## Services (10)
 
 | Service          | File                   | Key Methods                                                   |
 | ---------------- | ---------------------- | ------------------------------------------------------------- |
 | AuthService      | `auth_service.py`      | register, login, refresh, update_profile                      |
+| UserService      | `user_service.py`      | list_users, get_user, update_user, toggle_active, delete_user |
 | CourtService     | `court_service.py`     | list_courts, get/create/update/delete, toggle_active          |
 | TimeSlotService  | `time_slot_service.py` | list_slots, create/update/delete, generate_slots (bulk)       |
 | BookingService   | `booking_service.py`   | list_my_bookings, create_booking, pay_booking, cancel_booking |

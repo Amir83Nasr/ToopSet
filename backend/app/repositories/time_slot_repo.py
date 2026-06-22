@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,11 +26,11 @@ class TimeSlotRepo:
         count_q = select(func.count(TimeSlot.id)).where(TimeSlot.court_id == court_id)
 
         if date:
-            base = base.where(TimeSlot.start_time >= date).where(
-                TimeSlot.start_time < date + "T23:59:59"
-            )
-            count_q = count_q.where(TimeSlot.start_time >= date).where(
-                TimeSlot.start_time < date + "T23:59:59"
+            start_dt = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            end_dt = start_dt.replace(hour=23, minute=59, second=59)
+            base = base.where(TimeSlot.start_time >= start_dt).where(TimeSlot.start_time < end_dt)
+            count_q = count_q.where(TimeSlot.start_time >= start_dt).where(
+                TimeSlot.start_time < end_dt
             )
 
         query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
