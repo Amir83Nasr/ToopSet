@@ -97,6 +97,12 @@ export function SiteHeader() {
           <ModeToggle />
         </div>
         <Button variant="outline" size="sm" asChild>
+          <Link href="/courts">
+            <ExternalLink className="me-1.5 size-4" />
+            جستجوی سالن
+          </Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
           <Link href="/">
             <ExternalLink className="me-1.5 size-4" />
             بازگشت به صفحه اصلی

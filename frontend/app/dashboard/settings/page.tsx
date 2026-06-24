@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Lock, Phone, Camera, Trash2 } from "lucide-react"
+import { Loader2, Lock, Phone, Camera, Trash2, RefreshCw } from "lucide-react"
 import { toast } from "@/lib/toast"
 
 interface UserProfile {
@@ -178,7 +178,8 @@ export default function SettingsPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
         <p className="text-sm text-muted-foreground">خطا در بارگذاری اطلاعات</p>
-        <Button variant="outline" size="sm" onClick={fetchUser}>
+        <Button variant="outline" onClick={fetchUser}>
+          <RefreshCw className="ml-1.5 size-4" />
           تلاش مجدد
         </Button>
       </div>

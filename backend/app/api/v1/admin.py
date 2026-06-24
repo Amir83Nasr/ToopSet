@@ -487,7 +487,10 @@ async def list_settings(
     result = await db.execute(select(Setting).order_by(Setting.key))
     settings = result.scalars().all()
     await cache_admin_list(
-        "settings", cache_params, [s.model_dump(mode="json") for s in settings], ttl=120
+        "settings",
+        cache_params,
+        [SettingResponse.model_validate(s).model_dump(mode="json") for s in settings],
+        ttl=120,
     )
     response.headers["X-Cache"] = "MISS"
     return settings

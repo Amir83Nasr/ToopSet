@@ -15,6 +15,7 @@ from app.models.notification import Notification
 from app.models.payment import Payment
 from app.models.penalty import Penalty
 from app.models.review import Review
+from app.models.setting import Setting
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
 from app.models.wallet import Wallet
@@ -673,6 +674,29 @@ async def seed():
         db.add_all(notes)
         await db.flush()
 
+        # ── Settings ──
+        setting_defaults = [
+            {"key": "platform_name", "value": "توپ‌سِت", "description": "نام پلتفرم"},
+            {"key": "support_phone", "value": "۰۹۳۰-۶۸۵۳۳۶۳", "description": "شماره پشتیبانی"},
+            {
+                "key": "support_email",
+                "value": "amirhossein.nasrollahi.main@gmail.com",
+                "description": "ایمیل پشتیبانی",
+            },
+            {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
+            {"key": "cancel_window_hours", "value": "24", "description": "مهلت کنسل کردن (ساعت)"},
+            {"key": "rules_text", "value": "", "description": "متن قوانین و مقررات"},
+            {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
+            {
+                "key": "pagination_limit",
+                "value": "15",
+                "description": "تعداد آیتم در هر صفحه برای جداول",
+            },
+        ]
+        setting_models = [Setting(**d) for d in setting_defaults]
+        db.add_all(setting_models)
+        await db.flush()
+
         # ── Audit logs ──
         logs: list[Log] = [
             Log(
@@ -778,6 +802,7 @@ async def seed():
         print(f"   Logs:            {len(logs)}")
         print(f"   Transactions:    {len(transactions)}")
         print(f"   Penalties:       {len(penalties)}")
+        print(f"   Settings:        {len(setting_models)}")
 
 
 if __name__ == "__main__":

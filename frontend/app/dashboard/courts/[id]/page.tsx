@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { useForm, Controller, useWatch } from "react-hook-form"
+import { useForm, Controller, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { courtUpdateSchema, type CourtUpdateInput } from "@/lib/validations"
 import { api, ApiError } from "@/lib/api"
@@ -44,18 +44,13 @@ import type { DateRange } from "@daypicker/react"
 import dynamic from "next/dynamic"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
-import {
-  formatTime,
-  type CourtData,
-  type TimeSlot,
-} from "@/components/courts/court-shared"
+import { type CourtData, type TimeSlot } from "@/components/courts/court-shared"
 import { SlotCalendar } from "@/components/courts/slot-calendar"
 import {
   Building2,
   MapPin,
   CalendarPlus,
   Loader2,
-  Trash2,
   Eye,
   CalendarDays,
   ArrowRight,
@@ -119,11 +114,10 @@ export default function DashboardCourtEditPage() {
     control,
     setValue,
     reset,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, isSubmitting },
     watch,
   } = useForm<CourtUpdateInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(courtUpdateSchema) as any,
+    resolver: zodResolver(courtUpdateSchema) as Resolver<CourtUpdateInput>,
     defaultValues: {
       name: "",
       sport_types: [],
@@ -192,23 +186,6 @@ export default function DashboardCourtEditPage() {
       toast.error(msg)
     } finally {
       setSaving(false)
-    }
-  }
-
-  function toggleSport(value: string) {
-    const current = watchSportTypes
-    if (current.includes(value)) {
-      setValue(
-        "sport_types",
-        current.filter((s) => s !== value) as CourtUpdateInput["sport_types"],
-        { shouldValidate: true, shouldDirty: true }
-      )
-    } else {
-      setValue(
-        "sport_types",
-        [...current, value] as CourtUpdateInput["sport_types"],
-        { shouldValidate: true, shouldDirty: true }
-      )
     }
   }
 

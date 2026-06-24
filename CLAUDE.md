@@ -7,6 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **ToopSet (توپ‌سِت)** — Online platform for booking sports courts in Qom, Iran.
 **Version:** 0.4.0 (single truth in `VERSION` file at repo root)
 
+## Language
+
+Conversation and thinking output MUST be in **Persian (Farsi)**, including planning,
+analysis, and all narrative text. The only English allowed is in code identifiers,
+commit messages (per commit conventions), and file names.
+
 ## Context Files (`context/`)
 
 | File                                 | Content                                                           |

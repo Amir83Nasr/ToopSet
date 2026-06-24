@@ -40,7 +40,6 @@ interface CourtHeroGalleryProps {
 export function CourtHeroGallery({
   images,
   courtName,
-  courtId,
   sportTypes,
   averageRating,
   reviewsTotal,
@@ -124,7 +123,6 @@ export function CourtHeroGallery({
                     alt={`${courtName} - ${i + 1}`}
                     fill
                     className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
-                    unoptimized
                     priority={i === 0}
                   />
                   {/* Multi-layer gradient overlay */}
@@ -220,13 +218,7 @@ export function CourtHeroGallery({
                       : "border-transparent opacity-60 hover:opacity-90"
                   }`}
                 >
-                  <Image
-                    src={img}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
+                  <Image src={img} alt="" fill className="object-cover" />
                 </button>
               ))}
               <span className="mr-1 text-[11px] font-medium text-white/80">
@@ -252,7 +244,6 @@ export function CourtHeroGallery({
                 alt={`${courtName} - ${lightboxIndex + 1}`}
                 fill
                 className="object-contain"
-                unoptimized
               />
             )}
             <DialogClose asChild>
@@ -316,7 +307,6 @@ export function CourtImageGallery({
                   alt={`${courtName} - ${i + 1}`}
                   fill
                   className="object-cover"
-                  unoptimized
                   priority={i === 0}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />

@@ -19,8 +19,6 @@ import L, {
   getSportColor,
 } from "@/lib/neshan-map"
 import "@neshan-maps-platform/leaflet/dist/leaflet.css"
-import { toPersianDigits } from "@/lib/utils"
-
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
   basketball: "بسکتبال",
@@ -28,6 +26,10 @@ const sportLabels: Record<string, string> = {
   handball: "هندبال",
   football: "فوتبال",
 }
+
+// Track overlay markers without extending the Marker type
+let lastUserMarker: L.Marker | null = null
+let lastSearchMarker: L.Marker | null = null
 
 interface Court {
   id: number
@@ -92,13 +94,13 @@ function addLocateControl(map: any) {
 /* ── Internal hook: keeps markers & popups in sync ── */
 
 function renderCourtMarkers(map: any, courts: Court[]) {
-  // Remove existing court markers (keep any user location / search pin markers)
+  // Remove existing court markers (keep user location / search pin markers)
   const toRemove: any[] = []
   map.eachLayer((layer: any) => {
     if (
       layer instanceof L.Marker &&
-      !("_isUser" in layer) &&
-      !("_isSearch" in layer)
+      layer !== lastUserMarker &&
+      layer !== lastSearchMarker
     ) {
       toRemove.push(layer)
     }
@@ -143,57 +145,47 @@ function renderCourtMarkers(map: any, courts: Court[]) {
 }
 
 function renderUserMarker(
-  map: any,
+  map: L.Map | null,
   location: { latitude: number; longitude: number } | null
 ) {
-  // Remove any existing user marker
-  const toRemove: any[] = []
-  map.eachLayer((layer: any) => {
-    if (layer instanceof L.Marker && "_isUser" in layer) {
-      toRemove.push(layer)
-    }
-  })
-  toRemove.forEach((m: any) => m.remove())
-
-  if (!location) return
+  if (lastUserMarker) {
+    lastUserMarker.remove()
+    lastUserMarker = null
+  }
+  if (!location || !map) return
 
   const marker = L.marker([location.latitude, location.longitude], {
     icon: createUserLocationIcon(),
     zIndexOffset: 1000,
   })
-  ;(marker as any)._isUser = true
   marker.bindPopup(
     '<div class="text-right font-sans" dir="rtl" style="color:var(--color-popover-foreground)"><strong>موقعیت شما</strong></div>',
     { className: "theme-popup" }
   )
   marker.addTo(map)
+  lastUserMarker = marker
 }
 
 function renderSearchPin(
-  map: any,
+  map: L.Map | null,
   location: { latitude: number; longitude: number } | null
 ) {
-  // Remove any existing search pin
-  const toRemove: any[] = []
-  map.eachLayer((layer: any) => {
-    if (layer instanceof L.Marker && "_isSearch" in layer) {
-      toRemove.push(layer)
-    }
-  })
-  toRemove.forEach((m: any) => m.remove())
-
-  if (!location) return
+  if (lastSearchMarker) {
+    lastSearchMarker.remove()
+    lastSearchMarker = null
+  }
+  if (!location || !map) return
 
   const marker = L.marker([location.latitude, location.longitude], {
     icon: createSearchPinIcon(),
     zIndexOffset: 1001,
   })
-  ;(marker as any)._isSearch = true
   marker.bindPopup(
     '<div class="text-right font-sans" dir="rtl" style="color:var(--color-popover-foreground)"><strong>محدوده جستجو</strong></div>',
     { className: "theme-popup" }
   )
   marker.addTo(map)
+  lastSearchMarker = marker
 }
 
 /* ── Error boundary ── */

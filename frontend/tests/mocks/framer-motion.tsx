@@ -4,48 +4,38 @@ import { vi } from "vitest"
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        ...rest
-      } = props
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
       return <div {...rest}>{children}</div>
     },
     h1: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        ...rest
-      } = props
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
       return <h1 {...rest}>{children}</h1>
     },
     p: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        ...rest
-      } = props
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
       return <p {...rest}>{children}</p>
     },
     span: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        ...rest
-      } = props
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
       return <span {...rest}>{children}</span>
     },
     section: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        ...rest
-      } = props
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
       return <section {...rest}>{children}</section>
     },
   },

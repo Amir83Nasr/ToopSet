@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, RefreshCw } from "lucide-react"
 
 export default function Error({
   error,
@@ -31,7 +31,8 @@ export default function Error({
           متأسفانه در پردازش درخواست شما خطایی رخ داده است. لطفاً مجدداً تلاش
           کنید.
         </p>
-        <Button onClick={reset} variant="default" size="lg">
+        <Button onClick={reset} variant="default">
+          <RefreshCw className="ml-1.5 size-4" />
           تلاش مجدد
         </Button>
       </motion.div>

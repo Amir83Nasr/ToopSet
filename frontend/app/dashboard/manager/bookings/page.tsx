@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/pagination"
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_STYLES } from "@/lib/constants"
 
-interface AdminBooking {
+interface ManagerBooking {
   id: number
   user_id: number
   slot_id: number
@@ -72,6 +72,11 @@ interface AdminBooking {
   slot_end_time: string | null
 }
 
+interface CourtOption {
+  id: number
+  name: string
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fa-IR")
 }
@@ -83,15 +88,21 @@ function formatTime(iso: string): string {
   })
 }
 
-export default function AdminBookingsPage() {
+export default function ManagerBookingsPage() {
   const { user } = useAuth()
-  const [bookings, setBookings] = useState<AdminBooking[]>([])
+  const [bookings, setBookings] = useState<ManagerBooking[]>([])
+  const [courts, setCourts] = useState<CourtOption[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [courtFilter, setCourtFilter] = useState("all")
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [loading, setLoading] = useState(true)
+  const [cancellingBooking, setCancellingBooking] =
+    useState<ManagerBooking | null>(null)
+  const [cancellingLoading, setCancellingLoading] = useState(false)
+  const limit = usePaginationLimit()
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -100,10 +111,13 @@ export default function AdminBookingsPage() {
     }, 400)
     return () => clearTimeout(timer)
   }, [search])
-  const [cancellingBooking, setCancellingBooking] =
-    useState<AdminBooking | null>(null)
-  const [cancellingLoading, setCancellingLoading] = useState(false)
-  const limit = usePaginationLimit()
+
+  // Fetch courts for filter dropdown
+  useEffect(() => {
+    api<{ courts: CourtOption[] }>("/api/v1/courts?limit=100")
+      .then((res) => setCourts(res.courts))
+      .catch(() => {})
+  }, [])
 
   const fetchBookings = useCallback(async () => {
     setLoading(true)
@@ -113,18 +127,20 @@ export default function AdminBookingsPage() {
       params.set("limit", String(limit))
       if (statusFilter && statusFilter !== "all")
         params.set("status", statusFilter)
+      if (courtFilter && courtFilter !== "all")
+        params.set("court_id", courtFilter)
       if (debouncedSearch) params.set("search", debouncedSearch)
-      const res = await api<{ bookings: AdminBooking[]; total: number }>(
-        `/api/v1/bookings/all?${params}`
+      const res = await api<{ bookings: ManagerBooking[]; total: number }>(
+        `/api/v1/manager/bookings?${params}`
       )
       setBookings(res.bookings)
       setTotal(res.total)
     } catch {
-      // not admin or error
+      toast.error("خطا در دریافت رزروها")
     } finally {
       setLoading(false)
     }
-  }, [page, limit, statusFilter, debouncedSearch])
+  }, [page, limit, statusFilter, courtFilter, debouncedSearch])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchBookings(), 0)
@@ -149,7 +165,7 @@ export default function AdminBookingsPage() {
   const totalPages = Math.ceil(total / limit)
 
   // Access denied
-  if (user && user.role !== "admin") {
+  if (user && user.role !== "manager" && user.role !== "admin") {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20 text-muted-foreground">
         <ShieldX className="size-16" />
@@ -162,8 +178,10 @@ export default function AdminBookingsPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">مدیریت رزروها</h1>
-          <p className="text-muted-foreground">همه رزروهای سیستم</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            رزروهای مجموعه‌ها
+          </h1>
+          <p className="text-muted-foreground">مدیریت رزروهای مجموعه‌های شما</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => fetchBookings()}>
@@ -184,6 +202,30 @@ export default function AdminBookingsPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="pr-10"
             />
+          </div>
+          <div>
+            <Select
+              value={courtFilter}
+              onValueChange={(v) => {
+                setCourtFilter(v)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="همه مجموعه‌ها" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>مجموعه</SelectLabel>
+                  <SelectItem value="all">همه مجموعه‌ها</SelectItem>
+                  {courts.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Select
@@ -247,7 +289,7 @@ export default function AdminBookingsPage() {
             </div>
             <h3 className="mb-1 text-lg font-semibold">هیچ رزروی یافت نشد</h3>
             <p className="text-sm text-muted-foreground">
-              هنوز رزروی در سیستم ثبت نشده است
+              هنوز رزروی برای مجموعه‌های شما ثبت نشده است
             </p>
           </CardContent>
         </Card>

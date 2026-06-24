@@ -35,6 +35,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import { CreditCard, ShieldX, RefreshCw, Search } from "lucide-react"
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from "@/lib/constants"
 
 interface AdminPayment {
   id: number
@@ -103,18 +104,6 @@ export default function AdminPaymentsPage() {
     const timer = setTimeout(() => fetchPayments(), 0)
     return () => clearTimeout(timer)
   }, [fetchPayments])
-
-  const paymentStatusLabels: Record<string, string> = {
-    success: "موفق",
-    pending: "در انتظار",
-    failed: "ناموفق",
-  }
-
-  const paymentStatusStyles: Record<string, string> = {
-    success: "bg-status-confirmed-bg text-status-confirmed",
-    pending: "bg-status-pending-bg text-status-pending",
-    failed: "bg-status-cancelled-bg text-status-cancelled",
-  }
 
   const totalPages = Math.ceil(total / limit)
 
@@ -257,9 +246,9 @@ export default function AdminPaymentsPage() {
                   </TableCell>
                   <TableCell className="w-20">
                     <span
-                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${paymentStatusStyles[p.status] || ""}`}
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${PAYMENT_STATUS_STYLES[p.status] || ""}`}
                     >
-                      {paymentStatusLabels[p.status] || p.status}
+                      {PAYMENT_STATUS_LABELS[p.status] || p.status}
                     </span>
                   </TableCell>
                 </TableRow>

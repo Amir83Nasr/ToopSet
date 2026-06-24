@@ -18,7 +18,12 @@ class ReviewRepo:
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Review], int]:
-        query = select(Review).where(Review.court_id == court_id).order_by(Review.created_at.desc())
+        query = (
+            select(Review)
+            .options(selectinload(Review.court), selectinload(Review.user))
+            .where(Review.court_id == court_id)
+            .order_by(Review.created_at.desc())
+        )
         count_q = select(func.count(Review.id)).where(Review.court_id == court_id)
 
         total = (await self.db.execute(count_q)).scalar_one()
@@ -33,7 +38,12 @@ class ReviewRepo:
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Review], int]:
-        query = select(Review).where(Review.user_id == user_id).order_by(Review.created_at.desc())
+        query = (
+            select(Review)
+            .options(selectinload(Review.court), selectinload(Review.user))
+            .where(Review.user_id == user_id)
+            .order_by(Review.created_at.desc())
+        )
         count_q = select(func.count(Review.id)).where(Review.user_id == user_id)
 
         total = (await self.db.execute(count_q)).scalar_one()
@@ -42,7 +52,11 @@ class ReviewRepo:
         return reviews, total
 
     async def get_by_id(self, review_id: int) -> Review | None:
-        result = await self.db.execute(select(Review).where(Review.id == review_id))
+        result = await self.db.execute(
+            select(Review)
+            .options(selectinload(Review.court), selectinload(Review.user))
+            .where(Review.id == review_id)
+        )
         return result.scalar_one_or_none()
 
     async def list_recent(

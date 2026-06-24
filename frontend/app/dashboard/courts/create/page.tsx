@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useForm, useWatch, Controller } from "react-hook-form"
+import { useForm, useWatch, Controller, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { courtCreateSchema, type CourtCreateInput } from "@/lib/validations"
 import { useAuth } from "@/hooks/use-auth"
@@ -58,8 +58,7 @@ export default function CreateCourtPage() {
     control,
     formState: { errors, isSubmitting },
   } = useForm<CourtCreateInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(courtCreateSchema) as any,
+    resolver: zodResolver(courtCreateSchema) as Resolver<CourtCreateInput>,
     defaultValues: {
       name: "",
       sport_types: [],

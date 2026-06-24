@@ -71,6 +71,16 @@ class PaymentRepo:
         result = await self.db.execute(select(Payment).where(Payment.booking_id == booking_id))
         return result.scalar_one_or_none()
 
+    async def get_by_booking_ids(self, booking_ids: list[int]) -> dict[int, Payment]:
+        """Return a ``{booking_id: Payment}`` map for the given booking IDs.
+
+        Replaces N per-item ``get_by_booking`` calls with a single batched query.
+        """
+        if not booking_ids:
+            return {}
+        result = await self.db.execute(select(Payment).where(Payment.booking_id.in_(booking_ids)))
+        return {p.booking_id: p for p in result.scalars().all()}
+
     async def list_all(
         self,
         *,

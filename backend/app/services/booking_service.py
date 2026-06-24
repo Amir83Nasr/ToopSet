@@ -44,20 +44,22 @@ class BookingService:
         self.wallet_repo = WalletRepo(db)
         self.current_user = current_user
 
-    async def list_my_bookings(
-        self,
-        *,
-        skip: int = 0,
-        limit: int = 20,
-        status_filter: str | None = None,
-    ) -> BookingListResponse:
-        bookings, total = await self.booking_repo.list_by_user(
-            self.current_user.id, skip=skip, limit=limit, status_filter=status_filter
-        )
+    async def _build_booking_detail_list(
+        self, bookings: list, with_payment: bool = False
+    ) -> list[BookingDetailResponse]:
+        """Shared helper: maps Booking rows to BookingDetailResponse, slot/court loaded via selectinload."""
+        # Batch-load payments when requested — avoids N+1 per booking
+        payment_map: dict[int, PaymentResponse] = {}
+        if with_payment and bookings:
+            payment_objs = await self.payment_repo.get_by_booking_ids([b.id for b in bookings])
+            payment_map = {
+                bk_id: PaymentResponse.model_validate(p) for bk_id, p in payment_objs.items()
+            }
         result = []
         for b in bookings:
-            slot = await self.slot_repo.get_by_id(b.slot_id)
+            slot = b.slot  # already loaded via selectinload in the repo
             court = slot.court if slot else None
+            payment = payment_map.get(b.id) if with_payment else None
             result.append(
                 BookingDetailResponse(
                     id=b.id,
@@ -74,9 +76,22 @@ class BookingService:
                     court_address=court.address if court else "",
                     slot_start_time=slot.start_time if slot else None,
                     slot_end_time=slot.end_time if slot else None,
-                    payment=None,
+                    payment=payment,
                 )
             )
+        return result
+
+    async def list_my_bookings(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+        status_filter: str | None = None,
+    ) -> BookingListResponse:
+        bookings, total = await self.booking_repo.list_by_user(
+            self.current_user.id, skip=skip, limit=limit, status_filter=status_filter
+        )
+        result = await self._build_booking_detail_list(bookings)
         return BookingListResponse(bookings=result, total=total)
 
     async def list_completed_bookings(
@@ -88,29 +103,7 @@ class BookingService:
         bookings, total = await self.booking_repo.list_completed_by_user(
             self.current_user.id, skip=skip, limit=limit
         )
-        result = []
-        for b in bookings:
-            slot = await self.slot_repo.get_by_id(b.slot_id)
-            court = slot.court if slot else None
-            result.append(
-                BookingDetailResponse(
-                    id=b.id,
-                    user_id=b.user_id,
-                    slot_id=b.slot_id,
-                    status=b.status,
-                    price_paid=float(b.price_paid),
-                    participants_count=b.participants_count,
-                    penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
-                    created_at=b.created_at,
-                    updated_at=b.updated_at,
-                    expires_at=b.expires_at,
-                    court_name=court.name if court else "",
-                    court_address=court.address if court else "",
-                    slot_start_time=slot.start_time if slot else None,
-                    slot_end_time=slot.end_time if slot else None,
-                    payment=None,
-                )
-            )
+        result = await self._build_booking_detail_list(bookings)
         return BookingListResponse(bookings=result, total=total)
 
     async def get_booking(self, booking_id: int) -> BookingDetailResponse:
@@ -122,7 +115,7 @@ class BookingService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
             )
 
-        slot = await self.slot_repo.get_by_id(booking.slot_id)
+        slot = booking.slot  # loaded via selectinload
         court = slot.court if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)
         # Notify manager about new booking
@@ -259,7 +252,7 @@ class BookingService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="این رزرو در وضعیت پرداخت نیست"
             )
 
-        slot = await self.slot_repo.get_by_id(booking.slot_id)
+        slot = booking.slot  # loaded via selectinload
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         if slot.is_reserved:
@@ -372,7 +365,7 @@ class BookingService:
                 status_code=status.HTTP_409_CONFLICT, detail="این رزرو قبلاً لغو شده است"
             )
 
-        slot = await self.slot_repo.get_by_id(booking.slot_id)
+        slot = booking.slot  # loaded via selectinload
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         court = slot.court
@@ -480,7 +473,7 @@ class BookingService:
         )
         result = []
         for b in bookings:
-            slot = await self.slot_repo.get_by_id(b.slot_id)
+            slot = b.slot  # loaded via selectinload
             court = slot.court if slot else None
             user = b.user  # relationship loaded
             result.append(

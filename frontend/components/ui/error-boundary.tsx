@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
           </div>
           <Button variant="outline" onClick={this.handleReset}>
-            <RefreshCw className="ml-2 h-4 w-4" />
+            <RefreshCw className="ml-1.5 h-4 w-4" />
             تلاش مجدد
           </Button>
         </div>

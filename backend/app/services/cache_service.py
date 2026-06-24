@@ -6,6 +6,8 @@ import hashlib
 import json
 from typing import Any
 
+from redis.exceptions import RedisError
+
 from app.core.metrics import toopset_cache_hits_total, toopset_cache_misses_total
 from app.core.redis_client import get_redis
 
@@ -37,7 +39,7 @@ async def cache_slot_list(
         r = await get_redis()
         key = _slot_list_key(court_id, date)
         await r.setex(key, TIME_SLOTS_TTL, json.dumps(data, default=str))
-    except Exception:
+    except RedisError:
         pass  # cache miss degrades gracefully — fall through to DB
 
 
@@ -55,7 +57,7 @@ async def get_cached_slot_list(
             return json.loads(raw)
 
         toopset_cache_misses_total.inc()
-    except Exception:
+    except RedisError:
         pass
     return None
 
@@ -68,7 +70,7 @@ async def invalidate_slot_list(court_id: int) -> None:
         keys = await r.keys(pattern)
         if keys:
             await r.delete(*keys)
-    except Exception:
+    except RedisError:
         pass
 
 
@@ -97,7 +99,7 @@ async def cache_admin_list(
         r = await get_redis()
         key = _admin_list_key(prefix, params)
         await r.setex(key, ttl, json.dumps(data, default=str))
-    except Exception:
+    except RedisError:
         pass  # cache miss degrades gracefully
 
 
@@ -115,7 +117,7 @@ async def get_cached_admin_list(
             return json.loads(raw)
 
         toopset_cache_misses_total.inc()
-    except Exception:
+    except RedisError:
         pass
     return None
 
@@ -127,5 +129,5 @@ async def invalidate_admin_list_cache(prefix: str) -> None:
         keys = await r.keys(f"admin_list:{prefix}:*")
         if keys:
             await r.delete(*keys)
-    except Exception:
+    except RedisError:
         pass

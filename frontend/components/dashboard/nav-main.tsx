@@ -35,6 +35,7 @@ import {
   LogOut,
   LayoutDashboard,
   Calendar,
+  Clock,
   type LucideIcon,
 } from "lucide-react"
 
@@ -61,6 +62,13 @@ const navGroups: NavGroup[] = [
         url: "/dashboard/admin",
         icon: LayoutDashboard,
       },
+      { title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 },
+      {
+        title: "تنظیمات",
+        url: "/dashboard/admin/settings",
+        icon: Settings,
+      },
+      { title: "لاگ‌ها", url: "/dashboard/admin/logs", icon: History },
     ],
   },
   {
@@ -86,11 +94,27 @@ const navGroups: NavGroup[] = [
     ],
   },
 
-  // ── Reports (admin) ──
+  // ── Personal (admin) ──
   {
-    label: "گزارشات",
+    label: "شخصی",
     roles: ["admin"],
-    items: [{ title: "گزارشات", url: "/dashboard/reports", icon: BarChart3 }],
+    items: [
+      {
+        title: "پروفایل",
+        url: "/dashboard/settings",
+        icon: UserCircle,
+      },
+      {
+        title: "رزروهای من",
+        url: "/dashboard/bookings",
+        icon: Calendar,
+      },
+      {
+        title: "پرداخت‌ها",
+        url: "/dashboard/payments",
+        icon: CreditCard,
+      },
+    ],
   },
 
   // ── Management (admin) ──
@@ -111,6 +135,7 @@ const navGroups: NavGroup[] = [
         icon: CreditCard,
       },
       { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
+      { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
     ],
   },
 
@@ -121,9 +146,42 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
       {
+        title: "رزروها",
+        url: "/dashboard/manager/bookings",
+        icon: Calendar,
+      },
+      {
+        title: "سانس‌ها",
+        url: "/dashboard/manager/slots",
+        icon: Clock,
+      },
+      {
         title: "زمان‌بندی",
         url: "/dashboard/manager/schedule",
         icon: Calendar,
+      },
+    ],
+  },
+
+  // ── Personal (manager) ──
+  {
+    label: "شخصی",
+    roles: ["manager"],
+    items: [
+      {
+        title: "پروفایل",
+        url: "/dashboard/settings",
+        icon: UserCircle,
+      },
+      {
+        title: "رزروهای من",
+        url: "/dashboard/bookings",
+        icon: Calendar,
+      },
+      {
+        title: "پرداخت‌ها",
+        url: "/dashboard/payments",
+        icon: CreditCard,
       },
     ],
   },
@@ -146,24 +204,24 @@ const navGroups: NavGroup[] = [
     ],
   },
 
-  // ── System settings (admin) ──
+  // ── Personal (user) ──
   {
-    label: "تنظیمات سیستم",
-    roles: ["admin"],
+    label: "شخصی",
+    roles: ["user"],
     items: [
-      { title: "تنظیمات", url: "/dashboard/admin/settings", icon: Settings },
-      { title: "لاگ‌ها", url: "/dashboard/admin/logs", icon: History },
+      {
+        title: "پروفایل",
+        url: "/dashboard/settings",
+        icon: UserCircle,
+      },
     ],
   },
 
-  // ── General (all roles) ──
+  // ── Notifications (non-admin roles) ──
   {
     label: "سیستم",
-    roles: ["admin", "manager", "user"],
-    items: [
-      { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
-      { title: "پروفایل", url: "/dashboard/settings", icon: UserCircle },
-    ],
+    roles: ["manager", "user"],
+    items: [{ title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell }],
   },
 ]
 

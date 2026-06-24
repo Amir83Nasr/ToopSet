@@ -1,11 +1,20 @@
 # TODO
 
-Updated: 2026-06-23
+Updated: 2026-06-24
 
 ## Backlog
 
-- [ ] **Optional Paid Amenities (e.g. Ball Rental)** — Allow court managers to configure optional paid amenities per court (e.g. ball rental, shoe rental) with a custom price for each. Amenities model currently stores JSON; extend it so managers can define which extras are available and at what cost via the court management UI.
-- [ ] **Select Paid Amenities During Booking** — When booking, let users select from optional paid amenities (e.g. rent a ball). The selected extras' costs are added to the booking total. Display the breakdown in the booking summary and payment flow.
+- [ ] **Fix `next/image` unoptimized — Config remotePatterns for user uploads** — Replace 10+ `unoptimized` props on next/image with proper `remotePatterns` in next.config.js for CDN/local uploads. Some external images may still need `unoptimized` but most can be optimized for better performance and SEO.
+
+- [ ] **Fix all N+1 Queries + Harden cache_service** — Audit all services for N+1 patterns (selectinload/joinedload) and narrow `except Exception` in `cache_service.py` to specific exceptions so real DB/Redis bugs aren't silently swallowed.
+
+- [ ] **Remove All `as any` TypeScript Assertions** — Remove unsafe `as any` casts in `courts/create/page.tsx`, `courts/[id]/page.tsx` (zodResolver typing) and `courts-map.tsx` (custom marker properties via extended interface).
+
+- [ ] **Extract Duplicate Status Labels into Shared Constants** — Create `frontend/lib/constants.tsx` with shared `BOOKING_STATUS_LABELS`, `BOOKING_STATUS_STYLES`, `PAYMENT_STATUS_CONFIG` maps. Remove duplicate definitions from 4-6 dashboard pages.
+
+- [ ] **Fix N+1 Query in BookingService** — Use `selectinload(Booking.slot).selectinload(TimeSlot.court)` in the base booking query so the 21-query pattern (1 for bookings + N for each slot) becomes a single query.
+
+- [ ] **Fix Duplicate Response Mapping in BookingService** — Extract private `_build_booking_list_response` helper in `booking_service.py` to deduplicate the identical response-building loops in `list_my_bookings` and `list_completed_bookings`.
 
 - [ ] **Booking Confirmation Animation + Share** — Animated confirmation screen with confetti (canvas-confetti already installed) after successful booking. Share buttons for Telegram/WhatsApp. Add-to-calendar option (Persian calendar).
 
@@ -37,7 +46,7 @@ Updated: 2026-06-23
 
 - [ ] Public court page (started: 2026-06-23)
 
-- [ ] Booking confirmation and payment flow (started: 2026-06-23)
+- [ ] **Booking Confirmation (In Progress)** — Added SiteHeader + SiteFooter to booking page, removed breadcrumbs, removed participants count, changed final button to "تأیید و پرداخت" with redirect to `/book/payment` gateway page. Gateway page shows under-construction placeholder with booking summary. Remaining: connect real payment gateway. (started: 2026-06-23)
 
 - [ ] Add new time slot entries (started: 2026-06-23)
 
@@ -56,6 +65,12 @@ Updated: 2026-06-23
 - [ ] Profile page layout (started: 2026-06-23)
 
 ## Done
+
+- [x] **Refactor Large Dashboard Pages into Reusable Components** — Extracted 600-line `bookings/page.tsx` and 520-line `notifications/page.tsx` into standalone reusable components: `BookingTable`, `BookingFilters`, `BookingTableSkeleton`, `BookingEmptyState`, `BookingCancelDialog`, `NotificationTable`, `NotificationFilters`, `NotificationTableSkeleton`, `NotificationEmptyState`, `NotificationBroadcastDialog`. Each with unified styling matching the admin dashboard design system. Centralized types in `components/bookings/types.ts` and constants in `lib/constants.tsx`. (completed: 2026-06-24)
+
+- [x] **Animated Hero SVG Illustration** — Created `HeroIllustration` component with framer-motion sequential chain animation on arrow paths. Three arrow paths animate in sequence (2s active + 4s pause per arrow) with accent elements lighting up half a slot later. `subtleRipple` on decorative small paths and `faintBody` on background elements create a coordinated visual rhythm. No glow/spotlight per user feedback. (completed: 2026-06-24)
+
+- [x] **Manager Dashboard Bookings & Slots Pages** — Added two full dashboard pages for manager role: `/dashboard/manager/bookings` with search, status/court/date filters, and cancel booking action; `/dashboard/manager/slots` with court/status/date filters, inline edit dialog for time/price, and delete slot via AlertDialog. Both paginated and matching admin table design. Updated sidebar nav with "رزروها" and "سانس‌ها" links. Backend: new `manager.py` router with `/api/v1/manager/bookings` and `/api/v1/manager/slots` endpoints, `ManagerBookingResponse`/`ManagerSlotResponse` schemas, and `list_by_manager()` in booking repo. (completed: 2026-06-24)
 
 - [x] **Update Seed Data with Timezone-Aware Time Slots and Court Ratings** — Fixed `backend/scripts/seed.py` to use timezone-aware datetimes (`now_iran()` / `iran_to_utc()`) for time slot generation, covering 60 future days with 5 fixed daily schedules per court (total 4,500 slots). Added `court.average_rating` calculation with SQL aggregation after review creation. Added 16 new review entries to ensure all 15 courts have at least 1-2 ratings. Fixed duplicate `booking_id` issue in review matching with `used_booking_ids` tracking. Ran seed to populate database with proper ratings (3.0–5.0 range) and future-dated slots. (completed: 2026-06-20)
 

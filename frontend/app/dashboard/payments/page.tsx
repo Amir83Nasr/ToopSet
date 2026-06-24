@@ -25,13 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   CreditCard,
@@ -202,7 +195,7 @@ export default function PaymentsPage() {
           <p className="text-lg text-muted-foreground">خطا در دریافت اطلاعات</p>
           <p className="text-sm text-muted-foreground/60">{error}</p>
           <Button variant="outline" onClick={fetchPayments}>
-            <RefreshCw className="ml-2 size-4" />
+            <RefreshCw className="ml-1.5 size-4" />
             تلاش مجدد
           </Button>
         </CardContent>

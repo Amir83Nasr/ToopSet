@@ -106,7 +106,7 @@ components/ui/
 - **Table:** `w-full caption-bottom text-sm`
 - **Row:** `border-b transition-colors hover:bg-muted/50`, `data-[state=selected]:bg-muted`
 - **Head:** `h-10 bg-muted/50 px-2 text-start align-middle font-medium whitespace-nowrap text-foreground`
-- **Cell:** `p-2 align-middle whitespace-nowrap`
+- **Cell:** `px-2 h-12 align-middle whitespace-nowrap`
 - **Footer:** `border-t bg-muted/50 font-medium`
 - **Data attrs:** `data-slot="table[-container,-header,-body,-footer,-row,-head,-cell,-caption]"`
 

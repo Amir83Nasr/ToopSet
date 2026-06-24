@@ -11,8 +11,6 @@ from app.models.court import Court
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 
-_BOOKING_STATUSES = [s.value for s in BookingStatus]
-
 
 class BookingRepo:
     def __init__(self, db: AsyncSession) -> None:
@@ -44,7 +42,11 @@ class BookingRepo:
         return bookings, total
 
     async def get_by_id(self, booking_id: int) -> Booking | None:
-        result = await self.db.execute(select(Booking).where(Booking.id == booking_id))
+        result = await self.db.execute(
+            select(Booking)
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
+            .where(Booking.id == booking_id)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_slot(self, slot_id: int) -> Booking | None:
@@ -113,12 +115,12 @@ class BookingRepo:
         return list(result.scalars().all())
 
     async def count_by_status(self) -> dict[str, int]:
-        """Return a dict mapping each status to its total count (e.g. ``{"confirmed": 42}``)."""
-        result: dict[str, int] = {}
-        for status in _BOOKING_STATUSES:
-            query = select(func.count(Booking.id)).where(Booking.status == status)
-            result[status] = (await self.db.execute(query)).scalar_one()
-        return result
+        """Return a dict mapping each status to its total count (e.g. ``{"confirmed": 42}``).
+        Uses a single GROUP BY query instead of N separate queries."""
+        stmt = select(Booking.status, func.count(Booking.id).label("cnt")).group_by(Booking.status)
+        result = await self.db.execute(stmt)
+        rows = result.all()
+        return {str(row.status): row.cnt for row in rows}
 
     async def count_today(self, reference: datetime | None = None) -> int:
         """Number of bookings created since the start of *reference* day (UTC)."""
@@ -166,3 +168,58 @@ class BookingRepo:
         )
         result = await self.db.execute(query)
         return float(result.scalar_one())
+
+    async def list_by_manager(
+        self,
+        manager_id: int,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+        status_filter: str | None = None,
+        court_id: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        search: str | None = None,
+    ) -> tuple[list[Booking], int]:
+        """List bookings for courts managed by *manager_id*."""
+        query = (
+            select(Booking)
+            .options(
+                selectinload(Booking.slot).selectinload(TimeSlot.court),
+                selectinload(Booking.user),
+            )
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Court, TimeSlot.court_id == Court.id)
+            .outerjoin(User, Booking.user_id == User.id)
+            .where(Court.manager_id == manager_id)
+        )
+        count_q = (
+            select(func.count(Booking.id))
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Court, TimeSlot.court_id == Court.id)
+            .outerjoin(User, Booking.user_id == User.id)
+            .where(Court.manager_id == manager_id)
+        )
+
+        if status_filter:
+            query = query.where(Booking.status == status_filter)
+            count_q = count_q.where(Booking.status == status_filter)
+        if court_id:
+            query = query.where(Court.id == court_id)
+            count_q = count_q.where(Court.id == court_id)
+        if date_from:
+            query = query.where(TimeSlot.start_time >= date_from)
+            count_q = count_q.where(TimeSlot.start_time >= date_from)
+        if date_to:
+            query = query.where(TimeSlot.start_time <= date_to)
+            count_q = count_q.where(TimeSlot.start_time <= date_to)
+        if search:
+            pattern = f"%{search}%"
+            query = query.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
+            count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
+
+        query = query.order_by(Booking.created_at.desc())
+        total = (await self.db.execute(count_q)).scalar_one()
+        result = await self.db.execute(query.offset(skip).limit(limit))
+        bookings = list(result.scalars().all())
+        return bookings, total

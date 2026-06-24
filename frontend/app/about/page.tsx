@@ -14,7 +14,6 @@ import {
   Camera,
   MessageSquare,
   ShieldCheck,
-  ArrowLeft,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {

@@ -26,7 +26,7 @@ function LoginPageContent() {
       <div className="relative hidden overflow-hidden rounded-3xl bg-muted lg:m-4 lg:block">
         <Image
           src="/futsal.svg"
-          alt=""
+          alt="futsal"
           fill
           className="object-cover dark:brightness-[0.2] dark:grayscale"
         />
@@ -40,9 +40,9 @@ function LoginPageContent() {
             </Link>
           </Button>
         </div>
-        <div className="w-full max-w-xs">
+        <div className="flex w-full max-w-xs flex-col justify-center">
           {reasonMessage && (
-            <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary dark:border-primary/20 dark:bg-primary/10 dark:text-primary">
+            <div className="mb-6 w-fit self-center rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary dark:border-primary/20 dark:bg-primary/10 dark:text-primary">
               {reasonMessage}
             </div>
           )}

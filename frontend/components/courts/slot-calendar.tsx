@@ -81,7 +81,14 @@ export function SlotCalendar({
   className,
 }: SlotCalendarProps) {
   const [weekOffset, setWeekOffset] = useState(0)
-  const [selectedDate, setSelectedDate] = useState("")
+  // Default to today's date so visitors see current day slots on first load
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const t = new Date()
+    const y = t.getFullYear()
+    const m = String(t.getMonth() + 1).padStart(2, "0")
+    const d = String(t.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  })
 
   // ── Compute the 7 days of the current week ──
 

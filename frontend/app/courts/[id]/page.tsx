@@ -125,7 +125,14 @@ export default function PublicCourtDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [reviewsTotal, setReviewsTotal] = useState(0)
   const [weekOffset, setWeekOffset] = useState(0)
-  const [selectedDate, setSelectedDate] = useState<string>("")
+  // Default to today so visitors see current day slots on first load
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const t = new Date()
+    const y = t.getFullYear()
+    const m = String(t.getMonth() + 1).padStart(2, "0")
+    const d = String(t.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  })
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
@@ -647,7 +654,6 @@ export default function PublicCourtDetailPage() {
                           alt={`${court.name} - ${i + 1}`}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          unoptimized
                         />
                       </button>
                     ))}
@@ -798,7 +804,6 @@ export default function PublicCourtDetailPage() {
                       alt={`${court.name} - ${lightboxIndex + 1}`}
                       fill
                       className="object-contain"
-                      unoptimized
                     />
                   )}
                 </div>

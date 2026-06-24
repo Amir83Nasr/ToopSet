@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { HeroIllustration } from "@/components/public/hero-illustration"
 
 export function HeroSection() {
   const router = useRouter()
@@ -11,23 +12,23 @@ export function HeroSection() {
   return (
     <section className="relative overflow-hidden py-12 md:py-24">
       <div className="relative z-10 mx-auto max-w-7xl px-4 text-right">
-        {/* Top badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/4 px-4 py-2 text-[10px] font-bold text-muted-foreground backdrop-blur-sm sm:text-xs"
-        >
-          <span className="relative flex size-1.5">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/50 opacity-75" />
-            <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
-          </span>
-          <span>سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی</span>
-        </motion.div>
-
         {/* Split layout */}
-        <div className="grid grid-cols-1 items-center gap-12">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div className="space-y-6">
+            {/* Top badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/4 px-4 py-2 text-[10px] font-bold text-muted-foreground backdrop-blur-sm sm:text-xs"
+            >
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/50 opacity-75" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
+              </span>
+              <span>سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی</span>
+            </motion.div>
+
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -78,6 +79,11 @@ export function HeroSection() {
                 <span>مشاهده سالن‌های ورزشی</span>
               </Button>
             </motion.div>
+          </div>
+
+          {/* Left side illustration */}
+          <div className="hidden lg:block">
+            <HeroIllustration />
           </div>
         </div>
       </div>
