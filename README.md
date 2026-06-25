@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/icons/favicon/vector.svg" />
-    <img src="docs/icons/favicon/vector.svg" alt="ToopSet" width="120" />
+    <source media="(prefers-color-scheme: dark)" srcset="docs/icons/profile/profile.svg" />
+    <img src="docs/icons/profile/profile.svg" alt="ToopSet" width="120" />
   </picture>
 </p>
 
@@ -93,10 +93,8 @@ See [context/commands.md](context/commands.md) for all available commands.
 | [commands.md](context/commands.md)   | Makefile reference              |
 | [commit.md](context/commit.md)       | Commit conventions              |
 
-## 📦 Version
-
-`0.4.0` — single source of truth in [VERSION](VERSION).
-
 ## 📄 License
 
-MIT
+All Rights Reserved.
+
+Copyright (c) 2026 ToopSet Team. See [LICENSE](LICENSE) for details.
