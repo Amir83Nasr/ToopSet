@@ -7,10 +7,7 @@ export const metadata: Metadata = {
   title: "توپ‌سِت | ToopSet",
   description: "سامانه رزرو آنلاین مجموعه‌های ورزشی",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.png", type: "image/png" },
-    ],
+    icon: [{ url: "/icons/favicon.svg", type: "image/svg+xml" }],
   },
 }
 

@@ -25,7 +25,7 @@ function LoginPageContent() {
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="relative hidden overflow-hidden rounded-3xl bg-muted lg:m-4 lg:block">
         <Image
-          src="/futsal.svg"
+          src="/images/futsal.svg"
           alt="futsal"
           fill
           className="object-cover dark:brightness-[0.2] dark:grayscale"

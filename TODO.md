@@ -1,6 +1,6 @@
 # TODO
 
-Updated: 2026-06-24
+Updated: 2026-06-26
 
 ## Backlog
 
@@ -56,15 +56,13 @@ Updated: 2026-06-24
 
 - [ ] Dashboard settings section (started: 2026-06-23)
 
-- [ ] Logo fix and update (started: 2026-06-23)
-
-- [ ] Add app screenshots (started: 2026-06-23)
-
-- [ ] Add images and logo to README.md (started: 2026-06-23)
-
 - [ ] Profile page layout (started: 2026-06-23)
 
 ## Done
+
+- [x] **Update README.md with Logo and Screenshots** — Added responsive logo (dark/light mode via `<picture>` tag + `srcset`), interactive screenshot gallery showing main page (light/dark) and manager dashboard, tech stack badges, and clean project structure layout. (completed: 2026-06-26)
+
+- [x] **Replace Hero Illustration with Animated SVG + Add Branding Assets** — Created `HeroAnimatedIllustration` inline SVG component with staggered piece-by-piece entry (14 groups fade+slide from y:6) and infinite gentle animations (arrow float 6px, body pulse 0.4↔1, circle breath 1↔1.07, connector wiggle 3px). No glow. Dark mode via CSS `invert`. Replaced `<Image>` in hero-section with new component. Removed old `hero-illustration.tsx` and legacy image assets. Added brand icons (favicon, profile, vector) and sports imagery (arrange SVGs, championship/worldcup photos). Updated site header/footer and auth page layouts with new branding. (completed: 2026-06-26)
 
 - [x] **Refactor Large Dashboard Pages into Reusable Components** — Extracted 600-line `bookings/page.tsx` and 520-line `notifications/page.tsx` into standalone reusable components: `BookingTable`, `BookingFilters`, `BookingTableSkeleton`, `BookingEmptyState`, `BookingCancelDialog`, `NotificationTable`, `NotificationFilters`, `NotificationTableSkeleton`, `NotificationEmptyState`, `NotificationBroadcastDialog`. Each with unified styling matching the admin dashboard design system. Centralized types in `components/bookings/types.ts` and constants in `lib/constants.tsx`. (completed: 2026-06-24)
 

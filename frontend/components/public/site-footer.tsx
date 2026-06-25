@@ -29,15 +29,6 @@ export function SiteFooter() {
               href="/"
               className="flex items-center gap-2.5 text-lg font-bold"
             >
-              <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
-                <Image
-                  src="/favicon.svg"
-                  alt="توپ‌سِت"
-                  width={36}
-                  height={36}
-                  className="size-9"
-                />
-              </div>
               <span>توپ‌سِت</span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">

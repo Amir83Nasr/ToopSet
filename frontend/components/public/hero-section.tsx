@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { HeroIllustration } from "@/components/public/hero-illustration"
+import { HeroAnimatedIllustration } from "@/components/public/hero-illustration-v2"
 
 export function HeroSection() {
   const router = useRouter()
@@ -82,8 +82,8 @@ export function HeroSection() {
           </div>
 
           {/* Left side illustration */}
-          <div className="hidden lg:block">
-            <HeroIllustration />
+          <div className="mt-10 mr-auto ml-25 hidden scale-125 lg:block">
+            <HeroAnimatedIllustration />
           </div>
         </div>
       </div>

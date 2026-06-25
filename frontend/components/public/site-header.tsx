@@ -78,7 +78,7 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
             <Image
-              src="/favicon.svg"
+              src="/icons/profile.svg"
               alt="توپ‌سِت"
               width={36}
               height={36}
@@ -424,7 +424,7 @@ export function SiteHeader() {
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Image
-                    src="/favicon.svg"
+                    src="/icons/profile.svg"
                     alt="توپ‌سِت"
                     width={24}
                     height={24}
