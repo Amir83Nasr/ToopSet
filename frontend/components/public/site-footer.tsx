@@ -1,9 +1,18 @@
 "use client"
 
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { Mail, Phone, MessageCircle, ArrowUp } from "lucide-react"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { toPersianDigits } from "@/lib/utils"
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+interface ContactInfo {
+  support_phone?: string
+  support_email?: string
+  messenger_id?: string
+}
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -18,6 +27,22 @@ const pageLinks = [
 ]
 
 export function SiteFooter() {
+  const [contact, setContact] = useState<ContactInfo | null>(null)
+
+  const fetchContact = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/settings/public/contact`)
+      if (res.ok) setContact(await res.json())
+    } catch {
+      // swallow — footer just won't show contact
+    }
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchContact(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchContact])
+
   return (
     <footer className="relative overflow-hidden border-t bg-background">
       <div className="relative mx-auto max-w-7xl">
@@ -82,27 +107,44 @@ export function SiteFooter() {
           {/* Contact */}
           <div>
             <h4 className="mb-4 text-sm font-semibold">ارتباط با ما</h4>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                <Phone className="size-4 shrink-0 text-primary/60" />
-                <span dir="ltr">۰۹۳۰۶۸۵۳۳۶۳</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                <Mail className="size-4 shrink-0 text-primary/60" />
-                <span>amirhossein.nasrollahi.main@gmail.com</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                <MessageCircle className="size-4 shrink-0 text-primary/60" />
-                <a
-                  href="https://ble.ir/Amir83Nasr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-colors hover:text-foreground"
-                >
-                  @Amir83Nasr
-                </a>
-              </li>
-            </ul>
+            {contact ? (
+              <ul className="space-y-3">
+                {contact.support_phone && (
+                  <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <Phone className="size-4 shrink-0 text-primary/60" />
+                    <span dir="ltr">
+                      {toPersianDigits(contact.support_phone)}
+                    </span>
+                  </li>
+                )}
+                {contact.support_email && (
+                  <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <Mail className="size-4 shrink-0 text-primary/60" />
+                    <span>{contact.support_email}</span>
+                  </li>
+                )}
+                {contact.messenger_id && (
+                  <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <MessageCircle className="size-4 shrink-0 text-primary/60" />
+                    <a
+                      href={`https://ble.ir/${contact.messenger_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transition-colors hover:text-primary"
+                    >
+                      {contact.messenger_id}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <Phone className="size-4 shrink-0 text-primary/60" />
+                  <span dir="ltr">در حال بارگذاری...</span>
+                </li>
+              </ul>
+            )}
           </div>
         </div>
 

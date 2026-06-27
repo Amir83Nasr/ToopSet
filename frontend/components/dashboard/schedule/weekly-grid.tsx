@@ -10,6 +10,7 @@ interface WeeklyGridProps {
   slots: TimeSlot[]
   weekStart?: Date
   onSlotDelete: (slot: TimeSlot) => void
+  onSlotEdit?: (slot: TimeSlot) => void
   onCellClick?: (day: Date) => void
   onAddSlot?: (date: Date) => void
 }
@@ -18,6 +19,7 @@ export function WeeklyGrid({
   slots,
   weekStart,
   onSlotDelete,
+  onSlotEdit,
   onCellClick,
   onAddSlot,
 }: WeeklyGridProps) {
@@ -43,6 +45,7 @@ export function WeeklyGrid({
                 slots={groupedSlots[dateKey] ?? []}
                 isToday={todayKey === dateKey}
                 onSlotDelete={onSlotDelete}
+                onSlotEdit={onSlotEdit}
                 onCellClick={onCellClick}
               />
             )
@@ -56,6 +59,7 @@ export function WeeklyGrid({
           slots={slots}
           weekStart={weekStart}
           onSlotDelete={onSlotDelete}
+          onSlotEdit={onSlotEdit}
           onAddSlot={onAddSlot}
         />
       </div>

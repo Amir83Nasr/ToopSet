@@ -56,9 +56,9 @@ Updated: 2026-06-26
 
 - [ ] Dashboard settings section (started: 2026-06-23)
 
-- [ ] Profile page layout (started: 2026-06-23)
-
 ## Done
+
+- [x] **Profile Page Layout Redesign** — Redesigned profile/settings page with admin-style card-section layout. Two organized sections: "اطلاعات حساب" (avatar, name, phone, role badge) and "امنیت حساب" (password change). Used `space-y-px overflow-hidden rounded-xl border bg-card` pattern with `border-t` separated rows, icons per row, and hover-save check buttons. (completed: 2026-06-27)
 
 - [x] **Update README.md with Logo and Screenshots** — Added responsive logo (dark/light mode via `<picture>` tag + `srcset`), interactive screenshot gallery showing main page (light/dark) and manager dashboard, tech stack badges, and clean project structure layout. (completed: 2026-06-26)
 

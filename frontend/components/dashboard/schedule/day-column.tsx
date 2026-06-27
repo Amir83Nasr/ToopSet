@@ -11,6 +11,7 @@ interface DayColumnProps {
   slots: TimeSlot[]
   isToday: boolean
   onSlotDelete: (slot: TimeSlot) => void
+  onSlotEdit?: (slot: TimeSlot) => void
   onCellClick?: (day: Date) => void
 }
 
@@ -20,6 +21,7 @@ export function DayColumn({
   slots,
   isToday,
   onSlotDelete,
+  onSlotEdit,
   onCellClick,
 }: DayColumnProps) {
   return (
@@ -48,7 +50,12 @@ export function DayColumn({
           </button>
         ) : (
           slots.map((slot) => (
-            <SlotCard key={slot.id} slot={slot} onDelete={onSlotDelete} />
+            <SlotCard
+              key={slot.id}
+              slot={slot}
+              onDelete={onSlotDelete}
+              onEdit={onSlotEdit}
+            />
           ))
         )}
       </div>

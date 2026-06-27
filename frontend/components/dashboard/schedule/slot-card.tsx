@@ -14,6 +14,7 @@ import type { TimeSlot } from "./types"
 interface SlotCardProps {
   slot: TimeSlot
   onDelete?: (slot: TimeSlot) => void
+  onEdit?: (slot: TimeSlot) => void
   showActions?: boolean
   compact?: boolean
 }
@@ -21,6 +22,7 @@ interface SlotCardProps {
 export function SlotCard({
   slot,
   onDelete,
+  onEdit,
   showActions = true,
   compact = false,
 }: SlotCardProps) {
@@ -43,7 +45,12 @@ export function SlotCard({
     <div
       className={`group relative rounded-lg border p-2.5 transition-all hover:shadow-sm ${
         statusStyles[status]
-      } ${compact ? "p-1.5" : ""}`}
+      } ${compact ? "p-1.5" : ""} ${
+        onEdit && status !== "past" ? "cursor-pointer" : ""
+      }`}
+      onClick={() => {
+        if (onEdit && status !== "past") onEdit(slot)
+      }}
     >
       <div
         className={`mb-1 flex items-center gap-1 font-medium ${compact ? "text-[11px]" : "text-xs"}`}

@@ -14,10 +14,19 @@ import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Lock, Phone, Camera, Trash2, RefreshCw } from "lucide-react"
+import {
+  Loader2,
+  Phone,
+  Lock,
+  Camera,
+  Trash2,
+  RefreshCw,
+  User,
+  ShieldCheck,
+  Check,
+} from "lucide-react"
 import { toast } from "@/lib/toast"
 
 interface UserProfile {
@@ -33,6 +42,26 @@ const roleLabels: Record<string, string> = {
   user: "کاربر عادی",
   manager: "مدیر مجموعه",
   admin: "ادمین",
+}
+
+const sections: { title: string; keys: string[] }[] = [
+  {
+    title: "اطلاعات حساب",
+    keys: ["avatar", "full_name", "phone", "role"],
+  },
+  {
+    title: "امنیت حساب",
+    keys: ["password"],
+  },
+]
+
+const roleBadgeVariants: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  admin: "default",
+  manager: "secondary",
+  user: "outline",
 }
 
 export default function SettingsPage() {
@@ -79,13 +108,14 @@ export default function SettingsPage() {
         body: JSON.stringify({ full_name: name.trim() }),
       })
       setUser(updated)
+      refreshUser()
       toast.success("نام به‌روزرسانی شد")
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در به‌روزرسانی")
     } finally {
       setSaving(false)
     }
-  }, [name])
+  }, [name, refreshUser])
 
   const changePassword = useCallback(async () => {
     if (!curPass) return toast.error("رمز فعلی را وارد کنید")
@@ -157,26 +187,33 @@ export default function SettingsPage() {
     }
   }, [refreshUser])
 
+  // ── Loading state ──
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col gap-6 p-4">
+      <div className="flex flex-1 flex-col gap-8">
         <div>
-          <Skeleton className="h-7 w-32" />
-          <Skeleton className="mt-1 h-4 w-48" />
+          <Skeleton className="mb-1 h-7 w-28" />
+          <Skeleton className="h-4 w-44" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
+        <div className="space-y-8">
+          {sections.map((section) => (
+            <div key={section.title}>
+              <Skeleton className="mb-4 h-4 w-24" />
+              <Skeleton className="h-40 w-full rounded-xl" />
+            </div>
+          ))}
         </div>
       </div>
     )
   }
 
+  // ── Error state ──
   if (!user) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+        <div className="rounded-full bg-destructive/10 p-4">
+          <Loader2 className="size-10 text-destructive" />
+        </div>
         <p className="text-sm text-muted-foreground">خطا در بارگذاری اطلاعات</p>
         <Button variant="outline" onClick={fetchUser}>
           <RefreshCw className="ml-1.5 size-4" />
@@ -187,50 +224,63 @@ export default function SettingsPage() {
   }
 
   const avatarUrl = buildAvatarUrl(user.avatar_url)
+  const hasNameChanged = name.trim() !== user.full_name
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">تنظیمات حساب</h1>
-        <p className="text-muted-foreground">مدیریت اطلاعات شخصی و رمز عبور</p>
+    <div className="flex flex-1 flex-col gap-8">
+      {/* ── Header ── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">پروفایل من</h1>
+          <p className="text-sm text-muted-foreground">
+            اطلاعات شخصی و تنظیمات حساب کاربری
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchUser}
+          disabled={loading}
+        >
+          <RefreshCw className="ml-1.5 size-4" />
+          بروزرسانی
+        </Button>
       </div>
 
-      <Card size="sm">
-        <CardContent className="flex items-center gap-6 pt-3">
-          <div className="flex shrink-0 items-start gap-3">
-            <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/8">
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt={user.full_name}
-                  width={48}
-                  height={48}
-                  className="size-full object-cover"
-                  unoptimized
-                />
-              ) : (
-                <span className="text-sm font-semibold text-primary">
-                  {getInitials(user.full_name)}
-                </span>
-              )}
-            </div>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-base font-semibold">
-                  {user.full_name}
-                </span>
-                <Badge
-                  variant="outline"
-                  className="shrink-0 px-1.5 py-0 text-[10px]"
-                >
-                  {roleLabels[user.role] || user.role}
-                </Badge>
+      {/* ── Sections ── */}
+      <div className="space-y-8">
+        {/* ════════════════════════════════════════════
+             بخش اول: اطلاعات حساب
+           ════════════════════════════════════════════ */}
+        <section>
+          <div className="mb-4">
+            <h2 className="font-bold text-muted-foreground">اطلاعات حساب</h2>
+          </div>
+
+          <div className="space-y-px overflow-hidden rounded-xl border bg-card">
+            {/* ─── ردیف ۱: آواتار ─── */}
+            <div className="group p-4">
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                <Camera className="size-4 text-muted-foreground" />
+                <span>عکس پروفایل</span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Phone className="size-3" />
-                <span dir="ltr">{toPersianDigits(user.phone)}</span>
-              </div>
-              <div className="mt-1 flex items-center gap-1">
+              <div className="flex items-center justify-between gap-4">
+                <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/8">
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={user.full_name}
+                      width={48}
+                      height={48}
+                      className="size-full object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-primary">
+                      {getInitials(user.full_name)}
+                    </span>
+                  )}
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -238,129 +288,228 @@ export default function SettingsPage() {
                   onChange={handleAvatarSelect}
                   className="hidden"
                 />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                >
-                  {uploadingAvatar ? (
-                    <Loader2 className="ml-1 size-4 animate-spin" />
-                  ) : (
-                    <Camera className="ml-1 size-4" />
-                  )}
-                  {uploadingAvatar ? "در حال آپلود..." : "تغییر عکس"}
-                </Button>
-                {user.avatar_url && (
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
-                    variant="destructive"
-                    onClick={handleDeleteAvatar}
-                    disabled={deletingAvatar}
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
                   >
-                    {deletingAvatar ? (
-                      <Loader2 className="ml-1 size-4 animate-spin" />
+                    {uploadingAvatar ? (
+                      <Loader2 className="ml-1.5 animate-spin" />
                     ) : (
-                      <Trash2 className="ml-1 size-4" />
+                      <Camera className="ml-1.5" />
                     )}
-                    حذف
+                    {uploadingAvatar ? "در حال آپلود..." : "تغییر عکس"}
                   </Button>
-                )}
+                  {user.avatar_url && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={handleDeleteAvatar}
+                      disabled={deletingAvatar}
+                    >
+                      {deletingAvatar ? (
+                        <Loader2 className="ml-1.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="ml-1.5" />
+                      )}
+                      حذف
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ─── ردیف ۲: نام و نام خانوادگی ─── */}
+            <div className="group flex items-start gap-3 border-t p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-muted-foreground">
+                    <User className="size-4" />
+                  </span>
+                  <label
+                    htmlFor="name"
+                    className="text-sm leading-none font-medium"
+                  >
+                    نام و نام خانوادگی
+                  </label>
+                </div>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveName()
+                  }}
+                  className="mt-1 h-8 bg-background"
+                  placeholder="نام خود را وارد کنید"
+                />
+              </div>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                disabled={!hasNameChanged || saving}
+                onClick={saveName}
+                className={`mt-0.5 shrink-0 self-start rounded-full transition-all ${
+                  hasNameChanged
+                    ? "bg-primary/10 text-primary opacity-100 hover:bg-primary/20"
+                    : "opacity-0 group-hover:opacity-100"
+                }`}
+              >
+                {saving ? <Loader2 className="animate-spin" /> : <Check />}
+              </Button>
+            </div>
+
+            {/* ─── ردیف ۳: شماره موبایل (فقط نمایش) ─── */}
+            <div className="group flex items-start gap-3 border-t p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-muted-foreground">
+                    <Phone className="size-4" />
+                  </span>
+                  <span className="text-sm leading-none font-medium">
+                    شماره موبایل
+                  </span>
+                </div>
+                <p
+                  className="mt-1 h-8 content-center rounded-md border border-transparent bg-muted/30 px-2.5 text-end text-sm"
+                  dir="ltr"
+                >
+                  {toPersianDigits(user.phone)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  شماره موبایل قابل تغییر نیست
+                </p>
+              </div>
+            </div>
+
+            {/* ─── ردیف ۴: نقش کاربری (فقط نمایش) ─── */}
+            <div className="group flex items-start gap-3 border-t p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-muted-foreground">
+                    <ShieldCheck className="size-4" />
+                  </span>
+                  <span className="text-sm leading-none font-medium">
+                    نقش کاربری
+                  </span>
+                </div>
+                <div className="mt-1">
+                  <Badge variant={roleBadgeVariants[user.role] || "outline"}>
+                    {roleLabels[user.role] || user.role}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  سطح دسترسی شما در پلتفرم
+                </p>
               </div>
             </div>
           </div>
-          <div className="min-w-0 flex-1 border-s border-border/40 ps-5">
-            <Label htmlFor="name" className="text-xs font-medium">
-              نام و نام خانوادگی
-            </Label>
-            <div className="flex gap-1.5">
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="نام خود را وارد کنید"
-              />
+        </section>
+
+        {/* ════════════════════════════════════════════
+             بخش دوم: امنیت حساب
+           ════════════════════════════════════════════ */}
+        <section>
+          <div className="mb-4">
+            <h2 className="font-bold text-muted-foreground">امنیت حساب</h2>
+          </div>
+
+          <div className="space-y-px overflow-hidden rounded-xl border bg-card">
+            {/* ─── ردیف ۱: رمز فعلی ─── */}
+            <div className="group flex items-start gap-3 p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-muted-foreground">
+                    <Lock className="size-4" />
+                  </span>
+                  <Label
+                    htmlFor="curPass"
+                    className="text-sm leading-none font-medium"
+                  >
+                    رمز فعلی
+                  </Label>
+                </div>
+                <Input
+                  id="curPass"
+                  type="password"
+                  value={curPass}
+                  onChange={(e) => setCurPass(e.target.value)}
+                  className="mt-1 h-8 bg-background text-xs"
+                  placeholder="••••••"
+                />
+              </div>
+            </div>
+
+            {/* ─── ردیف ۲: رمز جدید ─── */}
+            <div className="group flex items-start gap-3 border-t p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-muted-foreground">
+                    <Lock className="size-4" />
+                  </span>
+                  <Label
+                    htmlFor="newPass"
+                    className="text-sm leading-none font-medium"
+                  >
+                    رمز جدید
+                  </Label>
+                </div>
+                <Input
+                  id="newPass"
+                  type="password"
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  className="mt-1 h-8 bg-background text-xs"
+                  placeholder="حداقل ۶ کاراکتر"
+                />
+              </div>
+            </div>
+
+            {/* ─── ردیف ۳: تکرار رمز جدید ─── */}
+            <div className="group flex items-start gap-3 border-t p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-muted-foreground">
+                    <Lock className="size-4" />
+                  </span>
+                  <Label
+                    htmlFor="confirmPass"
+                    className="text-sm leading-none font-medium"
+                  >
+                    تکرار رمز جدید
+                  </Label>
+                </div>
+                <Input
+                  id="confirmPass"
+                  type="password"
+                  value={confirmPass}
+                  onChange={(e) => setConfirmPass(e.target.value)}
+                  className="mt-1 h-8 bg-background text-xs"
+                  placeholder="تکرار"
+                />
+              </div>
+            </div>
+
+            {/* ─── ردیف ۴: دکمه تغییر رمز ─── */}
+            <div className="border-t p-4">
               <Button
+                onClick={changePassword}
+                disabled={changingPass}
                 size="sm"
-                onClick={saveName}
-                disabled={saving || name === user.full_name}
-                className="h-8 shrink-0 px-3 text-xs"
               >
-                {saving ? <Loader2 className="size-3 animate-spin" /> : "ذخیره"}
+                {changingPass ? (
+                  <Loader2 className="ml-1.5 size-3.5 animate-spin" />
+                ) : (
+                  <Lock className="ml-1.5 size-3.5" />
+                )}
+                {changingPass ? "در حال تغییر..." : "تغییر رمز عبور"}
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card size="sm">
-        <CardContent className="space-y-4 pt-3">
-          <div className="flex items-center gap-1.5 text-xs font-medium">
-            <Lock className="size-3.5 text-muted-foreground" />
-            <span>تغییر رمز عبور</span>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <div className="min-w-0 flex-1 space-y-1">
-              <Label
-                htmlFor="curPass"
-                className="text-[11px] text-muted-foreground"
-              >
-                رمز فعلی
-              </Label>
-              <Input
-                id="curPass"
-                type="password"
-                value={curPass}
-                onChange={(e) => setCurPass(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="••••••"
-              />
-            </div>
-            <div className="min-w-0 flex-1 space-y-1">
-              <Label
-                htmlFor="newPass"
-                className="text-[11px] text-muted-foreground"
-              >
-                رمز جدید
-              </Label>
-              <Input
-                id="newPass"
-                type="password"
-                value={newPass}
-                onChange={(e) => setNewPass(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="حداقل ۶ کاراکتر"
-              />
-            </div>
-            <div className="min-w-0 flex-1 space-y-1">
-              <Label
-                htmlFor="confirmPass"
-                className="text-[11px] text-muted-foreground"
-              >
-                تکرار رمز جدید
-              </Label>
-              <Input
-                id="confirmPass"
-                type="password"
-                value={confirmPass}
-                onChange={(e) => setConfirmPass(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="تکرار"
-              />
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={changePassword}
-            disabled={changingPass}
-            className="text-xs"
-          >
-            {changingPass && <Loader2 className="ml-1 size-3 animate-spin" />}
-            {changingPass ? "در حال تغییر..." : "تغییر رمز عبور"}
-          </Button>
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </div>
   )
 }

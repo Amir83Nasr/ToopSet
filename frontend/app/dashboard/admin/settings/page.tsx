@@ -4,25 +4,26 @@ import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import { toPersianDigits, toEnglishDigits } from "@/lib/utils"
 import {
   Check,
-  Globe,
   Phone,
   Mail,
   Percent,
   Clock,
   List,
   FileText,
-  HelpCircle,
+  Shield,
+  MessageSquare,
   RefreshCw,
   Loader2,
   Settings2,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { HeroImagesEditor } from "@/components/admin/hero-images-editor"
+import { ListSettingEditor } from "@/components/admin/list-setting-editor"
 
 interface Setting {
   id: number
@@ -34,12 +35,10 @@ interface Setting {
 interface SettingMeta {
   label: string
   icon: React.ReactNode
-  multiline?: boolean
   validate?: (v: string) => string | null
 }
 
 const settingMeta: Record<string, SettingMeta> = {
-  platform_name: { label: "نام پلتفرم", icon: <Globe className="size-4" /> },
   support_phone: {
     label: "شماره پشتیبانی",
     icon: <Phone className="size-4" />,
@@ -71,30 +70,20 @@ const settingMeta: Record<string, SettingMeta> = {
         : "مقدار باید یک عدد صحیح مثبت باشد"
     },
   },
-  rules_text: {
-    label: "قوانین و مقررات",
-    icon: <FileText className="size-4" />,
-    multiline: true,
-  },
-  faq_text: {
-    label: "سوالات متداول",
-    icon: <HelpCircle className="size-4" />,
-    multiline: true,
+  messenger_id: {
+    label: "شناسه پیامرسان (بله)",
+    icon: <MessageSquare className="size-4" />,
   },
 }
 
 const sections: { title: string; keys: string[] }[] = [
   {
     title: "اطلاعات پلتفرم",
-    keys: ["platform_name", "support_phone", "support_email"],
+    keys: ["support_phone", "support_email", "messenger_id"],
   },
   {
     title: "تنظیمات سیستم",
     keys: ["commission_percent", "cancel_window_hours", "pagination_limit"],
-  },
-  {
-    title: "محتوا",
-    keys: ["rules_text", "faq_text"],
   },
 ]
 
@@ -275,36 +264,21 @@ export default function AdminSettingsPage() {
                               {setting.description}
                             </p>
                           )}
-                          {meta?.multiline ? (
-                            <Textarea
-                              value={toPersianDigits(
-                                values[key] ?? setting.value
-                              )}
-                              onChange={(e) =>
-                                setValues((p) => ({
-                                  ...p,
-                                  [key]: toEnglishDigits(e.target.value),
-                                }))
-                              }
-                              className="mt-1 min-h-20 resize-y bg-background"
-                            />
-                          ) : (
-                            <Input
-                              value={toPersianDigits(
-                                values[key] ?? setting.value
-                              )}
-                              onChange={(e) =>
-                                setValues((p) => ({
-                                  ...p,
-                                  [key]: toEnglishDigits(e.target.value),
-                                }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSave(key)
-                              }}
-                              className="mt-1 bg-background"
-                            />
-                          )}
+                          <Input
+                            value={toPersianDigits(
+                              values[key] ?? setting.value
+                            )}
+                            onChange={(e) =>
+                              setValues((p) => ({
+                                ...p,
+                                [key]: toEnglishDigits(e.target.value),
+                              }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSave(key)
+                            }}
+                            className="mt-1 bg-background"
+                          />
                         </div>
 
                         <Button
@@ -332,6 +306,36 @@ export default function AdminSettingsPage() {
             )
           })}
         </div>
+      )}
+
+      {/* Hero images editor */}
+      {!loading &&
+        settings.length > 0 &&
+        settingsMap.has("login_hero_slides") && (
+          <HeroImagesEditor
+            settingId={settingsMap.get("login_hero_slides")!.id}
+            className="mt-8"
+          />
+        )}
+
+      {/* Rules text list editor */}
+      {!loading && settings.length > 0 && settingsMap.has("rules_text") && (
+        <ListSettingEditor
+          settingKey="rules_text"
+          label="قوانین و مقررات"
+          icon={<FileText className="size-4" />}
+          className="mt-8"
+        />
+      )}
+
+      {/* Privacy text list editor */}
+      {!loading && settings.length > 0 && settingsMap.has("privacy_text") && (
+        <ListSettingEditor
+          settingKey="privacy_text"
+          label="حریم خصوصی"
+          icon={<Shield className="size-4" />}
+          className="mt-8"
+        />
       )}
     </div>
   )

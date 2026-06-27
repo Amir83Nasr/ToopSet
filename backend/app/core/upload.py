@@ -6,7 +6,7 @@ from pathlib import Path
 BASE_UPLOAD_DIR = Path("uploads")
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".svg"}
 
 # Magic bytes signatures for MIME validation
 _MIME_SIGNATURES: dict[tuple[int, ...], str] = {
@@ -32,7 +32,7 @@ def _detect_mime(content: bytes) -> str | None:
     return None
 
 
-_ALLOWED_MIMES = {"image/jpeg", "image/png", "image/webp"}
+_ALLOWED_MIMES = {"image/jpeg", "image/png", "image/webp", "image/svg+xml"}
 
 
 def save_upload(file_content: bytes, original_filename: str, subdir: str = "courts") -> str:
@@ -40,9 +40,18 @@ def save_upload(file_content: bytes, original_filename: str, subdir: str = "cour
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError(f"Invalid file extension: {ext}")
 
-    mime = _detect_mime(file_content)
-    if mime not in _ALLOWED_MIMES:
-        raise ValueError(f"Invalid file content type: {mime or 'unknown'}")
+    # Skip MIME detection for SVG — detect by content instead
+    if ext == ".svg":
+        try:
+            decoded = file_content.decode("utf-8", errors="replace")
+            if "<svg" not in decoded and "<?xml" not in decoded:
+                raise ValueError("Invalid SVG file content")
+        except UnicodeDecodeError:
+            raise ValueError("Invalid SVG file content")
+    else:
+        mime = _detect_mime(file_content)
+        if mime not in _ALLOWED_MIMES:
+            raise ValueError(f"Invalid file content type: {mime or 'unknown'}")
 
     upload_dir = BASE_UPLOAD_DIR / subdir
     upload_dir.mkdir(parents=True, exist_ok=True)

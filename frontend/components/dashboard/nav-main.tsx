@@ -35,7 +35,6 @@ import {
   LogOut,
   LayoutDashboard,
   Calendar,
-  Clock,
   type LucideIcon,
 } from "lucide-react"
 
@@ -143,24 +142,7 @@ const navGroups: NavGroup[] = [
   {
     label: "مدیریت مجموعه",
     roles: ["manager"],
-    items: [
-      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
-      {
-        title: "رزروها",
-        url: "/dashboard/manager/bookings",
-        icon: Calendar,
-      },
-      {
-        title: "سانس‌ها",
-        url: "/dashboard/manager/slots",
-        icon: Clock,
-      },
-      {
-        title: "زمان‌بندی",
-        url: "/dashboard/manager/schedule",
-        icon: Calendar,
-      },
-    ],
+    items: [{ title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 }],
   },
 
   // ── Personal (manager) ──
@@ -255,8 +237,16 @@ export function NavMain() {
           <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
           <SidebarMenu>
             {group.items.map((item) => {
-              const isActive =
-                pathname === item.url || pathname.startsWith(item.url + "/")
+              // Dashboard root items (role-based) only match exact path,
+              // otherwise /dashboard/admin matches every admin sub-page
+              const isDashboardRoot = [
+                "/dashboard/admin",
+                "/dashboard/manager",
+                "/dashboard/user",
+              ].includes(item.url)
+              const isActive = isDashboardRoot
+                ? pathname === item.url
+                : pathname === item.url || pathname.startsWith(item.url + "/")
 
               return (
                 <SidebarMenuItem key={item.title}>

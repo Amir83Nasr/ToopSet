@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { api } from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,21 +20,13 @@ import {
   Clock,
 } from "lucide-react"
 
-const contactInfo = [
-  { icon: Phone, label: "تلفن", value: "۰۹۳۰-۶۸۵۳۳۶۳", dir: "ltr" as const },
-  {
-    icon: Mail,
-    label: "ایمیل",
-    value: "amirhossein.nasrollahi.main@gmail.com",
-  },
-  {
-    icon: MessageCircle,
-    label: "پیام‌رسان بله",
-    value: "@Amir83Nasr",
-    href: "https://ble.ir/Amir83Nasr",
-  },
-  { icon: Clock, label: "ساعت کاری", value: "همه‌روزه ۸ صبح تا ۱۲ شب" },
-]
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+interface ContactInfo {
+  support_phone?: string
+  support_email?: string
+  messenger_id?: string
+}
 
 const container = {
   hidden: {},
@@ -46,6 +39,51 @@ const item = {
 }
 
 export default function ContactPage() {
+  const [contact, setContact] = useState<ContactInfo | null>(null)
+
+  const fetchContact = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/settings/public/contact`)
+      if (res.ok) setContact(await res.json())
+    } catch {
+      // swallow
+    }
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchContact(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchContact])
+
+  const contactInfo = [
+    contact?.support_phone
+      ? {
+          icon: Phone,
+          label: "تلفن",
+          value: toPersianDigits(contact.support_phone),
+          dir: "ltr" as const,
+        }
+      : null,
+    contact?.support_email
+      ? { icon: Mail, label: "ایمیل", value: contact.support_email }
+      : null,
+    contact?.messenger_id
+      ? {
+          icon: MessageCircle,
+          label: "پیام‌رسان",
+          value: contact.messenger_id,
+          href: `https://ble.ir/${contact.messenger_id}`,
+        }
+      : null,
+    { icon: Clock, label: "ساعت کاری", value: "همه‌روزه ۸ صبح تا ۱۲ شب" },
+  ].filter(Boolean) as {
+    icon: React.ComponentType<{ className?: string }>
+    label: string
+    value: string
+    dir?: "ltr"
+    href?: string
+  }[]
+
   const [form, setForm] = useState({
     name: "",
     email: "",

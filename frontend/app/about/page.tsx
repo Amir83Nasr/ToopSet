@@ -304,12 +304,12 @@ export default function AboutPage() {
         {/* ═══ For Managers ═══ */}
         <section className="px-4 py-16">
           <div className="mx-auto max-w-5xl">
-            <div className="grid items-start gap-10 md:grid-cols-2">
+            <div className="grid items-center gap-10 md:grid-cols-2">
               <motion.div
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
-                variants={fadeLeft}
+                variants={fadeRight}
               >
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground">
                   <span className="size-1.5 rounded-full bg-primary/40" />
@@ -318,17 +318,25 @@ export default function AboutPage() {
                 <h2 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">
                   مدیریت هوشمند سالن‌ها
                 </h2>
-                <p className="mb-6 leading-relaxed text-muted-foreground">
+                <p className="leading-relaxed text-muted-foreground">
                   مدیر سالن دیگر نیازی به پاسخگویی تلفنی، ثبت دستی رزروها، یا
                   نگرانی از پر شدن دوگانه سانس‌ها ندارد. همه چیز آنلاین، خودکار
                   و شفاف است.
                 </p>
+              </motion.div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {managerBenefits.map((benefit) => {
-                    const Icon = benefit.icon
-                    return (
-                      <Card key={benefit.title} size="sm">
+              <motion.div
+                variants={staggerFast}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+                className="grid grid-cols-2 gap-4"
+              >
+                {managerBenefits.map((benefit) => {
+                  const Icon = benefit.icon
+                  return (
+                    <motion.div key={benefit.title} variants={fadeUp}>
+                      <Card className="h-full" size="sm">
                         <CardHeader className="gap-2">
                           <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Icon className="size-4" />
@@ -338,9 +346,9 @@ export default function AboutPage() {
                           </CardTitle>
                         </CardHeader>
                       </Card>
-                    )
-                  })}
-                </div>
+                    </motion.div>
+                  )
+                })}
               </motion.div>
             </div>
           </div>

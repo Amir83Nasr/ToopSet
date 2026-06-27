@@ -16,6 +16,7 @@ interface MobileDayViewProps {
   slots: TimeSlot[]
   weekStart?: Date
   onSlotDelete: (slot: TimeSlot) => void
+  onSlotEdit?: (slot: TimeSlot) => void
   onAddSlot?: (date: Date) => void
 }
 
@@ -23,6 +24,7 @@ export function MobileDayView({
   slots,
   weekStart,
   onSlotDelete,
+  onSlotEdit,
   onAddSlot,
 }: MobileDayViewProps) {
   const days = useMemo(() => getWeekDays(weekStart), [weekStart])
@@ -116,6 +118,7 @@ export function MobileDayView({
                 key={slot.id}
                 slot={slot}
                 onDelete={onSlotDelete}
+                onEdit={onSlotEdit}
                 compact
               />
             ))}

@@ -1,17 +1,31 @@
 from __future__ import annotations
 
+import json
+import uuid
 from datetime import datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.security import hash_password
-from app.core.upload import delete_upload
+from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload
 from app.models.court import Court
+from app.models.setting import Setting
 from app.models.user import User
 from app.repositories.court_repo import CourtRepo
 from app.repositories.log_repo import LogRepo
@@ -20,6 +34,15 @@ from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
 from app.schemas.court import CourtResponse
 from app.schemas.setting import SettingResponse, SettingUpdateRequest
+
+# Hero images are stored in the frontend public directory so Next.js serves them directly
+_HERO_UPLOAD_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent
+    / "frontend"
+    / "public"
+    / "uploads"
+    / "hero"
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -545,12 +568,31 @@ async def seed_default_settings(
         },
         {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
         {"key": "cancel_window_hours", "value": "24", "description": "مهلت کنسل کردن (ساعت)"},
-        {"key": "rules_text", "value": "", "description": "متن قوانین و مقررات"},
+        {
+            "key": "rules_text",
+            "value": '["پذیرش قوانین: با استفاده از سامانه توپ‌سِت، شما قوانین و مقررات زیر را می‌پذیرید. در صورت عدم موافقت با هر یک از بندها، لطفاً از سامانه استفاده نکنید.", "ثبت‌نام و حساب کاربری: کاربران موظف به ارائه اطلاعات صحیح و کامل در هنگام ثبت‌نام هستند. مسئولیت حفظ امنیت حساب کاربری و رمز عبور بر عهده کاربر می‌باشد. هر کاربر تنها مجاز به داشتن یک حساب کاربری است. در صورت مشاهده هرگونه فعالیت مشکوک، توپ‌سِت حق مسدود کردن حساب را دارد.", "رزرو و لغو: رزرو سانس پس از پرداخت هزینه قطعی می‌شود. لغو رزرو تا ۲۴ ساعت قبل از شروع سانس با کسر ۲۰٪ جریمه امکان‌پذیر است. لغو رزرو کمتر از ۲۴ ساعت قبل از شروع سانس امکان‌پذیر نیست. در صورت کنسل شدن سانس توسط مدیر مجموعه، مبلغ به طور کامل به کیف پول کاربر بازگردانده می‌شود.", "مسئولیت‌ها: توپ‌سِت تنها بستر ارتباط بین کاربران و مدیران مجموعه‌های ورزشی است. کیفیت و امکانات مجموعه‌های ورزشی بر عهده مدیران مجموعه می‌باشد. توپ‌سِت مسئولیتی در قبال خسارت‌های جسمی یا مالی حین استفاده از مجموعه‌ها ندارد.", "حریم خصوصی: اطلاعات شخصی کاربران نزد توپ‌سِت محفوظ است و بدون رضایت کاربر در اختیار شخص ثالث قرار نمی‌گیرد، مگر به حکم قانون.", "تغییرات: توپ‌سِت حق تغییر قوانین را در هر زمان محفوظ می‌دارد. تغییرات در همین صفحه اعلام خواهد شد و ادامه استفاده از سامانه به معنای پذیرش تغییرات است."]',
+            "description": "متن قوانین و مقررات (JSON array)",
+        },
         {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
         {
             "key": "pagination_limit",
             "value": "15",
             "description": "تعداد آیتم در هر صفحه برای جداول",
+        },
+        {
+            "key": "login_hero_slides",
+            "value": "[]",
+            "description": "تصاویر صفحات ورود و ثبت‌نام (JSON array of URLs)",
+        },
+        {
+            "key": "privacy_text",
+            "value": '["اطلاعاتی که جمع‌آوری می‌کنیم: ما اطلاعات زیر را برای ارائه خدمات بهتر جمع‌آوری می‌کنیم: اطلاعات هویتی (نام و نام خانوادگی، شماره تلفن همراه، ایمیل)، اطلاعات مربوط به رزرو (تاریخ، ساعت، نوع ورزش و مکان)، اطلاعات مربوط به تراکنش‌های مالی", "نحوه استفاده از اطلاعات: اطلاعات شما برای اهداف زیر استفاده می‌شود: ایجاد و مدیریت حساب کاربری، پردازش رزروها و تراکنش‌ها، ارسال اعلان‌های مربوط به رزروها، بهبود خدمات و تجربه کاربری، پشتیبانی و پاسخگویی به سوالات", "اشتراک‌گذاری اطلاعات: توپ‌سِت اطلاعات شخصی شما را با اشخاص ثالث به اشتراک نمی‌گذارد، مگر در موارد زیر: با مدیران مجموعه‌های ورزشی برای انجام رزرو، با درخواست مراجع قانونی و قضایی، برای جلوگیری از تقلب یا سوءاستفاده", "امنیت اطلاعات: ما از پروتکل‌های امنیتی استاندارد برای محافظت از اطلاعات شما استفاده می‌کنیم. تمام تراکنش‌های مالی از طریق درگاه‌های امن انجام می‌شود.", "حقوق شما: شما حق دارید در هر زمان اطلاعات خود را مشاهده و ویرایش کنید، درخواست حذف حساب کاربری خود را دهید، از دریافت اعلان‌ها انصراف دهید و به اطلاعات خود اعتراض کنید.", "تماس با ما: برای هرگونه سوال درباره حریم خصوصی، می‌توانید از طریق صفحه تماس با ما یا ایمیل privacy@toopset.com با ما در ارتباط باشید."]',
+            "description": "متن حریم خصوصی (JSON array)",
+        },
+        {
+            "key": "messenger_id",
+            "value": "toopset_support",
+            "description": "شناسه پیامرسان برای پشتیبانی",
         },
     ]
     count = 0
@@ -565,6 +607,134 @@ async def seed_default_settings(
     await invalidate_admin_list_cache("settings")
     await log_action(db, _.id, "settings_seeded", f"مقداردهی تنظیمات | {count} تنظیم جدید اضافه شد")
     return {"seeded": count}
+
+
+# ── Hero image management ──────────────────────────────────────────────
+
+
+_HERO_SETTING_KEY = "login_hero_slides"
+
+
+def _save_hero_image(content: bytes, original_filename: str) -> str:
+    """Save a hero image to frontend/public/uploads/hero/ and return the relative URL."""
+    ext = Path(original_filename).suffix.lower()
+    _HERO_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = _HERO_UPLOAD_DIR / filename
+    filepath.write_bytes(content)
+    return f"/uploads/hero/{filename}"
+
+
+def _delete_hero_image(relative_url: str | None) -> bool:
+    """Delete a hero image by its URL (e.g. /uploads/hero/uuid.svg)."""
+    if not relative_url:
+        return False
+    try:
+        # Strip leading /uploads/hero/ to get just the filename
+        path = relative_url
+        if "://" in path:
+            from urllib.parse import urlparse
+
+            path = urlparse(path).path
+        rel = path.lstrip("/")
+        if rel.startswith("uploads/hero/"):
+            rel = rel[len("uploads/hero/") :]
+        filepath = _HERO_UPLOAD_DIR / rel
+        if filepath.exists() and filepath.is_file():
+            filepath.unlink()
+            return True
+        return False
+    except OSError:
+        return False
+
+
+@router.post("/hero-images/upload", summary="Upload hero image for auth pages")
+async def upload_hero_image(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Upload a hero image for login/register pages and append to the setting."""
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="حجم فایل بیش از حد مجاز است")
+
+    ext = Path(file.filename or "image.jpg").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"نوع فایل {ext} مجاز نیست")
+
+    relative_url = _save_hero_image(content, file.filename or "image.jpg")
+
+    # Read or create the setting
+    setting = (
+        await db.execute(select(Setting).where(Setting.key == _HERO_SETTING_KEY))
+    ).scalar_one_or_none()
+
+    if not setting:
+        setting = Setting(
+            key=_HERO_SETTING_KEY,
+            value=json.dumps([relative_url]),
+            description="تصاویر صفحات ورود و ثبت‌نام",
+        )
+        db.add(setting)
+    else:
+        try:
+            images = json.loads(setting.value)
+            if not isinstance(images, list):
+                images = []
+        except (json.JSONDecodeError, ValueError):
+            images = []
+        images.append(relative_url)
+        setting.value = json.dumps(images)
+
+    await db.commit()
+    await db.refresh(setting)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("settings")
+    await log_action(
+        db,
+        _.id,
+        "hero_image_uploaded",
+        f"آپلود عکس | عکس صفحه ورود/ثبت‌نام ذخیره شد: {relative_url}",
+    )
+    return {"urls": json.loads(setting.value)}
+
+
+@router.delete("/settings/{setting_id}/hero-images/{index}", summary="Delete a hero image by index")
+async def delete_hero_image(
+    setting_id: int,
+    index: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Remove a hero image from the list and delete the underlying file."""
+    setting = await db.get(Setting, setting_id)
+    if not setting:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="تنظیمات یافت نشد")
+
+    try:
+        images = json.loads(setting.value)
+        if not isinstance(images, list) or index >= len(images):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="تصویر یافت نشد")
+        removed = images.pop(index)
+        setting.value = json.dumps(images)
+        _delete_hero_image(removed)
+        await db.commit()
+        await db.refresh(setting)
+    except (json.JSONDecodeError, ValueError):
+        raise HTTPException(status_code=400, detail="فرمت داده نامعتبر است")
+
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("settings")
+    await log_action(
+        db,
+        _.id,
+        "hero_image_deleted",
+        f"حذف عکس | تصویر صفحه ورود/ثبت‌نام حذف شد: {removed}",
+    )
+    return {"urls": json.loads(setting.value)}
 
 
 class SeedAdminRequest(BaseModel):

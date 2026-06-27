@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Frown } from "lucide-react"
+import { Frown, RefreshCw } from "lucide-react"
 
 export default function NotFound() {
   return (
@@ -19,7 +19,8 @@ export default function NotFound() {
         <p className="mb-8 text-sm text-muted-foreground">
           صفحه‌ای که به دنبال آن هستید وجود ندارد یا حذف شده است.
         </p>
-        <Button asChild size="lg">
+        <Button asChild>
+          <RefreshCw className="ml-1.5 size-4" />
           <Link href="/">بازگشت به خانه</Link>
         </Button>
       </div>

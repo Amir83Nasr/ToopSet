@@ -13,6 +13,15 @@ Conversation and thinking output MUST be in **Persian (Farsi)**, including plann
 analysis, and all narrative text. The only English allowed is in code identifiers,
 commit messages (per commit conventions), and file names.
 
+## UI Numbers
+
+All numbers displayed in the user interface MUST be in **Persian digits** (e.g.
+`۱۲۳۴۵` instead of `12345`). Use the `toPersianDigits()` utility from
+`@/lib/utils` for every numeric value shown to users: prices, phone numbers,
+dates, counts, pagination, ratings, etc. The only exceptions are raw data in
+`<input>` fields and LTR text that needs English digits for consistency (e.g.
+time format `HH:MM`).
+
 ## Context Files (`context/`)
 
 | File                                 | Content                                                           |

@@ -1,11 +1,11 @@
 "use client"
 
 import { Suspense } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginForm } from "@/components/auth/login-form"
+import { AuthHeroSlides } from "@/components/auth/auth-hero-slides"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 
@@ -24,12 +24,7 @@ function LoginPageContent() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="relative hidden overflow-hidden rounded-3xl bg-muted lg:m-4 lg:block">
-        <Image
-          src="/images/futsal.svg"
-          alt="futsal"
-          fill
-          className="object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+        <AuthHeroSlides />
       </div>
       <div className="relative flex flex-col items-center justify-center p-6 md:p-10">
         <div className="absolute inset-e-6 top-6">

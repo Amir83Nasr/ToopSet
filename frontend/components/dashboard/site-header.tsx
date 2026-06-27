@@ -53,9 +53,14 @@ export function SiteHeader() {
   const pathname = usePathname()
   const segments = pathname.split("/").filter(Boolean)
 
-  const breadcrumbs = segments.map((seg, i) => ({
+  // Skip the role segment (admin/manager/user at index 1) when there are deeper pages
+  // e.g. /dashboard/admin/bookings → داشبورد > رزروها  (not داشبورد > مدیریت سیستم > رزروها)
+  const crumbs =
+    segments.length > 2 ? segments.filter((_, i) => i !== 1) : segments
+
+  const breadcrumbs = crumbs.map((seg, i) => ({
     label: getLabel(seg),
-    href: "/" + segments.slice(0, i + 1).join("/"),
+    href: "/" + crumbs.slice(0, i + 1).join("/"),
   }))
 
   return (

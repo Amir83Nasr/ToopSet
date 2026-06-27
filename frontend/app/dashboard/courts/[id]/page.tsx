@@ -1,29 +1,26 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useForm, Controller, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { courtUpdateSchema, type CourtUpdateInput } from "@/lib/validations"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, toLocalDateStr } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,27 +31,72 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { TimePicker } from "@/components/ui/time-picker"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PersianInput } from "@/components/ui/persian-input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { BOOKING_STATUS_LABELS, BOOKING_STATUS_STYLES } from "@/lib/constants"
 import type { DateRange } from "@daypicker/react"
 import dynamic from "next/dynamic"
 import { AmenityCheckboxes } from "@/components/courts/amenity-checkboxes"
 import { ImageUpload } from "@/components/courts/image-upload"
 import { type CourtData, type TimeSlot } from "@/components/courts/court-shared"
-import { SlotCalendar } from "@/components/courts/slot-calendar"
+import { WeeklyGrid } from "@/components/dashboard/schedule/weekly-grid"
+import { BulkGenerator } from "@/components/dashboard/schedule/bulk-generator"
+import { QuickSlotForm } from "@/components/dashboard/schedule/quick-slot-form"
+import {
+  getWeekDays,
+  formatPersianDate,
+} from "@/components/dashboard/schedule/utils"
+import type { TimeSlotTemplate } from "@/components/dashboard/schedule/types"
 import {
   Building2,
   MapPin,
-  CalendarPlus,
   Loader2,
   Eye,
   CalendarDays,
   ArrowRight,
   Save,
+  ChevronRight,
+  ChevronLeft,
+  RefreshCw,
+  Trash2,
+  Plus,
+  CalendarCheck,
+  XCircle,
+  Search,
 } from "lucide-react"
 
 const LocationPicker = dynamic(
@@ -72,6 +114,35 @@ const sportTypes = [
   { value: "handball", label: "هندبال" },
 ]
 
+interface ManagerBooking {
+  id: number
+  user_id: number
+  slot_id: number
+  status: string
+  price_paid: number
+  penalty_amount: number | null
+  participants_count: number
+  created_at: string
+  updated_at: string
+  expires_at: string | null
+  court_name: string
+  court_address: string
+  user_name: string
+  slot_start_time: string | null
+  slot_end_time: string | null
+}
+
+function formatBookingDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("fa-IR")
+}
+
+function formatBookingTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
 export default function DashboardCourtEditPage() {
   const params = useParams()
   const router = useRouter()
@@ -85,24 +156,48 @@ export default function DashboardCourtEditPage() {
 
   // Slot management state
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [createCount, setCreateCount] = useState(0)
-  const [createTotal, setCreateTotal] = useState(0)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [startTime, setStartTime] = useState("")
-  const [endTime, setEndTime] = useState("")
-  const [selectedDays, setSelectedDays] = useState<boolean[]>([
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-  ])
+
+  // Schedule tab state
+  const [weekStart, setWeekStart] = useState<Date>(() => {
+    const today = new Date()
+    const daysSinceSaturday = (today.getDay() + 1) % 7
+    const saturday = new Date(today)
+    saturday.setDate(today.getDate() - daysSinceSaturday)
+    return saturday
+  })
+  const [showBulkGen, setShowBulkGen] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [slotToDelete, setSlotToDelete] = useState<TimeSlot | null>(null)
+  const [quickSlotDate, setQuickSlotDate] = useState<Date | null>(null)
+  const [quickSlotSubmitting, setQuickSlotSubmitting] = useState(false)
+
+  // Slot edit state
+  const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null)
+  const [editStartTime, setEditStartTime] = useState("")
+  const [editEndTime, setEditEndTime] = useState("")
+  const [editPrice, setEditPrice] = useState("")
+  const [editLoading, setEditLoading] = useState(false)
+
+  // Bookings state
+  const [bookings, setBookings] = useState<ManagerBooking[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [bookingsPage, setBookingsPage] = useState(0)
+  const [bookingsTotal, setBookingsTotal] = useState(0)
+  const [bookingsStatusFilter, setBookingsStatusFilter] = useState("all")
+  const [cancellingBooking, setCancellingBooking] =
+    useState<ManagerBooking | null>(null)
+  const [cancellingLoading, setCancellingLoading] = useState(false)
+
+  // Week helpers
+  const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart])
+  const weekLabel = useMemo(() => {
+    if (weekDays.length === 0) return ""
+    const from = formatPersianDate(weekDays[0])
+    const to = formatPersianDate(weekDays[6])
+    return `${from} — ${to}`
+  }, [weekDays])
 
   // Edit form state
   const [courtImages, setCourtImages] = useState<string[]>([])
@@ -191,62 +286,232 @@ export default function DashboardCourtEditPage() {
 
   // ── Slot management ──
 
-  async function handleCreateSlot(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!dateRange?.from) {
-      toast.error("لطفاً بازه تاریخ را انتخاب کنید")
-      return
-    }
-    if (!selectedDays.some(Boolean)) {
-      toast.error("حداقل یک روز از هفته را انتخاب کنید")
-      return
-    }
-    if (!startTime || !endTime) {
-      toast.error("لطفاً ساعت شروع و پایان را وارد کنید")
-      return
-    }
-    setCreating(true)
-    const form = new FormData(e.currentTarget)
-    const price = form.get("base_price") as string
-    const dates: string[] = []
-    const from = new Date(dateRange.from)
-    const to = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from)
-    const current = new Date(from)
-    while (current <= to) {
-      // Filter by selected days of week
-      const persianDayIndex = (current.getDay() + 1) % 7 // 0=Sat … 6=Fri
-      if (selectedDays[persianDayIndex]) {
-        dates.push(current.toLocaleDateString("en-CA"))
-      }
-      current.setDate(current.getDate() + 1)
-    }
-    setCreateCount(0)
-    setCreateTotal(dates.length)
-    let successCount = 0
-    for (let i = 0; i < dates.length; i++) {
-      try {
-        await api(`/api/v1/courts/${courtId}/slots`, {
-          method: "POST",
-          body: JSON.stringify({
-            date: dates[i],
-            start_time: startTime,
-            end_time: endTime,
-            base_price: Number(price.replace(/,/g, "")),
-          }),
-        })
-        successCount++
-      } catch {}
-      setCreateCount(i + 1)
-    }
-    if (successCount > 0) {
-      toast.success(`${toPersianDigits(successCount)} زمان با موفقیت ایجاد شد`)
+  function goNextWeek() {
+    const next = new Date(weekStart)
+    next.setDate(next.getDate() + 7)
+    setWeekStart(next)
+  }
+
+  function goPrevWeek() {
+    const prev = new Date(weekStart)
+    prev.setDate(prev.getDate() - 7)
+    setWeekStart(prev)
+  }
+
+  function goThisWeek() {
+    const today = new Date()
+    const daysSinceSaturday = (today.getDay() + 1) % 7
+    const saturday = new Date(today)
+    saturday.setDate(today.getDate() - daysSinceSaturday)
+    setWeekStart(saturday)
+  }
+
+  async function confirmDeleteSlot() {
+    if (!slotToDelete) return
+    try {
+      await api(`/api/v1/courts/${courtId}/slots/${slotToDelete.id}`, {
+        method: "DELETE",
+      })
+      toast.success("زمان حذف شد")
+      setSlotToDelete(null)
       fetchData()
-    } else {
-      toast.error("هیچ زمانی ایجاد نشد")
+    } catch {
+      toast.error("خطا در حذف زمان")
     }
-    setCreating(false)
-    setDialogOpen(false)
-    setDateRange(undefined)
+  }
+
+  async function handleBulkGenerate(payload: {
+    date_range: DateRange
+    days: boolean[]
+    templates: TimeSlotTemplate[]
+  }) {
+    const selectedDayIndices = payload.days
+      .map((checked, i) => (checked ? i : -1))
+      .filter((i) => i !== -1)
+
+    if (selectedDayIndices.length === 0) {
+      toast.error("حداقل یک روز هفته را انتخاب کنید")
+      return
+    }
+
+    const validTemplates = payload.templates.filter(
+      (t) => t.start_time && t.end_time && t.base_price
+    )
+    if (validTemplates.length === 0) {
+      toast.error("حداقل یک بازه زمانی وارد کنید")
+      return
+    }
+
+    if (!payload.date_range?.from || !payload.date_range?.to) {
+      toast.error("بازه تاریخ را مشخص کنید")
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const res = await api<{
+        created: number
+        skipped: number
+        total: number
+      }>(`/api/v1/courts/${courtId}/slots/generate`, {
+        method: "POST",
+        body: JSON.stringify({
+          date_from: toLocalDateStr(payload.date_range.from),
+          date_to: toLocalDateStr(payload.date_range.to),
+          days_of_week: selectedDayIndices,
+          templates: validTemplates.map((t) => ({
+            start_time: t.start_time,
+            end_time: t.end_time,
+            base_price: parseFloat(t.base_price),
+          })),
+        }),
+      })
+      if (res.created > 0) {
+        toast.success(`${res.created} زمان با موفقیت ایجاد شد`)
+        if (res.skipped > 0) {
+          toast.info(`${res.skipped} زمان تکراری نادیده گرفته شد`)
+        }
+      } else {
+        toast.info("زمان جدیدی ایجاد نشد (تکرار یا تداخل)")
+      }
+      setShowBulkGen(false)
+      fetchData()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ایجاد زمان‌ها"
+      toast.error(msg)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleQuickCreate(data: {
+    start_time: string
+    end_time: string
+    base_price: number
+  }) {
+    if (!quickSlotDate) return
+    setQuickSlotSubmitting(true)
+    try {
+      await api(`/api/v1/courts/${courtId}/slots`, {
+        method: "POST",
+        body: JSON.stringify({
+          start_time: `${toLocalDateStr(quickSlotDate)}T${data.start_time}:00`,
+          end_time: `${toLocalDateStr(quickSlotDate)}T${data.end_time}:00`,
+          base_price: data.base_price,
+        }),
+      })
+      toast.success("سانس با موفقیت ایجاد شد")
+      setQuickSlotDate(null)
+      fetchData()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ایجاد سانس"
+      toast.error(msg)
+    } finally {
+      setQuickSlotSubmitting(false)
+    }
+  }
+
+  // ── Slot edit ──
+
+  function handleEditSlot(slot: TimeSlot) {
+    setEditingSlot(slot)
+    // Convert ISO time strings to HH:MM format for the inputs
+    const start = slot.start_time.split("T")[1]?.slice(0, 5) || ""
+    const end = slot.end_time.split("T")[1]?.slice(0, 5) || ""
+    setEditStartTime(start)
+    setEditEndTime(end)
+    setEditPrice(String(slot.base_price))
+  }
+
+  async function handleSaveEdit() {
+    if (!editingSlot) return
+    setEditLoading(true)
+    try {
+      await api(`/api/v1/courts/${courtId}/slots/${editingSlot.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          start_time: editStartTime,
+          end_time: editEndTime,
+          base_price: parseFloat(editPrice),
+        }),
+      })
+      toast.success("سانس با موفقیت ویرایش شد")
+      setEditingSlot(null)
+      fetchData()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ویرایش سانس"
+      toast.error(msg)
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  // ── Bookings ──
+
+  const fetchBookings = useCallback(async () => {
+    if (!canManage) return
+    setBookingsLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.set("skip", String(bookingsPage * 20))
+      params.set("limit", "20")
+      params.set("court_id", String(courtId))
+      if (bookingsStatusFilter !== "all")
+        params.set("status", bookingsStatusFilter)
+      const res = await api<{ bookings: ManagerBooking[]; total: number }>(
+        `/api/v1/manager/bookings?${params}`
+      )
+      setBookings(res.bookings)
+      setBookingsTotal(res.total)
+    } catch {
+      toast.error("خطا در دریافت رزروها")
+    } finally {
+      setBookingsLoading(false)
+    }
+  }, [bookingsPage, courtId, bookingsStatusFilter, canManage])
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchBookings(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchBookings])
+
+  async function handleCancelBooking(bookingId: number) {
+    setCancellingLoading(true)
+    try {
+      await api(`/api/v1/bookings/${bookingId}/cancel`, { method: "POST" })
+      toast.success("رزرو لغو شد")
+      setCancellingBooking(null)
+      fetchBookings()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
+      toast.error(msg)
+    } finally {
+      setCancellingLoading(false)
+    }
+  }
+
+  async function handleDeletePastSlots() {
+    const now = new Date()
+    const pastSlots = allSlots.filter(
+      (s) => new Date(s.end_time) < now && !s.is_reserved
+    )
+    if (pastSlots.length === 0) {
+      toast.info("سانس گذشته‌ای برای حذف وجود ندارد")
+      return
+    }
+    let deleted = 0
+    for (const slot of pastSlots) {
+      try {
+        await api(`/api/v1/courts/${courtId}/slots/${slot.id}`, {
+          method: "DELETE",
+        })
+        deleted++
+      } catch {
+        // skip
+      }
+    }
+    toast.success(`${deleted} سانس گذشته حذف شد`)
+    fetchData()
   }
 
   const handleDelete = useCallback(async () => {
@@ -261,21 +526,6 @@ export default function DashboardCourtEditPage() {
       setDeleting(false)
     }
   }, [courtId, router])
-
-  const handleDeleteSlot = useCallback(
-    async (slot: TimeSlot) => {
-      try {
-        await api(`/api/v1/courts/${courtId}/slots/${slot.id}`, {
-          method: "DELETE",
-        })
-        toast.success("زمان حذف شد")
-        fetchData()
-      } catch {
-        toast.error("خطا در حذف زمان")
-      }
-    },
-    [courtId, fetchData]
-  )
 
   // ── Loading / 404 ──
 
@@ -352,6 +602,15 @@ export default function DashboardCourtEditPage() {
             <CalendarDays className="size-5" />
             زمان‌بندی
           </TabsTrigger>
+          {canManage && (
+            <TabsTrigger
+              value="bookings"
+              className="gap-2.5 px-6 py-3 text-base"
+            >
+              <CalendarCheck className="size-5" />
+              رزروها
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ═══ مشخصات Tab ═══ */}
@@ -578,198 +837,392 @@ export default function DashboardCourtEditPage() {
 
         {/* ═══ Scheduling Tab ═══ */}
         <TabsContent value="schedule" className="mt-8 min-h-125 space-y-4">
-          {/* Add button */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              مشاهده و مدیریت سانس‌ها در تقویم هفتگی
-            </p>
-            {canManage && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <CalendarPlus className="ml-1.5 size-4" />
-                    افزودن سانس
+          {/* Week navigation */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={goPrevWeek}>
+                <ChevronRight className="size-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={goThisWeek}>
+                امروز
+              </Button>
+              <Button variant="outline" size="sm" onClick={goNextWeek}>
+                <ChevronLeft className="size-4" />
+              </Button>
+            </div>
+            <div className="text-sm font-medium">{weekLabel}</div>
+            <div className="flex items-center gap-2">
+              {canManage && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkGen(true)}
+                  >
+                    <Plus className="ml-1 size-3.5" />
+                    ایجاد گروهی
                   </Button>
-                </DialogTrigger>
-                <DialogContent
-                  onOpenAutoFocus={() => {
-                    setStartTime("")
-                    setEndTime("")
-                  }}
-                >
-                  <DialogHeader>
-                    <DialogTitle>افزودن سانس جدید</DialogTitle>
-                    <DialogDescription>
-                      برای مجموعه {court.name} سانس جدید ثبت کنید
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleCreateSlot} className="space-y-5">
-                    {/* ── Row 1: Date + Time ── */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label>بازه تاریخ</Label>
-                        <DateRangePicker
-                          value={dateRange}
-                          onChange={setDateRange}
-                          placeholder="از تاریخ تا تاریخ"
-                        />
-                        {dateRange?.from && dateRange?.to && (
-                          <p className="text-[11px] leading-tight text-muted-foreground/70">
-                            {dateRange.from.toLocaleDateString("fa-IR")} تا{" "}
-                            {dateRange.to.toLocaleDateString("fa-IR")}
-                            {dateRange.from.toLocaleDateString("en-CA") !==
-                              dateRange.to.toLocaleDateString("en-CA") &&
-                              ` (${toPersianDigits(
-                                Math.ceil(
-                                  (dateRange.to.getTime() -
-                                    dateRange.from.getTime()) /
-                                    (1000 * 60 * 60 * 24) +
-                                    1
-                                )
-                              )} روز)`}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label>ساعت</Label>
-                        <div className="flex items-center gap-2">
-                          <TimePicker
-                            value={startTime}
-                            onChange={setStartTime}
-                            placeholder="شروع"
-                          />
-                          <span className="shrink-0 text-xs text-muted-foreground/50">
-                            تا
-                          </span>
-                          <TimePicker
-                            value={endTime}
-                            onChange={setEndTime}
-                            placeholder="پایان"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="h-px bg-border/60" />
-
-                    {/* ── Row 2: Days of week ── */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>روزهای هفته</Label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedDays([
-                                true,
-                                true,
-                                true,
-                                true,
-                                true,
-                                true,
-                                true,
-                              ])
-                            }
-                            className="text-xs font-medium text-primary/70 transition-colors hover:text-primary"
-                          >
-                            انتخاب همه
-                          </button>
-                          <span className="text-muted-foreground/20">·</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedDays([
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                              ])
-                            }
-                            className="text-xs font-medium text-muted-foreground/50 transition-colors hover:text-muted-foreground/80"
-                          >
-                            پاک کردن
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          "شنبه",
-                          "یکشنبه",
-                          "دوشنبه",
-                          "سه‌شنبه",
-                          "چهارشنبه",
-                          "پنجشنبه",
-                          "جمعه",
-                        ].map((name, i) => (
-                          <button
-                            key={name}
-                            type="button"
-                            onClick={() => {
-                              setSelectedDays((prev) => {
-                                const next = [...prev]
-                                next[i] = !next[i]
-                                return next
-                              })
-                            }}
-                            className={`rounded-full px-3 py-1.5 text-xs leading-none font-medium transition-all ${
-                              selectedDays[i]
-                                ? "bg-primary text-primary-foreground shadow-xs"
-                                : "bg-muted/50 text-muted-foreground/60 hover:bg-muted/80"
-                            }`}
-                          >
-                            {name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="h-px bg-border/60" />
-
-                    {/* ── Row 3: Price ── */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="base_price">قیمت هر سانس (تومان)</Label>
-                      <PersianInput
-                        id="base_price"
-                        name="base_price"
-                        min="0"
-                        placeholder="۵۰۰۰۰۰"
-                        required
-                      />
-                    </div>
-
-                    <DialogFooter className="pt-2">
-                      <Button type="submit" disabled={creating}>
-                        {creating ? (
-                          <>
-                            <Loader2 className="ml-1.5 size-4 animate-spin" />
-                            {toPersianDigits(createCount)}/
-                            {toPersianDigits(createTotal)}
-                          </>
-                        ) : (
-                          <>
-                            <CalendarPlus className="ml-1.5 size-4" />
-                            ثبت سانس‌ها
-                          </>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeletePastSlots}
+                  >
+                    <Trash2 className="ml-1 size-3.5 text-destructive" />
+                    پاکسازی گذشته
+                  </Button>
+                </>
+              )}
+              <Button variant="ghost" size="icon" onClick={() => fetchData()}>
+                <RefreshCw
+                  className={`size-4 ${loading ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </div>
           </div>
 
-          {/* Weekly calendar */}
-          <SlotCalendar
-            slots={allSlots}
-            loading={false}
-            canManage={canManage}
-            onSlotDelete={handleDeleteSlot}
+          {/* Quick slot form */}
+          {quickSlotDate && (
+            <QuickSlotForm
+              date={quickSlotDate}
+              onClose={() => setQuickSlotDate(null)}
+              onSubmit={handleQuickCreate}
+              submitting={quickSlotSubmitting}
+            />
+          )}
+
+          {/* Weekly grid */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>جدول هفتگی</CardTitle>
+              <CardDescription>
+                {allSlots.length > 0
+                  ? `${allSlots.length} زمان ثبت شده`
+                  : "این مجموعه هنوز زمانی ندارد"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WeeklyGrid
+                slots={allSlots}
+                weekStart={weekStart}
+                onSlotDelete={setSlotToDelete}
+                onSlotEdit={handleEditSlot}
+                onCellClick={(day) => setQuickSlotDate(day)}
+                onAddSlot={(day) => setQuickSlotDate(day)}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Bulk generator */}
+          <BulkGenerator
+            open={showBulkGen}
+            onOpenChange={setShowBulkGen}
+            onGenerate={handleBulkGenerate}
+            generating={generating}
+            currentSlots={allSlots}
           />
+
+          {/* Slot delete confirmation */}
+          <AlertDialog
+            open={!!slotToDelete}
+            onOpenChange={(open) => {
+              if (!open) setSlotToDelete(null)
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>حذف زمان</AlertDialogTitle>
+                <AlertDialogDescription>
+                  آیا از حذف این زمان اطمینان دارید؟ این عمل قابل بازگشت نیست.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeleteSlot}>
+                  حذف
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Slot edit dialog */}
+          <Dialog
+            open={!!editingSlot}
+            onOpenChange={(open) => {
+              if (!open) setEditingSlot(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>ویرایش سانس</DialogTitle>
+                <DialogDescription>
+                  زمان و قیمت سانس را ویرایش کنید
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-start">زمان شروع</Label>
+                    <Input
+                      id="edit-start"
+                      type="time"
+                      value={editStartTime}
+                      onChange={(e) => setEditStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-end">زمان پایان</Label>
+                    <Input
+                      id="edit-end"
+                      type="time"
+                      value={editEndTime}
+                      onChange={(e) => setEditEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-price">قیمت (تومان)</Label>
+                  <PersianInput
+                    id="edit-price"
+                    placeholder="مثلاً ۵۰۰,۰۰۰"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingSlot(null)}>
+                  انصراف
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={
+                    editLoading || !editStartTime || !editEndTime || !editPrice
+                  }
+                >
+                  {editLoading ? (
+                    <>
+                      <Loader2 className="ml-1 size-4 animate-spin" />
+                      در حال ذخیره...
+                    </>
+                  ) : (
+                    "ذخیره"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* ═══ رزروها Tab ═══ */}
+        <TabsContent value="bookings" className="mt-8 min-h-125">
+          {bookingsLoading ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>کاربر</TableHead>
+                  <TableHead>تاریخ</TableHead>
+                  <TableHead>ساعت</TableHead>
+                  <TableHead>مبلغ</TableHead>
+                  <TableHead>وضعیت</TableHead>
+                  <TableHead className="text-right">عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : bookings.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="mb-4 rounded-full bg-muted p-4">
+                  <CalendarCheck className="size-10 text-muted-foreground" />
+                </div>
+                <h3 className="mb-1 text-lg font-semibold">
+                  هیچ رزروی یافت نشد
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  هنوز رزروی برای این مجموعه ثبت نشده است
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <Select
+                  value={bookingsStatusFilter}
+                  onValueChange={(v) => {
+                    setBookingsStatusFilter(v)
+                    setBookingsPage(0)
+                  }}
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="همه وضعیت‌ها" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectGroup>
+                      <SelectLabel>وضعیت رزرو</SelectLabel>
+                      <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                      <SelectItem value="pending_payment">
+                        در انتظار پرداخت
+                      </SelectItem>
+                      <SelectItem value="confirmed">تایید شده</SelectItem>
+                      <SelectItem value="cancelled">لغو شده</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchBookings()}
+                >
+                  <RefreshCw className="ml-1.5 size-4" />
+                  بروزرسانی
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-32">کاربر</TableHead>
+                    <TableHead className="w-24">تاریخ</TableHead>
+                    <TableHead className="w-28">ساعت</TableHead>
+                    <TableHead className="w-28">مبلغ</TableHead>
+                    <TableHead className="w-20">وضعیت</TableHead>
+                    <TableHead className="w-32 text-right">عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bookings.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="max-w-32 truncate">
+                        {b.user_name}
+                      </TableCell>
+                      <TableCell>
+                        {b.slot_start_time
+                          ? formatBookingDate(b.slot_start_time)
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {b.slot_start_time && b.slot_end_time
+                          ? `${formatBookingTime(b.slot_start_time)} - ${formatBookingTime(b.slot_end_time)}`
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {new Intl.NumberFormat("fa-IR").format(b.price_paid)}{" "}
+                        تومان
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${BOOKING_STATUS_STYLES[b.status] || ""}`}
+                        >
+                          {BOOKING_STATUS_LABELS[b.status]?.label || b.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {b.status !== "cancelled" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCancellingBooking(b)}
+                          >
+                            <XCircle className="ml-1 size-4" />
+                            لغو
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {Math.ceil(bookingsTotal / 20) > 1 && (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    صفحه {toPersianDigits(bookingsPage + 1)} از{" "}
+                    {toPersianDigits(Math.ceil(bookingsTotal / 20))}
+                  </p>
+                  <Pagination className="mx-0 w-auto">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          text="قبلی"
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setBookingsPage((p) => p - 1)
+                          }}
+                          className={
+                            bookingsPage === 0
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
+                        />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationNext
+                          text="بعدی"
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setBookingsPage((p) => p + 1)
+                          }}
+                          className={
+                            bookingsPage >= Math.ceil(bookingsTotal / 20) - 1
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Booking cancel dialog */}
+          <AlertDialog
+            open={!!cancellingBooking}
+            onOpenChange={(o) => {
+              if (!o) setCancellingBooking(null)
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
+                <AlertDialogDescription>
+                  آیا از لغو این رزرو توسط {cancellingBooking?.user_name} مطمئن
+                  هستید؟
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={cancellingLoading}
+                  onClick={() =>
+                    cancellingBooking &&
+                    handleCancelBooking(cancellingBooking.id)
+                  }
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  {cancellingLoading ? (
+                    <>
+                      <Loader2 className="ml-1 size-4 animate-spin" /> در حال
+                      لغو...
+                    </>
+                  ) : (
+                    "تأیید لغو"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </TabsContent>
       </Tabs>
 
