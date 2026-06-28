@@ -33,7 +33,7 @@ function removeNeshanWatermark(el: HTMLElement, _map: any) {
   function strip() {
     // Remove Neshan-branded links anywhere in the map container
     el.querySelectorAll(
-      'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"], a[href*="openstreetmap"]'
+      'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"]'
     ).forEach((a) => a.remove())
     // Remove Neshan-branded images
     el.querySelectorAll(
@@ -92,6 +92,41 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
   })
 
   removeNeshanWatermark(el, map)
+
+  // Neshan tiles may return 204 (no content) if the API key is invalid or
+  // expired. Monitor for tile failures and fall back to a styled tile layer.
+  let fallbackAdded = false
+  let checkCount = 0
+  const checkInterval = setInterval(() => {
+    checkCount++
+    const tiles = el.querySelectorAll("img.leaflet-tile")
+    const loaded = Array.from(tiles).filter(
+      (t) => t instanceof HTMLImageElement && t.complete && t.naturalWidth > 0
+    )
+    // If at least one tile loaded successfully, Neshan works — stop checking
+    if (loaded.length > 0) {
+      clearInterval(checkInterval)
+      return
+    }
+    // After ~3s (6 × 500ms) with no loaded tiles, declare Neshan tiles failed
+    if (checkCount >= 6) {
+      clearInterval(checkInterval)
+      if (!fallbackAdded) {
+        fallbackAdded = true
+        L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          {
+            maxZoom: 20,
+            minZoom: 10,
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          }
+        ).addTo(map)
+      }
+    }
+  }, 500)
+
+  map.once("unload", () => clearInterval(checkInterval))
 
   return map
 }

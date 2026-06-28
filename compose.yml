@@ -1,17 +1,17 @@
 services:
-  frontend:
-    image: toopset-frontend:latest
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: toopset-frontend
-    restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-    depends_on:
-      - backend
+  # frontend:
+  #   image: toopset-frontend:latest
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: toopset-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${FRONTEND_PORT:-3000}:3000"
+  #   environment:
+  #     NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+  #   depends_on:
+  #     - backend
 
   postgres:
     image: postgres:17-alpine
@@ -49,32 +49,32 @@ services:
       timeout: 3s
       retries: 5
 
-  backend:
-    image: toopset-backend:latest
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: toopset-backend
-    restart: unless-stopped
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    env_file:
-      - backend/.env
-    environment:
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-    volumes:
-      - ./backend/app:/app/app
-      - ./backend/migrations:/app/migrations
-      - ./backend/scripts:/app/scripts
-      - ./logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+  # backend:
+  #   image: toopset-backend:latest
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: toopset-backend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${BACKEND_PORT:-8000}:8000"
+  #   env_file:
+  #     - backend/.env
+  #   environment:
+  #     POSTGRES_HOST: postgres
+  #     REDIS_HOST: redis
+  #   volumes:
+  #     - ./backend/app:/app/app
+  #     - ./backend/migrations:/app/migrations
+  #     - ./backend/scripts:/app/scripts
+  #     - ./logs:/app/logs
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   command: >
+  #     sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   postgres_data:

@@ -28,8 +28,8 @@ const sportLabels: Record<string, string> = {
 }
 
 // Track overlay markers without extending the Marker type
-let lastUserMarker: L.Marker | null = null
-let lastSearchMarker: L.Marker | null = null
+let lastUserMarker: any = null
+let lastSearchMarker: any = null
 
 interface Court {
   id: number
@@ -145,7 +145,7 @@ function renderCourtMarkers(map: any, courts: Court[]) {
 }
 
 function renderUserMarker(
-  map: L.Map | null,
+  map: any | null,
   location: { latitude: number; longitude: number } | null
 ) {
   if (lastUserMarker) {
@@ -167,7 +167,7 @@ function renderUserMarker(
 }
 
 function renderSearchPin(
-  map: L.Map | null,
+  map: any | null,
   location: { latitude: number; longitude: number } | null
 ) {
   if (lastSearchMarker) {
@@ -299,7 +299,7 @@ export function CourtsMap({
             L.marker([userLocation.latitude, userLocation.longitude])
           )
         }
-        const group = new L.FeatureGroup(markers)
+        const group = L.featureGroup(markers)
         const bounds = group.getBounds()
         if (bounds.isValid()) {
           map.fitBounds(bounds.pad(0.15))

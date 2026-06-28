@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { getCookie } from "@/lib/cookies"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -21,38 +21,43 @@ export function HeroImagesEditor({ settingId, className }: Props) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const all = await api<
-          { id: number; key: string; value: string; description?: string }[]
-        >("/api/v1/admin/settings")
-        const hero = all.find((s) => s.key === "login_hero_slides")
-        if (hero?.value) {
-          try {
-            const parsed = JSON.parse(hero.value)
-            if (Array.isArray(parsed)) {
-              setImages(
-                parsed.filter(
-                  (s): s is string =>
-                    typeof s === "string" &&
-                    (s.startsWith("http") || s.startsWith("/"))
-                )
+  async function loadImages() {
+    try {
+      const all = await api<
+        { id: number; key: string; value: string; description?: string }[]
+      >("/api/v1/admin/settings")
+      const hero = all.find((s) => s.key === "login_hero_slides")
+      if (hero?.value) {
+        try {
+          const parsed = JSON.parse(hero.value)
+          if (Array.isArray(parsed)) {
+            setImages(
+              parsed.filter(
+                (s): s is string =>
+                  typeof s === "string" &&
+                  (s.startsWith("http") || s.startsWith("/"))
               )
-            }
-          } catch {
-            setImages([])
+            )
           }
-        } else {
+        } catch {
           setImages([])
         }
-      } catch {
-        toast.error("خطا در دریافت تصاویر")
-      } finally {
-        setLoading(false)
+      } else {
+        setImages([])
       }
+    } catch {
+      toast.error("خطا در دریافت تصاویر")
     }
-    load()
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    loadImages().finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,14 +78,15 @@ export function HeroImagesEditor({ settingId, className }: Props) {
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: "خطا در آپلود" }))
-        throw new Error(err.detail || "خطا در آپلود")
+        const err = await res
+          .json()
+          .catch(() => ({ detail: "خطا در آپلود تصویر" }))
+        throw new Error(err.detail || "خطا در آپلود تصویر")
       }
 
-      // Refetch to get proper state
       await fetchImages()
       toast.success("تصویر با موفقیت آپلود شد")
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(err instanceof Error ? err.message : "خطا در آپلود تصویر")
     } finally {
       setUploading(false)
@@ -95,11 +101,10 @@ export function HeroImagesEditor({ settingId, className }: Props) {
         `/api/v1/admin/settings/${settingId}/hero-images/${index}`,
         { method: "DELETE" }
       )
-      // Refetch to get fresh state
       await fetchImages()
       toast.success("تصویر حذف شد")
-    } catch {
-      toast.error("خطا در حذف تصویر")
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "خطا در حذف تصویر")
     }
   }
 

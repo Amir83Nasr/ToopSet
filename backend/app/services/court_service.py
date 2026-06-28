@@ -165,7 +165,8 @@ class CourtService:
                 delete_file(img.url)
                 await self.repo.db.delete(img)
             await self.repo.db.commit()
-        if data.images:
+        if data.images is not None:
+            # Replace all court images with the provided set (order matters)
             existing = (
                 (
                     await self.repo.db.execute(
@@ -177,9 +178,22 @@ class CourtService:
                 .scalars()
                 .all()
             )
-            next_order = max((img.order for img in existing), default=-1) + 1
-            for idx, url in enumerate(data.images):
-                self.repo.db.add(CourtImage(court_id=court_id, url=url, order=next_order + idx))
+            old_by_url = {img.url: img for img in existing}
+            new_urls = data.images
+            new_urls_set = set(new_urls)
+
+            # Delete images no longer in the set + remove physical files
+            for url, img in old_by_url.items():
+                if url not in new_urls_set:
+                    delete_file(img.url)
+                    await self.repo.db.delete(img)
+
+            # Add new images and reorder all to match provided order
+            for idx, url in enumerate(new_urls):
+                if url in old_by_url:
+                    old_by_url[url].order = idx
+                else:
+                    self.repo.db.add(CourtImage(court_id=court_id, url=url, order=idx))
             await self.repo.db.commit()
         await self.repo.db.refresh(updated, ["court_images", "manager"])
         details_parts = [f"ویرایش مجموعه | '{updated.name}' (id={court_id})"]

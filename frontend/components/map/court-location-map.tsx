@@ -22,7 +22,7 @@ export function CourtLocationMap({
   longitude,
   name,
   height = "200px",
-  interactive = false,
+  interactive = true,
 }: CourtLocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any | null>(null)

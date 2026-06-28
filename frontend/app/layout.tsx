@@ -20,6 +20,7 @@ export default function RootLayout({
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <body>
         <link rel="preconnect" href="https://tile.openstreetmap.org" />
+        <link rel="preconnect" href="https://basemaps.cartocdn.com" />
         <ThemeProvider>
           <div id="toopset-root" className="relative">
             <Providers>{children}</Providers>

@@ -6,53 +6,47 @@ import { motion } from "framer-motion"
 
 /** Gentle vertical float for arrows — 6px range, 4s cycle */
 const gentleFloat = (delay: number) => ({
-  animate: {
-    y: [0, -6, 0],
-  },
+  animate: { y: [0, -6, 0] },
   transition: {
     duration: 4,
     repeat: Infinity,
-    ease: "easeInOut",
+    ease: "easeInOut" as const,
     delay,
   },
 })
 
 /** Subtle breathing opacity for background bodies */
-const faintPulse = (delay: number) => ({
-  animate: {
-    opacity: [0.4, 1, 0.4],
-  },
-  transition: {
+const faintPulse = (delay: number) => {
+  const transition = {
     duration: 5,
     repeat: Infinity,
-    ease: "easeInOut",
+    ease: "easeInOut" as const,
     delay,
-  },
-})
+  }
+  return {
+    animate: { opacity: [0.4, 1, 0.4] },
+    transition,
+  }
+}
 
 /** Gentle scale breath for circle/ball elements */
 const ballBreath = (delay: number) => ({
-  animate: {
-    scale: [1, 1.07, 1],
-  },
+  animate: { scale: [1, 1.07, 1] },
   transition: {
     duration: 3.5,
     repeat: Infinity,
-    ease: "easeInOut",
+    ease: "easeInOut" as const,
     delay,
   },
 })
 
 /** Tiny wiggle for connector/pointer elements */
 const connectorPulse = (delay: number) => ({
-  animate: {
-    opacity: [0.3, 1, 0.3],
-    x: [0, 3, 0],
-  },
+  animate: { opacity: [0.3, 1, 0.3], x: [0, 3, 0] },
   transition: {
     duration: 3,
     repeat: Infinity,
-    ease: "easeInOut",
+    ease: "easeInOut" as const,
     delay,
   },
 })
@@ -62,7 +56,7 @@ export function HeroAnimatedIllustration() {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.6, ease: "easeOut" as const }}
       className="dark:invert"
     >
       <motion.svg
@@ -188,7 +182,7 @@ export function HeroAnimatedIllustration() {
           transition={{
             duration: 3.5,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: "easeInOut" as const,
             delay: 0.5,
           }}
         >
@@ -200,7 +194,7 @@ export function HeroAnimatedIllustration() {
           transition={{
             duration: 3,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: "easeInOut" as const,
             delay: 1.5,
           }}
         >
@@ -214,7 +208,7 @@ export function HeroAnimatedIllustration() {
           transition={{
             duration: 3.5,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: "easeInOut" as const,
             delay: 2,
           }}
         >

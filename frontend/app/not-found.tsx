@@ -20,8 +20,10 @@ export default function NotFound() {
           صفحه‌ای که به دنبال آن هستید وجود ندارد یا حذف شده است.
         </p>
         <Button asChild>
-          <RefreshCw className="ml-1.5 size-4" />
-          <Link href="/">بازگشت به خانه</Link>
+          <Link href="/">
+            <RefreshCw className="ml-1.5 size-4" />
+            بازگشت به خانه
+          </Link>
         </Button>
       </div>
     </div>

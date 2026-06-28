@@ -7,10 +7,12 @@ import { ErrorProvider } from "@/lib/error-context"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <TooltipProvider>
-      <DirectionProvider dir="rtl">
-        <ErrorProvider>{children}</ErrorProvider>
-      </DirectionProvider>
+    <>
+      <TooltipProvider>
+        <DirectionProvider dir="rtl">
+          <ErrorProvider>{children}</ErrorProvider>
+        </DirectionProvider>
+      </TooltipProvider>
       <Toaster
         position="top-left"
         richColors
@@ -28,6 +30,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </TooltipProvider>
+    </>
   )
 }

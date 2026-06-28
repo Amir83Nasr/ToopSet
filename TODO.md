@@ -1,6 +1,6 @@
 # TODO
 
-Updated: 2026-06-26
+Updated: 2026-06-28
 
 ## Backlog
 
@@ -57,6 +57,8 @@ Updated: 2026-06-26
 - [ ] Dashboard settings section (started: 2026-06-23)
 
 ## Done
+
+- [x] **Fix Neshan Map with CartoDB Tile Fallback and Improve Map UX** — Neshan tiles all return HTTP 204 (no content), leaving maps blank. Added 3-second tile-loading monitor in `createNeshanMap` that falls back to CartoDB Voyager tiles (beautiful road rendering). Fixed watermark removal to preserve OSM attribution. Map now visible by default on courts listing with hide/show toggle. Removed map click-to-select-location from listing page. Made court detail map interactive with 320px height. Added preconnect hint for faster CartoDB CDN loading. (completed: 2026-06-28)
 
 - [x] **Profile Page Layout Redesign** — Redesigned profile/settings page with admin-style card-section layout. Two organized sections: "اطلاعات حساب" (avatar, name, phone, role badge) and "امنیت حساب" (password change). Used `space-y-px overflow-hidden rounded-xl border bg-card` pattern with `border-t` separated rows, icons per row, and hover-save check buttons. (completed: 2026-06-27)
 

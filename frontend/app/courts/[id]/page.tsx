@@ -26,6 +26,7 @@ import {
   Info,
   ImagePlus,
   X,
+  Share2,
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -299,13 +300,10 @@ export default function PublicCourtDetailPage() {
           {/* ═══════════════════════════════════
                Court Hero Card
                ═══════════════════════════════════ */}
-          <div className="mb-10">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-                  {court.name}
-                </h1>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="mb-10 overflow-hidden rounded-xl border bg-card">
+            <div className="flex items-start justify-between gap-4 p-5 md:p-6">
+              <div className="min-w-0 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
                   {court.sport_types.map((st) => (
                     <Badge
                       key={st}
@@ -315,17 +313,20 @@ export default function PublicCourtDetailPage() {
                       {sportLabels[st] || st}
                     </Badge>
                   ))}
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Stars rating={court.average_rating} size={15} />
-                    <span className="font-semibold text-foreground">
-                      {toPersianDigits(court.average_rating.toFixed(1))}
+                </div>
+                <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+                  {court.name}
+                </h1>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Stars rating={court.average_rating} size={15} />
+                  <span className="font-semibold text-foreground">
+                    {toPersianDigits(court.average_rating.toFixed(1))}
+                  </span>
+                  {reviewsTotal > 0 && (
+                    <span className="text-muted-foreground">
+                      ({toPersianDigits(reviewsTotal)} نظر)
                     </span>
-                    {reviewsTotal > 0 && (
-                      <span className="text-muted-foreground">
-                        ({toPersianDigits(reviewsTotal)} نظر)
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
               {canManage && (
@@ -343,31 +344,78 @@ export default function PublicCourtDetailPage() {
               )}
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-x-0 gap-y-0 border-t pt-4">
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="size-3.5 shrink-0" />
-                  <span>{court.address}</span>
-                </span>
+            {/* Info grid */}
+            <div className="border-t bg-muted/30 px-5 py-4 md:px-6">
+              <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <MapPin className="size-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-medium text-muted-foreground">
+                        آدرس
+                      </p>
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {court.address}
+                      </p>
+                    </div>
+                    <Button size={"sm"} variant={"outline"} asChild>
+                      <Link
+                        href={`https://www.google.com/maps?q=${court.latitude},${court.longitude}`}
+                      >
+                        <Share2 className="size-3.5" />
+                        اشتراک گذاری موقعیت
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Users className="size-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground">
+                      ظرفیت
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      {toPersianDigits(court.capacity)} نفر
+                    </p>
+                  </div>
+                </div>
                 {court.manager_phone && (
-                  <a
-                    href={`tel:${court.manager_phone}`}
-                    className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                    dir="ltr"
-                  >
-                    <Phone className="size-3.5 shrink-0" />
-                    <span>{toPersianDigits(court.manager_phone)}</span>
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Phone className="size-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">
+                        شماره تماس
+                      </p>
+                      <a
+                        href={`tel:${court.manager_phone}`}
+                        className="text-sm font-medium text-primary hover:underline"
+                        dir="ltr"
+                      >
+                        {toPersianDigits(court.manager_phone)}
+                      </a>
+                    </div>
+                  </div>
                 )}
-                <span className="inline-flex items-center gap-1.5">
-                  <Users className="size-3.5 shrink-0" />
-                  <span>{toPersianDigits(court.capacity)} نفر</span>
-                </span>
                 {court.manager_name && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Info className="size-3.5 shrink-0" />
-                    <span>مدیر: {court.manager_name}</span>
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Info className="size-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">
+                        مدیر مجموعه
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {court.manager_name}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -386,16 +434,16 @@ export default function PublicCourtDetailPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={goPrevWeek}
-                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <ChevronRight className="size-4" />
                     </button>
-                    <span className="min-w-32 text-center text-xs font-medium text-muted-foreground">
+                    <span className="min-w-32 text-center text-xs font-semibold text-foreground">
                       {weekRange}
                     </span>
                     <button
                       onClick={goNextWeek}
-                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <ChevronLeft className="size-4" />
                     </button>
@@ -551,44 +599,46 @@ export default function PublicCourtDetailPage() {
                     {selectedSlot && !selectedSlot.is_reserved && (
                       <div className="border-t">
                         <div className="px-5 py-4">
-                          {/* Slot info summary */}
-                          <div className="mb-3 flex items-center gap-3 rounded-lg bg-muted/50 px-3.5 py-2.5">
-                            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                              <Clock className="size-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-medium text-muted-foreground">
-                                {selectedDayInfo?.fullPersian || selectedDate}
-                              </p>
-                              <p className="text-sm font-semibold text-foreground">
-                                {formatTime(selectedSlot.start_time)}
-                                <span className="mx-1.5 text-muted-foreground/30">
-                                  —
-                                </span>
-                                {formatTime(selectedSlot.end_time)}
-                              </p>
+                          {/* Slot info + pricing combined */}
+                          <div className="rounded-lg bg-primary/5 px-4 py-3.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                  <Clock className="size-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground">
+                                    {selectedDayInfo?.fullPersian ||
+                                      selectedDate}
+                                  </p>
+                                  <p className="text-sm font-semibold text-foreground">
+                                    {formatTime(selectedSlot.start_time)}
+                                    <span className="mx-1.5 text-muted-foreground/30">
+                                      —
+                                    </span>
+                                    {formatTime(selectedSlot.end_time)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-left">
+                                <p className="text-[10px] font-medium text-muted-foreground">
+                                  مبلغ قابل پرداخت
+                                </p>
+                                <p className="text-base font-bold text-primary">
+                                  {formatPrice(selectedSlot.base_price)}
+                                </p>
+                              </div>
                             </div>
                           </div>
 
-                          {/* Price + action */}
-                          <div className="flex items-center justify-between gap-4 rounded-xl bg-primary/5 px-4 py-3.5">
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">
-                                مبلغ قابل پرداخت
-                              </p>
-                              <p className="text-xl font-bold tracking-tight text-primary">
-                                {formatPrice(selectedSlot.base_price)}
-                              </p>
-                            </div>
-                            <Button
-                              size="lg"
-                              className="shrink-0 px-7 font-semibold shadow-xs"
-                              onClick={() => handleBookSlot(selectedSlot)}
-                            >
-                              <CheckCircle2 className="ms-1.5 size-4" />
-                              {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
-                            </Button>
-                          </div>
+                          <Button
+                            size="default"
+                            className="mt-3 w-full font-semibold shadow-xs"
+                            onClick={() => handleBookSlot(selectedSlot)}
+                          >
+                            <CheckCircle2 className="ms-1.5 size-4" />
+                            {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -613,15 +663,15 @@ export default function PublicCourtDetailPage() {
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline"
                     >
-                      بزرگ‌نمایی
+                      باز کردن در گوگل مپ
                     </a>
                   </div>
                   <CourtLocationMap
                     latitude={court.latitude}
                     longitude={court.longitude}
                     name={court.name}
-                    height="200px"
-                    interactive={false}
+                    height="320px"
+                    interactive={true}
                   />
                 </div>
               )}

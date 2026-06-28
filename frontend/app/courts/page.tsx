@@ -114,22 +114,8 @@ function CourtsPageContent() {
   )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
 
-  // Map location filter (set by clicking the map)
-  const [mapLocation, setMapLocation] = useState<{
-    latitude: number
-    longitude: number
-  } | null>(
-    (() => {
-      const lat = searchParams.get("lat")
-      const lng = searchParams.get("lng")
-      return lat && lng
-        ? { latitude: parseFloat(lat), longitude: parseFloat(lng) }
-        : null
-    })()
-  )
-
   // Map panel visibility toggle
-  const [showMap, setShowMap] = useState(false)
+  const [showMap, setShowMap] = useState(true)
 
   // User geolocation for nearby courts
   const geo = useGeolocation()
@@ -167,14 +153,10 @@ function CourtsPageContent() {
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
-    // Nearby courts: only filter by distance when user explicitly clicked "نزدیک به من"
-    // Reference coordinate for distance-based filtering
-    // Map location (set via map click) takes priority over geolocation
-    const refCoord =
-      mapLocation || (sortBy === "distance" ? userLocation : null)
-    if (refCoord) {
-      params.set("ref_lat", String(refCoord.latitude))
-      params.set("ref_lon", String(refCoord.longitude))
+    // Reference coordinate for distance-based sorting
+    if (sortBy === "distance" && userLocation) {
+      params.set("ref_lat", String(userLocation.latitude))
+      params.set("ref_lon", String(userLocation.longitude))
       if (maxDistance) params.set("max_distance_km", maxDistance)
     }
     return params.toString()
@@ -186,7 +168,6 @@ function CourtsPageContent() {
     sortBy,
     userLocation,
     maxDistance,
-    mapLocation,
   ])
 
   // Sync filters to URL
@@ -195,14 +176,10 @@ function CourtsPageContent() {
     if (searchText) params.set("q", searchText)
     if (selectedSports.length) params.set("sports", selectedSports.join(","))
     if (sortBy !== "default") params.set("sort", sortBy)
-    if (mapLocation) {
-      params.set("lat", String(mapLocation.latitude))
-      params.set("lng", String(mapLocation.longitude))
-    }
     const qs = params.toString()
     const url = qs ? `/courts?${qs}` : "/courts"
     router.replace(url, { scroll: false })
-  }, [searchText, selectedSports, sortBy, mapLocation, router])
+  }, [searchText, selectedSports, sortBy, router])
 
   const fetchCourts = useCallback(async () => {
     setCourtsLoading(true)
@@ -219,12 +196,6 @@ function CourtsPageContent() {
     }
   }, [apiParams])
 
-  const handleMapClick = useCallback((lat: number, lng: number) => {
-    setMapLocation({ latitude: lat, longitude: lng })
-    setSortBy("distance")
-    setPage(0)
-  }, [])
-
   useEffect(() => {
     const timer = setTimeout(() => fetchCourts(), 0)
     return () => clearTimeout(timer)
@@ -234,15 +205,16 @@ function CourtsPageContent() {
     setSearchText("")
     setSelectedSports([])
     setSortBy("default")
-    setMapLocation(null)
     setPage(0)
   }
 
   const hasActiveFilters =
-    searchText ||
-    selectedSports.length > 0 ||
-    sortBy !== "default" ||
-    mapLocation !== null
+    searchText || selectedSports.length > 0 || sortBy !== "default"
+
+  const activeFilterCount =
+    (searchText ? 1 : 0) +
+    selectedSports.length +
+    (sortBy !== "default" ? 1 : 0)
 
   const totalPages = Math.ceil(total / limit)
 
@@ -339,7 +311,7 @@ function CourtsPageContent() {
                   onClick={() => setShowMap((v) => !v)}
                 >
                   <Map className="size-4" />
-                  نقشه
+                  {showMap ? "مخفی کردن نقشه" : "نمایش نقشه"}
                 </Button>
               </div>
 
@@ -394,8 +366,6 @@ function CourtsPageContent() {
                     courts={featuredCourts}
                     height="400px"
                     userLocation={userLocation}
-                    mapLocation={mapLocation}
-                    onMapClick={handleMapClick}
                   />
                 </div>
               )}
@@ -428,24 +398,9 @@ function CourtsPageContent() {
                 </div>
               )}
 
-              {/* Active filters */}
-              <div className="mt-2 mr-auto flex items-center gap-2">
-                {hasActiveFilters && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
-                  >
-                    <X className="size-3.5" />
-                    حذف فیلترها
-                  </Button>
-                )}
-              </div>
-
               {/* Filter chips */}
               {hasActiveFilters && (
-                <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-3">
                   {searchText && (
                     <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
                       <Search className="size-3" />
@@ -482,24 +437,18 @@ function CourtsPageContent() {
                       </Button>
                     </span>
                   ))}
-                  {mapLocation && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
-                      <MapPin className="size-3" />
-                      موقعیت انتخاب شده
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => {
-                          setMapLocation(null)
-                          setPage(0)
-                        }}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </span>
-                  )}
+
+                  {/* Clear all */}
+                  <span className="mx-0.5 h-4 w-px bg-border" />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={clearFilters}
+                    className=""
+                  >
+                    <X />
+                    پاک کردن همه فیلتر‌ها
+                  </Button>
                 </div>
               )}
             </div>
@@ -511,14 +460,9 @@ function CourtsPageContent() {
                 <p className="text-sm text-muted-foreground">
                   {toPersianDigits(total)} مجموعه پیدا شد
                   {hasActiveFilters && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="me-2 text-xs"
-                    >
-                      پاک کردن فیلتر
-                    </Button>
+                    <span className="mr-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      {toPersianDigits(activeFilterCount)} فیلتر
+                    </span>
                   )}
                 </p>
               </div>
@@ -629,13 +573,18 @@ function CourtsPageContent() {
                               </div>
                             </CardContent>
 
-                            {/* Price — only if available */}
+                            {/* Price — minimum slot price */}
                             {court.base_price != null && (
                               <CardFooter>
-                                <div className="w-full rounded-md bg-primary/5 px-3 py-2 text-center">
-                                  <span className="text-sm font-semibold text-primary">
-                                    {formatPrice(court.base_price)}
-                                  </span>
+                                <div className="w-full rounded-lg bg-primary/5 px-3 py-2.5">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <span className="inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-[11px] leading-none font-semibold text-primary">
+                                      شروع قیمت از
+                                    </span>
+                                    <span className="text-sm font-bold text-primary">
+                                      {formatPrice(court.base_price)}
+                                    </span>
+                                  </div>
                                 </div>
                               </CardFooter>
                             )}
