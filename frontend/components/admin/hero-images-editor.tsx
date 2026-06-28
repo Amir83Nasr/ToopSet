@@ -52,9 +52,10 @@ export function HeroImagesEditor({ settingId, className }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    loadImages().finally(() => {
+    ;(async () => {
+      await loadImages()
       if (!cancelled) setLoading(false)
-    })
+    })()
     return () => {
       cancelled = true
     }
@@ -84,7 +85,7 @@ export function HeroImagesEditor({ settingId, className }: Props) {
         throw new Error(err.detail || "خطا در آپلود تصویر")
       }
 
-      await fetchImages()
+      await loadImages()
       toast.success("تصویر با موفقیت آپلود شد")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "خطا در آپلود تصویر")
@@ -101,7 +102,7 @@ export function HeroImagesEditor({ settingId, className }: Props) {
         `/api/v1/admin/settings/${settingId}/hero-images/${index}`,
         { method: "DELETE" }
       )
-      await fetchImages()
+      await loadImages()
       toast.success("تصویر حذف شد")
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در حذف تصویر")

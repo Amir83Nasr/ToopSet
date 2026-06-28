@@ -107,6 +107,8 @@ const actionLabels: Record<string, string> = {
   penalty_created: "جریمه لغو رزرو",
   wallet_credited: "بازگشت وجه به کیف پول",
   logs_cleared: "پاکسازی لاگ‌ها",
+  hero_image_uploaded: "آپلود تصویر لاگین",
+  hero_image_deleted: "حذف تصویر لاگین",
 }
 
 const actionGroups: { label: string; actions: string[] }[] = [
@@ -153,6 +155,8 @@ const actionGroups: { label: string; actions: string[] }[] = [
       "setting_updated",
       "settings_seeded",
       "logs_cleared",
+      "hero_image_uploaded",
+      "hero_image_deleted",
     ],
   },
 ]

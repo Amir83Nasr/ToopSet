@@ -19,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <body>
-        <link rel="preconnect" href="https://tile.openstreetmap.org" />
+        <link rel="dns-prefetch" href="https://basemaps.cartocdn.com" />
         <link rel="preconnect" href="https://basemaps.cartocdn.com" />
+        <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
+        <link rel="preconnect" href="https://tile.openstreetmap.org" />
         <ThemeProvider>
           <div id="toopset-root" className="relative">
             <Providers>{children}</Providers>

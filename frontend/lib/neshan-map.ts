@@ -97,6 +97,8 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
   // expired. Monitor for tile failures and fall back to a styled tile layer.
   let fallbackAdded = false
   let checkCount = 0
+  const TILE_CHECK_INTERVAL = 200
+  const TILE_MAX_CHECKS = 5
   const checkInterval = setInterval(() => {
     checkCount++
     const tiles = el.querySelectorAll("img.leaflet-tile")
@@ -108,8 +110,8 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
       clearInterval(checkInterval)
       return
     }
-    // After ~3s (6 × 500ms) with no loaded tiles, declare Neshan tiles failed
-    if (checkCount >= 6) {
+    // After ~1s (5 × 200ms) with no loaded tiles, declare Neshan tiles failed
+    if (checkCount >= TILE_MAX_CHECKS) {
       clearInterval(checkInterval)
       if (!fallbackAdded) {
         fallbackAdded = true
@@ -124,7 +126,7 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
         ).addTo(map)
       }
     }
-  }, 500)
+  }, TILE_CHECK_INTERVAL)
 
   map.once("unload", () => clearInterval(checkInterval))
 
