@@ -14,7 +14,7 @@ class TestRegister:
     async def test_register_success(self, client: AsyncClient):
         resp = await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111111", "password": "123456", "full_name": "کاربر جدید"},
+            json={"phone": "09121111111", "password": "Test1234", "full_name": "کاربر جدید"},
         )
         assert resp.status_code == 201
         data = resp.json()
@@ -32,11 +32,11 @@ class TestRegister:
     async def test_register_duplicate_phone(self, client: AsyncClient):
         await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111111", "password": "123456", "full_name": "first"},
+            json={"phone": "09121111111", "password": "Test1234", "full_name": "first"},
         )
         resp = await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111111", "password": "654321", "full_name": "second"},
+            json={"phone": "09121111111", "password": "StrongPw2", "full_name": "second"},
         )
         assert resp.status_code == 409
         assert "قبلاً ثبت" in resp.text
@@ -47,11 +47,11 @@ class TestLogin:
         # Register first
         await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111111", "password": "123456", "full_name": "test"},
+            json={"phone": "09121111111", "password": "Test1234", "full_name": "test"},
         )
         resp = await client.post(
             "/api/v1/auth/login",
-            json={"phone": "09121111111", "password": "123456"},
+            json={"phone": "09121111111", "password": "Test1234"},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -61,7 +61,7 @@ class TestLogin:
     async def test_login_wrong_password(self, client: AsyncClient):
         await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111111", "password": "123456", "full_name": "test"},
+            json={"phone": "09121111111", "password": "Test1234", "full_name": "test"},
         )
         resp = await client.post(
             "/api/v1/auth/login",
@@ -73,7 +73,7 @@ class TestLogin:
     async def test_login_not_found(self, client: AsyncClient):
         resp = await client.post(
             "/api/v1/auth/login",
-            json={"phone": "09999999999", "password": "123456"},
+            json={"phone": "09999999999", "password": "Test1234"},
         )
         assert resp.status_code == 401
 
@@ -82,7 +82,7 @@ class TestRefresh:
     async def test_refresh_success(self, client: AsyncClient):
         reg = await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111111", "password": "123456", "full_name": "test"},
+            json={"phone": "09121111111", "password": "Test1234", "full_name": "test"},
         )
         refresh_token = reg.json()["refresh_token"]
 
@@ -132,7 +132,7 @@ class TestUpdateProfile:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.patch(
             "/api/v1/auth/profile",
-            json={"current_password": "123456", "new_password": "654321"},
+            json={"current_password": "Test1234", "new_password": "NewPass99"},
             headers=headers,
         )
         assert resp.status_code == 200
@@ -140,7 +140,7 @@ class TestUpdateProfile:
         # Login with new password
         resp2 = await client.post(
             "/api/v1/auth/login",
-            json={"phone": "09120000000", "password": "654321"},
+            json={"phone": "09120000000", "password": "NewPass99"},
         )
         assert resp2.status_code == 200
 
@@ -148,7 +148,7 @@ class TestUpdateProfile:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.patch(
             "/api/v1/auth/profile",
-            json={"current_password": "wrong", "new_password": "654321"},
+            json={"current_password": "wrong", "new_password": "NewPass99"},
             headers=headers,
         )
         assert resp.status_code == 401

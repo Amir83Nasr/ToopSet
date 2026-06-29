@@ -371,7 +371,7 @@ export default function AboutPage() {
               </p>
               <div className="mt-4 flex items-center justify-center gap-4">
                 <Button size="sm" asChild>
-                  <Link href="/register">ثبت‌نام رایگان</Link>
+                  <Link href="/otp">ثبت‌نام رایگان</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/courts">مشاهده سالن‌ها</Link>

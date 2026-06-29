@@ -58,14 +58,44 @@ target: deps ## Description (shown in help)
 
 ## Environment Variables
 
-| File                  | Purpose                             |
-| --------------------- | ----------------------------------- |
-| `backend/.env`        | DB creds, JWT secret, Redis, Sentry |
-| `frontend/.env.local` | API URL, Neshan API key             |
-| `compose.yml`         | Docker env vars                     |
+| File                  | Purpose                                                |
+| --------------------- | ------------------------------------------------------ |
+| `backend/.env`        | DB creds, JWT secret, Redis, Sentry, OTEL, profiler    |
+| `frontend/.env.local` | API URL, Neshan API key                                |
+| `compose.yml`         | Docker env vars                                        |
 
-Key backend vars: `POSTGRES_*`, `SECRET_KEY`, `SENTRY_DSN`, `REDIS_HOST/PORT`
-Key frontend vars: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_NESHAN_API_KEY`
+### Key Backend Vars
+
+| Variable                        | Default                          | Purpose                              |
+| ------------------------------- | -------------------------------- | ------------------------------------ |
+| `POSTGRES_*`                    | toopset / localhost / 5432       | Database connection                  |
+| `SECRET_KEY`                    | change-me-...                    | JWT signing (min 32 chars)           |
+| `SECRET_KEY_PREVIOUS`           | (empty)                          | Previous key for rotation            |
+| `REDIS_HOST/PORT`               | localhost / 6379                 | Redis connection                     |
+| `SENTRY_DSN`                    | (empty)                          | Sentry error tracking                |
+| `CORS_ORIGINS`                  | *                                 | Allowed origins (warns if * in prod) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES`   | 30                               | JWT access token lifetime            |
+| `REFRESH_TOKEN_EXPIRE_DAYS`     | 7                                | Refresh token lifetime               |
+| `PAYMENT_GATEWAY`               | mock                             | Payment provider                     |
+| `SMS_PROVIDER`                  | mock                             | SMS provider                         |
+| `DB_POOL_SIZE`                  | 20                               | Connection pool size                 |
+| `DB_MAX_OVERFLOW`               | 10                               | Pool overflow limit                  |
+| `DB_POOL_RECYCLE`               | 1800                             | Connection recycle (seconds)         |
+| `DB_POOL_TIMEOUT`               | 5                                | Pool timeout (seconds)               |
+| `LOG_LEVEL`                     | INFO                             | Logging level                        |
+| `CORRELATION_ID_HEADER`         | X-Request-ID                     | Correlation ID header name           |
+| `OTEL_ENABLED`                  | False                            | OpenTelemetry master switch          |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`   | localhost:4317                   | OTLP gRPC endpoint                   |
+| `PROFILER_ENABLED`              | False                            | Request profiling middleware         |
+| `JWT_ISSUER`                    | toopset-api                      | JWT iss claim                        |
+| `JWT_AUDIENCE`                  | toopset-client                   | JWT aud claim                        |
+
+### Key Frontend Vars
+
+| Variable                      | Purpose                        |
+| ----------------------------- | ------------------------------ |
+| `NEXT_PUBLIC_API_URL`         | Backend API URL                |
+| `NEXT_PUBLIC_NESHAN_API_KEY`  | Neshan Maps API key            |
 
 ## File Naming
 

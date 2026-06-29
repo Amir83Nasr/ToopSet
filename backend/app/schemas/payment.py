@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 from app.models.payment import PaymentStatus
 
@@ -26,7 +26,16 @@ class PaymentDetailResponse(BaseModel):
     slot_end_time: datetime | None = None
     model_config = {"from_attributes": True}
 
+    @field_serializer("card_number")
+    @classmethod
+    def mask_card_number(cls, v: str | None) -> str | None:
+        """Only expose the last 4 digits of the card number."""
+        if v is None or len(v) < 4:
+            return v
+        return f"******{v[-4:]}"
+
 
 class PaymentListResponse(BaseModel):
     payments: list[PaymentDetailResponse]
     total: int
+    next_cursor: str | None = None

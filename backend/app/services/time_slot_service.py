@@ -41,6 +41,7 @@ class TimeSlotService:
         self,
         court_id: int,
         *,
+        after_id: int | None = None,
         date: str | None = None,
         skip: int = 0,
         limit: int = 50,
@@ -52,24 +53,32 @@ class TimeSlotService:
         # Track whether response came from Redis (for X-Cache header)
         self._from_cache = False
 
-        # Try Redis cache (first page only for simplicity)
-        if skip == 0 and limit <= 50:
+        # Try Redis cache (first page only for simplicity, not for cursor requests)
+        if after_id is None and skip == 0 and limit <= 50:
             cached = await get_cached_slot_list(court_id, date=date)
             if cached is not None:
                 self._from_cache = True
                 # cached contains full result for the page
                 return TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
 
-        slots, total = await self.repo.list_by_court(court_id, date=date, skip=skip, limit=limit)
+        slots, total = await self.repo.list_by_court(
+            court_id, after_id=after_id, date=date, skip=skip, limit=limit
+        )
         serialised = [TimeSlotResponse.model_validate(s).model_dump(mode="json") for s in slots]
 
         # Warm cache for the common case (first page, no offset)
-        if skip == 0 and limit <= 50:
+        if after_id is None and skip == 0 and limit <= 50:
             await cache_slot_list(court_id, serialised, date=date)
 
+        next_cursor = None
+        if slots and len(slots) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(slots[-1].id)
         return TimeSlotListResponse(
             slots=[TimeSlotResponse.model_validate(s) for s in slots],
             total=total,
+            next_cursor=next_cursor,
         )
 
     async def get_slot(self, slot_id: int) -> TimeSlotDetailResponse:

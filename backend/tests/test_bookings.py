@@ -41,7 +41,7 @@ async def _create_slot(
     )
     row = result.fetchone()
     assert row is not None
-    await session.commit()
+    await session.flush()
     return row[0]
 
 
@@ -206,7 +206,7 @@ class TestGetBooking:
         # Different user — register a second user
         resp2 = await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09129999999", "password": "123456", "full_name": "other"},
+            json={"phone": "09129999999", "password": "Test1234", "full_name": "other"},
         )
         other_token = resp2.json()["access_token"]
 

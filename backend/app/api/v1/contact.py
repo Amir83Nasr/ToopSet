@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
+from app.core.rate_limiter import limiter
 from app.models.contact import ContactMessage
 from app.models.user import User
 from app.schemas.contact import ContactCreate, ContactResponse
@@ -19,7 +20,9 @@ router = APIRouter(prefix="/contact", tags=["contact"])
     status_code=status.HTTP_201_CREATED,
     summary="Submit contact message",
 )
+@limiter.limit("5/minute")
 async def submit_contact(
+    request: Request,
     data: ContactCreate,
     db: AsyncSession = Depends(get_db),
 ):
@@ -60,7 +63,9 @@ async def list_contact_messages(
     )
     messages = list(result.scalars().all())
     await cache_admin_list(
-        "contact_messages", cache_params, [m.model_dump(mode="json") for m in messages]
+        "contact_messages",
+        cache_params,
+        [ContactResponse.model_validate(m).model_dump(mode="json") for m in messages],
     )
     response.headers["X-Cache"] = "MISS"
     return messages

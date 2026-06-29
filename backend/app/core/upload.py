@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 from pathlib import Path
 
@@ -34,6 +35,28 @@ def _detect_mime(content: bytes) -> str | None:
 
 _ALLOWED_MIMES = {"image/jpeg", "image/png", "image/webp", "image/svg+xml"}
 
+# SVG content patterns that are stripped for XSS prevention
+_SVG_DANGEROUS_PATTERNS: list[tuple[re.Pattern, str]] = [
+    # Remove <script> tags and their content
+    (re.compile(r"<script[^>]*>.*?</script>", re.DOTALL | re.IGNORECASE), ""),
+    # Remove on* event handler attributes (onload, onerror, onclick, etc.)
+    (re.compile(r"\s+on\w+\s*=\s*\"[^\"]*\"", re.IGNORECASE), ""),
+    (re.compile(r"\s+on\w+\s*=\s*'[^']*'", re.IGNORECASE), ""),
+    (re.compile(r"\s+on\w+\s*=\s*[^\s>]+", re.IGNORECASE), ""),
+    # Strip javascript: URLs in href and xlink:href (single and double quotes)
+    (re.compile(r'href\s*=\s*"\s*javascript\s*:', re.IGNORECASE), 'href="'),
+    (re.compile(r"href\s*=\s*'\s*javascript\s*:", re.IGNORECASE), 'href="'),
+    (re.compile(r'xlink:href\s*=\s*"\s*javascript\s*:', re.IGNORECASE), 'xlink:href="'),
+    (re.compile(r"xlink:href\s*=\s*'\s*javascript\s*:", re.IGNORECASE), 'xlink:href="'),
+]
+
+
+def _sanitize_svg(content: str) -> str:
+    """Strip XSS vectors from SVG content while preserving legitimate markup."""
+    for pattern, replacement in _SVG_DANGEROUS_PATTERNS:
+        content = pattern.sub(replacement, content)
+    return content
+
 
 def save_upload(file_content: bytes, original_filename: str, subdir: str = "courts") -> str:
     ext = Path(original_filename).suffix.lower()
@@ -46,6 +69,9 @@ def save_upload(file_content: bytes, original_filename: str, subdir: str = "cour
             decoded = file_content.decode("utf-8", errors="replace")
             if "<svg" not in decoded and "<?xml" not in decoded:
                 raise ValueError("Invalid SVG file content")
+            # Sanitize SVG: strip XSS vectors (script tags, event handlers, javascript: URLs)
+            sanitized = _sanitize_svg(decoded)
+            file_content = sanitized.encode("utf-8")
         except UnicodeDecodeError:
             raise ValueError("Invalid SVG file content")
     else:

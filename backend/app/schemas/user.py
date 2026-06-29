@@ -25,6 +25,7 @@ class UserAdminResponse(BaseModel):
 class UserListResponse(BaseModel):
     users: list[UserAdminResponse]
     total: int
+    next_cursor: str | None = None
 
 
 class UserDetailResponse(UserAdminResponse):
@@ -44,7 +45,7 @@ class AdminCreateUserRequest(BaseModel):
     phone: str = Field(
         ..., min_length=11, max_length=11, pattern=r"^09\d{9}$", examples=["09120000000"]
     )
-    password: str = Field(..., min_length=4, max_length=128, examples=["123456"])
+    password: str = Field(..., min_length=8, max_length=128, examples=["Str0ng!Pass"])
     full_name: str = Field(..., min_length=1, max_length=128, examples=["کاربر جدید"])
     role: UserRoleEnum = Field(default=UserRoleEnum.USER)
 

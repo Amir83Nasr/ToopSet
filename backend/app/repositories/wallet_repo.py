@@ -18,7 +18,7 @@ class WalletRepo:
         if not wallet:
             wallet = Wallet(user_id=user_id, balance=0)
             self.db.add(wallet)
-            await self.db.commit()
+            await self.db.flush()
             await self.db.refresh(wallet)
         return wallet
 
@@ -30,7 +30,7 @@ class WalletRepo:
             wallet_id=wallet.id, amount=amount, type="deposit", description=description
         )
         self.db.add(tx)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(wallet)
         return wallet
 
@@ -42,7 +42,7 @@ class WalletRepo:
             wallet_id=wallet.id, amount=-amount, type="withdrawal", description=description
         )
         self.db.add(tx)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(wallet)
         return wallet
 

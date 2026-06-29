@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_manager
 from app.core.database import get_db
 from app.core.date_utils import parse_date_filter, parse_date_filter_end
+from app.core.pagination import decode_cursor
 from app.core.upload import delete_upload
 from app.models.court import Court, SportType
 from app.models.court_image import CourtImage
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/courts", tags=["courts"])
 
 @router.get("", response_model=CourtListResponse, summary="List sports courts")
 async def list_courts(
+    cursor: str | None = Query(None, description="Cursor for next page (from previous response)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     sport_types: list[SportType] | None = Query(None),
@@ -46,7 +48,9 @@ async def list_courts(
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
     # Build cache params only from filter keys (skip/limit affect pagination)
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
     cache_params = {
+        "cursor": cursor,
         "skip": skip,
         "limit": limit,
         "sport_types": [st.value for st in sport_types] if sport_types else None,
@@ -67,6 +71,7 @@ async def list_courts(
         return CourtListResponse.model_validate(cached)
 
     result = await service.list_courts(
+        after_id=cursor_id,
         skip=skip,
         limit=limit,
         sport_types=sport_types,
@@ -89,12 +94,14 @@ async def list_courts(
 @router.get("/{court_id}/reviews", response_model=ReviewListResponse, summary="Court reviews")
 async def list_court_reviews(
     court_id: int,
+    cursor: str | None = Query(None, description="Cursor for next page (from previous response)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
     service = ReviewService(db=db, current_user=None)
-    return await service.list_by_court(court_id, skip=skip, limit=limit)
+    return await service.list_by_court(court_id, after_id=cursor_id, skip=skip, limit=limit)
 
 
 @router.get("/{court_id}", response_model=CourtResponse, summary="Get court details")

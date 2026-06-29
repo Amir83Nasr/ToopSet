@@ -10,6 +10,16 @@ from app.repositories.user_repo import UserRepository
 
 security = HTTPBearer(auto_error=False)
 
+_DECODE_OPTIONS = {"verify_aud": False, "verify_iss": False}
+
+
+def _validate_token_type(payload: dict, expected: str) -> bool:
+    """Validate the ``type`` claim.  Backward-compat: accept tokens without the claim."""
+    actual = payload.get("type")
+    if actual is None:
+        return True  # legacy token — accept
+    return actual == expected
+
 
 async def get_current_user_optional(
     token: str | None = Depends(security),
@@ -18,9 +28,13 @@ async def get_current_user_optional(
     if token is None:
         return None
     try:
-        payload = jwt.decode(token.credentials, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token.credentials, settings.secret_key, algorithms=["HS256"], options=_DECODE_OPTIONS
+        )
         user_id = payload.get("sub")
         if user_id is None:
+            return None
+        if not _validate_token_type(payload, "access"):
             return None
     except JWTError:
         return None
@@ -45,10 +59,16 @@ async def get_current_user(
         )
 
     try:
-        payload = jwt.decode(token.credentials, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token.credentials, settings.secret_key, algorithms=["HS256"], options=_DECODE_OPTIONS
+        )
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="توکن نامعتبر است")
+        if not _validate_token_type(payload, "access"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="نوع توکن نامعتبر است"
+            )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="توکن نامعتبر یا منقضی شده"

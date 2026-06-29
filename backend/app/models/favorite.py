@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, UniqueConstraint, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -12,6 +12,9 @@ class Favorite(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     court_id: Mapped[int] = mapped_column(ForeignKey("courts.id", ondelete="CASCADE"), index=True)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "court_id", name="uq_user_court_favorite"),)
+
+    user: Mapped["User"] = relationship(back_populates="favorites")
+    court: Mapped["Court"] = relationship(back_populates="favorites")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 
 from sqlalchemy import func, select
@@ -20,6 +21,7 @@ class BookingRepo:
         self,
         user_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         status_filter: str | None = None,
@@ -32,13 +34,22 @@ class BookingRepo:
         )
         count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
 
+        if after_id is not None:
+            query = query.where(Booking.id > after_id)
+
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
 
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         bookings = list(result.scalars().all())
+        total = count_result.scalar_one()
         return bookings, total
 
     async def get_by_id(self, booking_id: int) -> Booking | None:
@@ -56,7 +67,7 @@ class BookingRepo:
     async def create(self, data: dict) -> Booking:
         booking = Booking(**data)
         self.db.add(booking)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(booking)
         return booking
 
@@ -64,13 +75,14 @@ class BookingRepo:
         for key, value in data.items():
             if value is not None:
                 setattr(booking, key, value)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(booking)
         return booking
 
     async def list_all(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         search: str | None = None,
@@ -92,6 +104,8 @@ class BookingRepo:
             .join(Court, TimeSlot.court_id == Court.id)
             .outerjoin(User, Booking.user_id == User.id)
         )
+        if after_id is not None:
+            query = query.where(Booking.id > after_id)
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
@@ -100,9 +114,16 @@ class BookingRepo:
             query = query.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
             count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
         query = query.order_by(Booking.created_at.desc())
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         bookings = list(result.scalars().all())
+        total = count_result.scalar_one()
         return bookings, total
 
     async def list_expired_pending(self, now: datetime) -> list[Booking]:
@@ -135,6 +156,7 @@ class BookingRepo:
         self,
         user_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Booking], int]:
@@ -152,9 +174,19 @@ class BookingRepo:
             Booking.user_id == user_id,
             Booking.status == BookingStatus.CONFIRMED,
         )
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+
+        if after_id is not None:
+            query = query.where(Booking.id > after_id)
+
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         bookings = list(result.scalars().all())
+        total = count_result.scalar_one()
         return bookings, total
 
     async def sum_today_revenue(self, reference: datetime | None = None) -> float:
@@ -173,6 +205,7 @@ class BookingRepo:
         self,
         manager_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         status_filter: str | None = None,
@@ -201,6 +234,9 @@ class BookingRepo:
             .where(Court.manager_id == manager_id)
         )
 
+        if after_id is not None:
+            query = query.where(Booking.id > after_id)
+
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
@@ -219,7 +255,14 @@ class BookingRepo:
             count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
 
         query = query.order_by(Booking.created_at.desc())
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         bookings = list(result.scalars().all())
+        total = count_result.scalar_one()
         return bookings, total

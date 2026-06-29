@@ -33,6 +33,7 @@ class CourtService:
     async def list_courts(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         sport_types: list[SportType] | None = None,
@@ -59,6 +60,7 @@ class CourtService:
             is_active = True
 
         courts, total = await self.repo.list(
+            after_id=after_id,
             skip=skip,
             limit=limit,
             sport_types=sport_types,
@@ -75,9 +77,15 @@ class CourtService:
             max_distance_km=max_distance_km,
         )
         prices = await self.repo.get_min_prices([c.id for c in courts])
+        next_cursor = None
+        if courts and len(courts) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(courts[-1].id)
         return CourtListResponse(
             courts=[self._to_response(c, min_price=prices.get(c.id)) for c in courts],
             total=total,
+            next_cursor=next_cursor,
         )
 
     async def get_court(self, court_id: int) -> CourtResponse:
@@ -130,7 +138,7 @@ class CourtService:
         if urls:
             for idx, url in enumerate(urls):
                 self.repo.db.add(CourtImage(court_id=court.id, url=url, order=idx))
-            await self.repo.db.commit()
+            await self.repo.db.flush()
 
         # Reload court with images to avoid MissingGreenlet error
         court = await self.repo.get_by_id_with_images(court.id)
@@ -164,7 +172,7 @@ class CourtService:
             for img in result.scalars().all():
                 delete_file(img.url)
                 await self.repo.db.delete(img)
-            await self.repo.db.commit()
+            await self.repo.db.flush()
         if data.images is not None:
             # Replace all court images with the provided set (order matters)
             existing = (
@@ -194,7 +202,7 @@ class CourtService:
                     old_by_url[url].order = idx
                 else:
                     self.repo.db.add(CourtImage(court_id=court_id, url=url, order=idx))
-            await self.repo.db.commit()
+            await self.repo.db.flush()
         await self.repo.db.refresh(updated, ["court_images", "manager"])
         details_parts = [f"ویرایش مجموعه | '{updated.name}' (id={court_id})"]
         if data.images:
@@ -260,8 +268,6 @@ class CourtService:
             ordered = sorted(court.court_images, key=lambda x: x.order)
             resp.images = [img.url for img in ordered]
             resp.court_images = [CourtImageResponse.model_validate(img) for img in ordered]
-        elif court.images:
-            resp.images = court.images
         return resp
 
 

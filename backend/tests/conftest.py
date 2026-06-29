@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import NullPool, text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.core.database import Base, get_db
 from app.main import app
@@ -18,15 +16,22 @@ from app.main import app
 TEST_DB_URL = "postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test"
 
 engine = create_async_engine(TEST_DB_URL, echo=False, poolclass=NullPool)
-TestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+# ── Disable rate limiting for tests ────────────────────────────────────
+# SlowAPIMiddleware checks limiter.enabled before enforcing. Setting disabled
+# makes the middleware a pass-through while keeping the attribute available.
+from app.core.rate_limiter import limiter as _app_limiter  # noqa: E402
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Session-scoped event loop for pytest-asyncio."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+_app_limiter.enabled = False
+
+# ── Strip PrometheusMiddleware for tests ──────────────────────────────
+# BaseHTTPMiddleware wraps requests in an anyio TaskGroup whose tasks can
+# outlive pytest-asyncio's per-function event loop in Python 3.14, causing
+# RuntimeError.  We remove it and force FastAPI to rebuild the stack.
+from app.core.metrics import PrometheusMiddleware as _PrometheusMiddleware  # noqa: E402
+
+app.user_middleware = [m for m in app.user_middleware if m.cls is not _PrometheusMiddleware]
+app.middleware_stack = None  # force rebuild on first request
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -57,12 +62,7 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """HTTP client with overridden DB dependency."""
 
     async def override_get_db() -> AsyncGenerator[AsyncSession, Any]:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+        yield session
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -82,7 +82,7 @@ async def _register_and_promote(
     """Register a user, promote to *role* via raw SQL, re-login for fresh JWT."""
     resp = await client.post(
         "/api/v1/auth/register",
-        json={"phone": phone, "password": "123456", "full_name": "test"},
+        json={"phone": phone, "password": "Test1234", "full_name": "test"},
     )
     assert resp.status_code == 201, resp.text
     data = resp.json()
@@ -92,11 +92,11 @@ async def _register_and_promote(
         text("UPDATE users SET role = :role WHERE id = :id"),
         {"role": role, "id": user_id},
     )
-    await session.commit()
+    await session.flush()
 
     resp2 = await client.post(
         "/api/v1/auth/login",
-        json={"phone": phone, "password": "123456"},
+        json={"phone": phone, "password": "Test1234"},
     )
     assert resp2.status_code == 200, resp2.text
     data2 = resp2.json()

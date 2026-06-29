@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-from app.core.health import APP_VERSION, check_health
+import app
+from app.core.health import check_health
 
 
 def test_health_module_imports() -> None:
@@ -29,7 +30,7 @@ async def test_check_health_function() -> None:
     result = await check_health()
     assert "status" in result
     assert "version" in result
-    assert result["version"] == APP_VERSION
+    assert result["version"] == app.__version__
     assert "uptime_seconds" in result
     assert "components" in result
     assert "database" in result["components"]
@@ -43,6 +44,6 @@ async def test_health_endpoint(client: AsyncClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] in ("ok", "degraded")
-    assert data["version"] == APP_VERSION
+    assert data["version"] == app.__version__
     assert data["uptime_seconds"] >= 0
     assert "components" in data

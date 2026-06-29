@@ -9,12 +9,12 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_manager
 from app.core.database import get_db
+from app.core.pagination import decode_cursor, encode_cursor
 from app.models.booking import Booking
 from app.models.court import Court
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.repositories.booking_repo import BookingRepo
-from app.repositories.time_slot_repo import TimeSlotRepo
 from app.schemas.manager import (
     ManagerBookingListResponse,
     ManagerBookingResponse,
@@ -31,6 +31,7 @@ router = APIRouter(prefix="/manager", tags=["manager"])
     summary="List bookings for manager's courts",
 )
 async def list_manager_bookings(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     status: str | None = None,
@@ -42,9 +43,11 @@ async def list_manager_bookings(
     current_user: User = Depends(get_current_manager),
     response: Response = None,
 ):
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
     repo = BookingRepo(db)
     bookings, total = await repo.list_by_manager(
         current_user.id,
+        after_id=cursor_id,
         skip=skip,
         limit=limit,
         status_filter=status,
@@ -56,9 +59,9 @@ async def list_manager_bookings(
 
     result = []
     for b in bookings:
-        slot = await TimeSlotRepo(db).get_by_id(b.slot_id)
+        slot = b.slot  # already loaded via selectinload in BookingRepo
         court = slot.court if slot else None
-        user = getattr(b, "user", None)
+        user = b.user  # already loaded via selectinload
         result.append(
             ManagerBookingResponse(
                 id=b.id,
@@ -78,13 +81,17 @@ async def list_manager_bookings(
                 slot_end_time=slot.end_time if slot else None,
             )
         )
-    return ManagerBookingListResponse(bookings=result, total=total)
+    next_cursor = None
+    if bookings and len(bookings) == limit:
+        next_cursor = encode_cursor(bookings[-1].id)
+    return ManagerBookingListResponse(bookings=result, total=total, next_cursor=next_cursor)
 
 
 @router.get(
     "/slots", response_model=ManagerSlotListResponse, summary="List time slots for manager's courts"
 )
 async def list_manager_slots(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=200),
     court_id: int | None = Query(None, description="Filter by court ID"),
@@ -96,6 +103,7 @@ async def list_manager_slots(
     response: Response = None,
 ):
     # Build query: TimeSlot → Court (manager_id filter) → Booking (optional)
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
     query = (
         select(TimeSlot)
         .options(
@@ -111,6 +119,9 @@ async def list_manager_slots(
         .where(Court.manager_id == current_user.id)
     )
 
+    if cursor_id is not None:
+        query = query.where(TimeSlot.id > cursor_id)
+        count_q = count_q.where(TimeSlot.id > cursor_id)
     if court_id:
         query = query.where(Court.id == court_id)
         count_q = count_q.where(Court.id == court_id)
@@ -128,7 +139,10 @@ async def list_manager_slots(
 
     total = (await db.execute(count_q)).scalar_one()
     query = query.order_by(TimeSlot.start_time.desc())
-    result = await db.execute(query.offset(skip).limit(limit))
+    if cursor_id is not None:
+        result = await db.execute(query.limit(limit))
+    else:
+        result = await db.execute(query.offset(skip).limit(limit))
     slots = list(result.scalars().all())
 
     slot_responses = []
@@ -156,4 +170,7 @@ async def list_manager_slots(
             )
         )
 
-    return ManagerSlotListResponse(slots=slot_responses, total=total)
+    next_cursor = None
+    if slots and len(slots) == limit:
+        next_cursor = encode_cursor(slots[-1].id)
+    return ManagerSlotListResponse(slots=slot_responses, total=total, next_cursor=next_cursor)

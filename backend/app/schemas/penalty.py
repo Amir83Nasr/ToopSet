@@ -19,3 +19,4 @@ class PenaltyResponse(BaseModel):
 class PenaltyListResponse(BaseModel):
     penalties: list[PenaltyResponse]
     total: int
+    next_cursor: str | None = None

@@ -70,6 +70,58 @@ export const courtUpdateSchema = courtCreateSchema.partial()
 // Types
 // ---------------------------------------------------------------------------
 
+// ── OTP ─────────────────────────────────────────────────────────────
+
+export const otpPhoneSchema = z.object({
+  phone: phoneSchema,
+})
+
+export const verifyOtpSchema = z.object({
+  phone: z.string(),
+  code: z
+    .string()
+    .length(6, "کد تأیید باید ۶ رقم باشد")
+    .regex(/^\d{6}$/, "کد تأیید نامعتبر است"),
+  full_name: z
+    .string()
+    .min(1, "نام الزامی است")
+    .max(128, "نام حداکثر ۱۲۸ کاراکتر می‌تواند باشد")
+    .optional(),
+})
+
+export type OtpPhoneInput = z.infer<typeof otpPhoneSchema>
+export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>
+
+// ---------------------------------------------------------------------------
+// Contact
+// ---------------------------------------------------------------------------
+
+export const contactSchema = z.object({
+  name: z
+    .string()
+    .min(1, "نام الزامی است")
+    .max(256, "نام حداکثر ۲۵۶ کاراکتر می‌تواند باشد"),
+  email: z
+    .string()
+    .refine(
+      (val) => val === "" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val),
+      "فرمت ایمیل معتبر نیست"
+    )
+    .optional()
+    .or(z.literal("")),
+  phone: z
+    .string()
+    .min(1, "شماره تلفن الزامی است")
+    .max(32, "شماره تلفن حداکثر ۳۲ کاراکتر می‌تواند باشد"),
+  subject: z
+    .string()
+    .min(1, "موضوع الزامی است")
+    .max(512, "موضوع حداکثر ۵۱۲ کاراکتر می‌تواند باشد"),
+  message: z.string().min(1, "متن پیام الزامی است"),
+})
+
+export type ContactInput = z.infer<typeof contactSchema>
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type CourtCreateInput = z.infer<typeof courtCreateSchema>

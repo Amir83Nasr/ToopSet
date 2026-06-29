@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -19,3 +19,6 @@ class Wallet(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    user: Mapped["User"] = relationship(back_populates="wallets")
+    transactions: Mapped[list["WalletTransaction"]] = relationship(back_populates="wallet")

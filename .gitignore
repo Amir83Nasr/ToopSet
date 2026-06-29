@@ -43,6 +43,9 @@ Desktop.ini
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.*
 *.pem
 *.key
 
@@ -68,3 +71,4 @@ next-env.d.ts
 
 # ── AI ─────────────────────────────────────────────────────
 *-workspace/
+.claude/

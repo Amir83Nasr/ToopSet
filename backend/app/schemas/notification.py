@@ -19,3 +19,4 @@ class NotificationResponse(BaseModel):
 class NotificationListResponse(BaseModel):
     notifications: list[NotificationResponse]
     total: int
+    next_cursor: str | None = None

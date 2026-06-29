@@ -91,6 +91,8 @@ const result = await api<BookingResponse>("/api/v1/bookings", {
 | `/dashboard/reports`          | manager/admin | Revenue & booking analytics                          |
 | `/dashboard/manager`          | manager       | Manager home (today preview)                         |
 | `/dashboard/manager/schedule` | manager       | Weekly schedule grid, bulk slot generation           |
+| `/dashboard/manager/bookings` | manager       | All bookings for manager courts (search, filters)    |
+| `/dashboard/manager/slots`    | manager       | Time slot management (inline edit, delete, filters)  |
 | `/dashboard/courts`           | manager       | Court list                                           |
 | `/dashboard/courts/[id]`      | manager       | Court detail + inline edit dialog                    |
 | `/dashboard/courts/create`    | manager       | Create new court                                     |

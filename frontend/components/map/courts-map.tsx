@@ -16,9 +16,9 @@ import L, {
   createCourtIcon,
   createUserLocationIcon,
   createSearchPinIcon,
-  getSportColor,
 } from "@/lib/neshan-map"
 import "@neshan-maps-platform/leaflet/dist/leaflet.css"
+import { Button } from "../ui/button"
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
   basketball: "بسکتبال",
@@ -44,11 +44,6 @@ interface Court {
   base_price: number | null
   images?: string[]
   court_images?: { id: number; url: string; order: number }[]
-}
-
-function formatPrice(price: number | null): string {
-  if (price == null) return "—"
-  return `${new Intl.NumberFormat("fa-IR").format(price)} تومان`
 }
 
 interface CourtsMapProps {
@@ -113,30 +108,27 @@ function renderCourtMarkers(map: any, courts: Court[]) {
       icon: createCourtIcon(court.sport_types?.[0]),
     })
 
-    // Sport type badges with sport-specific colors
+    // Sport badges — all gray like other parts of the app
     const badgesHtml =
       court.sport_types
-        ?.map((st) => {
-          const c = getSportColor(st)
-          return `<span class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight" style="background-color:${c}18;color:${c}">${sportLabels[st] || st}</span>`
-        })
+        ?.map(
+          (st) =>
+            `<span class="inline-block rounded-full bg-muted-foreground/10 px-2 py-0.5 text-[10px] font-medium leading-tight text-muted-foreground">${sportLabels[st] || st}</span>`
+        )
         .join(" ") || ""
 
-    // Price section (only if available)
-    const priceHtml =
-      court.base_price != null
-        ? `<div class="mb-2 rounded-md px-3 py-1.5 text-center text-xs font-semibold" style="background-color:var(--color-muted);color:var(--color-primary)">${formatPrice(court.base_price)}</div>`
-        : ""
-
-    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="position:relative;min-width:220px">
-      <div class="flex flex-wrap gap-1 mb-2">${badgesHtml}</div>
-      <h3 class="text-sm font-bold leading-snug mb-1.5" style="color:var(--color-popover-foreground)">${court.name}</h3>
-      <div class="flex items-start gap-1.5 mb-2 text-xs" style="color:var(--color-muted-foreground)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span class="leading-normal line-clamp-2">${court.address}</span>
+    const popupHtml = `<div class="text-right font-sans" dir="rtl" style="min-width:220px">
+      <div class="px-3 ps-7 pt-3">
+        <div class="flex flex-wrap gap-1 mb-4 mr-3">${badgesHtml}</div>
+        <h3 class="text-sm font-bold leading-snug mb-1.5" style="color:var(--color-popover-foreground)">${court.name}</h3>
+        <div class="flex items-start gap-1.5 mb-5 text-xs" style="color:var(--color-muted-foreground)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span class="leading-normal line-clamp-2">${court.address}</span>
+        </div>
       </div>
-      ${priceHtml}
-      <a href="/courts/${court.id}" class="block w-full rounded-md px-3 py-1.5 text-center text-xs font-medium text-white transition-opacity hover:opacity-90" style="background-color:var(--color-primary)">مشاهده مجموعه</a>
+      <div class="p-3 pt-0">
+        <a href="/courts/${court.id}" class="group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-8 w-full bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50">مشاهده مجموعه</a>
+      </div>
     </div>`
 
     marker.bindPopup(popupHtml, { className: "theme-popup" })

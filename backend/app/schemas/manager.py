@@ -28,6 +28,7 @@ class ManagerBookingResponse(BaseModel):
 class ManagerBookingListResponse(BaseModel):
     bookings: list[ManagerBookingResponse]
     total: int
+    next_cursor: str | None = None
 
 
 class ManagerSlotResponse(BaseModel):
@@ -51,3 +52,4 @@ class ManagerSlotResponse(BaseModel):
 class ManagerSlotListResponse(BaseModel):
     slots: list[ManagerSlotResponse]
     total: int
+    next_cursor: str | None = None

@@ -39,6 +39,6 @@ class Payment(Base):
         default=PaymentStatus.PENDING,
         server_default="pending",
     )
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     booking: Mapped["Booking"] = relationship(back_populates="payments")

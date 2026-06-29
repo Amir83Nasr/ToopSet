@@ -36,7 +36,7 @@ CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
         typecheck typecheck-backend typecheck-frontend \
         check \
         test test-backend test-frontend test-db-setup \
-        db db-stop db-status db-reset db-seed \
+        db-start db-stop db-status db-migrate db-reset db-seed \
         up down logs ps up-build up-backend up-frontend compose-up-dev \
         back-build-docker front-build-docker docker-buildx \
         monitor monitor-stop \
@@ -131,6 +131,10 @@ db-start: ## Start Postgres and Redis
 db-stop: ## Stop Postgres and Redis
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
 	@echo "  $(GREEN)✓$(RESET) Postgres and Redis stopped"
+
+db-migrate: ## Run Alembic migrations
+	@cd $(BACKEND_DIR) && alembic upgrade head
+	@echo "  $(GREEN)✓$(RESET) Alembic migrations applied"
 
 db-status: ## Check database container status
 	@for svc in postgres redis; do \
@@ -258,11 +262,16 @@ doctor: ## Check system requirements
 			printf "  $(RED)✗$(RESET) $$cmd not found\n"; \
 		fi; \
 	done
+	@if command -v docker &>/dev/null && docker info >/dev/null 2>&1; then \
+		printf "  $(GREEN)✓$(RESET) Docker daemon running\n"; \
+	else \
+		printf "  $(RED)✗$(RESET) Docker daemon not running\n"; \
+	fi
 	@for port in 5432 6379; do \
 		if lsof -i :$$port &>/dev/null; then \
 			printf "  $(GREEN)✓$(RESET) Port $$port in use\n"; \
 		else \
-			printf "  $(YELLOW)⚠$(RESET) Port $$port free - run 'make db'\n"; \
+			printf "  $(YELLOW)⚠$(RESET) Port $$port free - run 'make db-start'\n"; \
 		fi; \
 	done
 	@if python3 -c "import fastapi" 2>/dev/null; then \

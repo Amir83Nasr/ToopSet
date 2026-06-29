@@ -15,4 +15,5 @@ class ErrorResponse(BaseModel):
     error_code: str | None = None
     timestamp: datetime | None = None
     path: str | None = None
+    request_id: str | None = None
     fields: list[FieldError] | None = None

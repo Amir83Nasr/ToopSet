@@ -1,0 +1,87 @@
+# ToopSet API — Service Level Objectives
+#
+# These SLOs define the target reliability thresholds for production.
+# Burn-rate alerts fire when the error budget is being consumed too fast.
+#
+service: "toopset-api"
+window: "30d"  # rolling evaluation window
+
+objectives:
+
+  # ── Availability SLO ──────────────────────────────────────────────────
+  - name: "api_availability"
+    description: "Proportion of HTTP requests that return 2xx or 4xx (non-5xx)."
+    target: 0.999           # 99.9% uptime → ~43 min downtime / 30d
+    indicator:
+      type: "ratio"
+      good: 'rate(http_requests_total{status!~"5.."}[5m])'
+      total: 'rate(http_requests_total[5m])'
+    burn_rate_alerts:
+      - severity: page       # consuming budget at ≥10× → 4.3 min to exhaust
+        threshold: 10
+        duration: 5m
+      - severity: warning     # consuming budget at ≥2× → 21.5 min to exhaust
+        threshold: 2
+        duration: 15m
+
+  # ── Latency SLO (P99) ─────────────────────────────────────────────────
+  - name: "api_latency_p99"
+    description: "Proportion of requests with P99 latency under 500ms."
+    target: 0.95            # 95% of 5-min windows meet the target
+    indicator:
+      type: "latency"
+      # Good when P99 < 500ms
+      good: 'histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) < 0.5'
+    burn_rate_alerts:
+      - severity: page
+        threshold: 10
+        duration: 5m
+      - severity: warning
+        threshold: 2
+        duration: 15m
+
+  # ── Error Rate SLO ────────────────────────────────────────────────────
+  - name: "api_error_rate"
+    description: "Proportion of 5xx errors in total traffic."
+    target: 0.99            # 99% of 5-min windows have <1% errors
+    indicator:
+      type: "ratio"
+      good: |
+        (
+          sum(rate(http_requests_total{status!~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total[5m]))
+        ) > 0.99
+      total: "1"  # constant — the ratio itself is the measure
+    burn_rate_alerts:
+      - severity: page
+        threshold: 10
+        duration: 5m
+      - severity: warning
+        threshold: 2
+        duration: 15m
+
+  # ── Database Latency SLO ──────────────────────────────────────────────
+  - name: "db_latency_p95"
+    description: "Proportion of requests with P95 DB query time under 200ms."
+    target: 0.90
+    indicator:
+      type: "latency"
+      good: 'histogram_quantile(0.95, rate(toopset_db_query_duration_ms_bucket[5m])) < 200'
+    burn_rate_alerts:
+      - severity: warning
+        threshold: 5
+        duration: 5m
+
+  # ── Booking Success SLO ───────────────────────────────────────────────
+  - name: "booking_success_rate"
+    description: "Proportion of booking attempts that result in confirmed bookings."
+    target: 0.80
+    indicator:
+      type: "ratio"
+      good: "toopset_booking_success_ratio > 0.8"
+      total: "1"
+    burn_rate_alerts:
+      - severity: warning
+        threshold: 5
+        duration: 5m

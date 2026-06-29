@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -17,6 +17,10 @@ class Log(Base):
     )
     action: Mapped[str] = mapped_column(String(128))
     details: Mapped[str | None] = mapped_column(Text, default=None)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    severity: Mapped[str] = mapped_column(String(16), default="INFO")
+    request_id: Mapped[str | None] = mapped_column(String(64), default=None)
+    ip_address: Mapped[str | None] = mapped_column(String(45), default=None)
+    user_agent: Mapped[str | None] = mapped_column(Text, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User | None"] = relationship(back_populates="logs")

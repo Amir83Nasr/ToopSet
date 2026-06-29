@@ -1,0 +1,152 @@
+# ────────────────────────────────────────────────────────────
+# ToopSet — Production Docker Compose
+# Usage:
+#   docker compose -f compose.prod.yml up -d
+#   docker compose -f compose.prod.yml down
+#
+# Environment:  Set all secrets via .env.production or shell env vars.
+#               See backend/.env.example for the full variable list.
+# ────────────────────────────────────────────────────────────
+
+name: toopset
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: toopset-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-127.0.0.1:5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?error}
+      POSTGRES_USER: ${POSTGRES_USER:?error}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+  # ── Redis ───────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: toopset-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-127.0.0.1:6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend
+
+  # ── Backend API ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: toopset-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-127.0.0.1:8000}:8000"
+    environment:
+      # These use Docker Compose variable interpolation;
+      # secrets are read from .env.production or host env.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:?error}
+      POSTGRES_USER: ${POSTGRES_USER:?error}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_SSL: ${REDIS_SSL:-false}
+      SECRET_KEY: ${SECRET_KEY:?error}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-5}
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:?error}
+      SMS_PROVIDER: ${SMS_PROVIDER:?error}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.2}
+      CORS_ORIGINS: ${CORS_ORIGINS:?error}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - backend
+
+  # ── Optional: PgBouncer connection pooler ───────────────
+  # Uncomment to add connection pooling.  Update POSTGRES_HOST
+  # in the backend service to "pgbouncer" when enabled.
+  #
+  # pgbouncer:
+  #   image: edoburu/pgbouncer:1.24
+  #   container_name: toopset-pgbouncer
+  #   restart: unless-stopped
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #     POOL_MODE: transaction
+  #     MAX_CLIENT_CONN: 100
+  #     DEFAULT_POOL_SIZE: 25
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - backend
+
+  # ── Optional: Reverse proxy (Caddy) ─────────────────────
+  # Uncomment for TLS termination, domain routing, rate limiting.
+  # Configure Caddyfile in a caddy/ directory at repo root.
+  #
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: toopset-caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   networks:
+  #     - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
+  logs_data:
+  # caddy_data:
+
+networks:
+  backend:
+    driver: bridge

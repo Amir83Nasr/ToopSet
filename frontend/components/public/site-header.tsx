@@ -396,14 +396,9 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              <Link href="/register">
-                <Button variant="outline" size="sm" className="px-4">
-                  ثبت‌نام
-                </Button>
-              </Link>
-              <Link href="/login">
+              <Link href="/otp">
                 <Button className="px-4" size="sm">
-                  ورود
+                  ورود / ثبت‌نام
                 </Button>
               </Link>
             </>
@@ -512,13 +507,8 @@ export function SiteHeader() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 px-3">
-                    <Link href="/register" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" className="w-full">
-                        ثبت‌نام
-                      </Button>
-                    </Link>
-                    <Link href="/login" onClick={() => setMobileOpen(false)}>
-                      <Button className="w-full">ورود</Button>
+                    <Link href="/otp" onClick={() => setMobileOpen(false)}>
+                      <Button className="w-full">ورود / ثبت‌نام</Button>
                     </Link>
                   </div>
                 )}

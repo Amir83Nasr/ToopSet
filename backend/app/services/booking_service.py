@@ -84,27 +84,43 @@ class BookingService:
     async def list_my_bookings(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         status_filter: str | None = None,
     ) -> BookingListResponse:
         bookings, total = await self.booking_repo.list_by_user(
-            self.current_user.id, skip=skip, limit=limit, status_filter=status_filter
+            self.current_user.id,
+            after_id=after_id,
+            skip=skip,
+            limit=limit,
+            status_filter=status_filter,
         )
+        next_cursor = None
+        if bookings and len(bookings) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(bookings[-1].id)
         result = await self._build_booking_detail_list(bookings)
-        return BookingListResponse(bookings=result, total=total)
+        return BookingListResponse(bookings=result, total=total, next_cursor=next_cursor)
 
     async def list_completed_bookings(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> BookingListResponse:
         bookings, total = await self.booking_repo.list_completed_by_user(
-            self.current_user.id, skip=skip, limit=limit
+            self.current_user.id, after_id=after_id, skip=skip, limit=limit
         )
+        next_cursor = None
+        if bookings and len(bookings) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(bookings[-1].id)
         result = await self._build_booking_detail_list(bookings)
-        return BookingListResponse(bookings=result, total=total)
+        return BookingListResponse(bookings=result, total=total, next_cursor=next_cursor)
 
     async def get_booking(self, booking_id: int) -> BookingDetailResponse:
         booking = await self.booking_repo.get_by_id(booking_id)
@@ -118,13 +134,6 @@ class BookingService:
         slot = booking.slot  # loaded via selectinload
         court = slot.court if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)
-        # Notify manager about new booking
-        if court:
-            await self.notify_repo.create(
-                user_id=court.manager_id,
-                type_="booking_created",
-                message=f"رزرو جدید برای {court.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
-            )
 
         return BookingDetailResponse(
             id=booking.id,
@@ -381,6 +390,7 @@ class BookingService:
                 detail="امکان لغو در ۲ ساعت مانده به شروع سانس وجود ندارد",
             )
 
+        penalty_amount: float | None = None
         if hours_until_slot <= 24:
             penalty_amount = float(booking.price_paid) * 0.5
             refund_amount = float(booking.price_paid) * 0.5
@@ -463,13 +473,14 @@ class BookingService:
     async def list_all_bookings(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         search: str | None = None,
         status_filter: str | None = None,
     ) -> AdminBookingListResponse:
         bookings, total = await self.booking_repo.list_all(
-            skip=skip, limit=limit, search=search, status_filter=status_filter
+            after_id=after_id, skip=skip, limit=limit, search=search, status_filter=status_filter
         )
         result = []
         for b in bookings:
@@ -491,11 +502,17 @@ class BookingService:
                     court_name=court.name if court else "",
                     court_address=court.address if court else "",
                     user_name=user.full_name if user else "",
+                    user_phone=user.phone if user else "",
                     slot_start_time=slot.start_time if slot else None,
                     slot_end_time=slot.end_time if slot else None,
                 )
             )
-        return AdminBookingListResponse(bookings=result, total=total)
+        next_cursor = None
+        if bookings and len(bookings) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(bookings[-1].id)
+        return AdminBookingListResponse(bookings=result, total=total, next_cursor=next_cursor)
 
 
 async def get_booking_service(

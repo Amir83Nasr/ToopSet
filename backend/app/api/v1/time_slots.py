@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import get_current_manager
+from app.core.pagination import decode_cursor
 from app.models.user import User
 from app.schemas.time_slot import (
     TimeSlotCreate,
@@ -25,13 +26,17 @@ router = APIRouter(prefix="/courts/{court_id}/slots", tags=["time-slots"])
 @router.get("", response_model=TimeSlotListResponse, summary="List time slots for a court")
 async def list_slots(
     court_id: int,
+    cursor: str | None = Query(None, description="Cursor for next page"),
     date: str | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=1000),
     service: TimeSlotService = Depends(get_time_slot_service_public),
     response: Response = None,
 ):
-    result = await service.list_slots(court_id, date=date, skip=skip, limit=limit)
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
+    result = await service.list_slots(
+        court_id, after_id=cursor_id, date=date, skip=skip, limit=limit
+    )
     response.headers["X-Cache"] = "HIT" if getattr(service, "_from_cache", False) else "MISS"
     return result
 

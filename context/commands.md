@@ -3,7 +3,7 @@
 ## Development
 
 ```bash
-make db              # Start Postgres + Redis via Docker
+make db-start        # Start Postgres + Redis via Docker
 make dev-backend     # uvicorn --reload :8000
 make dev-frontend    # next dev --turbopack :3000
 make build           # Build frontend for production
@@ -25,6 +25,7 @@ make ps              # Show status
 
 ```bash
 make db-status       # Check container status
+make db-migrate      # Run Alembic migrations
 make db-reset        # Wipe volumes and recreate
 make db-seed         # Seed with Persian test data
 make db-stop         # Stop containers
@@ -36,7 +37,6 @@ make db-stop         # Stop containers
 make lint            # ruff (backend) + eslint (frontend)
 make format          # ruff format + prettier
 make typecheck       # mypy + tsc
-make check           # ALL lint + format + typecheck (run before push)
 make check           # ALL lint + format + typecheck (run before push)
 ```
 

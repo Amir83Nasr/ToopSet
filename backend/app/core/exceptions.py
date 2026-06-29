@@ -5,12 +5,62 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.exc import IntegrityError, StatementError
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from app.core.correlation_id import get_request_id
 from app.schemas.error import ErrorResponse, FieldError
 
 logger = logging.getLogger(__name__)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Hardens HTTP responses with security-related headers.
+
+    Following OWASP Secure Headers recommendations for a JSON API:
+      - ``X-Content-Type-Options: nosniff`` — prevents MIME-type sniffing
+      - ``X-Frame-Options: DENY`` — prevents clickjacking
+      - ``X-XSS-Protection: 0`` — disables legacy XSS auditor (modern browsers
+        have removed it; setting 0 avoids unwanted behaviour in older ones)
+      - ``Strict-Transport-Security`` — enforces HTTPS (31536000s = 1 year incl. subdomains)
+      - ``Content-Security-Policy`` — restricts resource sources to prevent XSS
+      - ``Referrer-Policy`` — controls referrer header leakage
+      - ``Permissions-Policy`` — disables sensitive browser features
+      - ``Cache-Control`` — prevents caching of sensitive responses
+    """
+
+    # Paths whose responses should NOT be cached (auth tokens, personal data)
+    _SENSITIVE_PATHS = (
+        "/api/v1/auth/",
+        "/api/v1/users/me",
+        "/api/v1/admin/",
+    )
+
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "0"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; img-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline'; font-src 'self'; "
+            "connect-src 'self'; form-action 'none'; frame-ancestors 'none'"
+        )
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=(), payment=()"
+        )
+
+        # Prevent caching of sensitive endpoints
+        if request.url.path.startswith(self._SENSITIVE_PATHS):
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
 
 
 def _make_response(
@@ -25,6 +75,7 @@ def _make_response(
         error_code=error_code,
         timestamp=datetime.now(timezone.utc),
         path=str(request.url.path) if request is not None else None,
+        request_id=get_request_id() or None,
         fields=fields,
     ).model_dump(mode="json")
     return JSONResponse(status_code=status_code, content=body)

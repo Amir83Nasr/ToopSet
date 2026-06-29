@@ -11,7 +11,7 @@ class FavoriteRepo:
     async def add(self, user_id: int, court_id: int) -> Favorite:
         fav = Favorite(user_id=user_id, court_id=court_id)
         self.db.add(fav)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(fav)
         return fav
 
@@ -22,7 +22,7 @@ class FavoriteRepo:
         fav = result.scalar_one_or_none()
         if fav:
             await self.db.delete(fav)
-            await self.db.commit()
+            await self.db.flush()
             return True
         return False
 

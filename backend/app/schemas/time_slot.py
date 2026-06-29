@@ -42,6 +42,7 @@ class TimeSlotDetailResponse(TimeSlotResponse):
 class TimeSlotListResponse(BaseModel):
     slots: list[TimeSlotResponse]
     total: int
+    next_cursor: str | None = None
 
 
 class TimeSlotTemplate(BaseModel):

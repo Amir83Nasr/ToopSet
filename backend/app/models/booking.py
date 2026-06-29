@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, SmallInteger, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, SmallInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,8 +21,10 @@ class BookingStatus(str, enum.Enum):
 class Booking(Base):
     __tablename__ = "bookings"
 
+    __table_args__ = (Index("ix_bookings_created_at", "created_at"),)
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     slot_id: Mapped[int] = mapped_column(
         ForeignKey("time_slots.id", ondelete="CASCADE"), unique=True
     )
@@ -35,8 +37,10 @@ class Booking(Base):
     price_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     penalty_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
     participants_count: Mapped[int] = mapped_column(SmallInteger, default=1, server_default="1")
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None, nullable=True
     )

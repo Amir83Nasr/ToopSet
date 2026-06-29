@@ -30,9 +30,11 @@ from app.api.v1.time_slots import slot_detail_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.users import router as users_router
 from app.api.v1.wallet import router as wallet_router
-from app.core.config import settings
+from app.core.config import EnvValidationError, settings, validate_env
+from app.core.correlation_id import CorrelationIdMiddleware
 from app.core.database import async_session_factory, engine
 from app.core.exceptions import (
+    SecurityHeadersMiddleware,
     generic_exception_handler,
     http_exception_handler,
     integrity_error_handler,
@@ -46,6 +48,7 @@ from app.core.metrics import (
     metrics_response,
     refresh_business_metrics,
 )
+from app.core.profiler import ProfilerMiddleware
 from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.core.redis_client import close_redis
 from app.core.timezone import now_utc
@@ -85,6 +88,8 @@ async def _cancel_expired_pending():
                     if slot:
                         await slot_repo.update(slot, {"is_reserved": False})
                     await repo.update(b, {"status": BookingStatus.CANCELLED})
+                if expired:
+                    await db.commit()
         except Exception:
             import logging
 
@@ -96,16 +101,35 @@ async def _cancel_expired_pending():
 async def lifespan(app: FastAPI):
     setup_logging()
 
+    # ── Startup validation (fails hard if misconfigured for production) ──
+    try:
+        validate_env(settings)
+    except EnvValidationError as exc:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        if settings.secret_key == "change-me-to-a-random-secret-key":
+            logger.warning(
+                "Running with development defaults — skipping strict validation. "
+                "Set SECRET_KEY, CORS_ORIGINS, and other production env vars before deploying."
+            )
+        else:
+            logger.error(str(exc))
+            raise
+
+    # ── OpenTelemetry ─────────────────────────────────────────────────
+    if settings.otel_enabled:
+        from app.core.telemetry import setup_opentelemetry
+
+        setup_opentelemetry()
+
+    # ── Sentry ─────────────────────────────────────────────────────────
     if settings.sentry_dsn:
         import sentry_sdk
 
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
-            environment=(
-                "development"
-                if settings.secret_key == "change-me-to-a-random-secret-key"
-                else "production"
-            ),
+            environment="production",
             traces_sample_rate=settings.sentry_traces_sample_rate,
         )
 
@@ -154,11 +178,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(ProfilerMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 

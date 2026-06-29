@@ -24,11 +24,12 @@ class ReviewService:
     async def list_my(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> ReviewListResponse:
         reviews, total = await self.review_repo.list_by_user(
-            self.current_user.id, skip=skip, limit=limit
+            self.current_user.id, after_id=after_id, skip=skip, limit=limit
         )
         items = []
         for review in reviews:
@@ -38,16 +39,24 @@ class ReviewService:
             item.court_name = court_name
             item.user_name = user_name
             items.append(item)
-        return ReviewListResponse(reviews=items, total=total)
+        next_cursor = None
+        if reviews and len(reviews) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(reviews[-1].id)
+        return ReviewListResponse(reviews=items, total=total, next_cursor=next_cursor)
 
     async def list_by_court(
         self,
         court_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> ReviewListResponse:
-        reviews, total = await self.review_repo.list_by_court(court_id, skip=skip, limit=limit)
+        reviews, total = await self.review_repo.list_by_court(
+            court_id, after_id=after_id, skip=skip, limit=limit
+        )
         items = []
         for review in reviews:
             court_name = review.court.name if review.court else ""
@@ -56,7 +65,12 @@ class ReviewService:
             item.court_name = court_name
             item.user_name = user_name
             items.append(item)
-        return ReviewListResponse(reviews=items, total=total)
+        next_cursor = None
+        if reviews and len(reviews) == limit:
+            from app.core.pagination import encode_cursor
+
+            next_cursor = encode_cursor(reviews[-1].id)
+        return ReviewListResponse(reviews=items, total=total, next_cursor=next_cursor)
 
     async def list_recent(
         self,
@@ -167,7 +181,7 @@ class ReviewService:
                 )
 
         review.response = response
-        await self.review_repo.db.commit()
+        await self.review_repo.db.flush()
         await self.review_repo.db.refresh(review)
 
         item = ReviewDetailResponse.model_validate(review)
@@ -210,7 +224,7 @@ class ReviewService:
             )
 
         review.is_reported = True
-        await self.review_repo.db.commit()
+        await self.review_repo.db.flush()
         return {"success": True}
 
     async def _recalc_court_rating(self, court_id: int) -> None:
@@ -226,4 +240,4 @@ class ReviewService:
         court = await self.review_repo.db.get(Court, court_id)
         if court:
             court.average_rating = round(avg, 1)
-            await self.review_repo.db.commit()
+            await self.review_repo.db.flush()

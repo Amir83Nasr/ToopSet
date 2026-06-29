@@ -25,3 +25,20 @@ export interface RegisterRequest {
   password: string
   full_name: string
 }
+
+// ── OTP types ──────────────────────────────────────────────────────
+
+export interface SendOtpRequest {
+  phone: string
+}
+
+export interface SendOtpResponse {
+  message: string
+  is_new_user: boolean
+}
+
+export interface VerifyOtpRequest {
+  phone: string
+  code: string
+  full_name?: string
+}

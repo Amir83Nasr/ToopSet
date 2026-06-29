@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
+from app.core.pagination import decode_cursor
 from app.models.user import User
 from app.schemas.review import (
     ReviewCreate,
@@ -36,11 +37,13 @@ async def list_recent_reviews(
 
 @router.get("/my", response_model=ReviewListResponse, summary="My reviews")
 async def list_my_reviews(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     service: ReviewService = Depends(get_review_service),
 ):
-    return await service.list_my(skip=skip, limit=limit)
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
+    return await service.list_my(after_id=cursor_id, skip=skip, limit=limit)
 
 
 @router.post(

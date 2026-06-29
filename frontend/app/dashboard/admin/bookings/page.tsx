@@ -68,6 +68,7 @@ interface AdminBooking {
   court_name: string
   court_address: string
   user_name: string
+  user_phone: string
   slot_start_time: string | null
   slot_end_time: string | null
 }
@@ -217,7 +218,8 @@ export default function AdminBookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>کاربر</TableHead>
+                <TableHead className="w-44">کاربر</TableHead>
+                <TableHead className="w-28 text-right">شماره تماس</TableHead>
                 <TableHead>مجموعه</TableHead>
                 <TableHead>تاریخ</TableHead>
                 <TableHead>ساعت</TableHead>
@@ -229,7 +231,7 @@ export default function AdminBookingsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-20" />
                     </TableCell>
@@ -256,7 +258,8 @@ export default function AdminBookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-32">کاربر</TableHead>
+                <TableHead className="w-44">کاربر</TableHead>
+                <TableHead className="w-36 text-right">شماره تماس</TableHead>
                 <TableHead>مجموعه</TableHead>
                 <TableHead className="w-24">تاریخ</TableHead>
                 <TableHead className="w-28">ساعت</TableHead>
@@ -268,8 +271,14 @@ export default function AdminBookingsPage() {
             <TableBody>
               {bookings.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell className="max-w-32 truncate">
-                    {b.user_name}
+                  <TableCell>
+                    <span className="text-sm font-medium">{b.user_name}</span>
+                  </TableCell>
+                  <TableCell
+                    dir="ltr"
+                    className="text-right text-sm text-muted-foreground"
+                  >
+                    {toPersianDigits(b.user_phone)}
                   </TableCell>
                   <TableCell className="max-w-48 truncate">
                     {b.court_name}

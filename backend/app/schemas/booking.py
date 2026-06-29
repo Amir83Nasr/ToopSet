@@ -32,6 +32,7 @@ class BookingResponse(BaseModel):
 class BookingListResponse(BaseModel):
     bookings: list[BookingDetailResponse]
     total: int
+    next_cursor: str | None = None
 
 
 class PaymentResponse(BaseModel):
@@ -72,6 +73,7 @@ class AdminBookingResponse(BaseModel):
     court_name: str = ""
     court_address: str = ""
     user_name: str = ""
+    user_phone: str = ""
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
     model_config = {"from_attributes": True}
@@ -80,3 +82,4 @@ class AdminBookingResponse(BaseModel):
 class AdminBookingListResponse(BaseModel):
     bookings: list[AdminBookingResponse]
     total: int
+    next_cursor: str | None = None

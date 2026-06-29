@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { LoginForm } from "@/components/auth/login-form"
 import { AuthHeroSlides } from "@/components/auth/auth-hero-slides"
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Smartphone } from "lucide-react"
 
 function LoginPageContent() {
   const { login } = useAuth()
@@ -41,6 +41,22 @@ function LoginPageContent() {
               {reasonMessage}
             </div>
           )}
+
+          {/* OTP quick-entry banner */}
+          <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <Link
+              href={
+                redirect
+                  ? `/otp?redirect=${encodeURIComponent(redirect)}`
+                  : "/otp"
+              }
+              className="flex items-center justify-center gap-2 text-sm font-medium text-primary"
+            >
+              <Smartphone className="size-4" />
+              ورود سریع با کد یکبار مصرف
+            </Link>
+          </div>
+
           <LoginForm login={login} redirect={redirect} />
         </div>
       </div>

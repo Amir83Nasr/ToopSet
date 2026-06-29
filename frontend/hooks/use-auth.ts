@@ -8,7 +8,10 @@ import type {
   AuthResponse,
   LoginRequest,
   RegisterRequest,
+  SendOtpRequest,
+  SendOtpResponse,
   User,
+  VerifyOtpRequest,
 } from "@/types/auth"
 
 export function useAuth() {
@@ -93,6 +96,33 @@ export function useAuth() {
     [router]
   )
 
+  // ── OTP methods ──────────────────────────────────────────────────
+
+  const sendOtp = useCallback(async (data: SendOtpRequest) => {
+    const res = await api<SendOtpResponse>("/api/v1/auth/otp/send", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return res
+  }, [])
+
+  const verifyOtp = useCallback(
+    async (data: VerifyOtpRequest, redirect?: string) => {
+      const res = await api<AuthResponse>("/api/v1/auth/otp/verify", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+      setTokens(res.access_token, res.refresh_token)
+      setUser(res.user)
+      if (redirect && redirect.startsWith("/")) {
+        router.push(redirect)
+      } else {
+        router.push("/dashboard")
+      }
+    },
+    [router]
+  )
+
   const logout = useCallback(() => {
     clearTokens()
     setUser(null)
@@ -104,6 +134,8 @@ export function useAuth() {
     loading,
     login,
     register,
+    sendOtp,
+    verifyOtp,
     logout,
     refreshUser,
     isAuthenticated: !!user,

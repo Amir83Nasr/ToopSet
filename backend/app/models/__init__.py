@@ -7,6 +7,7 @@ from app.models.log import Log
 from app.models.notification import Notification
 from app.models.payment import Payment
 from app.models.penalty import Penalty
+from app.models.refresh_token import RefreshToken
 from app.models.review import Review
 from app.models.setting import Setting
 from app.models.time_slot import TimeSlot
@@ -30,4 +31,5 @@ __all__ = [
     "Notification",
     "ContactMessage",
     "Favorite",
+    "RefreshToken",
 ]

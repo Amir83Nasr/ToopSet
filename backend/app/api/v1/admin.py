@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.core.logger import log_action
+from app.core.pagination import decode_cursor, encode_cursor
 from app.core.security import hash_password
 from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload
 from app.models.court import Court
@@ -82,10 +83,12 @@ class LogResponse(BaseModel):
 class LogListResponse(BaseModel):
     logs: list[LogResponse]
     total: int
+    next_cursor: str | None = None
 
 
 @router.get("/logs", response_model=LogListResponse, summary="View audit logs")
 async def list_logs(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     action: str | None = None,
@@ -98,7 +101,9 @@ async def list_logs(
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
     cache_params = {
+        "cursor": cursor,
         "skip": skip,
         "limit": limit,
         "action": action,
@@ -113,6 +118,7 @@ async def list_logs(
 
     repo = LogRepo(db)
     logs, total = await repo.list(
+        after_id=cursor_id,
         skip=skip,
         limit=limit,
         action=action,
@@ -127,14 +133,23 @@ async def list_logs(
             resp.user_name = log.user.full_name
         log_responses.append(resp)
 
+    next_cursor = None
+    if logs and len(logs) == limit:
+        next_cursor = encode_cursor(logs[-1].id)
+    result = LogListResponse(logs=log_responses, total=total, next_cursor=next_cursor)
+
     await cache_admin_list(
         "logs",
         cache_params,
-        {"logs": [r.model_dump(mode="json") for r in log_responses], "total": total},
+        {
+            "logs": [r.model_dump(mode="json") for r in log_responses],
+            "total": total,
+            "next_cursor": next_cursor,
+        },
         ttl=30,
     )
     response.headers["X-Cache"] = "MISS"
-    return LogListResponse(logs=log_responses, total=total)
+    return result
 
 
 @router.delete("/logs/clear", status_code=status.HTTP_204_NO_CONTENT, summary="Clear all logs")
@@ -199,8 +214,11 @@ async def list_pending_courts(
     count_q = select(func.count(Court.id)).where(Court.is_active == False)
     total = (await db.execute(count_q)).scalar_one()
 
+    from sqlalchemy.orm import selectinload
+
     result = await db.execute(
         select(Court)
+        .options(selectinload(Court.manager))
         .where(Court.is_active == False)
         .order_by(Court.created_at.desc())
         .offset(skip)
@@ -210,7 +228,7 @@ async def list_pending_courts(
 
     courts_data = []
     for c in courts:
-        manager = await db.get(User, c.manager_id)
+        manager = c.manager  # loaded via selectinload
         courts_data.append(
             {
                 "id": c.id,
@@ -789,3 +807,28 @@ async def seed_admin(
         "full_name": user.full_name,
         "role": user.role.value,
     }
+
+
+# ── Admin session management ─────────────────────────────────────────
+
+
+@router.post(
+    "/users/{user_id}/revoke-sessions",
+    status_code=status.HTTP_200_OK,
+    summary="Revoke all sessions for a user",
+)
+async def admin_revoke_user_sessions(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    """Revoke all refresh tokens and bump token_version for a target user."""
+    from app.repositories.refresh_token_repo import RefreshTokenRepo
+    from app.repositories.user_repo import UserRepository
+    from app.services.auth_service import AuthService
+
+    repo = UserRepository(db)
+    refresh_repo = RefreshTokenRepo(db)
+    service = AuthService(repo, refresh_repo)
+    count = await service.admin_revoke_user_sessions(db, _admin, user_id)
+    return {"revoked_sessions": count}

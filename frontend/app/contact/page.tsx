@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
+import { contactSchema } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -91,6 +92,9 @@ export default function ContactPage() {
     subject: "",
     message: "",
   })
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof typeof form, string>>
+  >({})
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
@@ -98,11 +102,24 @@ export default function ContactPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    setErrors({})
+
+    const parsed = contactSchema.safeParse(form)
+    if (!parsed.success) {
+      const fieldErrors: Partial<Record<keyof typeof form, string>> = {}
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as keyof typeof form
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message
+      }
+      setErrors(fieldErrors)
+      return
+    }
+
     setSubmitting(true)
     try {
       await api("/api/v1/contact", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify(parsed.data),
       })
       setSuccess(true)
       setForm({ name: "", email: "", phone: "", subject: "", message: "" })
@@ -217,32 +234,47 @@ export default function ContactPage() {
                             setForm({ ...form, name: e.target.value })
                           }
                         />
+                        {errors.name && (
+                          <p className="text-xs text-destructive">
+                            {errors.name}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">ایمیل *</Label>
+                        <Label htmlFor="email">ایمیل</Label>
                         <Input
                           id="email"
                           type="email"
-                          required
                           placeholder="example@email.com"
                           value={form.email}
                           onChange={(e) =>
                             setForm({ ...form, email: e.target.value })
                           }
                         />
+                        {errors.email && (
+                          <p className="text-xs text-destructive">
+                            {errors.email}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="grid gap-5 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="phone">تلفن تماس</Label>
+                        <Label htmlFor="phone">تلفن تماس *</Label>
                         <Input
                           id="phone"
+                          required
                           placeholder="۰۹۱۲۳۴۵۶۷۸۹"
                           value={form.phone}
                           onChange={(e) =>
                             setForm({ ...form, phone: e.target.value })
                           }
                         />
+                        {errors.phone && (
+                          <p className="text-xs text-destructive">
+                            {errors.phone}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="subject">موضوع *</Label>
@@ -255,6 +287,11 @@ export default function ContactPage() {
                             setForm({ ...form, subject: e.target.value })
                           }
                         />
+                        {errors.subject && (
+                          <p className="text-xs text-destructive">
+                            {errors.subject}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -269,6 +306,11 @@ export default function ContactPage() {
                           setForm({ ...form, message: e.target.value })
                         }
                       />
+                      {errors.message && (
+                        <p className="text-xs text-destructive">
+                          {errors.message}
+                        </p>
+                      )}
                     </div>
                     {error && (
                       <p className="text-sm text-destructive">{error}</p>

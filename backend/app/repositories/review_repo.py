@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -15,6 +17,7 @@ class ReviewRepo:
         self,
         court_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Review], int]:
@@ -26,15 +29,25 @@ class ReviewRepo:
         )
         count_q = select(func.count(Review.id)).where(Review.court_id == court_id)
 
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            query = query.where(Review.id > after_id)
+
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         reviews = list(result.scalars().all())
+        total = count_result.scalar_one()
         return reviews, total
 
     async def list_by_user(
         self,
         user_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Review], int]:
@@ -46,9 +59,18 @@ class ReviewRepo:
         )
         count_q = select(func.count(Review.id)).where(Review.user_id == user_id)
 
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            query = query.where(Review.id > after_id)
+
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         reviews = list(result.scalars().all())
+        total = count_result.scalar_one()
         return reviews, total
 
     async def get_by_id(self, review_id: int) -> Review | None:
@@ -83,10 +105,10 @@ class ReviewRepo:
     async def create(self, data: dict) -> Review:
         review = Review(**data)
         self.db.add(review)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(review)
         return review
 
     async def delete(self, review: Review) -> None:
         await self.db.delete(review)
-        await self.db.commit()
+        await self.db.flush()

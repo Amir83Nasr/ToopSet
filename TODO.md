@@ -1,85 +1,152 @@
 # TODO
 
-Updated: 2026-06-28
+Updated: 2026-06-29
 
-## Backlog
+---
 
-- [ ] **Fix `next/image` unoptimized — Config remotePatterns for user uploads** — Replace 10+ `unoptimized` props on next/image with proper `remotePatterns` in next.config.js for CDN/local uploads. Some external images may still need `unoptimized` but most can be optimized for better performance and SEO.
+## Milestones
 
-- [ ] **Fix all N+1 Queries + Harden cache_service** — Audit all services for N+1 patterns (selectinload/joinedload) and narrow `except Exception` in `cache_service.py` to specific exceptions so real DB/Redis bugs aren't silently swallowed.
+| Phase | Status |
+| ----- | ------ |
+| ✅ Phase A — Foundation Hardening | Complete |
+| ✅ Stabilization — Test Isolation & Cleanup | Complete |
+| ✅ Phase B — Performance & Caching | Complete |
+| ✅ Phase C-1 — Production Infrastructure | Complete |
+| ✅ Phase C-2 — Security Hardening | Complete |
+| ✅ Phase C-3 — Enterprise Authentication | Complete |
+| ✅ Phase C-4 — Enterprise Observability | Complete |
+| ⬜ Phase D — Upcoming | Not started |
+| ⬜ Phase E | Not started |
+| ⬜ Phase F | Not started |
 
-- [ ] **Remove All `as any` TypeScript Assertions** — Remove unsafe `as any` casts in `courts/create/page.tsx`, `courts/[id]/page.tsx` (zodResolver typing) and `courts-map.tsx` (custom marker properties via extended interface).
+---
 
-- [ ] **Extract Duplicate Status Labels into Shared Constants** — Create `frontend/lib/constants.tsx` with shared `BOOKING_STATUS_LABELS`, `BOOKING_STATUS_STYLES`, `PAYMENT_STATUS_CONFIG` maps. Remove duplicate definitions from 4-6 dashboard pages.
+## In Progress 🚧
 
-- [ ] **Fix N+1 Query in BookingService** — Use `selectinload(Booking.slot).selectinload(TimeSlot.court)` in the base booking query so the 21-query pattern (1 for bookings + N for each slot) becomes a single query.
+No active implementation phase. Phase C-4 (Enterprise Observability) completed on 2026-06-29.
 
-- [ ] **Fix Duplicate Response Mapping in BookingService** — Extract private `_build_booking_list_response` helper in `booking_service.py` to deduplicate the identical response-building loops in `list_my_bookings` and `list_completed_bookings`.
+---
 
-- [ ] **Booking Confirmation Animation + Share** — Animated confirmation screen with confetti (canvas-confetti already installed) after successful booking. Share buttons for Telegram/WhatsApp. Add-to-calendar option (Persian calendar).
+## Done ✅
 
-- [ ] **Manager Revenue & Booking Analytics** — Charts in manager dashboard using recharts (already installed): daily/weekly/monthly revenue, popular time-slot heatmap, booking trends by day of week.
+### Phase A — Foundation Hardening
+- [x] **Transaction Consistency** — Wrapped all service methods with proper commit/rollback; fixed missing commits in booking and payment flows
+- [x] **TIMESTAMPTZ Migration** — Migrated all datetime columns to timezone-aware (Alembic 0009); created timezone.py helpers
+- [x] **Database Indexing** — Added missing FK indexes (Alembic 0010); performance indexes on booking/log/notification queries (Alembic 0012)
+- [x] **ORM Relationship Cleanup** — Fixed back_populates on all bidirectional relationships; corrected collection types; dropped legacy court_images column (Alembic 0011)
+- [x] **Repository Architecture** — Standardized method signatures across all repositories; added count helpers
 
-- [ ] **Advanced OTP UX** — 6-digit segmented input with auto-focus, auto-submit on completion, resend countdown timer, smooth transitions between auth steps (framer-motion already installed).
+### Stabilization Phase
+- [x] **Transaction-Safe Test Isolation** — Fixed fixtures to properly isolate transactions; eliminated flaky failures
+- [x] **Dashboard Query Optimization** — Optimized stats queries to use aggregate SQL; reduced N+1 patterns
+- [x] **ORM Audit** — Reviewed all models for correct relationship definitions and cascade behaviors
+- [x] **Performance Cleanup** — Removed dead code and unused query paths; consolidated duplicate logic
 
-- [ ] **Monthly Booking Calendar View** — Visual monthly calendar on court detail page showing available/blocked dates. Click on a day to see its time slots. Improves booking UX beyond date-picker + slot-list pattern.
+### Phase B — Performance & Caching
+- [x] **Cursor Pagination** — Created pagination.py with base64-encoded cursor support; O(log n) B-tree seek pagination
+- [x] **Redis Hardening** — Added connection pooling (50 max), socket timeouts, keepalive, health checks, loop-aware singleton
+- [x] **Cache Improvements** — TTL-based eviction for slot lists; cache hit/miss tracking via Prometheus counters
+- [x] **Connection Pool Optimization** — Configured asyncpg pool with pool_pre_ping, timeouts, recycling; pool status metrics
+- [x] **Slow Query Logging** — SQLAlchemy query timing listener at 200ms threshold; truncated SQL logging
 
-- [ ] **Review Enhancements (Photos + Helpful Votes)** — Allow photo uploads in reviews, add "helpful" voting on reviews, add sort options (newest, highest rating, most helpful).
+### Phase C-1 — Production Infrastructure
+- [x] **Multi-Stage Dockerfile** — Builder + runtime stages; Python 3.12-slim; non-root user; layer caching; graceful shutdown
+- [x] **Docker Compose Production** — compose.prod.yml with postgres/redis/backend; healthchecks; secrets via env vars; PgBouncer/Caddy options
+- [x] **GitHub Actions** — PR workflow (be: lint + mypy + pytest); Docker release workflow on tag
+- [x] **Deployment Documentation** — Created DEPLOYMENT.md, OPERATIONS.md, PRODUCTION_CHECKLIST.md
 
-- [ ] **Court Photo Gallery Management** — UI for managers to upload, reorder (drag & drop), and delete court images from the manager dashboard. CourtImage model and upload API already exist.
+### Phase C-2 — Security Hardening
+- [x] **Environment Validation** — validate_env() with strict startup checks (SECRET_KEY length, CORS, DB pool, LOG_LEVEL)
+- [x] **Password Policy** — Minimum 32-char secret key enforcement; bcrypt already in place
+- [x] **OTP Rate Limiting** — Redis-backed rate limiting per phone; lockout tracking via Prometheus counter
+- [x] **Upload Sanitization** — MIME detection via magic bytes; SVG XSS stripping; extension whitelist; 5MB limit; UUID filenames
+- [x] **HTTP Security Headers** — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Permissions-Policy, Referrer-Policy, Cache-Control
+- [x] **JWT Improvements** — Manual claim validation with clock skew; token type enforcement; KID header; previous key support
 
-- [ ] **Wallet Top-Up UX** — Add wallet top-up card in user dashboard with amount input and payment gateway redirect. Wallet system (wallets table, wallet router, wallet_repo) already exists on the backend.
+### Phase C-3 — Enterprise Authentication
+- [x] **Refresh Token Rotation** — refresh_token model/repo; revoke old token on refresh; stolen token detection
+- [x] **Session Management** — Session-bound refresh tokens via sid claim; periodic cleanup; session tracking metrics
+- [x] **Key Rotation Architecture** — Dual-key support (SECRET_KEY + SECRET_KEY_PREVIOUS); zero-downtime rotation
+- [x] **Secrets Management** — Env validation for all secrets; no checked-in credentials
+- [x] **Security Test Suite** — Rotation, stolen token, replay attack, auth edge case tests
 
-- [ ] **Performance & SEO** — Sitemap + robots.txt, full metadata for all pages, next/image optimization for court images, bundle analysis (@next/bundle-analyzer already installed), lazy loading for heavy components. Essential for Google indexing and smooth UX at launch.
+### Phase C-4 — Enterprise Observability
+- [x] **Correlation IDs** — X-Request-ID middleware with contextvar propagation; configurable header name/length
+- [x] **OpenTelemetry** — OTLP exporter; instruments FastAPI, SQLAlchemy, Redis, HTTPX; configurable sample rate
+- [x] **Profiler Middleware** — Per-request DB/Redis timing breakdown; slow request logging at configurable threshold
+- [x] **Prometheus Metrics** — HTTP request/latency histograms; business KPI gauges; cache hit/miss; pool stats; profiling histograms; counters (OTP lockouts, token rotations, uploads)
+- [x] **SLO Definitions** — Availability (99.9%), latency P99 (500ms), error rate (1.0%)
+- [x] **Structured Logging** — JSON format to stdout + rotating file; request_id injection; health-check suppression
+- [x] **Metrics Refresh Background Task** — Polls DB every 120s for business gauges; error handling
 
-- [ ] **Real-time Notifications (WebSocket)** — WebSocket integration for instant notifications (booking confirmation/cancellation alerts, manager alerts for new courts). Currently notifications exist in DB but require page refresh.
+### Frontend & Feature Work
+- [x] **Neshan Map with CartoDB Tile Fallback** — 3-second tile-loading monitor; graceful fallback to CartoDB Voyager
+- [x] **Profile Page Layout Redesign** — Card-section layout with account info and security sections
+- [x] **Animated Hero SVG Illustration** — Framer-motion sequential chain animation for hero section
+- [x] **Refactor Large Dashboard Pages** — Extracted 600-line pages into reusable components (BookingTable, NotificationTable, etc.)
+- [x] **Manager Dashboard Bookings & Slots Pages** — Two full pages with search, filters, inline edit, and pagination
+- [x] **Redesign Court Pages** — Public detail, management detail, and create court pages with modern UI
+- [x] **Slot Calendar Component** — Reusable SlotCalendar with Persian week navigation and day tabs
+- [x] **Update Seed Data** — Timezone-aware time slots (4,500 slots); court ratings aggregation
+- [x] **Sidebar Nav Items in Header Dropdown** — Role-based dropdown menu in public SiteHeader
+- [x] **Page Shift Fix on Popups** — scroll-lock fix for Radix Select/Dialog/Sheet
+- [x] **Replace Hero Illustration with Animated SVG** — Inline SVG component with staggered entry animations
+- [x] **Documentation Synchronization** — Updated README, architect.md, backend.md, frontend.md, commands.md, config.md; created memory.md
 
-- [ ] **E2E Tests with Playwright** — End-to-end test covering the core user flow: search → court detail → book → pay → review. Also cancellation penalty scenarios. Unit/integration tests exist but no full E2E coverage.
+---
 
-- [ ] **Real Payment Gateway** — Replace `PAYMENT_GATEWAY=mock` with a real Iranian provider (ZarinPal, Pay.ir, etc.). Wallet system already built (refund only); needs direct deposit + booking payment support. Production blocker.
+## Backlog 📌
 
-- [ ] **Real SMS Provider** — Replace mock SMS (`print("code 123456 to console")`) with a real Iranian SMS provider (Kavenegar, FarazSMS, etc.) for OTP delivery. Production blocker for auth flow.
+### Phase D — Scale & Harden
+- [ ] **Horizontal Scaling** — Container orchestration (Kubernetes / Nomad); multi-instance support
+- [ ] **PgBouncer Deployment** — Uncomment and configure PgBouncer in compose.prod.yml; connection pooling for production
+- [ ] **OpenTelemetry Expansion** — Custom spans for business logic; alerting rules from trace data
+- [ ] **Read Replicas** — Configure PostgreSQL read replicas; route read queries to replica pool
+- [ ] **Load Testing** — Artillery/k6 benchmark for booking flow; identify bottleneck under concurrent users
+- [ ] **Performance Benchmarking** — Establish baseline metrics; track regression across releases
+- [ ] **Worker Tuning** — Async worker pool sizing; background queue for non-critical tasks
 
-## In Progress
+### Phase E — Frontend Polish
+- [ ] **E2E Tests with Playwright** — Core user flow: search → court detail → book → pay → review; cancellation scenarios
+- [ ] **Performance & SEO** — Sitemap + robots.txt; full page metadata; next/image optimization; bundle analysis
+- [ ] **Booking Confirmation Animation + Share** — Animated confirmation screen; share buttons for Telegram/WhatsApp
+- [ ] **Advanced OTP UX** — 6-digit segmented input with auto-focus; resend countdown; smooth transitions
+- [ ] **Manager Revenue & Booking Analytics** — Charts for daily/weekly/monthly revenue; time-slot heatmap
+- [ ] **Monthly Booking Calendar View** — Visual calendar on court detail page; click day to see time slots
 
-- [ ] Manager court management page (started: 2026-06-23)
+### Phase F — Advanced Features
+- [ ] **Real Payment Gateway** — Replace PAYMENT_GATEWAY=mock with ZarinPal / Pay.ir; wallet top-up UX
+- [ ] **Real SMS Provider** — Replace mock SMS with Kavenegar / FarazSMS for OTP delivery
+- [ ] **Real-time Notifications (WebSocket)** — WebSocket integration for instant booking/alert notifications
+- [ ] **Review Enhancements** — Photo uploads in reviews; helpful voting; sort options
+- [ ] **Court Photo Gallery Management** — Drag & drop reorder for manager dashboard; CourtImage API exists
+- [ ] **Wallet Top-Up UX** — Wallet top-up card with amount input and payment gateway redirect
+- [ ] **Fix N+1 Queries in BookingService** — Use selectinload(Booking.slot).selectinload(TimeSlot.court)
+- [ ] **Fix Duplicate Response Mapping in BookingService** — Extract shared response-building helper
+- [ ] **Remove All `as any` TypeScript Assertions** — Clean unsafe casts in courts pages and map component
+- [ ] **Extract Duplicate Status Labels** — Shared BOOKING_STATUS_LABELS, PAYMENT_STATUS_CONFIG in lib/constants.tsx
+- [ ] **Fix next/image `unoptimized`** — Config remotePatterns for CDN/local uploads
 
-- [ ] Public court page (started: 2026-06-23)
+---
 
-- [ ] **Booking Confirmation (In Progress)** — Added SiteHeader + SiteFooter to booking page, removed breadcrumbs, removed participants count, changed final button to "تأیید و پرداخت" with redirect to `/book/payment` gateway page. Gateway page shows under-construction placeholder with booking summary. Remaining: connect real payment gateway. (started: 2026-06-23)
+## Statistics
 
-- [ ] Add new time slot entries (started: 2026-06-23)
+| Metric | Value |
+| ------ | ----- |
+| **Version** | 0.4.0 |
+| **Completed Phases** | A + Stabilization + B + C-1 + C-2 + C-3 + C-4 |
+| **Tests Passing** | 248 (backend pytest) |
+| **Backend Modules** | 19 core · 13 services · 12 repos · 16 models · 16 schemas · 18 routers |
+| **Database Migrations** | 17 Alembic versions |
+| **Frontend Components** | 36 shadcn/ui primitives |
+| **Pipeline** | GitHub Actions (be: lint + typecheck + test; release: Docker build + push) |
+| **Observability** | Prometheus · OpenTelemetry · Grafana · Sentry · JSON logs · Correlation IDs · Profiler |
+| **Security** | OWASP headers · CSP · HSTS · Rate limiting · Upload sanitization · JWT rotation · Session management |
+| **Documentation** | README · architect.md · backend.md · frontend.md · commands.md · config.md · memory.md |
+| **Production Readiness** | Docker Compose · Healthchecks · Env validation · Non-root user · Graceful shutdown |
 
-- [ ] Court profile section for manager dashboard (started: 2026-06-23)
+---
 
-- [ ] Time slot display tables (started: 2026-06-23)
+## Next Goal ⏭️
 
-- [ ] Dashboard settings section (started: 2026-06-23)
-
-## Done
-
-- [x] **Fix Neshan Map with CartoDB Tile Fallback and Improve Map UX** — Neshan tiles all return HTTP 204 (no content), leaving maps blank. Added 3-second tile-loading monitor in `createNeshanMap` that falls back to CartoDB Voyager tiles (beautiful road rendering). Fixed watermark removal to preserve OSM attribution. Map now visible by default on courts listing with hide/show toggle. Removed map click-to-select-location from listing page. Made court detail map interactive with 320px height. Added preconnect hint for faster CartoDB CDN loading. (completed: 2026-06-28)
-
-- [x] **Profile Page Layout Redesign** — Redesigned profile/settings page with admin-style card-section layout. Two organized sections: "اطلاعات حساب" (avatar, name, phone, role badge) and "امنیت حساب" (password change). Used `space-y-px overflow-hidden rounded-xl border bg-card` pattern with `border-t` separated rows, icons per row, and hover-save check buttons. (completed: 2026-06-27)
-
-- [x] **Update README.md with Logo and Screenshots** — Added responsive logo (dark/light mode via `<picture>` tag + `srcset`), interactive screenshot gallery showing main page (light/dark) and manager dashboard, tech stack badges, and clean project structure layout. (completed: 2026-06-26)
-
-- [x] **Replace Hero Illustration with Animated SVG + Add Branding Assets** — Created `HeroAnimatedIllustration` inline SVG component with staggered piece-by-piece entry (14 groups fade+slide from y:6) and infinite gentle animations (arrow float 6px, body pulse 0.4↔1, circle breath 1↔1.07, connector wiggle 3px). No glow. Dark mode via CSS `invert`. Replaced `<Image>` in hero-section with new component. Removed old `hero-illustration.tsx` and legacy image assets. Added brand icons (favicon, profile, vector) and sports imagery (arrange SVGs, championship/worldcup photos). Updated site header/footer and auth page layouts with new branding. (completed: 2026-06-26)
-
-- [x] **Refactor Large Dashboard Pages into Reusable Components** — Extracted 600-line `bookings/page.tsx` and 520-line `notifications/page.tsx` into standalone reusable components: `BookingTable`, `BookingFilters`, `BookingTableSkeleton`, `BookingEmptyState`, `BookingCancelDialog`, `NotificationTable`, `NotificationFilters`, `NotificationTableSkeleton`, `NotificationEmptyState`, `NotificationBroadcastDialog`. Each with unified styling matching the admin dashboard design system. Centralized types in `components/bookings/types.ts` and constants in `lib/constants.tsx`. (completed: 2026-06-24)
-
-- [x] **Animated Hero SVG Illustration** — Created `HeroIllustration` component with framer-motion sequential chain animation on arrow paths. Three arrow paths animate in sequence (2s active + 4s pause per arrow) with accent elements lighting up half a slot later. `subtleRipple` on decorative small paths and `faintBody` on background elements create a coordinated visual rhythm. No glow/spotlight per user feedback. (completed: 2026-06-24)
-
-- [x] **Manager Dashboard Bookings & Slots Pages** — Added two full dashboard pages for manager role: `/dashboard/manager/bookings` with search, status/court/date filters, and cancel booking action; `/dashboard/manager/slots` with court/status/date filters, inline edit dialog for time/price, and delete slot via AlertDialog. Both paginated and matching admin table design. Updated sidebar nav with "رزروها" and "سانس‌ها" links. Backend: new `manager.py` router with `/api/v1/manager/bookings` and `/api/v1/manager/slots` endpoints, `ManagerBookingResponse`/`ManagerSlotResponse` schemas, and `list_by_manager()` in booking repo. (completed: 2026-06-24)
-
-- [x] **Update Seed Data with Timezone-Aware Time Slots and Court Ratings** — Fixed `backend/scripts/seed.py` to use timezone-aware datetimes (`now_iran()` / `iran_to_utc()`) for time slot generation, covering 60 future days with 5 fixed daily schedules per court (total 4,500 slots). Added `court.average_rating` calculation with SQL aggregation after review creation. Added 16 new review entries to ensure all 15 courts have at least 1-2 ratings. Fixed duplicate `booking_id` issue in review matching with `used_booking_ids` tracking. Ran seed to populate database with proper ratings (3.0–5.0 range) and future-dated slots. (completed: 2026-06-20)
-
-- [x] **Remove Favorites System from Frontend** — Deleted the `FavoriteButton` component (`frontend/components/courts/favorite-button.tsx`) and its test file (`frontend/tests/favorite-button.test.tsx`) due to API errors on toggle. Cleaned up all usages in `frontend/app/courts/page.tsx` and `frontend/components/courts/court-image-gallery.tsx`. Backend model (`favorite.py`), repository (`favorite_repo.py`), and router (`/api/v1/favorites`) left intact for future re-enablement. (completed: 2026-06-20)
-
-- [x] **Add Sidebar Nav Items to Header Dropdown** — Extended the user profile DropdownMenu in the public SiteHeader (`frontend/components/public/site-header.tsx`) with all sidebar navigation items from `nav-main.tsx`, organized by user role. Admin sees management (Courts, Bookings, Users, Payments, Messages), Reports, and System Settings sections. Manager sees Court Management (Courts, Schedule). Regular user sees Bookings (My Bookings, Payments). All roles get General section (Notifications, Profile) plus Logout. Dashboard link now routes to role-specific URL (`/dashboard/admin`/`/manager`/`/user`). (completed: 2026-06-20)
-
-- [x] **Page Shift Fix on Popups (scroll-lock)** — Fixed horizontal page shift when Radix Select/Dialog/Sheet popups open, caused by `react-remove-scroll-bar` double-compensating with `margin-right` on body while `html` already has `scrollbar-gutter: stable`. CSS fix: `html body[data-scroll-locked] { margin-right: 0 !important; padding-right: 0 !important; overflow: visible !important; }` with higher specificity (0-2-1) to beat injected rules. Added `overflow: visible` to prevent Chrome from hiding `html`'s viewport scrollbar when body gets `overflow: hidden`. Changed `frontend/app/globals.css`. (completed: 2026-06-20)
-
-- [x] **Redesign Court Pages** — Redesign 3 main court pages: public detail (`/courts/[id]`), management detail (`/dashboard/courts/[id]`), and create court (`/dashboard/courts/create`). Merge edit into management page with inline edit dialog. Modern UI matching admin user management aesthetic. (completed: 2026-06-20)
-
-- [x] **Add Slot Calendar Component and Fix Documentation** — Added reusable `SlotCalendar` component for time slot display with Persian week navigation, day tabs, and slot list. Redesigned public court detail and dashboard edit pages with improved UI. Fixed frontend documentation discrepancies (users route path, middleware filename, test file listing). Added structure skill, reorganized docs/ directory, and added context pictures. Fixed ESLint React 19 hooks warnings across affected files. (completed: 2026-06-23)
+**Phase D — Scale & Harden.** Begin with PgBouncer deployment and load testing to establish a performance baseline before scaling horizontally.

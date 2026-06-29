@@ -28,7 +28,15 @@ async def get_stats(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_user),
 ):
-    return await service.get_stats()
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cached = await get_cached_response("dashboard:stats", {})
+    if cached is not None:
+        return DashboardStats.model_validate(cached)
+
+    result = await service.get_stats()
+    await cache_response("dashboard:stats", {}, result.model_dump(mode="json"))
+    return result
 
 
 @router.get("/manager/revenue", summary="Manager revenue report")
@@ -44,7 +52,20 @@ async def get_manager_revenue(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Manager or admin role required"
         )
-    return await service.get_revenue_report(current_user.id, date_from=date_from, date_to=date_to)
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cache_params = {
+        "user_id": current_user.id,
+        "date_from": str(date_from) if date_from else None,
+        "date_to": str(date_to) if date_to else None,
+    }
+    cached = await get_cached_response("dashboard:revenue", cache_params)
+    if cached is not None:
+        return cached
+
+    result = await service.get_revenue_report(current_user.id, date_from=date_from, date_to=date_to)
+    await cache_response("dashboard:revenue", cache_params, result)
+    return result
 
 
 @router.get("/admin-stats", response_model=AdminStats, summary="Admin statistics")
@@ -54,7 +75,19 @@ async def get_admin_stats(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_admin),
 ):
-    return await service.get_admin_stats(date_from=date_from, date_to=date_to)
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cache_params = {
+        "date_from": str(date_from) if date_from else None,
+        "date_to": str(date_to) if date_to else None,
+    }
+    cached = await get_cached_response("dashboard:admin_stats", cache_params)
+    if cached is not None:
+        return AdminStats.model_validate(cached)
+
+    result = await service.get_admin_stats(date_from=date_from, date_to=date_to)
+    await cache_response("dashboard:admin_stats", cache_params, result.model_dump(mode="json"))
+    return result
 
 
 @router.get("/manager-stats", response_model=ManagerStats, summary="Manager statistics")
@@ -68,7 +101,16 @@ async def get_manager_stats(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Manager or admin role required"
         )
-    return await service.get_manager_stats(current_user.id)
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cache_params = {"user_id": current_user.id}
+    cached = await get_cached_response("dashboard:manager_stats", cache_params)
+    if cached is not None:
+        return ManagerStats.model_validate(cached)
+
+    result = await service.get_manager_stats(current_user.id)
+    await cache_response("dashboard:manager_stats", cache_params, result.model_dump(mode="json"))
+    return result
 
 
 @router.get("/admin/monthly-recap", summary="Monthly recap (admin)")
@@ -76,7 +118,15 @@ async def get_monthly_recap(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_admin),
 ):
-    return await service.get_monthly_recap()
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cached = await get_cached_response("dashboard:monthly_recap", {})
+    if cached is not None:
+        return cached
+
+    result = await service.get_monthly_recap()
+    await cache_response("dashboard:monthly_recap", {}, result)
+    return result
 
 
 @router.get("/admin/charts", summary="Chart data (admin)")
@@ -84,7 +134,15 @@ async def get_admin_charts(
     service: DashboardService = Depends(get_dashboard_service),
     _: User = Depends(get_current_admin),
 ):
-    return await service.get_admin_charts()
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cached = await get_cached_response("dashboard:charts", {})
+    if cached is not None:
+        return cached
+
+    result = await service.get_admin_charts()
+    await cache_response("dashboard:charts", {}, result)
+    return result
 
 
 @router.get("/user-stats", response_model=UserStats, summary="User statistics")
@@ -92,4 +150,13 @@ async def get_user_stats(
     service: DashboardService = Depends(get_dashboard_service),
     current_user: User = Depends(get_current_user),
 ):
-    return await service.get_user_stats(current_user.id)
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cache_params = {"user_id": current_user.id}
+    cached = await get_cached_response("dashboard:user_stats", cache_params)
+    if cached is not None:
+        return UserStats.model_validate(cached)
+
+    result = await service.get_user_stats(current_user.id)
+    await cache_response("dashboard:user_stats", cache_params, result.model_dump(mode="json"))
+    return result

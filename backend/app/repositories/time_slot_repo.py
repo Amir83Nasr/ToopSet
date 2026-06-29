@@ -18,12 +18,16 @@ class TimeSlotRepo:
         self,
         court_id: int,
         *,
+        after_id: int | None = None,
         date: str | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> tuple[list[TimeSlot], int]:
         base = select(TimeSlot).where(TimeSlot.court_id == court_id)
         count_q = select(func.count(TimeSlot.id)).where(TimeSlot.court_id == court_id)
+
+        if after_id is not None:
+            base = base.where(TimeSlot.id > after_id)
 
         if date:
             start_dt = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -36,7 +40,10 @@ class TimeSlotRepo:
         query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
 
         total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            result = await self.db.execute(query.limit(limit))
+        else:
+            result = await self.db.execute(query.offset(skip).limit(limit))
         slots = list(result.scalars().all())
         return slots, total
 
@@ -71,14 +78,14 @@ class TimeSlotRepo:
     async def create(self, data: dict) -> TimeSlot:
         slot = TimeSlot(**data)
         self.db.add(slot)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(slot)
         return slot
 
     async def create_batch(self, slots_data: list[dict]) -> list[TimeSlot]:
         slots = [TimeSlot(**data) for data in slots_data]
         self.db.add_all(slots)
-        await self.db.commit()
+        await self.db.flush()
         return slots
 
     async def update(self, slot: TimeSlot, data: dict) -> TimeSlot:
@@ -86,10 +93,10 @@ class TimeSlotRepo:
             if value is not None:
                 setattr(slot, key, value)
         slot.version += 1  # optimistic lock
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(slot)
         return slot
 
     async def delete(self, slot: TimeSlot) -> None:
         await self.db.delete(slot)
-        await self.db.commit()
+        await self.db.flush()

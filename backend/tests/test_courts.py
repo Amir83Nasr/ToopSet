@@ -153,7 +153,7 @@ class TestDeleteCourt:
         get_resp = await client.get(f"/api/v1/courts/{court_id}")
         assert get_resp.status_code == 404
 
-    async def test_delete_as_manager_forbidden(self, client: AsyncClient, manager_token: dict):
+    async def test_delete_as_manager_own_court(self, client: AsyncClient, manager_token: dict):
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         create = await client.post("/api/v1/courts", json=COURT_CREATE_PAYLOAD, headers=headers)
         court_id = create.json()["id"]

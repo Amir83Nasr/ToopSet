@@ -28,6 +28,7 @@ class CourtRepo:
     async def list(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         sport_types: list[SportType] | None = None,
@@ -47,46 +48,37 @@ class CourtRepo:
             selectinload(Court.court_images),
             selectinload(Court.manager),
         )
-        count_query = select(Court.id)
 
         if sport_types:
             cond = or_(Court.sport_types.any(st.value) for st in sport_types)
             query = query.where(cond)
-            count_query = count_query.where(cond)
         if is_active is not None:
             query = query.where(Court.is_active == is_active)
-            count_query = count_query.where(Court.is_active == is_active)
         if manager_id is not None:
             query = query.where(Court.manager_id == manager_id)
-            count_query = count_query.where(Court.manager_id == manager_id)
         if search:
             pattern = f"%{search}%"
             query = query.where(Court.name.ilike(pattern))
-            count_query = count_query.where(Court.name.ilike(pattern))
+
+        if after_id is not None:
+            query = query.where(Court.id > after_id)
 
         # Date/price filters: join with time_slots to find courts with available slots
         if date_from or date_to or price_min is not None or price_max is not None:
             query = query.join(Court.time_slots).where(TimeSlot.is_reserved == False)
-            count_query = count_query.join(Court.time_slots).where(TimeSlot.is_reserved == False)
 
             if date_from:
                 query = query.where(TimeSlot.start_time >= date_from)
-                count_query = count_query.where(TimeSlot.start_time >= date_from)
             if date_to:
                 query = query.where(TimeSlot.end_time <= date_to)
-                count_query = count_query.where(TimeSlot.end_time <= date_to)
             if price_min is not None:
                 query = query.where(TimeSlot.base_price >= price_min)
-                count_query = count_query.where(TimeSlot.base_price >= price_min)
             if price_max is not None:
                 query = query.where(TimeSlot.base_price <= price_max)
-                count_query = count_query.where(TimeSlot.base_price <= price_max)
 
             query = query.distinct()
 
-        from sqlalchemy import func as sa_func
-
-        count_q = select(sa_func.count()).select_from(Court)
+        count_q = select(func.count()).select_from(Court)
         if sport_types:
             count_cond = or_(Court.sport_types.any(st.value) for st in sport_types)
             count_q = count_q.where(count_cond)
@@ -123,7 +115,10 @@ class CourtRepo:
         elif sort == "rating":
             order = Court.average_rating.desc()
 
-        result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
+        if after_id is not None:
+            result = await self.db.execute(query.limit(limit).order_by(order))
+        else:
+            result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
         courts = list(result.scalars().all())
 
         # Distance filter (in-memory Haversine)
@@ -140,11 +135,7 @@ class CourtRepo:
         return courts, total
 
     async def count_active(self) -> int:
-        from sqlalchemy import func as sa_func
-
-        result = await self.db.execute(
-            select(sa_func.count(Court.id)).where(Court.is_active == True)
-        )
+        result = await self.db.execute(select(func.count(Court.id)).where(Court.is_active == True))
         return result.scalar_one()
 
     async def get_by_id(self, court_id: int) -> Court | None:
@@ -170,17 +161,15 @@ class CourtRepo:
         return result.scalar_one_or_none()
 
     async def count_by_manager(self, manager_id: int) -> int:
-        from sqlalchemy import func as sa_func
-
         result = await self.db.execute(
-            select(sa_func.count(Court.id)).where(Court.manager_id == manager_id)
+            select(func.count(Court.id)).where(Court.manager_id == manager_id)
         )
         return result.scalar_one()
 
     async def create(self, data: dict) -> Court:
         court = Court(**data)
         self.db.add(court)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(court)
         return court
 
@@ -188,22 +177,21 @@ class CourtRepo:
         for key, value in data.items():
             if value is not None:
                 setattr(court, key, value)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(court)
         return court
 
     async def delete(self, court: Court) -> None:
         await self.db.delete(court)
-        await self.db.commit()
+        await self.db.flush()
 
     async def get_min_prices(self, court_ids: list[int]) -> dict[int, Decimal | None]:
         """Return {court_id: min_base_price} for un-reserved time slots."""
         if not court_ids:
             return {}
-        from sqlalchemy import func as sa_func
 
         result = await self.db.execute(
-            select(TimeSlot.court_id, sa_func.min(TimeSlot.base_price))
+            select(TimeSlot.court_id, func.min(TimeSlot.base_price))
             .where(
                 TimeSlot.court_id.in_(court_ids),
                 TimeSlot.is_reserved == False,

@@ -2,7 +2,11 @@
 
 Writes JSON-formatted logs to stdout (for Docker) and to /app/logs/app.log
 for Logstash / ELK ingestion.
+
+Includes ``request_id`` in every log record when a correlation ID is active.
 """
+
+from __future__ import annotations
 
 import logging
 import os
@@ -12,9 +16,22 @@ from pathlib import Path
 
 from pythonjsonlogger import jsonlogger
 
+from app.core.correlation_id import get_request_id
+
 _LOG_DIR = Path("/app/logs")
 _LOG_FILE = _LOG_DIR / "app.log"
 _LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+# Fields emitted in every JSON log line.
+_LOG_FMT = "%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d %(request_id)s"
+
+
+class _RequestIdFilter(logging.Filter):
+    """Injects the current request_id into every log record."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.request_id = get_request_id() or "-"
+        return True
 
 
 class _ExcludeHealthFilter(logging.Filter):
@@ -29,11 +46,12 @@ class _ExcludeHealthFilter(logging.Filter):
 
 def _build_json_handler() -> logging.Handler:
     handler = logging.StreamHandler(sys.stdout)
-    fmt: logging.Formatter = jsonlogger.JsonFormatter(  # type: ignore[attr-defined]
-        fmt="%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d",
+    fmt: logging.Formatter = jsonlogger.JsonFormatter(
+        fmt=_LOG_FMT,
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
     handler.setFormatter(fmt)
+    handler.addFilter(_RequestIdFilter())
     handler.addFilter(_ExcludeHealthFilter())
     return handler
 
@@ -45,21 +63,22 @@ def _build_file_handler() -> logging.Handler | None:
         handler = RotatingFileHandler(
             _LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
         )
-        fmt: logging.Formatter = jsonlogger.JsonFormatter(  # type: ignore[attr-defined]
-            fmt="%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d",
+        fmt: logging.Formatter = jsonlogger.JsonFormatter(
+            fmt=_LOG_FMT,
             datefmt="%Y-%m-%dT%H:%M:%S%z",
         )
         handler.setFormatter(fmt)
+        handler.addFilter(_RequestIdFilter())
         handler.addFilter(_ExcludeHealthFilter())
         return handler
     except (OSError, PermissionError):
-        return None  # non‑critical – logs keep going to stdout
+        return None
 
 
 def setup_logging() -> None:
     """Idempotent logging bootstrap. Call once at app startup."""
     if logging.getLogger().hasHandlers():
-        return  # already configured
+        return
 
     handlers: list[logging.Handler] = [_build_json_handler()]
     file_handler = _build_file_handler()
@@ -72,6 +91,6 @@ def setup_logging() -> None:
         force=True,
     )
 
-    # keep uvicorn access logs under control
+    # Keep uvicorn access logs under control
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.error").setLevel(logging.WARNING)

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
+from app.core.pagination import decode_cursor
 from app.models.user import User
 from app.schemas.booking import (
     AdminBookingListResponse,
@@ -19,23 +20,29 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 @router.get("", response_model=BookingListResponse, summary="My bookings")
 async def list_my_bookings(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     status: str | None = None,
     service: BookingService = Depends(get_booking_service),
 ):
-    return await service.list_my_bookings(skip=skip, limit=limit, status_filter=status)
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
+    return await service.list_my_bookings(
+        after_id=cursor_id, skip=skip, limit=limit, status_filter=status
+    )
 
 
 @router.get(
     "/completed", response_model=BookingListResponse, summary="Completed bookings (reviewable)"
 )
 async def list_completed_bookings(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     service: BookingService = Depends(get_booking_service),
 ):
-    return await service.list_completed_bookings(skip=skip, limit=limit)
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
+    return await service.list_completed_bookings(after_id=cursor_id, skip=skip, limit=limit)
 
 
 async def get_booking_service_admin(
@@ -47,6 +54,7 @@ async def get_booking_service_admin(
 
 @router.get("/all", response_model=AdminBookingListResponse, summary="All bookings (admin)")
 async def list_all_bookings_admin(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     search: str | None = None,
@@ -57,14 +65,21 @@ async def list_all_bookings_admin(
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
-    cache_params = {"skip": skip, "limit": limit, "search": search, "status": status}
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
+    cache_params = {
+        "cursor": cursor,
+        "skip": skip,
+        "limit": limit,
+        "search": search,
+        "status": status,
+    }
     cached = await get_cached_admin_list("bookings", cache_params)
     if cached is not None:
         response.headers["X-Cache"] = "HIT"
         return AdminBookingListResponse.model_validate(cached)
 
     result = await service.list_all_bookings(
-        skip=skip, limit=limit, search=search, status_filter=status
+        after_id=cursor_id, skip=skip, limit=limit, search=search, status_filter=status
     )
 
     await cache_admin_list("bookings", cache_params, result.model_dump(mode="json"), ttl=30)

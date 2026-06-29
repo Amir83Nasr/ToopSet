@@ -26,6 +26,7 @@ class PaymentRepo:
         self,
         user_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         search: str | None = None,
@@ -53,6 +54,9 @@ class PaymentRepo:
             .where(Booking.user_id == user_id)
         )
 
+        if after_id is not None:
+            query = query.where(Payment.id > after_id)
+
         if status_filter:
             query = query.where(Payment.status == status_filter)
             count_q = count_q.where(Payment.status == status_filter)
@@ -63,7 +67,10 @@ class PaymentRepo:
             count_q = count_q.where(Court.name.ilike(pattern))
 
         total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            result = await self.db.execute(query.limit(limit))
+        else:
+            result = await self.db.execute(query.offset(skip).limit(limit))
         payments = list(result.scalars().all())
         return payments, total
 
@@ -84,6 +91,7 @@ class PaymentRepo:
     async def list_all(
         self,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         search: str | None = None,
@@ -111,6 +119,9 @@ class PaymentRepo:
             .outerjoin(User, Booking.user_id == User.id)
         )
 
+        if after_id is not None:
+            query = query.where(Payment.id > after_id)
+
         if status_filter:
             query = query.where(Payment.status == status_filter)
             count_q = count_q.where(Payment.status == status_filter)
@@ -121,6 +132,9 @@ class PaymentRepo:
             count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
 
         total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            result = await self.db.execute(query.limit(limit))
+        else:
+            result = await self.db.execute(query.offset(skip).limit(limit))
         payments = list(result.scalars().all())
         return payments, total

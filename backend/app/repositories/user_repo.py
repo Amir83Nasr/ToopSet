@@ -1,7 +1,12 @@
-from sqlalchemy import select
+import asyncio
+
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User, UserRole
+
+# Placeholder hash for OTP-only users (no password-based login)
+OTP_PLACEHOLDER_HASH = "__otp_user__"
 
 
 class UserRepository:
@@ -31,6 +36,7 @@ class UserRepository:
 
     async def list_users(
         self,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         search: str | None = None,
@@ -38,8 +44,6 @@ class UserRepository:
         is_active: bool | None = None,
     ) -> tuple[list[User], int]:
         """List users with optional filters and pagination. Returns (users, total_count)."""
-        from sqlalchemy import func, or_
-
         query = select(User)
         count_query = select(func.count(User.id))
 
@@ -55,13 +59,20 @@ class UserRepository:
         if is_active is not None:
             query = query.where(User.is_active == is_active)
             count_query = count_query.where(User.is_active == is_active)
+        if after_id is not None:
+            query = query.where(User.id > after_id)
 
-        query = query.order_by(User.created_at.desc()).offset(skip).limit(limit)
+        query = query.order_by(User.created_at.desc())
+        if after_id is not None:
+            query = query.limit(limit)
+        else:
+            query = query.offset(skip).limit(limit)
 
-        result = await self.db.execute(query)
+        data_task = self.db.execute(query)
+        count_task = self.db.execute(count_query)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         users = result.scalars().all()
-
-        count_result = await self.db.execute(count_query)
         total = count_result.scalar_one()
 
         return list(users), total
@@ -79,6 +90,18 @@ class UserRepository:
         if user is None:
             return None
         user.is_active = not user.is_active
+        await self.db.flush()
+        return user
+
+    async def create_otp_user(self, phone: str, full_name: str, role: str = "user") -> User:
+        """Create a user without a real password hash (OTP-authenticated only)."""
+        user = User(
+            phone=phone,
+            password_hash=OTP_PLACEHOLDER_HASH,
+            full_name=full_name,
+            role=UserRole(role),
+        )
+        self.db.add(user)
         await self.db.flush()
         return user
 

@@ -28,6 +28,7 @@ class ReviewResponse(BaseModel):
 class ReviewListResponse(BaseModel):
     reviews: list[ReviewResponse]
     total: int
+    next_cursor: str | None = None
 
 
 class ReviewRespondRequest(BaseModel):

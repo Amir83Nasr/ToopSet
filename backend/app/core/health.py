@@ -13,13 +13,13 @@ from typing import Any
 
 from sqlalchemy import text
 
+from app import __version__
 from app.core.database import async_session_factory
 from app.core.redis_client import get_redis
 
 # ── App lifecycle ─────────────────────────────────────────────────────────────
 
 APP_START_TIME: datetime = datetime.now(timezone.utc)
-APP_VERSION: str = "0.2.0"
 
 
 # ── Component probes ──────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ async def check_health() -> dict[str, Any]:
 
     return {
         "status": overall,
-        "version": APP_VERSION,
+        "version": __version__,
         "uptime_seconds": round(uptime, 1),
         "components": {
             "database": {

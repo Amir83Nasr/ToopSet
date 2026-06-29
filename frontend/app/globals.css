@@ -544,11 +544,16 @@ html body[data-scroll-locked] {
 }
 
 .leaflet-popup.theme-popup .leaflet-popup-content {
-  margin: 14px 18px;
+  margin: 0;
   font-family: "IranYekanX", sans-serif;
   font-size: 13px;
   line-height: 1.5;
   direction: rtl;
+}
+
+.leaflet-popup.theme-popup .leaflet-popup-close-button {
+  top: 8px;
+  right: 12px;
 }
 
 /* ── Remove Card ring when it wraps a Table ── */

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +16,7 @@ class NotificationRepo:
         self,
         user_id: int,
         *,
+        after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         unread_only: bool = False,
@@ -22,6 +25,9 @@ class NotificationRepo:
     ) -> tuple[list[Notification], int]:
         query = select(Notification).where(Notification.user_id == user_id)
         count_q = select(func.count(Notification.id)).where(Notification.user_id == user_id)
+
+        if after_id is not None:
+            query = query.where(Notification.id > after_id)
 
         if unread_only:
             query = query.where(Notification.is_read == False)
@@ -37,9 +43,15 @@ class NotificationRepo:
 
         query = query.order_by(Notification.created_at.desc())
 
-        total = (await self.db.execute(count_q)).scalar_one()
-        result = await self.db.execute(query.offset(skip).limit(limit))
+        if after_id is not None:
+            data_task = self.db.execute(query.limit(limit))
+        else:
+            data_task = self.db.execute(query.offset(skip).limit(limit))
+        count_task = self.db.execute(count_q)
+        result, count_result = await asyncio.gather(data_task, count_task)
+
         notifications = list(result.scalars().all())
+        total = count_result.scalar_one()
         return notifications, total
 
     async def create_for_all_users(self, type_: str, message: str) -> int:
@@ -52,13 +64,13 @@ class NotificationRepo:
         for uid in user_ids:
             n = Notification(user_id=uid, type=type_, message=message)
             self.db.add(n)
-        await self.db.commit()
+        await self.db.flush()
         return len(user_ids)
 
     async def create(self, user_id: int, type_: str, message: str) -> Notification:
         n = Notification(user_id=user_id, type=type_, message=message)
         self.db.add(n)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(n)
         return n
 
@@ -69,7 +81,7 @@ class NotificationRepo:
         n = result.scalar_one_or_none()
         if n:
             n.is_read = True
-            await self.db.commit()
+            await self.db.flush()
             await self.db.refresh(n)
         return n
 
@@ -82,7 +94,7 @@ class NotificationRepo:
             .values(is_read=True)
         )
         await self.db.execute(stmt)
-        await self.db.commit()
+        await self.db.flush()
 
     async def count_unread(self, user_id: int) -> int:
         q = select(func.count(Notification.id)).where(

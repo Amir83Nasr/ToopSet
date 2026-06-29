@@ -1,0 +1,167 @@
+# ToopSet API — Prometheus Alert Rules
+#
+# Deploy with:  docker run --name prometheus -v ./monitoring/alerts:/rules ...
+#
+groups:
+  - name: toopset-api-alerts
+    interval: 30s
+
+    rules:
+
+      # ── Availability ──────────────────────────────────────────────────
+      - alert: APIHighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m]))
+           /
+           sum(rate(http_requests_total[5m]))) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "API error rate > 1% for 5 minutes"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: APIHigh4xxRate
+        expr: |
+          (sum(rate(http_errors_total[5m]))
+           /
+           sum(rate(http_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "HTTP 4xx rate > 5% for 5 minutes"
+          description: "4xx/429 rate is {{ $value | humanizePercentage }}."
+
+      # ── Latency ───────────────────────────────────────────────────────
+      - alert: APILatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "P95 latency > 1 second for 5 minutes"
+          description: "P95 latency is {{ $value | humanizeDuration }}."
+
+      - alert: APIP99LatencyCritical
+        expr: |
+          histogram_quantile(0.99,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.5
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "P99 latency > 2.5 seconds for 5 minutes"
+          description: "P99 latency is {{ $value | humanizeDuration }}."
+
+      # ── Database ──────────────────────────────────────────────────────
+      - alert: DatabaseQueryTimeHigh
+        expr: |
+          histogram_quantile(0.95,
+            rate(toopset_db_query_duration_ms_bucket[5m])
+          ) > 500
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "P95 DB query latency > 500ms per request"
+          description: "P95 total DB time is {{ $value }}ms per request."
+
+      - alert: DatabasePoolExhaustion
+        expr: |
+          toopset_db_pool_size{state="checked_in"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "DB connection pool exhausted"
+          description: "No checked-in connections in the DB pool."
+
+      - alert: DatabasePoolOverflow
+        expr: |
+          toopset_db_pool_size{state="overflow"} > 5
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "DB connection overflow > 5 for 2 minutes"
+          description: "Overflow connections: {{ $value }}."
+
+      # ── Cache / Redis ─────────────────────────────────────────────────
+      - alert: RedisHighCacheMissRate
+        expr: |
+          rate(toopset_cache_misses_total[5m])
+          /
+          (rate(toopset_cache_hits_total[5m]) + rate(toopset_cache_misses_total[5m]))
+          > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Cache miss rate > 50% for 5 minutes"
+          description: "Cache miss rate is {{ $value | humanizePercentage }}."
+
+      - alert: RedisMemoryHigh
+        expr: |
+          toopset_cache_memory_bytes > 500 * 1024 * 1024  # 500 MB
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Redis memory usage > 500 MB"
+          description: "Redis used memory is {{ $value | humanize1024 }}."
+
+      # ── Business KPIs ─────────────────────────────────────────────────
+      - alert: PaymentFailureRateHigh
+        expr: toopset_payment_failure_ratio > 0.15
+        for: 5m
+        labels:
+          severity: critical
+          team: payments
+        annotations:
+          summary: "Payment failure rate > 15%"
+          description: "Payment failures are {{ $value | humanizePercentage }} of attempts."
+
+      - alert: BookingSuccessRateLow
+        expr: toopset_booking_success_ratio < 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Booking success rate < 50%"
+          description: "Booking success ratio is {{ $value | humanizePercentage }}."
+
+      - alert: OTPLockoutRateHigh
+        expr: rate(toopset_otp_lockouts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "OTP lockout rate elevated"
+          description: "OTP lockouts: {{ $value }} per second."
+
+      # ── Instance Down ─────────────────────────────────────────────────
+      - alert: InstanceDown
+        expr: up{job="toopset-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "ToopSet API instance {{ $labels.instance }} is down"
+          description: "Instance has been unreachable for 30 seconds."

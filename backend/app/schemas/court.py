@@ -79,3 +79,4 @@ class CourtResponse(CourtBase):
 class CourtListResponse(BaseModel):
     courts: list[CourtResponse]
     total: int
+    next_cursor: str | None = None

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_db
+from app.core.pagination import decode_cursor, encode_cursor
 from app.models.payment import Payment
 from app.models.user import User
 from app.repositories.payment_repo import PaymentRepo
@@ -44,6 +45,7 @@ def _format_payment(p: Payment) -> PaymentDetailResponse:
 
 @router.get("/my", response_model=PaymentListResponse, summary="My payments")
 async def list_my_payments(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     search: str | None = None,
@@ -51,18 +53,29 @@ async def list_my_payments(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
     repo = PaymentRepo(db)
     payments, total = await repo.list_by_user(
-        current_user.id, skip=skip, limit=limit, search=search, status_filter=status
+        current_user.id,
+        after_id=cursor_id,
+        skip=skip,
+        limit=limit,
+        search=search,
+        status_filter=status,
     )
+    next_cursor = None
+    if payments and len(payments) == limit:
+        next_cursor = encode_cursor(payments[-1].id)
     return PaymentListResponse(
         payments=[_format_payment(p) for p in payments],
         total=total,
+        next_cursor=next_cursor,
     )
 
 
 @router.get("/all", response_model=PaymentListResponse, summary="All payments (admin)")
 async def list_all_payments(
+    cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     search: str | None = None,
@@ -73,7 +86,14 @@ async def list_all_payments(
 ):
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
-    cache_params = {"skip": skip, "limit": limit, "search": search, "status": status}
+    cursor_id = int(decode_cursor(cursor)) if cursor else None
+    cache_params = {
+        "cursor": cursor,
+        "skip": skip,
+        "limit": limit,
+        "search": search,
+        "status": status,
+    }
     cached = await get_cached_admin_list("payments", cache_params)
     if cached is not None:
         response.headers["X-Cache"] = "HIT"
@@ -81,11 +101,15 @@ async def list_all_payments(
 
     repo = PaymentRepo(db)
     payments, total = await repo.list_all(
-        skip=skip, limit=limit, search=search, status_filter=status
+        after_id=cursor_id, skip=skip, limit=limit, search=search, status_filter=status
     )
+    next_cursor = None
+    if payments and len(payments) == limit:
+        next_cursor = encode_cursor(payments[-1].id)
     result = PaymentListResponse(
         payments=[_format_payment(p) for p in payments],
         total=total,
+        next_cursor=next_cursor,
     )
 
     await cache_admin_list("payments", cache_params, result.model_dump(mode="json"))

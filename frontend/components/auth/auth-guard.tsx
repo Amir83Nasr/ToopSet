@@ -11,7 +11,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login?reason=session_expired")
+      router.replace("/otp?reason=session_expired")
     }
   }, [loading, user, router])
 
