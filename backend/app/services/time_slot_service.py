@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
 from app.core.timezone import iran_to_utc
+from app.models.time_slot import SlotStatus
 from app.models.user import User
-from app.repositories.court_repo import CourtRepo
+from app.models.vendor import Vendor
 from app.repositories.time_slot_repo import TimeSlotRepo
+from app.repositories.vendor_repo import VendorRepo
 from app.schemas.time_slot import (
     TimeSlotCreate,
     TimeSlotDetailResponse,
@@ -34,20 +36,42 @@ _WEEKDAY_MAP = [5, 6, 0, 1, 2, 3, 4]
 class TimeSlotService:
     def __init__(self, db: AsyncSession, current_user: User | None) -> None:
         self.repo = TimeSlotRepo(db)
-        self.court_repo = CourtRepo(db)
+        self.vendor_repo = VendorRepo(db)
         self.current_user = current_user
+
+    def _can_manage_vendor(self, vendor: Vendor) -> bool:
+        return bool(
+            self.current_user
+            and (self.current_user.role == "admin" or vendor.manager_id == self.current_user.id)
+        )
+
+    def _require_vendor_manager(self, vendor: Vendor) -> None:
+        if not self._can_manage_vendor(vendor):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="شما به این مجموعه دسترسی ندارید",
+            )
+
+    def _require_active_vendor_for_slot_management(self, vendor: Vendor) -> None:
+        if not vendor.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="تا قبل از تأیید ادمین امکان مدیریت سانس‌های این مجموعه وجود ندارد",
+            )
 
     async def list_slots(
         self,
-        court_id: int,
+        vendor_id: int,
         *,
         after_id: int | None = None,
         date: str | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> TimeSlotListResponse:
-        court = await self.court_repo.get_by_id(court_id)
-        if not court:
+        vendor = await self.vendor_repo.get_by_id(vendor_id)
+        if not vendor:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+        if not vendor.is_active and not self._can_manage_vendor(vendor):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
 
         # Track whether response came from Redis (for X-Cache header)
@@ -55,20 +79,20 @@ class TimeSlotService:
 
         # Try Redis cache (first page only for simplicity, not for cursor requests)
         if after_id is None and skip == 0 and limit <= 50:
-            cached = await get_cached_slot_list(court_id, date=date)
+            cached = await get_cached_slot_list(vendor_id, date=date)
             if cached is not None:
                 self._from_cache = True
                 # cached contains full result for the page
                 return TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
 
-        slots, total = await self.repo.list_by_court(
-            court_id, after_id=after_id, date=date, skip=skip, limit=limit
+        slots, total = await self.repo.list_by_vendor(
+            vendor_id, after_id=after_id, date=date, skip=skip, limit=limit
         )
         serialised = [TimeSlotResponse.model_validate(s).model_dump(mode="json") for s in slots]
 
         # Warm cache for the common case (first page, no offset)
         if after_id is None and skip == 0 and limit <= 50:
-            await cache_slot_list(court_id, serialised, date=date)
+            await cache_slot_list(vendor_id, serialised, date=date)
 
         next_cursor = None
         if slots and len(slots) == limit:
@@ -85,24 +109,37 @@ class TimeSlotService:
         slot = await self.repo.get_by_id(slot_id)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
-        court = slot.court
+        vendor = slot.vendor
+        if vendor and not vendor.is_active and not self._can_manage_vendor(vendor):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         return TimeSlotDetailResponse(
             id=slot.id,
-            court_id=slot.court_id,
+            vendor_id=slot.vendor_id,
             start_time=slot.start_time,
             end_time=slot.end_time,
             base_price=float(slot.base_price),
+            ball_price=float(slot.ball_price or 0),
+            ball_available=slot.ball_available,
+            gender=slot.gender,
+            status=slot.status,
             is_reserved=slot.is_reserved,
             version=slot.version,
-            court_name=court.name if court else "",
-            court_address=court.address if court else "",
-            court_sport_type=court.sport_types[0] if court and court.sport_types else "",
+            vendor_name=vendor.name if vendor else "",
+            vendor_address=vendor.address if vendor else "",
+            vendor_sport_type=vendor.sport_types[0] if vendor and vendor.sport_types else "",
         )
 
-    async def create_slot(self, data: TimeSlotCreate) -> TimeSlotResponse:
-        court = await self.court_repo.get_by_id(data.court_id)
-        if not court:
+    async def create_slot(self, vendor_id: int, data: TimeSlotCreate) -> TimeSlotResponse:
+        if data.vendor_id != vendor_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="شناسه مجموعه در مسیر و بدنه درخواست یکسان نیست",
+            )
+        vendor = await self.vendor_repo.get_by_id(vendor_id)
+        if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+        self._require_vendor_manager(vendor)
+        self._require_active_vendor_for_slot_management(vendor)
         if data.start_time >= data.end_time:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -113,46 +150,58 @@ class TimeSlotService:
         slot_data = data.model_dump()
         slot_data["start_time"] = iran_to_utc(data.start_time)
         slot_data["end_time"] = iran_to_utc(data.end_time)
+        slot_data["status"] = SlotStatus.OPEN
 
         slot = await self.repo.create(slot_data)
-        await invalidate_slot_list(data.court_id)
+        await invalidate_slot_list(data.vendor_id)
         return TimeSlotResponse.model_validate(slot)
 
     async def update_slot(self, slot_id: int, data: TimeSlotUpdate) -> TimeSlotResponse:
         slot = await self.repo.get_by_id(slot_id)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.vendor:
+            self._require_vendor_manager(slot.vendor)
         if slot.is_reserved:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="امکان ویرایش سانس رزرو شده وجود ندارد"
             )
-        updated = await self.repo.update(slot, data.model_dump(exclude_none=True))
-        await invalidate_slot_list(updated.court_id)
+        update_data = data.model_dump(exclude_none=True)
+        if update_data.get("status") == SlotStatus.RESERVED:
+            update_data["is_reserved"] = True
+        elif update_data.get("status") in (SlotStatus.OPEN, SlotStatus.CLOSED):
+            update_data["is_reserved"] = False
+        updated = await self.repo.update(slot, update_data)
+        await invalidate_slot_list(updated.vendor_id)
         return TimeSlotResponse.model_validate(updated)
 
     async def delete_slot(self, slot_id: int) -> None:
         slot = await self.repo.get_by_id(slot_id)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.vendor:
+            self._require_vendor_manager(slot.vendor)
         if slot.is_reserved:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="امکان حذف سانس رزرو شده وجود ندارد"
             )
-        court_id = slot.court_id
+        vendor_id = slot.vendor_id
         await self.repo.delete(slot)
-        await invalidate_slot_list(court_id)
+        await invalidate_slot_list(vendor_id)
 
     async def generate_slots(
-        self, court_id: int, data: TimeSlotGenerate
+        self, vendor_id: int, data: TimeSlotGenerate
     ) -> TimeSlotGenerateResponse:
-        court = await self.court_repo.get_by_id(court_id)
-        if not court:
+        vendor = await self.vendor_repo.get_by_id(vendor_id)
+        if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+        self._require_vendor_manager(vendor)
+        self._require_active_vendor_for_slot_management(vendor)
 
         date_from_dt = datetime.combine(data.date_from, datetime.min.time())
         date_to_dt = datetime.combine(data.date_to, datetime.max.time())
 
-        existing = await self.repo.get_existing_start_times(court_id, date_from_dt, date_to_dt)
+        existing = await self.repo.get_existing_start_times(vendor_id, date_from_dt, date_to_dt)
 
         to_create: list[dict] = []
         skipped = 0
@@ -190,10 +239,14 @@ class TimeSlotService:
 
                 to_create.append(
                     {
-                        "court_id": court_id,
+                        "vendor_id": vendor_id,
                         "start_time": start_dt_utc,
                         "end_time": end_dt_utc,
                         "base_price": template.base_price,
+                        "ball_price": template.ball_price,
+                        "ball_available": template.ball_available,
+                        "gender": template.gender,
+                        "status": SlotStatus.OPEN,
                     }
                 )
 
@@ -203,7 +256,7 @@ class TimeSlotService:
             return TimeSlotGenerateResponse(created=0, skipped=skipped, total=0, slots=[])
 
         created_slots = await self.repo.create_batch(to_create)
-        await invalidate_slot_list(court_id)
+        await invalidate_slot_list(vendor_id)
 
         return TimeSlotGenerateResponse(
             created=len(created_slots),

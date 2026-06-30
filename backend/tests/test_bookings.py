@@ -23,9 +23,13 @@ COURT_PAYLOAD = {
 
 
 async def _create_slot(
-    client: AsyncClient, session: AsyncSession, court_id: int, *, offset_hours: int = 4
+    client: AsyncClient, session: AsyncSession, vendor_id: int, *, offset_hours: int = 4
 ) -> int:
     """Insert a time slot directly and return its id + version."""
+    await session.execute(
+        text("UPDATE vendors SET is_active = true WHERE id = :vendor_id"),
+        {"vendor_id": vendor_id},
+    )
     start = datetime.now(timezone.utc) + timedelta(hours=offset_hours)
     end = start + timedelta(hours=2)
 
@@ -33,11 +37,11 @@ async def _create_slot(
 
     result = await session.execute(
         text(
-            """INSERT INTO time_slots (court_id, start_time, end_time, base_price, is_reserved, version)
-               VALUES (:court_id, :start, :end, 100.00, false, 1)
+            """INSERT INTO time_slots (vendor_id, start_time, end_time, base_price, is_reserved, version)
+               VALUES (:vendor_id, :start, :end, 100.00, false, 1)
                RETURNING id"""
         ),
-        {"court_id": court_id, "start": start, "end": end},
+        {"vendor_id": vendor_id, "start": start, "end": end},
     )
     row = result.fetchone()
     assert row is not None
@@ -56,12 +60,12 @@ class TestCreateBooking:
     async def test_create_booking_success(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
-        # Arrange: create court + slot
+        # Arrange: create vendor + slot
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
 
-        slot_id = await _create_slot(client, session, court_id)
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         # Act
@@ -83,12 +87,12 @@ class TestCreateBooking:
     async def test_create_double_book_rejected(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
-        # Arrange: create court + slot + first booking
+        # Arrange: create vendor + slot + first booking
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
 
-        slot_id = await _create_slot(client, session, court_id)
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -111,10 +115,10 @@ class TestCreateBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
 
-        slot_id = await _create_slot(client, session, court_id)
+        slot_id = await _create_slot(client, session, vendor_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.post(
@@ -128,9 +132,9 @@ class TestCreateBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
 
         resp = await client.post(
             "/api/v1/bookings",
@@ -144,9 +148,9 @@ class TestListBookings:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -168,9 +172,9 @@ class TestGetBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -184,15 +188,15 @@ class TestGetBooking:
         resp = await client.get(f"/api/v1/bookings/{booking_id}", headers=user_headers)
         assert resp.status_code == 200
         assert resp.json()["id"] == booking_id
-        assert resp.json()["court_name"] == "زمین تست"
+        assert resp.json()["vendor_name"] == "زمین تست"
 
     async def test_get_other_user_booking_forbidden(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -222,9 +226,9 @@ class TestPayBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -244,9 +248,9 @@ class TestPayBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -270,10 +274,10 @@ class TestCancelBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
         # Slot far in the future (more than 24h) to avoid cancellation restrictions
-        slot_id = await _create_slot(client, session, court_id, offset_hours=48)
+        slot_id = await _create_slot(client, session, vendor_id, offset_hours=48)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -292,9 +296,9 @@ class TestCancelBooking:
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        court_resp = await client.post("/api/v1/courts", json=COURT_PAYLOAD, headers=mgr_headers)
-        court_id = court_resp.json()["id"]
-        slot_id = await _create_slot(client, session, court_id, offset_hours=48)
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id, offset_hours=48)
         version = await _get_slot_version(client, slot_id)
 
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}

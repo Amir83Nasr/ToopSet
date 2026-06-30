@@ -43,6 +43,22 @@ vi.mock("framer-motion", () => ({
       void transition
       return <section {...rest}>{children}</section>
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    svg: ({ children, ...props }: Record<string, any>) => {
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
+      return <svg {...rest}>{children}</svg>
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    g: ({ children, ...props }: Record<string, any>) => {
+      const { initial, animate, transition, ...rest } = props
+      void initial
+      void animate
+      void transition
+      return <g {...rest}>{children}</g>
+    },
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>

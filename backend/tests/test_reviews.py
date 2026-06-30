@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import Booking, BookingStatus
@@ -11,18 +12,18 @@ from app.models.time_slot import TimeSlot
 
 pytestmark = [pytest.mark.asyncio]
 
-_court_counter = 0
+_vendor_counter = 0
 
 
-async def _create_court(client: AsyncClient, token: dict) -> int:
-    """Create a court with a unique name and return its id."""
-    global _court_counter
-    _court_counter += 1
+async def _create_vendor(client: AsyncClient, token: dict) -> int:
+    """Create a vendor with a unique name and return its id."""
+    global _vendor_counter
+    _vendor_counter += 1
     headers = {"Authorization": f"Bearer {token['access_token']}"}
     resp = await client.post(
-        "/api/v1/courts",
+        "/api/v1/vendors",
         json={
-            "name": f"زمین نقد {_court_counter}",
+            "name": f"زمین نقد {_vendor_counter}",
             "sport_types": ["futsal"],
             "address": "قم، خیابان اصلی",
             "latitude": 34.6399,
@@ -31,17 +32,17 @@ async def _create_court(client: AsyncClient, token: dict) -> int:
         },
         headers=headers,
     )
-    assert resp.status_code == 201, f"Court creation failed: {resp.status_code} {resp.text[:200]}"
+    assert resp.status_code == 201, f"Vendor creation failed: {resp.status_code} {resp.text[:200]}"
     return resp.json()["id"]
 
 
-async def _create_past_slot(client: AsyncClient, court_id: int, token: dict) -> dict:
+async def _create_past_slot(client: AsyncClient, vendor_id: int, token: dict) -> dict:
     """Create a slot with a past date (required for review eligibility)."""
     headers = {"Authorization": f"Bearer {token['access_token']}"}
     resp = await client.post(
-        f"/api/v1/courts/{court_id}/slots",
+        f"/api/v1/vendors/{vendor_id}/slots",
         json={
-            "court_id": court_id,
+            "vendor_id": vendor_id,
             "start_time": "2024-01-01T10:00:00",
             "end_time": "2024-01-01T11:30:00",
             "base_price": 100000,
@@ -89,16 +90,21 @@ async def _setup_review_scenario(
     session: AsyncSession,
 ) -> dict:
     """
-    Create a court, a past-dated slot, a booking by user, and confirm it.
+    Create a vendor, a past-dated slot, a booking by user, and confirm it.
 
-    Returns dict with court_id, slot_id, booking_id for review creation.
+    Returns dict with vendor_id, slot_id, booking_id for review creation.
     """
-    court_id = await _create_court(client, manager_token)
-    slot = await _create_past_slot(client, court_id, manager_token)
+    vendor_id = await _create_vendor(client, manager_token)
+    await session.execute(
+        text("UPDATE vendors SET is_active = true WHERE id = :vendor_id"),
+        {"vendor_id": vendor_id},
+    )
+    await session.flush()
+    slot = await _create_past_slot(client, vendor_id, manager_token)
     booking = await _create_booking(client, slot["id"], slot["version"], user_token)
     await _confirm_booking_via_db(booking["id"], slot["id"], session)
     return {
-        "court_id": court_id,
+        "vendor_id": vendor_id,
         "slot_id": slot["id"],
         "booking_id": booking["id"],
     }
@@ -157,7 +163,7 @@ class TestListAfterCreate:
             json={
                 "booking_id": setup["booking_id"],
                 "rating": 4,
-                "comment": "Court was great!",
+                "comment": "Vendor was great!",
             },
             headers=user_headers,
         )

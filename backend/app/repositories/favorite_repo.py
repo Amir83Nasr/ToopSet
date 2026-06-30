@@ -8,16 +8,16 @@ class FavoriteRepo:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def add(self, user_id: int, court_id: int) -> Favorite:
-        fav = Favorite(user_id=user_id, court_id=court_id)
+    async def add(self, user_id: int, vendor_id: int) -> Favorite:
+        fav = Favorite(user_id=user_id, vendor_id=vendor_id)
         self.db.add(fav)
         await self.db.flush()
         await self.db.refresh(fav)
         return fav
 
-    async def remove(self, user_id: int, court_id: int) -> bool:
+    async def remove(self, user_id: int, vendor_id: int) -> bool:
         result = await self.db.execute(
-            select(Favorite).where(Favorite.user_id == user_id, Favorite.court_id == court_id)
+            select(Favorite).where(Favorite.user_id == user_id, Favorite.vendor_id == vendor_id)
         )
         fav = result.scalar_one_or_none()
         if fav:
@@ -36,9 +36,9 @@ class FavoriteRepo:
         )
         return list(result.scalars().all())
 
-    async def is_favorited(self, user_id: int, court_id: int) -> bool:
+    async def is_favorited(self, user_id: int, vendor_id: int) -> bool:
         result = await self.db.execute(
-            select(Favorite).where(Favorite.user_id == user_id, Favorite.court_id == court_id)
+            select(Favorite).where(Favorite.user_id == user_id, Favorite.vendor_id == vendor_id)
         )
         return result.scalar_one_or_none() is not None
 
@@ -50,10 +50,10 @@ class FavoriteRepo:
         )
         return result.scalar_one()
 
-    async def check_favorited_ids(self, user_id: int, court_ids: list[int]) -> list[int]:
+    async def check_favorited_ids(self, user_id: int, vendor_ids: list[int]) -> list[int]:
         result = await self.db.execute(
-            select(Favorite.court_id).where(
-                Favorite.user_id == user_id, Favorite.court_id.in_(court_ids)
+            select(Favorite.vendor_id).where(
+                Favorite.user_id == user_id, Favorite.vendor_id.in_(vendor_ids)
             )
         )
         return [row[0] for row in result.all()]

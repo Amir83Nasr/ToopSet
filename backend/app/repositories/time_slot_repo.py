@@ -14,17 +14,17 @@ class TimeSlotRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def list_by_court(
+    async def list_by_vendor(
         self,
-        court_id: int,
+        vendor_id: int,
         *,
         after_id: int | None = None,
         date: str | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> tuple[list[TimeSlot], int]:
-        base = select(TimeSlot).where(TimeSlot.court_id == court_id)
-        count_q = select(func.count(TimeSlot.id)).where(TimeSlot.court_id == court_id)
+        base = select(TimeSlot).where(TimeSlot.vendor_id == vendor_id)
+        count_q = select(func.count(TimeSlot.id)).where(TimeSlot.vendor_id == vendor_id)
 
         if after_id is not None:
             base = base.where(TimeSlot.id > after_id)
@@ -37,7 +37,7 @@ class TimeSlotRepo:
                 TimeSlot.start_time < end_dt
             )
 
-        query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.court))
+        query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.vendor))
 
         total = (await self.db.execute(count_q)).scalar_one()
         if after_id is not None:
@@ -47,28 +47,29 @@ class TimeSlotRepo:
         slots = list(result.scalars().all())
         return slots, total
 
-    async def get_by_id(self, slot_id: int) -> TimeSlot | None:
-        result = await self.db.execute(
-            select(TimeSlot).where(TimeSlot.id == slot_id).options(selectinload(TimeSlot.court))
-        )
+    async def get_by_id(self, slot_id: int, *, for_update: bool = False) -> TimeSlot | None:
+        stmt = select(TimeSlot).where(TimeSlot.id == slot_id).options(selectinload(TimeSlot.vendor))
+        if for_update:
+            stmt = stmt.with_for_update()
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_upcoming_by_court(self, court_id: int) -> list[TimeSlot]:
+    async def list_upcoming_by_vendor(self, vendor_id: int) -> list[TimeSlot]:
         now = now_utc()
         result = await self.db.execute(
             select(TimeSlot)
-            .where(TimeSlot.court_id == court_id, TimeSlot.start_time > now)
+            .where(TimeSlot.vendor_id == vendor_id, TimeSlot.start_time > now)
             .order_by(TimeSlot.start_time)
-            .options(selectinload(TimeSlot.court))
+            .options(selectinload(TimeSlot.vendor))
         )
         return list(result.scalars().all())
 
     async def get_existing_start_times(
-        self, court_id: int, date_from: datetime, date_to: datetime
+        self, vendor_id: int, date_from: datetime, date_to: datetime
     ) -> set[datetime]:
         result = await self.db.execute(
             select(TimeSlot.start_time).where(
-                TimeSlot.court_id == court_id,
+                TimeSlot.vendor_id == vendor_id,
                 TimeSlot.start_time >= date_from,
                 TimeSlot.start_time < date_to + timedelta(days=1),
             )

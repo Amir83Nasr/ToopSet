@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -24,41 +24,45 @@ async def list_favorites(
 
 
 @router.get(
-    "/check", response_model=FavoriteCheckResponse, summary="Check favorite status for courts"
+    "/check", response_model=FavoriteCheckResponse, summary="Check favorite status for vendors"
 )
 async def check_favorites(
-    court_ids: str = Query(..., description="Comma-separated court IDs"),
+    vendor_ids: str | None = Query(None, description="Comma-separated vendor IDs"),
+    court_ids: str | None = Query(None, description="Legacy comma-separated vendor IDs"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ids = [int(x.strip()) for x in court_ids.split(",") if x.strip()]
+    raw_ids = vendor_ids or court_ids
+    if raw_ids is None:
+        raise HTTPException(status_code=400, detail="vendor_ids is required")
+    ids = [int(x.strip()) for x in raw_ids.split(",") if x.strip()]
     service = FavoriteService(db=db, current_user=current_user)
     favorited = await service.check_favorites(ids)
-    return FavoriteCheckResponse(favorited_court_ids=favorited)
+    return FavoriteCheckResponse(favorited_vendor_ids=favorited, favorited_court_ids=favorited)
 
 
 @router.post(
-    "/{court_id}",
+    "/{vendor_id}",
     response_model=FavoriteResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Add to favorites",
 )
 async def add_favorite(
-    court_id: int,
+    vendor_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     service = FavoriteService(db=db, current_user=current_user)
-    return await service.add_favorite(court_id)
+    return await service.add_favorite(vendor_id)
 
 
 @router.delete(
-    "/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove from favorites"
+    "/{vendor_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove from favorites"
 )
 async def remove_favorite(
-    court_id: int,
+    vendor_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     service = FavoriteService(db=db, current_user=current_user)
-    await service.remove_favorite(court_id)
+    await service.remove_favorite(vendor_id)

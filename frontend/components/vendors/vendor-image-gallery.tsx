@@ -25,26 +25,26 @@ import {
   formatPrice,
   sportColors,
   sportLabels,
-} from "@/components/courts/court-shared"
+} from "@/components/vendors/vendor-shared"
 
-interface CourtHeroGalleryProps {
+interface VendorHeroGalleryProps {
   images: string[]
-  courtName: string
-  courtId: number
+  vendorName: string
+  vendorId: number
   sportTypes: string[]
   averageRating: number
   reviewsTotal: number
   minPrice: number | null
 }
 
-export function CourtHeroGallery({
+export function VendorHeroGallery({
   images,
-  courtName,
+  vendorName,
   sportTypes,
   averageRating,
   reviewsTotal,
   minPrice,
-}: CourtHeroGalleryProps) {
+}: VendorHeroGalleryProps) {
   const [api, setApi] = useState<CarouselApi>()
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -83,7 +83,7 @@ export function CourtHeroGallery({
           )}
 
           <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            {courtName}
+            {vendorName}
           </h1>
 
           <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ export function CourtHeroGallery({
                 >
                   <Image
                     src={img}
-                    alt={`${courtName} - ${i + 1}`}
+                    alt={`${vendorName} - ${i + 1}`}
                     fill
                     className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
                     priority={i === 0}
@@ -153,7 +153,7 @@ export function CourtHeroGallery({
             <div className="pointer-events-auto flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-lg sm:text-4xl lg:text-5xl">
-                  {courtName}
+                  {vendorName}
                 </h1>
                 <div className="flex items-center gap-3">
                   <Stars rating={averageRating} size={16} />
@@ -236,12 +236,12 @@ export function CourtHeroGallery({
           className="max-w-[90vw] border-0 bg-black/95 p-0 sm:max-w-4xl"
           showCloseButton={false}
         >
-          <DialogTitle className="sr-only">تصاویر {courtName}</DialogTitle>
+          <DialogTitle className="sr-only">تصاویر {vendorName}</DialogTitle>
           <div className="relative flex aspect-video items-center justify-center">
             {images[lightboxIndex] && (
               <Image
                 src={images[lightboxIndex]}
-                alt={`${courtName} - ${lightboxIndex + 1}`}
+                alt={`${vendorName} - ${lightboxIndex + 1}`}
                 fill
                 className="object-contain"
               />
@@ -286,13 +286,13 @@ export function CourtHeroGallery({
   )
 }
 
-/** @deprecated Use CourtHeroGallery instead — simple carousel without hero overlay */
-export function CourtImageGallery({
+/** @deprecated Use VendorHeroGallery instead — simple carousel without hero overlay */
+export function VendorImageGallery({
   images,
-  courtName,
+  vendorName,
 }: {
   images: string[]
-  courtName: string
+  vendorName: string
 }) {
   if (!images || images.length === 0) return null
   return (
@@ -304,7 +304,7 @@ export function CourtImageGallery({
               <div className="relative aspect-21/9 cursor-pointer">
                 <Image
                   src={img}
-                  alt={`${courtName} - ${i + 1}`}
+                  alt={`${vendorName} - ${i + 1}`}
                   fill
                   className="object-cover"
                   priority={i === 0}

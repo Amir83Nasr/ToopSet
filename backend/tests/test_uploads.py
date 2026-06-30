@@ -1,4 +1,4 @@
-"""Tests for court image upload endpoint (manager+)."""
+"""Tests for vendor image upload endpoint (manager+)."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from httpx import AsyncClient
 pytestmark = [pytest.mark.asyncio]
 
 
-class TestUploadCourtImage:
+class TestUploadVendorImage:
     async def test_upload_unauthenticated(self, client: AsyncClient) -> None:
         resp = await client.post(
-            "/api/v1/uploads/court-image",
+            "/api/v1/uploads/vendor-image",
             files={"file": ("test.jpg", b"fake_image_content", "image/jpeg")},
         )
         assert resp.status_code == 401
@@ -21,7 +21,7 @@ class TestUploadCourtImage:
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.post(
-            "/api/v1/uploads/court-image",
+            "/api/v1/uploads/vendor-image",
             files={"file": ("test.jpg", b"fake_image_content", "image/jpeg")},
             headers=headers,
         )
@@ -37,7 +37,7 @@ class TestUploadCourtImage:
         # to propagate through the ASGI stack.
         with pytest.raises(ValueError, match="Invalid file content type"):
             await client.post(
-                "/api/v1/uploads/court-image",
+                "/api/v1/uploads/vendor-image",
                 files={"file": ("test.jpg", b"", "image/jpeg")},
                 headers=headers,
             )
@@ -46,7 +46,7 @@ class TestUploadCourtImage:
         """Disallowed file extension -> 400."""
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         resp = await client.post(
-            "/api/v1/uploads/court-image",
+            "/api/v1/uploads/vendor-image",
             files={"file": ("test.txt", b"some content", "text/plain")},
             headers=headers,
         )

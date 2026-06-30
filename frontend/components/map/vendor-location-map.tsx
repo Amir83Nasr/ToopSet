@@ -9,7 +9,7 @@ import L, {
 } from "@/lib/neshan-map"
 import "@neshan-maps-platform/leaflet/dist/leaflet.css"
 
-interface CourtLocationMapProps {
+interface VendorLocationMapProps {
   latitude: number
   longitude: number
   name: string
@@ -17,13 +17,13 @@ interface CourtLocationMapProps {
   interactive?: boolean
 }
 
-export function CourtLocationMap({
+export function VendorLocationMap({
   latitude,
   longitude,
   name,
   height = "200px",
   interactive = true,
-}: CourtLocationMapProps) {
+}: VendorLocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any | null>(null)
   const [ready, setReady] = useState(false)

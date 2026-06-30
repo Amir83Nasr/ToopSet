@@ -5,14 +5,46 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.repositories.wallet_repo import WalletRepo
+from app.schemas.bank_card import BankCardLookupRequest, BankCardResponse
 from app.schemas.wallet import (
     WalletBalanceResponse,
     WalletDepositRequest,
     WalletTransactionResponse,
     WalletWithdrawRequest,
 )
+from app.services.bank_card_service import BankCardService
 
 router = APIRouter(prefix="/wallet", tags=["wallet"])
+
+
+@router.post(
+    "/bank-cards/lookup",
+    response_model=BankCardResponse,
+    summary="Lookup bank card owner before confirmation",
+)
+async def lookup_bank_card(
+    request: BankCardLookupRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = BankCardService(db=db, current_user=current_user)
+    card = await service.lookup_card(request.card_number)
+    return BankCardResponse.model_validate(card)
+
+
+@router.post(
+    "/bank-cards/{card_id}/confirm",
+    response_model=BankCardResponse,
+    summary="Confirm bank card for refunds",
+)
+async def confirm_bank_card(
+    card_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = BankCardService(db=db, current_user=current_user)
+    card = await service.confirm_card(card_id)
+    return BankCardResponse.model_validate(card)
 
 
 @router.get("/balance", response_model=WalletBalanceResponse, summary="Wallet balance")

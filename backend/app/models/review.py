@@ -15,7 +15,7 @@ class Review(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    court_id: Mapped[int] = mapped_column(ForeignKey("courts.id", ondelete="CASCADE"), index=True)
+    vendor_id: Mapped[int] = mapped_column(ForeignKey("vendors.id", ondelete="CASCADE"), index=True)
     booking_id: Mapped[int] = mapped_column(
         ForeignKey("bookings.id", ondelete="CASCADE"), unique=True
     )
@@ -26,5 +26,5 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="reviews")
-    court: Mapped["Court"] = relationship(back_populates="reviews")
+    vendor: Mapped["Vendor"] = relationship(back_populates="reviews")
     booking: Mapped["Booking"] = relationship(back_populates="review")

@@ -13,9 +13,9 @@ class ReviewRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def list_by_court(
+    async def list_by_vendor(
         self,
-        court_id: int,
+        vendor_id: int,
         *,
         after_id: int | None = None,
         skip: int = 0,
@@ -23,11 +23,11 @@ class ReviewRepo:
     ) -> tuple[list[Review], int]:
         query = (
             select(Review)
-            .options(selectinload(Review.court), selectinload(Review.user))
-            .where(Review.court_id == court_id)
+            .options(selectinload(Review.vendor), selectinload(Review.user))
+            .where(Review.vendor_id == vendor_id)
             .order_by(Review.created_at.desc())
         )
-        count_q = select(func.count(Review.id)).where(Review.court_id == court_id)
+        count_q = select(func.count(Review.id)).where(Review.vendor_id == vendor_id)
 
         if after_id is not None:
             query = query.where(Review.id > after_id)
@@ -53,7 +53,7 @@ class ReviewRepo:
     ) -> tuple[list[Review], int]:
         query = (
             select(Review)
-            .options(selectinload(Review.court), selectinload(Review.user))
+            .options(selectinload(Review.vendor), selectinload(Review.user))
             .where(Review.user_id == user_id)
             .order_by(Review.created_at.desc())
         )
@@ -76,7 +76,7 @@ class ReviewRepo:
     async def get_by_id(self, review_id: int) -> Review | None:
         result = await self.db.execute(
             select(Review)
-            .options(selectinload(Review.court), selectinload(Review.user))
+            .options(selectinload(Review.vendor), selectinload(Review.user))
             .where(Review.id == review_id)
         )
         return result.scalar_one_or_none()
@@ -89,7 +89,7 @@ class ReviewRepo:
         query = (
             select(Review)
             .options(
-                selectinload(Review.court),
+                selectinload(Review.vendor),
                 selectinload(Review.user),
             )
             .where(Review.is_reported == False)

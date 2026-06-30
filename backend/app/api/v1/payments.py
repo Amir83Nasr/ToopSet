@@ -28,14 +28,14 @@ def _format_payment(p: Payment) -> PaymentDetailResponse:
         gateway_fee=float(p.gateway_fee) if p.gateway_fee else None,
         paid_at=p.paid_at,
         created_at=p.created_at,
-        court_name=(
-            p.booking.slot.court.name
-            if p.booking and p.booking.slot and p.booking.slot.court
+        vendor_name=(
+            p.booking.slot.vendor.name
+            if p.booking and p.booking.slot and p.booking.slot.vendor
             else ""
         ),
-        court_address=(
-            p.booking.slot.court.address
-            if p.booking and p.booking.slot and p.booking.slot.court
+        vendor_address=(
+            p.booking.slot.vendor.address
+            if p.booking and p.booking.slot and p.booking.slot.vendor
             else ""
         ),
         slot_start_time=p.booking.slot.start_time if p.booking and p.booking.slot else None,

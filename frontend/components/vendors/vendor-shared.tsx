@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import type { ReactNode } from "react"
 
-export interface CourtData {
+export interface VendorData {
   id: number
   name: string
   sport_types: string[]
@@ -33,7 +33,7 @@ export interface CourtData {
 
 export interface TimeSlot {
   id: number
-  court_id: number
+  vendor_id: number
   start_time: string
   end_time: string
   base_price: number

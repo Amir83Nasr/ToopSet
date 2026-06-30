@@ -2,7 +2,7 @@
 
 __all__ = [
     "booking_repo",
-    "court_repo",
+    "vendor_repo",
     "favorite_repo",
     "log_repo",
     "notification_repo",

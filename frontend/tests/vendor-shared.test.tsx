@@ -4,7 +4,7 @@ import {
   formatPrice,
   formatDate,
   Stars,
-} from "@/components/courts/court-shared"
+} from "@/components/vendors/vendor-shared"
 import { render } from "@testing-library/react"
 
 describe("formatTime", () => {

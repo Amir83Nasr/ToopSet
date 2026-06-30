@@ -5,9 +5,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import BookingStatus
-from app.models.court import Court
 from app.models.review import Review
 from app.models.user import User, UserRole
+from app.models.vendor import Vendor
 from app.repositories.booking_repo import BookingRepo
 from app.repositories.review_repo import ReviewRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
@@ -33,10 +33,10 @@ class ReviewService:
         )
         items = []
         for review in reviews:
-            court_name = review.court.name if review.court else ""
+            vendor_name = review.vendor.name if review.vendor else ""
             user_name = review.user.full_name if review.user else ""
             item = ReviewDetailResponse.model_validate(review)
-            item.court_name = court_name
+            item.vendor_name = vendor_name
             item.user_name = user_name
             items.append(item)
         next_cursor = None
@@ -46,23 +46,23 @@ class ReviewService:
             next_cursor = encode_cursor(reviews[-1].id)
         return ReviewListResponse(reviews=items, total=total, next_cursor=next_cursor)
 
-    async def list_by_court(
+    async def list_by_vendor(
         self,
-        court_id: int,
+        vendor_id: int,
         *,
         after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> ReviewListResponse:
-        reviews, total = await self.review_repo.list_by_court(
-            court_id, after_id=after_id, skip=skip, limit=limit
+        reviews, total = await self.review_repo.list_by_vendor(
+            vendor_id, after_id=after_id, skip=skip, limit=limit
         )
         items = []
         for review in reviews:
-            court_name = review.court.name if review.court else ""
+            vendor_name = review.vendor.name if review.vendor else ""
             user_name = review.user.full_name if review.user else ""
             item = ReviewDetailResponse.model_validate(review)
-            item.court_name = court_name
+            item.vendor_name = vendor_name
             item.user_name = user_name
             items.append(item)
         next_cursor = None
@@ -80,10 +80,10 @@ class ReviewService:
         reviews = await self.review_repo.list_recent(limit=limit)
         items = []
         for review in reviews:
-            court_name = review.court.name if review.court else ""
+            vendor_name = review.vendor.name if review.vendor else ""
             user_name = review.user.full_name if review.user else ""
             item = ReviewDetailResponse.model_validate(review)
-            item.court_name = court_name
+            item.vendor_name = vendor_name
             item.user_name = user_name
             items.append(item)
         return ReviewListResponse(reviews=items, total=len(items))
@@ -131,7 +131,7 @@ class ReviewService:
                 detail="برای این رزرو قبلاً نظر ثبت شده است",
             )
 
-        court_id = slot.court.id if slot.court else None
+        vendor_id = slot.vendor.id if slot.vendor else None
 
         # Create review
         review = await self.review_repo.create(
@@ -140,20 +140,20 @@ class ReviewService:
                 "booking_id": data.booking_id,
                 "rating": data.rating,
                 "comment": data.comment,
-                "court_id": court_id,
+                "vendor_id": vendor_id,
             }
         )
 
-        # Update court's average rating
-        if court_id:
-            await self._recalc_court_rating(court_id)
+        # Update vendor's average rating
+        if vendor_id:
+            await self._recalc_vendor_rating(vendor_id)
 
-        # Enrich with court_name and user_name
-        court_name = slot.court.name if slot.court else ""
+        # Enrich with vendor_name and user_name
+        vendor_name = slot.vendor.name if slot.vendor else ""
         user_name = self.current_user.full_name
 
         item = ReviewDetailResponse.model_validate(review)
-        item.court_name = court_name
+        item.vendor_name = vendor_name
         item.user_name = user_name
         return item
 
@@ -171,10 +171,10 @@ class ReviewService:
                 detail="نظر یافت نشد",
             )
 
-        # Verify manager owns the court
+        # Verify manager owns the vendor
         if self.current_user.role == "manager":
-            court = review.court
-            if not court or court.manager_id != self.current_user.id:
+            vendor = review.vendor
+            if not vendor or vendor.manager_id != self.current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="شما مدیر این مجموعه نیستید",
@@ -185,7 +185,7 @@ class ReviewService:
         await self.review_repo.db.refresh(review)
 
         item = ReviewDetailResponse.model_validate(review)
-        item.court_name = review.court.name if review.court else ""
+        item.vendor_name = review.vendor.name if review.vendor else ""
         item.user_name = review.user.full_name if review.user else ""
         return item
 
@@ -203,11 +203,11 @@ class ReviewService:
                 detail="نظر یافت نشد",
             )
 
-        court_id = review.court_id
+        vendor_id = review.vendor_id
         await self.review_repo.delete(review)
 
-        # Recalculate court's average rating
-        await self._recalc_court_rating(court_id)
+        # Recalculate vendor's average rating
+        await self._recalc_vendor_rating(vendor_id)
 
     async def report(self, review_id: int) -> dict:
         if self.current_user.role != UserRole.ADMIN:
@@ -227,17 +227,17 @@ class ReviewService:
         await self.review_repo.db.flush()
         return {"success": True}
 
-    async def _recalc_court_rating(self, court_id: int) -> None:
-        """Recalculate and persist the court's average_rating from all active reviews."""
+    async def _recalc_vendor_rating(self, vendor_id: int) -> None:
+        """Recalculate and persist the vendor's average_rating from all active reviews."""
         result = await self.review_repo.db.execute(
             select(func.coalesce(func.avg(Review.rating), 0.0)).where(
-                Review.court_id == court_id,
+                Review.vendor_id == vendor_id,
                 Review.is_reported == False,
             )
         )
         avg = float(result.scalar_one())
-        await self.review_repo.db.execute(select(Court).where(Court.id == court_id))
-        court = await self.review_repo.db.get(Court, court_id)
-        if court:
-            court.average_rating = round(avg, 1)
+        await self.review_repo.db.execute(select(Vendor).where(Vendor.id == vendor_id))
+        vendor = await self.review_repo.db.get(Vendor, vendor_id)
+        if vendor:
+            vendor.average_rating = round(avg, 1)
             await self.review_repo.db.flush()

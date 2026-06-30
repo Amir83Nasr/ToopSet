@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { CourtBooking } from "@/components/courts/court-booking"
-import type { TimeSlot } from "@/components/courts/court-shared"
+import { VendorBooking } from "@/components/vendors/vendor-booking"
+import type { TimeSlot } from "@/components/vendors/vendor-shared"
 
 function makeSlots(
   count: number,
@@ -10,7 +10,7 @@ function makeSlots(
 ): TimeSlot[] {
   return Array.from({ length: count }, (_, i) => ({
     id: i,
-    court_id: 1,
+    vendor_id: 1,
     start_time: `2026-06-20T0${8 + i}:00:00`,
     end_time: `2026-06-20T0${9 + i}:00:00`,
     base_price: 150000,
@@ -20,7 +20,7 @@ function makeSlots(
   }))
 }
 
-describe("CourtBooking", () => {
+describe("VendorBooking", () => {
   const onDateSelect = vi.fn()
   const onSlotSelect = vi.fn()
   const onBook = vi.fn()
@@ -43,12 +43,12 @@ describe("CourtBooking", () => {
   })
 
   it("renders the section title", () => {
-    render(<CourtBooking {...baseProps} />)
+    render(<VendorBooking {...baseProps} />)
     expect(screen.getByText("انتخاب سانس")).toBeInTheDocument()
   })
 
   it("displays Persian day names in date picker", () => {
-    render(<CourtBooking {...baseProps} />)
+    render(<VendorBooking {...baseProps} />)
     const dayNames = [
       "شنبه",
       "یکشنبه",
@@ -65,27 +65,27 @@ describe("CourtBooking", () => {
   })
 
   it("shows loading skeletons while loading slots", () => {
-    render(<CourtBooking {...baseProps} slotsLoading={true} />)
+    render(<VendorBooking {...baseProps} slotsLoading={true} />)
     // With shadcn skeleton, expect at least some loading indicator
     expect(screen.getByText("انتخاب سانس")).toBeInTheDocument()
   })
 
   it("shows empty state when no slots available", () => {
-    render(<CourtBooking {...baseProps} />)
+    render(<VendorBooking {...baseProps} />)
     expect(screen.getByText("سانسی موجود نیست")).toBeInTheDocument()
     expect(screen.getByText("تاریخ دیگری انتخاب کنید")).toBeInTheDocument()
   })
 
   it("renders available slots", () => {
     const slots = makeSlots(3)
-    render(<CourtBooking {...baseProps} slots={slots} />)
+    render(<VendorBooking {...baseProps} slots={slots} />)
     expect(screen.getByText("۳ سانس موجود")).toBeInTheDocument()
   })
 
   it("allows selecting an available slot", async () => {
     const user = userEvent.setup()
     const slots = makeSlots(2)
-    render(<CourtBooking {...baseProps} slots={slots} />)
+    render(<VendorBooking {...baseProps} slots={slots} />)
 
     const slotButtons = screen.getAllByText("آزاد")
     expect(slotButtons).toHaveLength(2)
@@ -97,7 +97,7 @@ describe("CourtBooking", () => {
   it("does not call onSlotSelect for reserved slots", async () => {
     const user = userEvent.setup()
     const slots = [...makeSlots(1, { is_reserved: true }), ...makeSlots(1)]
-    render(<CourtBooking {...baseProps} slots={slots} />)
+    render(<VendorBooking {...baseProps} slots={slots} />)
 
     const reservedButtons = screen.getAllByText("رزرو شده")
     expect(reservedButtons).toHaveLength(1)
@@ -110,7 +110,7 @@ describe("CourtBooking", () => {
   it("shows booking CTA when a slot is selected", () => {
     const selectedSlot = makeSlots(1)[0]
     render(
-      <CourtBooking
+      <VendorBooking
         {...baseProps}
         slots={makeSlots(1)}
         selectedSlot={selectedSlot}
@@ -122,7 +122,7 @@ describe("CourtBooking", () => {
   it("shows 'ورود و رزرو' button when not authenticated", () => {
     const selectedSlot = makeSlots(1)[0]
     render(
-      <CourtBooking
+      <VendorBooking
         {...baseProps}
         isAuthenticated={false}
         slots={makeSlots(1)}
@@ -136,7 +136,7 @@ describe("CourtBooking", () => {
     const user = userEvent.setup()
     const selectedSlot = makeSlots(1)[0]
     render(
-      <CourtBooking
+      <VendorBooking
         {...baseProps}
         slots={makeSlots(1)}
         selectedSlot={selectedSlot}

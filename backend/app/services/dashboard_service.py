@@ -9,9 +9,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import Booking, BookingStatus
-from app.models.court import Court
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
+from app.models.vendor import Vendor
 from app.models.wallet import Wallet
 
 
@@ -25,17 +25,17 @@ def _utcnow() -> datetime:
 
 
 class DashboardStats(BaseModel):
-    active_courts: int
+    active_vendors: int
     today_bookings: int
     today_revenue: float
     total_users: int
-    recent_bookings: list[dict]  # last 5 bookings with court name, user name, amount, status, time
-    popular_courts: list[dict]  # top 5 courts by booking count
+    recent_bookings: list[dict]  # last 5 bookings with vendor name, user name, amount, status, time
+    popular_vendors: list[dict]  # top 5 vendors by booking count
     model_config = {"from_attributes": True}
 
 
 class AdminStats(BaseModel):
-    total_courts: int
+    total_vendors: int
     total_users: int
     total_bookings: int
     total_revenue: float
@@ -45,13 +45,13 @@ class AdminStats(BaseModel):
     today_revenue: float = 0
     total_managers: int = 0
     recent_bookings: list[dict] = []
-    popular_courts: list[dict] = []
+    popular_vendors: list[dict] = []
     user_growth: list[dict] = []
     booking_trends: list[dict] = []
 
 
 class ManagerStats(BaseModel):
-    my_courts: int
+    my_vendors: int
     upcoming_bookings: int
     today_earnings: float
     wallet_balance: float
@@ -81,8 +81,8 @@ class DashboardService:
                 func.coalesce(func.sum(Booking.penalty_amount), 0).label("penalties"),
             )
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-            .join(Court, TimeSlot.court_id == Court.id)
-            .where(Court.manager_id == user_id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
+            .where(Vendor.manager_id == user_id)
             .where(Booking.status == BookingStatus.CONFIRMED)
         )
 
@@ -111,8 +111,8 @@ class DashboardService:
     async def get_stats(self) -> DashboardStats:
         today_start = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
-        async def _active_courts() -> int:
-            r = await self.db.execute(select(func.count(Court.id)).where(Court.is_active.is_(True)))
+        async def _active_vendors() -> int:
+            r = await self.db.execute(select(func.count(Vendor.id)).where(Vendor.is_active.is_(True)))
             return r.scalar() or 0
 
         async def _today_bookings() -> int:
@@ -141,14 +141,14 @@ class DashboardService:
             r = await self.db.execute(
                 select(
                     Booking.id,
-                    Court.name.label("court_name"),
+                    Vendor.name.label("vendor_name"),
                     User.full_name.label("user_name"),
                     Booking.price_paid,
                     Booking.status,
                     TimeSlot.start_time,
                 )
                 .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-                .join(Court, TimeSlot.court_id == Court.id)
+                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
                 .join(User, Booking.user_id == User.id)
                 .order_by(Booking.created_at.desc())
                 .limit(5)
@@ -156,7 +156,7 @@ class DashboardService:
             return [
                 {
                     "id": row.id,
-                    "court_name": row.court_name,
+                    "vendor_name": row.vendor_name,
                     "user_name": row.user_name,
                     "price_paid": float(row.price_paid),
                     "status": row.status.value if hasattr(row.status, "value") else row.status,
@@ -165,51 +165,51 @@ class DashboardService:
                 for row in r
             ]
 
-        async def _popular_courts() -> list[dict]:
+        async def _popular_vendors() -> list[dict]:
             r = await self.db.execute(
                 select(
-                    Court.id.label("court_id"),
-                    Court.name.label("court_name"),
+                    Vendor.id.label("vendor_id"),
+                    Vendor.name.label("vendor_name"),
                     func.count(Booking.id).label("booking_count"),
                 )
-                .join(TimeSlot, Court.id == TimeSlot.court_id)
+                .join(TimeSlot, Vendor.id == TimeSlot.vendor_id)
                 .join(Booking, TimeSlot.id == Booking.slot_id)
-                .group_by(Court.id, Court.name)
+                .group_by(Vendor.id, Vendor.name)
                 .order_by(func.count(Booking.id).desc())
                 .limit(5)
             )
             return [
                 {
-                    "court_id": row.court_id,
-                    "court_name": row.court_name,
+                    "vendor_id": row.vendor_id,
+                    "vendor_name": row.vendor_name,
                     "booking_count": row.booking_count,
                 }
                 for row in r
             ]
 
         (
-            active_courts,
+            active_vendors,
             today_bookings,
             today_revenue,
             total_users,
             recent_bookings,
-            popular_courts,
+            popular_vendors,
         ) = await asyncio.gather(
-            _active_courts(),
+            _active_vendors(),
             _today_bookings(),
             _today_revenue(),
             _total_users(),
             _recent_bookings(),
-            _popular_courts(),
+            _popular_vendors(),
         )
 
         return DashboardStats(
-            active_courts=active_courts,
+            active_vendors=active_vendors,
             today_bookings=today_bookings,
             today_revenue=today_revenue,
             total_users=total_users,
             recent_bookings=recent_bookings,
-            popular_courts=popular_courts,
+            popular_vendors=popular_vendors,
         )
 
     async def get_admin_stats(
@@ -222,8 +222,8 @@ class DashboardService:
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         seven_days_ago = now - timedelta(days=7)
 
-        async def _total_courts() -> int:
-            r = await self.db.execute(select(func.count(Court.id)))
+        async def _total_vendors() -> int:
+            r = await self.db.execute(select(func.count(Vendor.id)))
             return r.scalar() or 0
 
         async def _total_users() -> int:
@@ -294,14 +294,14 @@ class DashboardService:
             r = await self.db.execute(
                 select(
                     Booking.id,
-                    Court.name.label("court_name"),
+                    Vendor.name.label("vendor_name"),
                     User.full_name.label("user_name"),
                     Booking.price_paid,
                     Booking.status,
                     TimeSlot.start_time,
                 )
                 .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-                .join(Court, TimeSlot.court_id == Court.id)
+                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
                 .join(User, Booking.user_id == User.id)
                 .order_by(Booking.created_at.desc())
                 .limit(10)
@@ -309,7 +309,7 @@ class DashboardService:
             return [
                 {
                     "id": row.id,
-                    "court_name": row.court_name,
+                    "vendor_name": row.vendor_name,
                     "user_name": row.user_name,
                     "price_paid": float(row.price_paid),
                     "status": row.status.value if hasattr(row.status, "value") else row.status,
@@ -318,23 +318,23 @@ class DashboardService:
                 for row in r
             ]
 
-        async def _popular_courts() -> list[dict]:
+        async def _popular_vendors() -> list[dict]:
             r = await self.db.execute(
                 select(
-                    Court.id.label("court_id"),
-                    Court.name.label("court_name"),
+                    Vendor.id.label("vendor_id"),
+                    Vendor.name.label("vendor_name"),
                     func.count(Booking.id).label("booking_count"),
                 )
-                .join(TimeSlot, Court.id == TimeSlot.court_id)
+                .join(TimeSlot, Vendor.id == TimeSlot.vendor_id)
                 .join(Booking, TimeSlot.id == Booking.slot_id)
-                .group_by(Court.id, Court.name)
+                .group_by(Vendor.id, Vendor.name)
                 .order_by(func.count(Booking.id).desc())
                 .limit(5)
             )
             return [
                 {
-                    "court_id": row.court_id,
-                    "court_name": row.court_name,
+                    "vendor_id": row.vendor_id,
+                    "vendor_name": row.vendor_name,
                     "booking_count": row.booking_count,
                 }
                 for row in r
@@ -353,7 +353,7 @@ class DashboardService:
             return [{"date": str(row.date), "count": row.count} for row in r]
 
         (
-            total_courts,
+            total_vendors,
             total_users,
             total_bookings,
             total_revenue,
@@ -363,10 +363,10 @@ class DashboardService:
             today_revenue,
             total_managers,
             recent_bookings,
-            popular_courts,
+            popular_vendors,
             booking_trends,
         ) = await asyncio.gather(
-            _total_courts(),
+            _total_vendors(),
             _total_users(),
             _total_bookings(),
             _total_revenue(),
@@ -376,12 +376,12 @@ class DashboardService:
             _today_revenue(),
             _total_managers(),
             _recent_bookings(),
-            _popular_courts(),
+            _popular_vendors(),
             _booking_trends(),
         )
 
         return AdminStats(
-            total_courts=total_courts,
+            total_vendors=total_vendors,
             total_users=total_users,
             total_bookings=total_bookings,
             total_revenue=total_revenue,
@@ -391,7 +391,7 @@ class DashboardService:
             today_revenue=today_revenue,
             total_managers=total_managers,
             recent_bookings=recent_bookings,
-            popular_courts=popular_courts,
+            popular_vendors=popular_vendors,
             booking_trends=booking_trends,
         )
 
@@ -399,9 +399,9 @@ class DashboardService:
         now = _utcnow()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        async def _my_courts() -> int:
+        async def _my_vendors() -> int:
             r = await self.db.execute(
-                select(func.count(Court.id)).where(Court.manager_id == user_id)
+                select(func.count(Vendor.id)).where(Vendor.manager_id == user_id)
             )
             return r.scalar() or 0
 
@@ -409,8 +409,8 @@ class DashboardService:
             r = await self.db.execute(
                 select(func.count(Booking.id))
                 .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-                .join(Court, TimeSlot.court_id == Court.id)
-                .where(Court.manager_id == user_id)
+                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
+                .where(Vendor.manager_id == user_id)
                 .where(Booking.status == BookingStatus.CONFIRMED)
                 .where(TimeSlot.start_time > now)
             )
@@ -420,8 +420,8 @@ class DashboardService:
             r = await self.db.execute(
                 select(func.coalesce(func.sum(Booking.price_paid), 0))
                 .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-                .join(Court, TimeSlot.court_id == Court.id)
-                .where(Court.manager_id == user_id)
+                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
+                .where(Vendor.manager_id == user_id)
                 .where(Booking.status == BookingStatus.CONFIRMED)
                 .where(TimeSlot.start_time >= today_start)
             )
@@ -436,20 +436,20 @@ class DashboardService:
             r = await self.db.execute(
                 select(
                     Booking.id,
-                    Court.name.label("court_name"),
+                    Vendor.name.label("vendor_name"),
                     TimeSlot.start_time,
                     Booking.price_paid,
                 )
                 .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-                .join(Court, TimeSlot.court_id == Court.id)
-                .where(Court.manager_id == user_id)
+                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
+                .where(Vendor.manager_id == user_id)
                 .order_by(Booking.created_at.desc())
                 .limit(5)
             )
             return [
                 {
                     "id": row.id,
-                    "court_name": row.court_name,
+                    "vendor_name": row.vendor_name,
                     "start_time": row.start_time.isoformat() if row.start_time else None,
                     "price_paid": float(row.price_paid),
                 }
@@ -457,13 +457,13 @@ class DashboardService:
             ]
 
         (
-            my_courts,
+            my_vendors,
             upcoming_bookings,
             today_earnings,
             wallet_balance,
             recent_bookings,
         ) = await asyncio.gather(
-            _my_courts(),
+            _my_vendors(),
             _upcoming_bookings(),
             _today_earnings(),
             _wallet_balance(),
@@ -471,7 +471,7 @@ class DashboardService:
         )
 
         return ManagerStats(
-            my_courts=my_courts,
+            my_vendors=my_vendors,
             upcoming_bookings=upcoming_bookings,
             today_earnings=today_earnings,
             wallet_balance=wallet_balance,
@@ -572,15 +572,15 @@ class DashboardService:
             )
             return [{"date": str(row.date), "count": row.count} for row in r]
 
-        async def _court_growth() -> list[dict]:
+        async def _vendor_growth() -> list[dict]:
             r = await self.db.execute(
                 select(
-                    func.date(Court.created_at).label("date"),
-                    func.count(Court.id).label("count"),
+                    func.date(Vendor.created_at).label("date"),
+                    func.count(Vendor.id).label("count"),
                 )
-                .where(Court.created_at >= thirty_days_ago)
-                .group_by(func.date(Court.created_at))
-                .order_by(func.date(Court.created_at).asc())
+                .where(Vendor.created_at >= thirty_days_ago)
+                .group_by(func.date(Vendor.created_at))
+                .order_by(func.date(Vendor.created_at).asc())
             )
             return [{"date": str(row.date), "count": row.count} for row in r]
 
@@ -618,16 +618,16 @@ class DashboardService:
                 for row in r
             ]
 
-        user_growth, court_growth, booking_trends, revenue_trends = await asyncio.gather(
+        user_growth, vendor_growth, booking_trends, revenue_trends = await asyncio.gather(
             _user_growth(),
-            _court_growth(),
+            _vendor_growth(),
             _booking_trends(),
             _revenue_trends(),
         )
 
         return {
             "user_growth": user_growth,
-            "court_growth": court_growth,
+            "vendor_growth": vendor_growth,
             "booking_trends": booking_trends,
             "revenue_trends": revenue_trends,
         }
@@ -662,8 +662,8 @@ class DashboardService:
 
         async def _favorite_sport() -> str:
             r = await self.db.execute(
-                select(Court.sport_types)
-                .join(TimeSlot, Court.id == TimeSlot.court_id)
+                select(Vendor.sport_types)
+                .join(TimeSlot, Vendor.id == TimeSlot.vendor_id)
                 .join(Booking, TimeSlot.id == Booking.slot_id)
                 .where(Booking.user_id == user_id)
                 .limit(50)
@@ -678,13 +678,13 @@ class DashboardService:
             r = await self.db.execute(
                 select(
                     Booking.id,
-                    Court.name.label("court_name"),
+                    Vendor.name.label("vendor_name"),
                     TimeSlot.start_time,
                     Booking.status,
                     Booking.price_paid,
                 )
                 .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-                .join(Court, TimeSlot.court_id == Court.id)
+                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
                 .where(Booking.user_id == user_id)
                 .order_by(Booking.created_at.desc())
                 .limit(5)
@@ -692,7 +692,7 @@ class DashboardService:
             return [
                 {
                     "id": row.id,
-                    "court_name": row.court_name,
+                    "vendor_name": row.vendor_name,
                     "start_time": row.start_time.isoformat() if row.start_time else None,
                     "status": row.status.value if hasattr(row.status, "value") else row.status,
                     "price_paid": float(row.price_paid),

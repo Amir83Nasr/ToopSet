@@ -5,10 +5,10 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.court import SportType
+from app.models.vendor import SportType
 
 
-class CourtImageResponse(BaseModel):
+class VendorImageResponse(BaseModel):
     id: int
     url: str
     order: int
@@ -26,7 +26,7 @@ _SPORT_MAP: dict[str, str] = {
 }
 
 
-class CourtBase(BaseModel):
+class VendorBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     sport_types: list[SportType] = Field(..., min_length=1)
     address: str
@@ -43,12 +43,12 @@ class CourtBase(BaseModel):
         return v
 
 
-class CourtCreate(CourtBase):
+class VendorCreate(VendorBase):
     images: list[str] | None = None
     temp_ids: list[str] | None = None
 
 
-class CourtUpdate(BaseModel):
+class VendorUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=256)
     sport_types: list[SportType] | None = Field(None, min_length=1)
     address: str | None = None
@@ -61,13 +61,13 @@ class CourtUpdate(BaseModel):
     image_ids_to_remove: list[int] | None = None
 
 
-class CourtResponse(CourtBase):
+class VendorResponse(VendorBase):
     id: int
     manager_id: int
     manager_name: str | None = None
     manager_phone: str | None = None
     images: list[str] | None = None
-    court_images: list[CourtImageResponse] | None = None
+    vendor_images: list[VendorImageResponse] | None = None
     is_active: bool
     average_rating: float
     base_price: Decimal | None = None
@@ -76,7 +76,7 @@ class CourtResponse(CourtBase):
     model_config = {"from_attributes": True}
 
 
-class CourtListResponse(BaseModel):
-    courts: list[CourtResponse]
+class VendorListResponse(BaseModel):
+    vendors: list[VendorResponse]
     total: int
     next_cursor: str | None = None

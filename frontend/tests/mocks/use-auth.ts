@@ -18,6 +18,8 @@ export const mockLogin = vi.fn()
 export const mockRegister = vi.fn()
 export const mockLogout = vi.fn()
 export const mockRefreshUser = vi.fn()
+export const mockSendOtp = vi.fn()
+export const mockVerifyOtp = vi.fn()
 
 export function createMockUseAuth(user: User | null = null, loading = false) {
   return {
@@ -27,6 +29,8 @@ export function createMockUseAuth(user: User | null = null, loading = false) {
     register: mockRegister,
     logout: mockLogout,
     refreshUser: mockRefreshUser,
+    sendOtp: mockSendOtp,
+    verifyOtp: mockVerifyOtp,
     isAuthenticated: !!user,
   }
 }

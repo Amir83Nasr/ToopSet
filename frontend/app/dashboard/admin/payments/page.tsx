@@ -44,7 +44,7 @@ interface AdminPayment {
   status: "success" | "pending" | "failed"
   gateway_name: string | null
   user_name: string
-  court_name: string
+  vendor_name: string
   created_at: string
 }
 
@@ -239,7 +239,7 @@ export default function AdminPaymentsPage() {
                     {p.user_name}
                   </TableCell>
                   <TableCell className="max-w-48 truncate">
-                    {p.court_name}
+                    {p.vendor_name}
                   </TableCell>
                   <TableCell className="w-36">
                     {formatAmount(p.amount)}

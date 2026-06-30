@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { formatTime, formatPrice, type TimeSlot } from "./court-shared"
+import { formatTime, formatPrice, type TimeSlot } from "./vendor-shared"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"

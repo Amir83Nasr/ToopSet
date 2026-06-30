@@ -16,8 +16,8 @@ class ManagerBookingResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None = None
-    court_name: str = ""
-    court_address: str = ""
+    vendor_name: str = ""
+    vendor_address: str = ""
     user_name: str = ""
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
@@ -33,15 +33,19 @@ class ManagerBookingListResponse(BaseModel):
 
 class ManagerSlotResponse(BaseModel):
     id: int
-    court_id: int
+    vendor_id: int
     start_time: datetime
     end_time: datetime
     base_price: float
+    ball_price: float = 0
+    ball_available: bool = False
+    gender: str = "male"
+    status: str = "open"
     is_reserved: bool = False
     version: int = 1
-    court_name: str = ""
-    court_address: str = ""
-    court_sport_type: str = ""
+    vendor_name: str = ""
+    vendor_address: str = ""
+    vendor_sport_type: str = ""
     booking_id: int | None = None
     booking_user_name: str | None = None
     booking_status: str | None = None

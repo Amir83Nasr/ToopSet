@@ -30,10 +30,10 @@ interface BookingDetail {
   id: number
   status: string
   price_paid: number
-  court_name: string
-  court_address: string
-  slot_start: string
-  slot_end: string
+  vendor_name: string
+  vendor_address: string
+  slot_start_time: string
+  slot_end_time: string
   expires_at: string | null
 }
 
@@ -62,7 +62,7 @@ function PaymentPageContent() {
   const { isAuthenticated, loading: authLoading } = useAuth()
 
   const bookingId = Number(searchParams.get("booking_id"))
-  const courtId = Number(searchParams.get("court_id"))
+  const vendorId = Number(searchParams.get("vendor_id"))
 
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState<BookingDetail | null>(null)
@@ -155,9 +155,9 @@ function PaymentPageContent() {
                     <ArrowRight className="ml-2 size-4" />
                     بازگشت به صفحه اصلی
                   </Button>
-                  {courtId && (
+                  {vendorId && (
                     <Button asChild>
-                      <Link href={`/courts/${courtId}`}>انتخاب سانس دیگر</Link>
+                      <Link href={`/vendors/${vendorId}`}>انتخاب سانس دیگر</Link>
                     </Button>
                   )}
                 </div>
@@ -225,19 +225,19 @@ function PaymentPageContent() {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">مجموعه</span>
-                <span className="font-medium">{booking.court_name}</span>
+                <span className="font-medium">{booking.vendor_name}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">تاریخ</span>
                 <span className="font-medium">
-                  {formatDate(booking.slot_start)}
+                  {formatDate(booking.slot_start_time)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">ساعت</span>
                 <span className="font-medium" dir="ltr">
-                  {formatTime(booking.slot_start)} —{" "}
-                  {formatTime(booking.slot_end)}
+                  {formatTime(booking.slot_start_time)} —{" "}
+                  {formatTime(booking.slot_end_time)}
                 </span>
               </div>
               <div className="flex items-center justify-between">

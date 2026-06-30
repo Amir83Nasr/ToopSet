@@ -3,7 +3,7 @@
 __all__ = [
     "auth_service",
     "booking_service",
-    "court_service",
+    "vendor_service",
     "dashboard_service",
     "favorite_service",
     "payment_service",

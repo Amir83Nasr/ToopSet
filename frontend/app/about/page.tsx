@@ -374,7 +374,7 @@ export default function AboutPage() {
                   <Link href="/otp">ثبت‌نام رایگان</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/courts">مشاهده سالن‌ها</Link>
+                  <Link href="/vendors">مشاهده سالن‌ها</Link>
                 </Button>
               </div>
             </motion.div>

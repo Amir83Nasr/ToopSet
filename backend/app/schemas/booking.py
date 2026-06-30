@@ -12,6 +12,7 @@ class BookingCreate(BaseModel):
     slot_id: int
     version: int
     participants_count: int = Field(default=1, ge=1)
+    with_ball: bool = False
 
 
 class BookingResponse(BaseModel):
@@ -20,6 +21,9 @@ class BookingResponse(BaseModel):
     slot_id: int
     status: BookingStatus
     price_paid: float
+    slot_price: float | None = None
+    ball_price: float = 0
+    with_ball: bool = False
     penalty_amount: float | None = None
     participants_count: int = 1
     created_at: datetime
@@ -52,8 +56,8 @@ class PaymentResponse(BaseModel):
 
 
 class BookingDetailResponse(BookingResponse):
-    court_name: str = ""
-    court_address: str = ""
+    vendor_name: str = ""
+    vendor_address: str = ""
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
     payment: PaymentResponse | None = None
@@ -65,13 +69,16 @@ class AdminBookingResponse(BaseModel):
     slot_id: int
     status: str
     price_paid: float
+    slot_price: float | None = None
+    ball_price: float = 0
+    with_ball: bool = False
     penalty_amount: float | None = None
     participants_count: int = 1
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None = None
-    court_name: str = ""
-    court_address: str = ""
+    vendor_name: str = ""
+    vendor_address: str = ""
     user_name: str = ""
     user_phone: str = ""
     slot_start_time: datetime | None = None

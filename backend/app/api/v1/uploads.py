@@ -13,9 +13,10 @@ from app.models.user import User
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 
-@router.post("/court-image", summary="Upload court image")
+@router.post("/court-image", summary="Upload vendor image", include_in_schema=False)
+@router.post("/vendor-image", summary="Upload vendor image")
 @limiter.limit("10/minute")
-async def upload_court_image(
+async def upload_vendor_image(
     request: Request,
     file: UploadFile = File(...),
     _: User = Depends(get_current_manager),
@@ -28,7 +29,7 @@ async def upload_court_image(
     if f".{ext}" not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"نوع فایل .{ext} مجاز نیست")
 
-    relative_url = save_upload(content, file.filename or "image.jpg", subdir="courts")
+    relative_url = save_upload(content, file.filename or "image.jpg", subdir="vendors")
     base = str(request.base_url).rstrip("/")
     absolute_url = f"{base}{relative_url}"
     temp_id = uuid.uuid4().hex

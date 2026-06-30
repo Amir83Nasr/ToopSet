@@ -39,7 +39,7 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    courts: Mapped[list["Court"]] = relationship(back_populates="manager")
+    vendors: Mapped[list["Vendor"]] = relationship(back_populates="manager")
     bookings: Mapped[list["Booking"]] = relationship(back_populates="user")
     reviews: Mapped[list["Review"]] = relationship(back_populates="user")
     penalties: Mapped[list["Penalty"]] = relationship(back_populates="user")
@@ -48,3 +48,4 @@ class User(Base):
     wallets: Mapped[list["Wallet"]] = relationship(back_populates="user")
     favorites: Mapped[list["Favorite"]] = relationship(back_populates="user")
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(back_populates="user")
+    bank_cards: Mapped[list["BankCard"]] = relationship(back_populates="user")

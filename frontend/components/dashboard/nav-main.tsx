@@ -121,7 +121,7 @@ const navGroups: NavGroup[] = [
     label: "مدیریت",
     roles: ["admin"],
     items: [
-      { title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 },
+      { title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 },
       {
         title: "رزروها",
         url: "/dashboard/admin/bookings",
@@ -138,11 +138,11 @@ const navGroups: NavGroup[] = [
     ],
   },
 
-  // ── Court management (manager) ──
+  // ── Vendor management (manager) ──
   {
     label: "مدیریت مجموعه",
     roles: ["manager"],
-    items: [{ title: "مجموعه‌ها", url: "/dashboard/courts", icon: Building2 }],
+    items: [{ title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 }],
   },
 
   // ── Personal (manager) ──

@@ -10,9 +10,9 @@ import {
   formatTime,
   formatPrice,
   type TimeSlot,
-} from "@/components/courts/court-shared"
+} from "@/components/vendors/vendor-shared"
 
-interface CourtBookingProps {
+interface VendorBookingProps {
   slots: TimeSlot[]
   slotsLoading: boolean
   selectedDate: string
@@ -43,7 +43,7 @@ function getPersianDate(dateStr: string) {
   return { dayName, dayNum, month, isToday }
 }
 
-export function CourtBooking({
+export function VendorBooking({
   slots,
   slotsLoading,
   selectedDate,
@@ -52,7 +52,7 @@ export function CourtBooking({
   onSlotSelect,
   isAuthenticated,
   onBook,
-}: CourtBookingProps) {
+}: VendorBookingProps) {
   const dates = useMemo(() => {
     const result: string[] = []
     for (let i = 0; i < 7; i++) {

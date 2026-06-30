@@ -16,7 +16,6 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bookings import router as bookings_router
 from app.api.v1.contact import router as contact_router
-from app.api.v1.courts import router as courts_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.favorites import router as favorites_router
 from app.api.v1.manager import router as manager_router
@@ -25,10 +24,13 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.penalties import router as penalties_router
 from app.api.v1.reviews import router as reviews_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.time_slots import legacy_router as legacy_time_slots_router
 from app.api.v1.time_slots import router as time_slots_router
 from app.api.v1.time_slots import slot_detail_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.users import router as users_router
+from app.api.v1.vendors import legacy_router as legacy_vendors_router
+from app.api.v1.vendors import router as vendors_router
 from app.api.v1.wallet import router as wallet_router
 from app.core.config import EnvValidationError, settings, validate_env
 from app.core.correlation_id import CorrelationIdMiddleware
@@ -76,6 +78,7 @@ async def _cancel_expired_pending():
         try:
             async with async_session_factory() as db:
                 from app.models.booking import BookingStatus
+                from app.models.time_slot import SlotStatus
                 from app.repositories.booking_repo import BookingRepo
                 from app.repositories.time_slot_repo import TimeSlotRepo
 
@@ -86,7 +89,27 @@ async def _cancel_expired_pending():
                 for b in expired:
                     slot = await slot_repo.get_by_id(b.slot_id)
                     if slot:
-                        await slot_repo.update(slot, {"is_reserved": False})
+                        if b.replaces_booking_id:
+                            old_booking = await repo.get_by_id(b.replaces_booking_id)
+                            if (
+                                old_booking
+                                and old_booking.status == BookingStatus.PENDING_CANCELLATION
+                            ):
+                                await slot_repo.update(
+                                    slot,
+                                    {
+                                        "is_reserved": True,
+                                        "status": SlotStatus.PENDING_CANCELLATION,
+                                    },
+                                )
+                            else:
+                                await slot_repo.update(
+                                    slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                                )
+                        else:
+                            await slot_repo.update(
+                                slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                            )
                     await repo.update(b, {"status": BookingStatus.CANCELLED})
                 if expired:
                     await db.commit()
@@ -144,7 +167,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ToopSet API",
-    description="Online sports venue booking platform — user management, courts, bookings, and payments",
+    description="Online sports venue booking platform — user management, vendors, bookings, and payments",
     version=__version__,
     docs_url="/docs",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "none"},
@@ -155,13 +178,13 @@ app = FastAPI(
     ],
     openapi_tags=[
         {"name": "auth", "description": "Register, login, profile & avatar management"},
-        {"name": "courts", "description": "Search, create & manage sports courts"},
-        {"name": "time-slots", "description": "Manage available time slots for each court"},
+        {"name": "vendors", "description": "Search, create & manage sports vendors"},
+        {"name": "time-slots", "description": "Manage available time slots for each vendor"},
         {"name": "slots", "description": "View details of a specific time slot"},
         {"name": "bookings", "description": "Book, pay & cancel reservations"},
         {"name": "dashboard", "description": "Stats & reports for users, managers & admins"},
         {"name": "reviews", "description": "Submit & manage user reviews"},
-        {"name": "uploads", "description": "Upload court images"},
+        {"name": "uploads", "description": "Upload vendor images"},
         {"name": "users", "description": "User management (admin)"},
         {"name": "payments", "description": "View payment history (admin)"},
         {"name": "wallet", "description": "Wallet & transaction management"},
@@ -171,7 +194,7 @@ app = FastAPI(
         {"name": "favorites", "description": "User favorites management"},
         {
             "name": "admin",
-            "description": "System management — settings, logs, court approval & deletion",
+            "description": "System management — settings, logs, vendor approval & deletion",
         },
     ],
 )
@@ -204,8 +227,10 @@ uploads_path.mkdir(exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(auth_router, prefix="/api/v1")
-app.include_router(courts_router, prefix="/api/v1")
+app.include_router(vendors_router, prefix="/api/v1")
+app.include_router(legacy_vendors_router, prefix="/api/v1")
 app.include_router(time_slots_router, prefix="/api/v1")
+app.include_router(legacy_time_slots_router, prefix="/api/v1")
 app.include_router(slot_detail_router, prefix="/api/v1")
 app.include_router(bookings_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")

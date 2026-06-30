@@ -1,16 +1,16 @@
 "use client"
 
 import { toPersianDigits } from "@/lib/utils"
-import { Stars, type CourtData } from "@/components/courts/court-shared"
+import { Stars, type VendorData } from "@/components/vendors/vendor-shared"
 import { Users, Star, MessageSquareText, Swords } from "lucide-react"
 
 interface QuickStatsProps {
-  court: CourtData
+  vendor: VendorData
   reviewsTotal: number
 }
 
-export function QuickStats({ court, reviewsTotal }: QuickStatsProps) {
-  const sportCount = court.sport_types?.length || 0
+export function QuickStats({ vendor, reviewsTotal }: QuickStatsProps) {
+  const sportCount = vendor.sport_types?.length || 0
 
   return (
     <div className="mb-10">
@@ -25,7 +25,7 @@ export function QuickStats({ court, reviewsTotal }: QuickStatsProps) {
               ظرفیت
             </p>
             <p className="text-sm font-bold">
-              {toPersianDigits(court.capacity)}{" "}
+              {toPersianDigits(vendor.capacity)}{" "}
               <span className="text-xs font-medium text-muted-foreground">
                 نفر
               </span>
@@ -66,9 +66,9 @@ export function QuickStats({ court, reviewsTotal }: QuickStatsProps) {
             </p>
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-bold">
-                {toPersianDigits(court.average_rating.toFixed(1))}
+                {toPersianDigits(vendor.average_rating.toFixed(1))}
               </p>
-              <Stars rating={court.average_rating} size={12} />
+              <Stars rating={vendor.average_rating} size={12} />
             </div>
           </div>
         </div>

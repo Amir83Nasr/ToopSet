@@ -3,7 +3,7 @@ Prometheus instrumentation for ToopSet backend.
 
 Exposes:
   - HTTP request count & latency histograms (bucketed)
-  - Business metrics: users, active courts, today's bookings, today's revenue
+  - Business metrics: users, active vendors, today's bookings, today's revenue
   - Error counter and booking-status breakdown
   - Cache hit/miss counters
   - Request profiling histograms (duration, DB/Redis counts)
@@ -29,7 +29,7 @@ from app.core.database import engine
 
 
 def _route_path(request: Request) -> str:
-    """Return the route template (e.g. ``/api/v1/courts/{court_id}``).
+    """Return the route template (e.g. ``/api/v1/vendors/{vendor_id}``).
 
     Falls back to simple numeric-segment normalisation when the route is not
     resolved (e.g. 404 or early middleware run).
@@ -139,9 +139,9 @@ toopset_db_users_total = Gauge(
     "Total number of registered users",
 )
 
-toopset_active_courts_total = Gauge(
-    "toopset_active_courts_total",
-    "Number of active (non-deleted) courts",
+toopset_active_vendors_total = Gauge(
+    "toopset_active_vendors_total",
+    "Number of active (non-deleted) vendors",
 )
 
 toopset_today_bookings_total = Gauge(
@@ -183,7 +183,7 @@ toopset_otp_lockouts_total = Counter(
 toopset_upload_count_total = Counter(
     "toopset_upload_count_total",
     "Total number of file uploads",
-    labelnames=["type"],  # "avatar", "court_image"
+    labelnames=["type"],  # "avatar", "vendor_image"
 )
 
 toopset_active_sessions = Gauge(
@@ -277,17 +277,17 @@ async def refresh_business_metrics(db_session_factory) -> None:
     from datetime import datetime, timezone
 
     from app.repositories.booking_repo import BookingRepo
-    from app.repositories.court_repo import CourtRepo
     from app.repositories.user_repo import UserRepository
+    from app.repositories.vendor_repo import VendorRepo
 
     try:
         async with db_session_factory() as db:
             user_repo = UserRepository(db)
-            court_repo = CourtRepo(db)
+            vendor_repo = VendorRepo(db)
             booking_repo = BookingRepo(db)
 
             toopset_db_users_total.set(await user_repo.count_all())
-            toopset_active_courts_total.set(await court_repo.count_active())
+            toopset_active_vendors_total.set(await vendor_repo.count_active())
 
             now = datetime.now(timezone.utc)
             toopset_today_bookings_total.set(await booking_repo.count_today(now))

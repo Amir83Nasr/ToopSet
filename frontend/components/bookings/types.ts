@@ -11,8 +11,8 @@ export interface Booking {
 }
 
 export interface BookingDetail extends Booking {
-  court_name: string
-  court_address: string
+  vendor_name: string
+  vendor_address: string
   slot_start_time: string | null
   slot_end_time: string | null
   payment: { id: number; status: string } | null

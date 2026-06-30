@@ -11,10 +11,10 @@ class Favorite(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    court_id: Mapped[int] = mapped_column(ForeignKey("courts.id", ondelete="CASCADE"), index=True)
+    vendor_id: Mapped[int] = mapped_column(ForeignKey("vendors.id", ondelete="CASCADE"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (UniqueConstraint("user_id", "court_id", name="uq_user_court_favorite"),)
+    __table_args__ = (UniqueConstraint("user_id", "vendor_id", name="uq_user_vendor_favorite"),)
 
     user: Mapped["User"] = relationship(back_populates="favorites")
-    court: Mapped["Court"] = relationship(back_populates="favorites")
+    vendor: Mapped["Vendor"] = relationship(back_populates="favorites")

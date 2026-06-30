@@ -15,6 +15,8 @@ _values_callable = lambda x: [e.value for e in x]  # noqa: E731
 class BookingStatus(str, enum.Enum):
     PENDING_PAYMENT = "pending_payment"
     CONFIRMED = "confirmed"
+    PENDING_CANCELLATION = "pending_cancellation"
+    TRANSFERRED = "transferred"
     CANCELLED = "cancelled"
 
 
@@ -25,8 +27,9 @@ class Booking(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    slot_id: Mapped[int] = mapped_column(
-        ForeignKey("time_slots.id", ondelete="CASCADE"), unique=True
+    slot_id: Mapped[int] = mapped_column(ForeignKey("time_slots.id", ondelete="CASCADE"), index=True)
+    replaces_booking_id: Mapped[int | None] = mapped_column(
+        ForeignKey("bookings.id", ondelete="SET NULL"), nullable=True, index=True
     )
     status: Mapped[BookingStatus] = mapped_column(
         Enum(BookingStatus, values_callable=_values_callable),
@@ -35,6 +38,9 @@ class Booking(Base):
         index=True,
     )
     price_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    slot_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
+    ball_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
+    with_ball: Mapped[bool] = mapped_column(default=False, server_default="false")
     penalty_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
     participants_count: Mapped[int] = mapped_column(SmallInteger, default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

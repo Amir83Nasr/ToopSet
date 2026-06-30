@@ -65,8 +65,8 @@ interface AdminBooking {
   created_at: string
   updated_at: string
   expires_at: string | null
-  court_name: string
-  court_address: string
+  vendor_name: string
+  vendor_address: string
   user_name: string
   user_phone: string
   slot_start_time: string | null
@@ -281,7 +281,7 @@ export default function AdminBookingsPage() {
                     {toPersianDigits(b.user_phone)}
                   </TableCell>
                   <TableCell className="max-w-48 truncate">
-                    {b.court_name}
+                    {b.vendor_name}
                   </TableCell>
                   <TableCell>
                     {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
@@ -371,7 +371,7 @@ export default function AdminBookingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
             <AlertDialogDescription>
-              آیا از لغو رزرو {cancellingBooking?.court_name} توسط{" "}
+              آیا از لغو رزرو {cancellingBooking?.vendor_name} توسط{" "}
               {cancellingBooking?.user_name} مطمئن هستید؟
             </AlertDialogDescription>
           </AlertDialogHeader>

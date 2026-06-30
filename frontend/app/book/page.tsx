@@ -29,15 +29,15 @@ import {
 
 interface SlotDetail {
   id: number
-  court_id: number
+  vendor_id: number
   start_time: string
   end_time: string
   base_price: number
   is_reserved: boolean
   version: number
-  court_name: string
-  court_address: string
-  court_sport_type: string
+  vendor_name: string
+  vendor_address: string
+  vendor_sport_type: string
 }
 
 type PageStep = "loading" | "confirm" | "processing" | "error" | "conflict"
@@ -46,7 +46,7 @@ interface BookingResult {
   id: number
   status: string
   price_paid: number
-  court_name: string
+  vendor_name: string
   expires_at: string | null
 }
 
@@ -82,11 +82,11 @@ function BookPageContent() {
   const { isAuthenticated, loading: authLoading } = useAuth()
 
   const slotId = Number(searchParams.get("slot_id"))
-  const courtId = Number(searchParams.get("court_id"))
+  const vendorId = Number(searchParams.get("vendor_id"))
 
   const [step, setStep] = useState<PageStep>("loading")
   const [slot, setSlot] = useState<SlotDetail | null>(null)
-  const [court, setCourt] = useState<{
+  const [vendor, setVendor] = useState<{
     id: number
     name: string
     sport_type: string
@@ -103,13 +103,13 @@ function BookPageContent() {
     const hasToken = getCookie("access_token")
     if (hasToken) return
     router.push(
-      `/login?redirect=${encodeURIComponent(`/book?slot_id=${slotId}&court_id=${courtId}`)}`
+      `/login?redirect=${encodeURIComponent(`/book?slot_id=${slotId}&vendor_id=${vendorId}`)}`
     )
-  }, [authLoading, isAuthenticated, router, slotId, courtId])
+  }, [authLoading, isAuthenticated, router, slotId, vendorId])
 
-  // Fetch slot + court details
+  // Fetch slot + vendor details
   useEffect(() => {
-    if (!slotId || !courtId || !isAuthenticated) return
+    if (!slotId || !vendorId || !isAuthenticated) return
 
     async function fetchDetails() {
       try {
@@ -117,11 +117,11 @@ function BookPageContent() {
         if (slotRes.is_reserved)
           throw new ApiError(409, "این سانس قبلاً رزرو شده است")
         setSlot(slotRes)
-        setCourt({
-          id: slotRes.court_id,
-          name: slotRes.court_name,
-          sport_type: slotRes.court_sport_type,
-          address: slotRes.court_address,
+        setVendor({
+          id: slotRes.vendor_id,
+          name: slotRes.vendor_name,
+          sport_type: slotRes.vendor_sport_type,
+          address: slotRes.vendor_address,
         })
         setStep("confirm")
       } catch (err) {
@@ -134,7 +134,7 @@ function BookPageContent() {
       }
     }
     fetchDetails()
-  }, [slotId, courtId, isAuthenticated])
+  }, [slotId, vendorId, isAuthenticated])
 
   const handleConfirm = useCallback(async () => {
     if (!slot) return
@@ -148,7 +148,7 @@ function BookPageContent() {
         }),
       })
       // Redirect to payment gateway page after successful booking creation
-      router.push(`/book/payment?booking_id=${res.id}&court_id=${courtId}`)
+      router.push(`/book/payment?booking_id=${res.id}&vendor_id=${vendorId}`)
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message)
@@ -161,7 +161,7 @@ function BookPageContent() {
       }
       setStep("confirm")
     }
-  }, [slot, courtId, router])
+  }, [slot, vendorId, router])
 
   // ============ LOADING / AUTH CHECKING ============
   if (authLoading || step === "loading") {
@@ -181,7 +181,7 @@ function BookPageContent() {
   }
 
   // ============ INVALID PARAMS ============
-  if (!slotId || !courtId) {
+  if (!slotId || !vendorId) {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
@@ -207,7 +207,7 @@ function BookPageContent() {
         <div className="mx-auto max-w-lg px-4 py-8">
           {/* Back button */}
           <Button variant="outline" size="sm" className="mb-4 w-fit" asChild>
-            <Link href={`/courts/${courtId}`}>
+            <Link href={`/vendors/${vendorId}`}>
               <ArrowRight className="me-1.5 size-4" />
               بازگشت به صفحه مجموعه
             </Link>
@@ -216,19 +216,19 @@ function BookPageContent() {
           <h1 className="mb-6 text-2xl font-bold">رزرو سانس</h1>
 
           {/* ============ CONFIRM STEP ============ */}
-          {step === "confirm" && court && slot && (
+          {step === "confirm" && vendor && slot && (
             <div className="space-y-6">
-              {/* Court summary */}
+              {/* Vendor summary */}
               <Card>
                 <CardHeader>
-                  <CardTitle>{court.name}</CardTitle>
+                  <CardTitle>{vendor.name}</CardTitle>
                   <CardDescription className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">
-                      {sportLabels[court.sport_type] || court.sport_type}
+                      {sportLabels[vendor.sport_type] || vendor.sport_type}
                     </Badge>
                     <span className="flex items-center gap-1 text-xs">
                       <MapPin className="size-3" />
-                      {court.address}
+                      {vendor.address}
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -290,7 +290,7 @@ function BookPageContent() {
                   انتخاب کنید.
                 </CardDescription>
                 <Button asChild>
-                  <Link href={`/courts/${courtId}`}>
+                  <Link href={`/vendors/${vendorId}`}>
                     <ArrowRight className="ml-2 size-4" />
                     انتخاب سانس دیگر
                   </Link>
@@ -310,7 +310,7 @@ function BookPageContent() {
                 </CardDescription>
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/courts/${courtId}`)}
+                  onClick={() => router.push(`/vendors/${vendorId}`)}
                 >
                   <ArrowRight className="ml-2 size-4" />
                   بازگشت

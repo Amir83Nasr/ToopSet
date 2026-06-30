@@ -25,6 +25,8 @@ describe("SiteHeader", () => {
         register: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
+        sendOtp: vi.fn(),
+        verifyOtp: vi.fn(),
         isAuthenticated: false,
       })
     })
@@ -43,10 +45,8 @@ describe("SiteHeader", () => {
 
     it("shows login and register buttons", () => {
       renderWithProviders(<SiteHeader />)
-      const loginLinks = screen.getAllByText("ورود")
-      expect(loginLinks.length).toBeGreaterThan(0)
-      const registerLinks = screen.getAllByText("ثبت‌نام")
-      expect(registerLinks.length).toBeGreaterThan(0)
+      const authLinks = screen.getAllByText("ورود / ثبت‌نام")
+      expect(authLinks.length).toBeGreaterThan(0)
     })
   })
 
@@ -59,6 +59,8 @@ describe("SiteHeader", () => {
         register: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
+        sendOtp: vi.fn(),
+        verifyOtp: vi.fn(),
         isAuthenticated: false,
       })
     })
@@ -87,6 +89,8 @@ describe("SiteHeader", () => {
         register: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
+        sendOtp: vi.fn(),
+        verifyOtp: vi.fn(),
         isAuthenticated: true,
       })
     })
@@ -100,6 +104,7 @@ describe("SiteHeader", () => {
       renderWithProviders(<SiteHeader />)
       expect(screen.queryByText("ورود")).not.toBeInTheDocument()
       expect(screen.queryByText("ثبت‌نام")).not.toBeInTheDocument()
+      expect(screen.queryByText("ورود / ثبت‌نام")).not.toBeInTheDocument()
     })
   })
 })

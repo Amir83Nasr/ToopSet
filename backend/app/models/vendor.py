@@ -19,13 +19,13 @@ class SportType(str, enum.Enum):
     FOOTBALL = "football"
 
 
-class Court(Base):
-    __tablename__ = "courts"
+class Vendor(Base):
+    __tablename__ = "vendors"
 
     __table_args__ = (
-        Index("ix_courts_manager_id", "manager_id"),
-        Index("ix_courts_is_active", "is_active"),
-        Index("ix_courts_created_at", "created_at"),
+        Index("ix_vendors_manager_id", "manager_id"),
+        Index("ix_vendors_is_active", "is_active"),
+        Index("ix_vendors_created_at", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -41,14 +41,14 @@ class Court(Base):
     average_rating: Mapped[float] = mapped_column(Float, default=0.0, server_default="0.0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    manager: Mapped["User"] = relationship(back_populates="courts")
+    manager: Mapped["User"] = relationship(back_populates="vendors")
     time_slots: Mapped[list["TimeSlot"]] = relationship(
-        back_populates="court", cascade="all, delete-orphan"
+        back_populates="vendor", cascade="all, delete-orphan"
     )
     reviews: Mapped[list["Review"]] = relationship(
-        back_populates="court", cascade="all, delete-orphan"
+        back_populates="vendor", cascade="all, delete-orphan"
     )
-    court_images: Mapped[list["CourtImage"]] = relationship(
-        back_populates="court", cascade="all, delete-orphan", order_by="CourtImage.order"
+    vendor_images: Mapped[list["VendorImage"]] = relationship(
+        back_populates="vendor", cascade="all, delete-orphan", order_by="VendorImage.order"
     )
-    favorites: Mapped[list["Favorite"]] = relationship(back_populates="court")
+    favorites: Mapped[list["Favorite"]] = relationship(back_populates="vendor")

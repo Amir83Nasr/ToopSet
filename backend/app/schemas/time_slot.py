@@ -5,26 +5,39 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.models.time_slot import SlotGender, SlotStatus
+
 
 class TimeSlotCreate(BaseModel):
-    court_id: int
+    vendor_id: int
     start_time: datetime
     end_time: datetime
     base_price: Decimal = Field(..., gt=0, decimal_places=2)
+    ball_price: Decimal = Field(default=Decimal("0"), ge=0, decimal_places=2)
+    ball_available: bool = False
+    gender: SlotGender = SlotGender.MALE
 
 
 class TimeSlotUpdate(BaseModel):
     start_time: datetime | None = None
     end_time: datetime | None = None
     base_price: Decimal | None = Field(None, gt=0, decimal_places=2)
+    ball_price: Decimal | None = Field(None, ge=0, decimal_places=2)
+    ball_available: bool | None = None
+    gender: SlotGender | None = None
+    status: SlotStatus | None = None
 
 
 class TimeSlotResponse(BaseModel):
     id: int
-    court_id: int
+    vendor_id: int
     start_time: datetime
     end_time: datetime
     base_price: float
+    ball_price: float = 0
+    ball_available: bool = False
+    gender: SlotGender = SlotGender.MALE
+    status: SlotStatus = SlotStatus.OPEN
     is_reserved: bool
     version: int
 
@@ -32,9 +45,9 @@ class TimeSlotResponse(BaseModel):
 
 
 class TimeSlotDetailResponse(TimeSlotResponse):
-    court_name: str = ""
-    court_address: str = ""
-    court_sport_type: str = ""
+    vendor_name: str = ""
+    vendor_address: str = ""
+    vendor_sport_type: str = ""
 
     model_config = {"from_attributes": True}
 
@@ -49,6 +62,9 @@ class TimeSlotTemplate(BaseModel):
     start_time: str  # HH:MM
     end_time: str  # HH:MM
     base_price: Decimal = Field(..., gt=0, decimal_places=2)
+    ball_price: Decimal = Field(default=Decimal("0"), ge=0, decimal_places=2)
+    ball_available: bool = False
+    gender: SlotGender = SlotGender.MALE
 
     @field_validator("start_time", "end_time")
     @classmethod

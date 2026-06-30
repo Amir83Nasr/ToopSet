@@ -22,9 +22,7 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    booking_id: Mapped[int] = mapped_column(
-        ForeignKey("bookings.id", ondelete="CASCADE"), unique=True
-    )
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"), index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     gateway_transaction_id: Mapped[str | None] = mapped_column(String(256), default=None)
     gateway_name: Mapped[str | None] = mapped_column(String(64), default=None)

@@ -105,7 +105,7 @@ export function BookingCancelDialog({
             <AlertDialogHeader>
               <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
               <AlertDialogDescription>
-                آیا از لغو رزرو {booking.court_name} مطمئن هستید؟
+                آیا از لغو رزرو {booking.vendor_name} مطمئن هستید؟
               </AlertDialogDescription>
             </AlertDialogHeader>
 

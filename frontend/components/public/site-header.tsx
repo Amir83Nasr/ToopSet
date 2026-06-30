@@ -53,7 +53,7 @@ import { getInitials, toPersianDigits } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/courts", label: "جستجوی سالن‌ها" },
+  { href: "/vendors", label: "جستجوی سالن‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
@@ -234,7 +234,7 @@ export function SiteHeader() {
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>مدیریت</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onSelect={() => router.push("/dashboard/courts")}
+                          onSelect={() => router.push("/dashboard/vendors")}
                           className="cursor-pointer"
                         >
                           <Building2 className="me-2 size-4" />
@@ -290,7 +290,7 @@ export function SiteHeader() {
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>مدیریت مجموعه</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onSelect={() => router.push("/dashboard/courts")}
+                          onSelect={() => router.push("/dashboard/vendors")}
                           className="cursor-pointer"
                         >
                           <Building2 className="me-2 size-4" />

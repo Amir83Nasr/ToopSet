@@ -7,9 +7,9 @@ import {
   SectionHeading,
   formatPersianDate,
   type Review,
-} from "@/components/courts/court-shared"
+} from "@/components/vendors/vendor-shared"
 
-interface CourtReviewsProps {
+interface VendorReviewsProps {
   reviews: Review[]
   averageRating: number
   total: number
@@ -23,11 +23,11 @@ function getReviewDistribution(reviews: Review[]): number[] {
   return dist
 }
 
-export function CourtReviews({
+export function VendorReviews({
   reviews,
   averageRating,
   total,
-}: CourtReviewsProps) {
+}: VendorReviewsProps) {
   if (!reviews || reviews.length === 0) return null
 
   const distribution = getReviewDistribution(reviews)

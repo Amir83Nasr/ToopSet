@@ -5,13 +5,13 @@ import {
   SectionHeading,
   amenityLabels,
   amenityIcons,
-} from "@/components/courts/court-shared"
+} from "@/components/vendors/vendor-shared"
 
-interface CourtAmenitiesProps {
+interface VendorAmenitiesProps {
   amenities: Record<string, boolean>
 }
 
-export function CourtAmenities({ amenities }: CourtAmenitiesProps) {
+export function VendorAmenities({ amenities }: VendorAmenitiesProps) {
   if (!amenities || Object.keys(amenities).length === 0) return null
 
   return (

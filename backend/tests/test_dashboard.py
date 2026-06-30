@@ -16,19 +16,19 @@ class TestDashboardStats:
         resp = await client.get("/api/v1/dashboard/stats", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert "active_courts" in data
+        assert "active_vendors" in data
         assert "today_bookings" in data
         assert "today_revenue" in data
         assert "total_users" in data
         assert "recent_bookings" in data
-        assert "popular_courts" in data
+        assert "popular_vendors" in data
         # All-zero / empty results when DB is empty
-        assert data["active_courts"] == 0
+        assert data["active_vendors"] == 0
         assert data["today_bookings"] == 0
         assert data["today_revenue"] == 0.0
         assert data["total_users"] >= 1  # test user exists
         assert data["recent_bookings"] == []
-        assert data["popular_courts"] == []
+        assert data["popular_vendors"] == []
 
     async def test_get_stats_as_manager(self, client: AsyncClient, manager_token: dict) -> None:
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
@@ -76,13 +76,13 @@ class TestManagerStats:
         resp = await client.get("/api/v1/dashboard/manager-stats", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert "my_courts" in data
+        assert "my_vendors" in data
         assert "upcoming_bookings" in data
         assert "today_earnings" in data
         assert "wallet_balance" in data
         assert "recent_bookings" in data
-        # All-zero / empty results when the manager has no courts
-        assert data["my_courts"] == 0
+        # All-zero / empty results when the manager has no vendors
+        assert data["my_vendors"] == 0
         assert data["upcoming_bookings"] == 0
         assert data["today_earnings"] == 0.0
         assert data["wallet_balance"] == 0.0
@@ -111,7 +111,7 @@ class TestAdminStats:
         resp = await client.get("/api/v1/dashboard/admin-stats", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total_courts"] == 0
+        assert data["total_vendors"] == 0
         assert data["total_users"] >= 1  # admin user exists
         assert data["total_bookings"] == 0
         assert data["total_revenue"] == 0.0
@@ -120,7 +120,7 @@ class TestAdminStats:
         assert data["today_bookings"] == 0
         assert data["today_revenue"] == 0.0
         assert data["recent_bookings"] == []
-        assert data["popular_courts"] == []
+        assert data["popular_vendors"] == []
         assert data["user_growth"] == []
         assert data["booking_trends"] == []
 
@@ -197,14 +197,14 @@ class TestAdminCharts:
         assert resp.status_code == 200
         data = resp.json()
         assert "user_growth" in data
-        assert "court_growth" in data
+        assert "vendor_growth" in data
         assert "booking_trends" in data
         assert "revenue_trends" in data
         # Admin fixture user was just created, so user_growth has today's entry
         assert len(data["user_growth"]) >= 1
         assert data["user_growth"][0]["count"] >= 1
-        # No court, booking, or revenue data → empty arrays
-        assert data["court_growth"] == []
+        # No vendor, booking, or revenue data → empty arrays
+        assert data["vendor_growth"] == []
         assert data["booking_trends"] == []
         assert data["revenue_trends"] == []
 
@@ -227,7 +227,7 @@ class TestManagerRevenue:
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         resp = await client.get("/api/v1/dashboard/manager/revenue", headers=headers)
         assert resp.status_code == 200
-        # Returns a list — empty when no courts/bookings
+        # Returns a list — empty when no vendors/bookings
         assert resp.json() == []
 
     async def test_get_manager_revenue_as_admin(

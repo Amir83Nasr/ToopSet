@@ -8,9 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking, BookingStatus
-from app.models.court import Court
 from app.models.time_slot import TimeSlot
 from app.models.user import User
+from app.models.vendor import Vendor
+
+ACTIVE_SLOT_STATUSES = (
+    BookingStatus.PENDING_PAYMENT,
+    BookingStatus.CONFIRMED,
+    BookingStatus.PENDING_CANCELLATION,
+)
 
 
 class BookingRepo:
@@ -28,7 +34,7 @@ class BookingRepo:
     ) -> tuple[list[Booking], int]:
         query = (
             select(Booking)
-            .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.vendor))
             .where(Booking.user_id == user_id)
             .order_by(Booking.created_at.desc())
         )
@@ -52,16 +58,34 @@ class BookingRepo:
         total = count_result.scalar_one()
         return bookings, total
 
-    async def get_by_id(self, booking_id: int) -> Booking | None:
-        result = await self.db.execute(
+    async def get_by_id(self, booking_id: int, *, for_update: bool = False) -> Booking | None:
+        stmt = (
             select(Booking)
-            .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.vendor))
             .where(Booking.id == booking_id)
         )
+        if for_update:
+            stmt = stmt.with_for_update()
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_by_slot(self, slot_id: int) -> Booking | None:
-        result = await self.db.execute(select(Booking).where(Booking.slot_id == slot_id))
+        result = await self.db.execute(
+            select(Booking).where(Booking.slot_id == slot_id).order_by(Booking.created_at.desc()).limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_active_by_slot(self, slot_id: int, *, for_update: bool = False) -> Booking | None:
+        stmt = (
+            select(Booking)
+            .options(selectinload(Booking.user), selectinload(Booking.slot).selectinload(TimeSlot.vendor))
+            .where(Booking.slot_id == slot_id, Booking.status.in_(ACTIVE_SLOT_STATUSES))
+            .order_by(Booking.created_at.desc())
+            .limit(1)
+        )
+        if for_update:
+            stmt = stmt.with_for_update()
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def create(self, data: dict) -> Booking:
@@ -91,17 +115,17 @@ class BookingRepo:
         query = (
             select(Booking)
             .options(
-                selectinload(Booking.slot).selectinload(TimeSlot.court),
+                selectinload(Booking.slot).selectinload(TimeSlot.vendor),
                 selectinload(Booking.user),
             )
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-            .join(Court, TimeSlot.court_id == Court.id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .outerjoin(User, Booking.user_id == User.id)
         )
         count_q = (
             select(func.count(Booking.id))
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-            .join(Court, TimeSlot.court_id == Court.id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .outerjoin(User, Booking.user_id == User.id)
         )
         if after_id is not None:
@@ -111,8 +135,8 @@ class BookingRepo:
             count_q = count_q.where(Booking.status == status_filter)
         if search:
             pattern = f"%{search}%"
-            query = query.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
-            count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
+            query = query.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
+            count_q = count_q.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
         query = query.order_by(Booking.created_at.desc())
 
         if after_id is not None:
@@ -163,7 +187,7 @@ class BookingRepo:
         """List confirmed/completed bookings for a user (for review creation)."""
         query = (
             select(Booking)
-            .options(selectinload(Booking.slot).selectinload(TimeSlot.court))
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.vendor))
             .where(
                 Booking.user_id == user_id,
                 Booking.status == BookingStatus.CONFIRMED,
@@ -209,29 +233,29 @@ class BookingRepo:
         skip: int = 0,
         limit: int = 20,
         status_filter: str | None = None,
-        court_id: int | None = None,
+        vendor_id: int | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
         search: str | None = None,
     ) -> tuple[list[Booking], int]:
-        """List bookings for courts managed by *manager_id*."""
+        """List bookings for vendors managed by *manager_id*."""
         query = (
             select(Booking)
             .options(
-                selectinload(Booking.slot).selectinload(TimeSlot.court),
+                selectinload(Booking.slot).selectinload(TimeSlot.vendor),
                 selectinload(Booking.user),
             )
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-            .join(Court, TimeSlot.court_id == Court.id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .outerjoin(User, Booking.user_id == User.id)
-            .where(Court.manager_id == manager_id)
+            .where(Vendor.manager_id == manager_id)
         )
         count_q = (
             select(func.count(Booking.id))
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
-            .join(Court, TimeSlot.court_id == Court.id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .outerjoin(User, Booking.user_id == User.id)
-            .where(Court.manager_id == manager_id)
+            .where(Vendor.manager_id == manager_id)
         )
 
         if after_id is not None:
@@ -240,9 +264,9 @@ class BookingRepo:
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
-        if court_id:
-            query = query.where(Court.id == court_id)
-            count_q = count_q.where(Court.id == court_id)
+        if vendor_id:
+            query = query.where(Vendor.id == vendor_id)
+            count_q = count_q.where(Vendor.id == vendor_id)
         if date_from:
             query = query.where(TimeSlot.start_time >= date_from)
             count_q = count_q.where(TimeSlot.start_time >= date_from)
@@ -251,8 +275,8 @@ class BookingRepo:
             count_q = count_q.where(TimeSlot.start_time <= date_to)
         if search:
             pattern = f"%{search}%"
-            query = query.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
-            count_q = count_q.where(User.full_name.ilike(pattern) | Court.name.ilike(pattern))
+            query = query.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
+            count_q = count_q.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
 
         query = query.order_by(Booking.created_at.desc())
 

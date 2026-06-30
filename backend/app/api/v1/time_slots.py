@@ -20,12 +20,16 @@ from app.services.time_slot_service import (
     get_time_slot_service_public,
 )
 
-router = APIRouter(prefix="/courts/{court_id}/slots", tags=["time-slots"])
+router = APIRouter(prefix="/vendors/{vendor_id}/slots", tags=["time-slots"])
+legacy_router = APIRouter(
+    prefix="/courts/{vendor_id}/slots", tags=["time-slots"], include_in_schema=False
+)
 
 
-@router.get("", response_model=TimeSlotListResponse, summary="List time slots for a court")
+@legacy_router.get("", response_model=TimeSlotListResponse, summary="List time slots for a vendor")
+@router.get("", response_model=TimeSlotListResponse, summary="List time slots for a vendor")
 async def list_slots(
-    court_id: int,
+    vendor_id: int,
     cursor: str | None = Query(None, description="Cursor for next page"),
     date: str | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
@@ -35,12 +39,18 @@ async def list_slots(
 ):
     cursor_id = int(decode_cursor(cursor)) if cursor else None
     result = await service.list_slots(
-        court_id, after_id=cursor_id, date=date, skip=skip, limit=limit
+        vendor_id, after_id=cursor_id, date=date, skip=skip, limit=limit
     )
     response.headers["X-Cache"] = "HIT" if getattr(service, "_from_cache", False) else "MISS"
     return result
 
 
+@legacy_router.post(
+    "",
+    response_model=TimeSlotResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create time slot",
+)
 @router.post(
     "",
     response_model=TimeSlotResponse,
@@ -48,14 +58,20 @@ async def list_slots(
     summary="Create time slot",
 )
 async def create_slot(
-    court_id: int,
+    vendor_id: int,
     data: TimeSlotCreate,
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.create_slot(data)
+    return await service.create_slot(vendor_id, data)
 
 
+@legacy_router.post(
+    "/generate",
+    response_model=TimeSlotGenerateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Auto-generate time slots",
+)
 @router.post(
     "/generate",
     response_model=TimeSlotGenerateResponse,
@@ -63,17 +79,18 @@ async def create_slot(
     summary="Auto-generate time slots",
 )
 async def generate_slots(
-    court_id: int,
+    vendor_id: int,
     data: TimeSlotGenerate,
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.generate_slots(court_id, data)
+    return await service.generate_slots(vendor_id, data)
 
 
+@legacy_router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="Update time slot")
 @router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="Update time slot")
 async def update_slot(
-    court_id: int,
+    vendor_id: int,
     slot_id: int,
     data: TimeSlotUpdate,
     service: TimeSlotService = Depends(get_time_slot_service),
@@ -82,9 +99,10 @@ async def update_slot(
     return await service.update_slot(slot_id, data)
 
 
+@legacy_router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
 @router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
 async def delete_slot(
-    court_id: int,
+    vendor_id: int,
     slot_id: int,
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),

@@ -16,7 +16,7 @@ interface ContactInfo {
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/courts", label: "جستجوی سالن‌ها" },
+  { href: "/vendors", label: "جستجوی سالن‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 

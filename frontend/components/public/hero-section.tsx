@@ -63,7 +63,7 @@ export function HeroSection() {
               className="flex flex-col gap-3 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5"
             >
               <Button
-                onClick={() => router.push("/courts")}
+                onClick={() => router.push("/vendors")}
                 className="w-full px-3 font-semibold sm:w-auto"
               >
                 <span>شروع رزرو آنلاین</span>
@@ -72,7 +72,7 @@ export function HeroSection() {
 
               <Button
                 variant="outline"
-                onClick={() => router.push("/courts")}
+                onClick={() => router.push("/vendors")}
                 className="w-full px-3 font-semibold sm:w-auto"
               >
                 <Map className="size-4 shrink-0" />

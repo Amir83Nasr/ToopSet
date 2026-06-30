@@ -1,4 +1,4 @@
-"""Tests for manager endpoints (bookings + slots for manager's courts)."""
+"""Tests for manager endpoints (bookings + slots for manager's vendors)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ pytestmark = [pytest.mark.asyncio]
 
 class TestListManagerBookings:
     async def test_list_empty(self, client: AsyncClient, manager_token: dict) -> None:
-        """Manager with no courts -> empty list."""
+        """Manager with no vendors -> empty list."""
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         resp = await client.get("/api/v1/manager/bookings", headers=headers)
         assert resp.status_code == 200
@@ -32,7 +32,7 @@ class TestListManagerBookings:
 
 class TestListManagerSlots:
     async def test_list_empty(self, client: AsyncClient, manager_token: dict) -> None:
-        """Manager with no courts -> empty list."""
+        """Manager with no vendors -> empty list."""
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         resp = await client.get("/api/v1/manager/slots", headers=headers)
         assert resp.status_code == 200

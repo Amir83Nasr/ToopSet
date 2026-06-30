@@ -16,6 +16,8 @@ describe("AuthGuard", () => {
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
+      sendOtp: vi.fn(),
+      verifyOtp: vi.fn(),
       isAuthenticated: false,
     })
 
@@ -37,6 +39,8 @@ describe("AuthGuard", () => {
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
+      sendOtp: vi.fn(),
+      verifyOtp: vi.fn(),
       isAuthenticated: false,
     })
 
@@ -66,6 +70,8 @@ describe("AuthGuard", () => {
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
+      sendOtp: vi.fn(),
+      verifyOtp: vi.fn(),
       isAuthenticated: true,
     })
 

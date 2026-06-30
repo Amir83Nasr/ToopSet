@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default function OldSchedulePage() {
-  redirect("/dashboard/courts")
+export default function DashboardLegacyVendorScheduleRedirectPage() {
+  redirect("/dashboard/vendors")
 }

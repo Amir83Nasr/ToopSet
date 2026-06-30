@@ -162,7 +162,7 @@ export function getSportColor(sportType?: string): string {
   return sportColors[sportType || ""] || "#6b7280"
 }
 
-export function createCourtIcon(sportType?: string): any {
+export function createVendorIcon(sportType?: string): any {
   const path = sportSvgPaths[sportType || ""] || sportSvgPaths.volleyball
   return L.divIcon({
     html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:var(--color-primary)">

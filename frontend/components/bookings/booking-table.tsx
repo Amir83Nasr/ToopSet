@@ -79,7 +79,7 @@ export function BookingTable({
             return (
               <TableRow key={b.id}>
                 <TableCell className="max-w-48 truncate font-medium">
-                  {b.court_name}
+                  {b.vendor_name}
                 </TableCell>
                 <TableCell>
                   {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}

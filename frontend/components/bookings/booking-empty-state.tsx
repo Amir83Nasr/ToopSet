@@ -27,7 +27,7 @@ export function BookingEmptyState({
         </p>
         {!hasActiveFilters && (
           <Button asChild>
-            <Link href="/dashboard/courts">
+            <Link href="/dashboard/vendors">
               <CalendarCheck className="ml-2 size-4" />
               مشاهده مجموعه‌ها
             </Link>

@@ -26,7 +26,7 @@ export const registerSchema = z.object({
 })
 
 // ---------------------------------------------------------------------------
-// Court
+// Vendor
 // ---------------------------------------------------------------------------
 
 export const sportTypes = [
@@ -36,7 +36,7 @@ export const sportTypes = [
   "handball",
 ] as const
 
-export const courtCreateSchema = z.object({
+export const vendorCreateSchema = z.object({
   name: z
     .string()
     .min(1, "نام مجموعه الزامی است")
@@ -64,7 +64,7 @@ export const courtCreateSchema = z.object({
   images: z.array(z.string()).min(3, "حداقل ۳ تصویر از مجموعه الزامی است"),
 })
 
-export const courtUpdateSchema = courtCreateSchema.partial()
+export const vendorUpdateSchema = vendorCreateSchema.partial()
 
 // ---------------------------------------------------------------------------
 // Types
@@ -124,5 +124,5 @@ export type ContactInput = z.infer<typeof contactSchema>
 
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
-export type CourtCreateInput = z.infer<typeof courtCreateSchema>
-export type CourtUpdateInput = z.infer<typeof courtUpdateSchema>
+export type VendorCreateInput = z.infer<typeof vendorCreateSchema>
+export type VendorUpdateInput = z.infer<typeof vendorUpdateSchema>

@@ -1,11 +1,11 @@
-export interface Court {
+export interface Vendor {
   id: number
   name: string
 }
 
 export interface TimeSlot {
   id: number
-  court_id: number
+  vendor_id: number
   start_time: string
   end_time: string
   base_price: number

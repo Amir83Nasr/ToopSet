@@ -1,13 +1,13 @@
-"""Tests for admin endpoints (broadcast, logs, court approval, settings, seed-admin)."""
+"""Tests for admin endpoints (broadcast, logs, vendor approval, settings, seed-admin)."""
 
 from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
 
-from app.models.court import Court
 from app.models.log import Log
 from app.models.setting import Setting
+from app.models.vendor import Vendor
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -80,29 +80,29 @@ class TestLogs:
         assert resp.content == b""
 
 
-class TestPendingCourts:
-    """Court approval workflow: list pending, approve, reject."""
+class TestPendingVendors:
+    """Vendor approval workflow: list pending, approve, reject."""
 
-    async def test_list_pending_courts_ok(self, client: AsyncClient, admin_token: dict) -> None:
+    async def test_list_pending_vendors_ok(self, client: AsyncClient, admin_token: dict) -> None:
         headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
-        resp = await client.get("/api/v1/admin/pending-courts", headers=headers)
+        resp = await client.get("/api/v1/admin/pending-vendors", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert "courts" in data
+        assert "vendors" in data
         assert "total" in data
-        assert isinstance(data["courts"], list)
+        assert isinstance(data["vendors"], list)
         assert isinstance(data["total"], int)
 
-    async def test_create_and_list_pending_court(
+    async def test_create_and_list_pending_vendor(
         self, client: AsyncClient, admin_token: dict, manager_token: dict
     ) -> None:
         from app.services.cache_service import invalidate_admin_list_cache
 
-        # Create a court via the manager API (sets is_active=False automatically)
-        court_resp = await client.post(
-            "/api/v1/courts",
+        # Create a vendor via the manager API (sets is_active=False automatically)
+        vendor_resp = await client.post(
+            "/api/v1/vendors",
             json={
-                "name": "Pending Court",
+                "name": "Pending Vendor",
                 "sport_types": ["football"],
                 "address": "Qom",
                 "capacity": 20,
@@ -111,27 +111,27 @@ class TestPendingCourts:
             },
             headers={"Authorization": f"Bearer {manager_token['access_token']}"},
         )
-        assert court_resp.status_code == 201
-        court_id = court_resp.json()["id"]
+        assert vendor_resp.status_code == 201
+        vendor_id = vendor_resp.json()["id"]
 
-        # Bust the pending-courts cache that might be stale from previous tests
-        await invalidate_admin_list_cache("pending_courts")
+        # Bust the pending-vendors cache that might be stale from previous tests
+        await invalidate_admin_list_cache("pending_vendors")
 
-        # List pending courts as admin
+        # List pending vendors as admin
         admin_headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
-        resp = await client.get("/api/v1/admin/pending-courts", headers=admin_headers)
+        resp = await client.get("/api/v1/admin/pending-vendors", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
-        court_ids = [c["id"] for c in data["courts"]]
-        assert court_id in court_ids
+        vendor_ids = [c["id"] for c in data["vendors"]]
+        assert vendor_id in vendor_ids
 
-    async def test_approve_pending_court(
+    async def test_approve_pending_vendor(
         self, client: AsyncClient, admin_token: dict, session
     ) -> None:
-        court = Court(
+        vendor = Vendor(
             manager_id=admin_token["user"]["id"],
-            name="Court to Approve",
+            name="Vendor to Approve",
             sport_types=["futsal"],
             address="Qom",
             capacity=15,
@@ -139,23 +139,23 @@ class TestPendingCourts:
             longitude=50.88,
             is_active=False,
         )
-        session.add(court)
+        session.add(vendor)
         await session.flush()
-        court_id = court.id
+        vendor_id = vendor.id
 
         admin_headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
-        resp = await client.post(f"/api/v1/admin/courts/{court_id}/approve", headers=admin_headers)
+        resp = await client.post(f"/api/v1/admin/vendors/{vendor_id}/approve", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_active"] is True
-        assert data["id"] == court_id
+        assert data["id"] == vendor_id
 
-    async def test_reject_pending_court(
+    async def test_reject_pending_vendor(
         self, client: AsyncClient, admin_token: dict, session
     ) -> None:
-        court = Court(
+        vendor = Vendor(
             manager_id=admin_token["user"]["id"],
-            name="Court to Reject",
+            name="Vendor to Reject",
             sport_types=["volleyball"],
             address="Qom",
             capacity=10,
@@ -163,23 +163,23 @@ class TestPendingCourts:
             longitude=50.88,
             is_active=False,
         )
-        session.add(court)
+        session.add(vendor)
         await session.flush()
-        court_id = court.id
+        vendor_id = vendor.id
 
         admin_headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
-        resp = await client.post(f"/api/v1/admin/courts/{court_id}/reject", headers=admin_headers)
+        resp = await client.post(f"/api/v1/admin/vendors/{vendor_id}/reject", headers=admin_headers)
         assert resp.status_code == 204
         assert resp.content == b""
 
         # Verify it is no longer in pending list
-        list_resp = await client.get("/api/v1/admin/pending-courts", headers=admin_headers)
+        list_resp = await client.get("/api/v1/admin/pending-vendors", headers=admin_headers)
         list_data = list_resp.json()
-        assert court_id not in [c["id"] for c in list_data["courts"]]
+        assert vendor_id not in [c["id"] for c in list_data["vendors"]]
 
-    async def test_approve_non_existent_court(self, client: AsyncClient, admin_token: dict) -> None:
+    async def test_approve_non_existent_vendor(self, client: AsyncClient, admin_token: dict) -> None:
         headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
-        resp = await client.post("/api/v1/admin/courts/99999/approve", headers=headers)
+        resp = await client.post("/api/v1/admin/vendors/99999/approve", headers=headers)
         assert resp.status_code == 404
 
 
@@ -307,5 +307,5 @@ class TestAdminAuth:
 
     async def test_endpoint_with_user_role(self, client: AsyncClient, user_token: dict) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        resp = await client.get("/api/v1/admin/pending-courts", headers=headers)
+        resp = await client.get("/api/v1/admin/pending-vendors", headers=headers)
         assert resp.status_code == 403

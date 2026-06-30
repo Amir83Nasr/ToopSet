@@ -25,16 +25,16 @@ from app.core.logger import log_action
 from app.core.pagination import decode_cursor, encode_cursor
 from app.core.security import hash_password
 from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload
-from app.models.court import Court
 from app.models.setting import Setting
 from app.models.user import User
-from app.repositories.court_repo import CourtRepo
+from app.models.vendor import Vendor
 from app.repositories.log_repo import LogRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
-from app.schemas.court import CourtResponse
+from app.repositories.vendor_repo import VendorRepo
 from app.schemas.setting import SettingResponse, SettingUpdateRequest
+from app.schemas.vendor import VendorResponse
 
 # Hero images are stored in the frontend public directory so Next.js serves them directly
 _HERO_UPLOAD_DIR = (
@@ -180,10 +180,10 @@ async def delete_log(
     await invalidate_admin_list_cache("logs")
 
 
-# ── Court approval (pending courts) ──────────────────────────────────
+# ── Vendor approval (pending vendors) ──────────────────────────────────
 
 
-class CourtApprovalResponse(BaseModel):
+class VendorApprovalResponse(BaseModel):
     id: int
     name: str
     manager_name: str
@@ -193,8 +193,9 @@ class CourtApprovalResponse(BaseModel):
     created_at: datetime
 
 
-@router.get("/pending-courts", summary="Pending court approvals")
-async def list_pending_courts(
+@router.get("/pending-courts", summary="Pending vendor approvals", include_in_schema=False)
+@router.get("/pending-vendors", summary="Pending vendor approvals")
+async def list_pending_vendors(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -206,30 +207,30 @@ async def list_pending_courts(
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
     cache_params = {"skip": skip, "limit": limit}
-    cached = await get_cached_admin_list("pending_courts", cache_params)
+    cached = await get_cached_admin_list("pending_vendors", cache_params)
     if cached is not None:
         response.headers["X-Cache"] = "HIT"
         return cached
 
-    count_q = select(func.count(Court.id)).where(Court.is_active == False)
+    count_q = select(func.count(Vendor.id)).where(Vendor.is_active == False)
     total = (await db.execute(count_q)).scalar_one()
 
     from sqlalchemy.orm import selectinload
 
     result = await db.execute(
-        select(Court)
-        .options(selectinload(Court.manager))
-        .where(Court.is_active == False)
-        .order_by(Court.created_at.desc())
+        select(Vendor)
+        .options(selectinload(Vendor.manager))
+        .where(Vendor.is_active == False)
+        .order_by(Vendor.created_at.desc())
         .offset(skip)
         .limit(limit)
     )
-    courts = result.scalars().all()
+    vendors = result.scalars().all()
 
-    courts_data = []
-    for c in courts:
+    vendors_data = []
+    for c in vendors:
         manager = c.manager  # loaded via selectinload
-        courts_data.append(
+        vendors_data.append(
             {
                 "id": c.id,
                 "name": c.name,
@@ -241,53 +242,65 @@ async def list_pending_courts(
             }
         )
 
-    result_data = {"courts": courts_data, "total": total}
-    await cache_admin_list("pending_courts", cache_params, result_data)
+    result_data = {"vendors": vendors_data, "total": total}
+    await cache_admin_list("pending_vendors", cache_params, result_data)
     response.headers["X-Cache"] = "MISS"
     return result_data
 
 
-@router.post("/courts/{court_id}/approve", response_model=CourtResponse, summary="Approve court")
-async def approve_court(
-    court_id: int,
+@router.post(
+    "/courts/{vendor_id}/approve",
+    response_model=VendorResponse,
+    summary="Approve vendor",
+    include_in_schema=False,
+)
+@router.post("/vendors/{vendor_id}/approve", response_model=VendorResponse, summary="Approve vendor")
+async def approve_vendor(
+    vendor_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
-    from app.services.court_service import CourtService
+    from app.services.vendor_service import VendorService
 
-    service = CourtService(db=db, current_user=_)
-    result = await service.toggle_court_status(court_id, is_active=True)
-    await invalidate_admin_list_cache("pending_courts")
-    await invalidate_admin_list_cache("courts")
+    service = VendorService(db=db, current_user=_)
+    result = await service.toggle_vendor_status(vendor_id, is_active=True)
+    await invalidate_admin_list_cache("pending_vendors")
+    await invalidate_admin_list_cache("vendors")
     await log_action(
-        db, _.id, "court_approved", f"تایید مجموعه | مجموعه (id={court_id}) توسط ادمین تایید شد"
+        db, _.id, "vendor_approved", f"تایید مجموعه | مجموعه (id={vendor_id}) توسط ادمین تایید شد"
     )
     return result
 
 
 @router.post(
-    "/courts/{court_id}/reject", status_code=status.HTTP_204_NO_CONTENT, summary="Reject court"
+    "/courts/{vendor_id}/reject",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Reject vendor",
+    include_in_schema=False,
 )
-async def reject_court(
-    court_id: int,
+@router.post(
+    "/vendors/{vendor_id}/reject", status_code=status.HTTP_204_NO_CONTENT, summary="Reject vendor"
+)
+async def reject_vendor(
+    vendor_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
 
-    repo = CourtRepo(db)
-    court = await repo.get_by_id(court_id)
-    if not court:
+    repo = VendorRepo(db)
+    vendor = await repo.get_by_id(vendor_id)
+    if not vendor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-    name = court.name
-    for img in court.court_images or []:
+    name = vendor.name
+    for img in vendor.vendor_images or []:
         delete_upload(img.url)
-    await repo.delete(court)
-    await invalidate_admin_list_cache("pending_courts")
-    await invalidate_admin_list_cache("courts")
+    await repo.delete(vendor)
+    await invalidate_admin_list_cache("pending_vendors")
+    await invalidate_admin_list_cache("vendors")
     await log_action(
-        db, _.id, "court_rejected", f"رد مجموعه | '{name}' (id={court_id}) توسط ادمین رد شد"
+        db, _.id, "vendor_rejected", f"رد مجموعه | '{name}' (id={vendor_id}) توسط ادمین رد شد"
     )
 
 
@@ -295,30 +308,36 @@ async def reject_court(
 
 
 @router.delete(
-    "/courts/{court_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Permanently delete court"
+    "/courts/{vendor_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Permanently delete vendor",
+    include_in_schema=False,
 )
-async def hard_delete_court(
-    court_id: int,
+@router.delete(
+    "/vendors/{vendor_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Permanently delete vendor"
+)
+async def hard_delete_vendor(
+    vendor_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    """Permanently delete a court from the database."""
-    repo = CourtRepo(db)
-    court = await repo.get_by_id(court_id)
-    if not court:
+    """Permanently delete a vendor from the database."""
+    repo = VendorRepo(db)
+    vendor = await repo.get_by_id(vendor_id)
+    if not vendor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-    for img in court.court_images or []:
+    for img in vendor.vendor_images or []:
         delete_upload(img.url)
-    await repo.delete(court)
+    await repo.delete(vendor)
     from app.services.cache_service import invalidate_admin_list_cache
 
-    await invalidate_admin_list_cache("pending_courts")
-    await invalidate_admin_list_cache("courts")
+    await invalidate_admin_list_cache("pending_vendors")
+    await invalidate_admin_list_cache("vendors")
     await log_action(
         db,
         _.id,
-        "court_hard_deleted",
-        f"حذف دائمی مجموعه | مجموعه (id={court_id}) توسط ادمین حذف شد",
+        "vendor_hard_deleted",
+        f"حذف دائمی مجموعه | مجموعه (id={vendor_id}) توسط ادمین حذف شد",
     )
 
 
@@ -334,7 +353,7 @@ async def hard_delete_user(
 ):
     """Permanently delete a user from the database.
 
-    Raises 400 if the user has related data (courts, bookings, etc.).
+    Raises 400 if the user has related data (vendors, bookings, etc.).
     """
     from sqlalchemy import func, select
 
@@ -348,8 +367,8 @@ async def hard_delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
 
     # Pre-check related data to avoid FK violations
-    court_count = (
-        await db.execute(select(func.count()).select_from(Court).where(Court.manager_id == user_id))
+    vendor_count = (
+        await db.execute(select(func.count()).select_from(Vendor).where(Vendor.manager_id == user_id))
     ).scalar_one()
     booking_count = (
         await db.execute(
@@ -365,10 +384,10 @@ async def hard_delete_user(
         )
     ).scalar_one()
 
-    if court_count:
+    if vendor_count:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"این کاربر مدیر {court_count} مجموعه است. ابتدا مجموعه‌ها را حذف کنید.",
+            detail=f"این کاربر مدیر {vendor_count} مجموعه است. ابتدا مجموعه‌ها را حذف کنید.",
         )
     if booking_count or review_count or penalty_count:
         raise HTTPException(
@@ -402,11 +421,11 @@ async def force_delete_user(
     from sqlalchemy import delete, select
 
     from app.models.booking import Booking
-    from app.models.court_image import CourtImage
     from app.models.payment import Payment
     from app.models.penalty import Penalty
     from app.models.review import Review
     from app.models.time_slot import TimeSlot
+    from app.models.vendor_image import VendorImage
 
     # Lookup user name first
     repo = UserRepository(db)
@@ -417,16 +436,16 @@ async def force_delete_user(
 
     delete_upload(user.avatar_url)
 
-    # Collect court IDs for this user
-    court_ids = (
-        (await db.execute(select(Court.id).where(Court.manager_id == user_id))).scalars().all()
+    # Collect vendor IDs for this user
+    vendor_ids = (
+        (await db.execute(select(Vendor.id).where(Vendor.manager_id == user_id))).scalars().all()
     )
 
-    # 1 ── Delete courts and all data referencing them ───────────────
-    for cid in court_ids:
-        # a) Booking-related data for time slots in this court
+    # 1 ── Delete vendors and all data referencing them ───────────────
+    for cid in vendor_ids:
+        # a) Booking-related data for time slots in this vendor
         slot_ids = (
-            (await db.execute(select(TimeSlot.id).where(TimeSlot.court_id == cid))).scalars().all()
+            (await db.execute(select(TimeSlot.id).where(TimeSlot.vendor_id == cid))).scalars().all()
         )
         if slot_ids:
             booking_ids = (
@@ -439,21 +458,21 @@ async def force_delete_user(
                 await db.execute(delete(Penalty).where(Penalty.booking_id.in_(booking_ids)))
                 await db.execute(delete(Review).where(Review.booking_id.in_(booking_ids)))
                 await db.execute(delete(Booking).where(Booking.id.in_(booking_ids)))
-            await db.execute(delete(TimeSlot).where(TimeSlot.court_id == cid))
+            await db.execute(delete(TimeSlot).where(TimeSlot.vendor_id == cid))
 
-        # b) Court images — delete files first, then remove records
+        # b) Vendor images — delete files first, then remove records
         image_urls = (
-            (await db.execute(select(CourtImage.url).where(CourtImage.court_id == cid)))
+            (await db.execute(select(VendorImage.url).where(VendorImage.vendor_id == cid)))
             .scalars()
             .all()
         )
         for url in image_urls:
             delete_upload(url)
-        await db.execute(delete(CourtImage).where(CourtImage.court_id == cid))
-        await db.execute(delete(Review).where(Review.court_id == cid))
+        await db.execute(delete(VendorImage).where(VendorImage.vendor_id == cid))
+        await db.execute(delete(Review).where(Review.vendor_id == cid))
 
-    # c) The courts themselves
-    await db.execute(delete(Court).where(Court.manager_id == user_id))
+    # c) The vendors themselves
+    await db.execute(delete(Vendor).where(Vendor.manager_id == user_id))
 
     # 2 ── Delete user's own data (as a customer) ──────────────────
     own_booking_ids = (

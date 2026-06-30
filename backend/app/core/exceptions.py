@@ -203,7 +203,7 @@ _FIELD_TRANSLATIONS: dict[str, str] = {
     "message": "پیام",
     "title": "عنوان",
     "booking_id": "شناسه رزرو",
-    "court_id": "شناسه مجموعه",
+    "vendor_id": "شناسه مجموعه",
     "user_id": "شناسه کاربر",
 }
 

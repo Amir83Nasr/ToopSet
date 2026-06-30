@@ -13,12 +13,11 @@ import L, {
   createNeshanMap,
   DEFAULT_ZOOM,
   QOM_CENTER,
-  createCourtIcon,
+  createVendorIcon,
   createUserLocationIcon,
   createSearchPinIcon,
 } from "@/lib/neshan-map"
 import "@neshan-maps-platform/leaflet/dist/leaflet.css"
-import { Button } from "../ui/button"
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
   basketball: "بسکتبال",
@@ -31,7 +30,7 @@ const sportLabels: Record<string, string> = {
 let lastUserMarker: any = null
 let lastSearchMarker: any = null
 
-interface Court {
+interface Vendor {
   id: number
   name: string
   sport_types: string[]
@@ -43,11 +42,11 @@ interface Court {
   average_rating: number
   base_price: number | null
   images?: string[]
-  court_images?: { id: number; url: string; order: number }[]
+  vendor_images?: { id: number; url: string; order: number }[]
 }
 
-interface CourtsMapProps {
-  courts: Court[]
+interface VendorsMapProps {
+  vendors: Vendor[]
   height?: string
   userLocation?: { latitude: number; longitude: number } | null
   mapLocation?: { latitude: number; longitude: number } | null
@@ -88,8 +87,8 @@ function addLocateControl(map: any) {
 
 /* ── Internal hook: keeps markers & popups in sync ── */
 
-function renderCourtMarkers(map: any, courts: Court[]) {
-  // Remove existing court markers (keep user location / search pin markers)
+function renderVendorMarkers(map: any, vendors: Vendor[]) {
+  // Remove existing vendor markers (keep user location / search pin markers)
   const toRemove: any[] = []
   map.eachLayer((layer: any) => {
     if (
@@ -103,14 +102,14 @@ function renderCourtMarkers(map: any, courts: Court[]) {
   toRemove.forEach((m: any) => m.remove())
 
   // Add fresh markers
-  courts.forEach((court) => {
-    const marker = L.marker([court.latitude, court.longitude], {
-      icon: createCourtIcon(court.sport_types?.[0]),
+  vendors.forEach((vendor) => {
+    const marker = L.marker([vendor.latitude, vendor.longitude], {
+      icon: createVendorIcon(vendor.sport_types?.[0]),
     })
 
     // Sport badges — all gray like other parts of the app
     const badgesHtml =
-      court.sport_types
+      vendor.sport_types
         ?.map(
           (st) =>
             `<span class="inline-block rounded-full bg-muted-foreground/10 px-2 py-0.5 text-[10px] font-medium leading-tight text-muted-foreground">${sportLabels[st] || st}</span>`
@@ -120,14 +119,14 @@ function renderCourtMarkers(map: any, courts: Court[]) {
     const popupHtml = `<div class="text-right font-sans" dir="rtl" style="min-width:220px">
       <div class="px-3 ps-7 pt-3">
         <div class="flex flex-wrap gap-1 mb-4 mr-3">${badgesHtml}</div>
-        <h3 class="text-sm font-bold leading-snug mb-1.5" style="color:var(--color-popover-foreground)">${court.name}</h3>
+        <h3 class="text-sm font-bold leading-snug mb-1.5" style="color:var(--color-popover-foreground)">${vendor.name}</h3>
         <div class="flex items-start gap-1.5 mb-5 text-xs" style="color:var(--color-muted-foreground)">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span class="leading-normal line-clamp-2">${court.address}</span>
+          <span class="leading-normal line-clamp-2">${vendor.address}</span>
         </div>
       </div>
       <div class="p-3 pt-0">
-        <a href="/courts/${court.id}" class="group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-8 w-full bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50">مشاهده مجموعه</a>
+        <a href="/vendors/${vendor.id}" class="group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-8 w-full bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50">مشاهده مجموعه</a>
       </div>
     </div>`
 
@@ -214,13 +213,13 @@ class MapErrorBoundary extends Component<
 
 /* ── Main component ── */
 
-export function CourtsMap({
-  courts,
+export function VendorsMap({
+  vendors,
   height = "400px",
   userLocation,
   mapLocation,
   onMapClick,
-}: CourtsMapProps) {
+}: VendorsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any | null>(null)
   const [ready, setReady] = useState(false)
@@ -267,25 +266,25 @@ export function CourtsMap({
     }
   }, [ready, onMapClick])
 
-  // Sync courts to map
-  const courtIds = useMemo(
-    () => JSON.stringify(courts.map((c) => c.id)),
-    [courts]
+  // Sync vendors to map
+  const vendorIds = useMemo(
+    () => JSON.stringify(vendors.map((c) => c.id)),
+    [vendors]
   )
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready) return
-    if (courtIds === prevIdsRef.current) return
-    prevIdsRef.current = courtIds
+    if (vendorIds === prevIdsRef.current) return
+    prevIdsRef.current = vendorIds
 
-    renderCourtMarkers(map, courts)
+    renderVendorMarkers(map, vendors)
     renderUserMarker(map, userLocation ?? null)
 
     // Fit bounds
-    if (courts.length > 0) {
+    if (vendors.length > 0) {
       try {
-        const markers = courts.map((c) => L.marker([c.latitude, c.longitude]))
+        const markers = vendors.map((c) => L.marker([c.latitude, c.longitude]))
         if (userLocation) {
           markers.push(
             L.marker([userLocation.latitude, userLocation.longitude])
@@ -301,7 +300,7 @@ export function CourtsMap({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courtIds, ready, userLocation])
+  }, [vendorIds, ready, userLocation])
 
   // Sync user location
   const userKey = userLocation
@@ -342,7 +341,7 @@ export function CourtsMap({
         className="relative overflow-hidden rounded-xl border"
         style={{ height }}
       >
-        {courts.length === 0 && (
+        {vendors.length === 0 && (
           <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
             <p className="rounded-full bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
               هیچ مجموعه‌ای برای نمایش وجود ندارد

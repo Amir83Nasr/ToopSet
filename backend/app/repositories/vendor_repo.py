@@ -8,11 +8,11 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.court import Court, SportType
-from app.models.time_slot import TimeSlot
+from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.vendor import SportType, Vendor
 
 
-class CourtRepo:
+class VendorRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
@@ -43,29 +43,32 @@ class CourtRepo:
         ref_lon: float | None = None,
         max_distance_km: float | None = None,
         sort: str = "default",
-    ) -> tuple[list[Court], int]:
-        query = select(Court).options(
-            selectinload(Court.court_images),
-            selectinload(Court.manager),
+    ) -> tuple[list[Vendor], int]:
+        query = select(Vendor).options(
+            selectinload(Vendor.vendor_images),
+            selectinload(Vendor.manager),
         )
 
         if sport_types:
-            cond = or_(Court.sport_types.any(st.value) for st in sport_types)
+            cond = or_(Vendor.sport_types.any(st.value) for st in sport_types)
             query = query.where(cond)
         if is_active is not None:
-            query = query.where(Court.is_active == is_active)
+            query = query.where(Vendor.is_active == is_active)
         if manager_id is not None:
-            query = query.where(Court.manager_id == manager_id)
+            query = query.where(Vendor.manager_id == manager_id)
         if search:
             pattern = f"%{search}%"
-            query = query.where(Court.name.ilike(pattern))
+            query = query.where(Vendor.name.ilike(pattern))
 
         if after_id is not None:
-            query = query.where(Court.id > after_id)
+            query = query.where(Vendor.id > after_id)
 
-        # Date/price filters: join with time_slots to find courts with available slots
+        # Date/price filters: join with time_slots to find vendors with available slots
         if date_from or date_to or price_min is not None or price_max is not None:
-            query = query.join(Court.time_slots).where(TimeSlot.is_reserved == False)
+            query = query.join(Vendor.time_slots).where(
+                TimeSlot.is_reserved == False,
+                TimeSlot.status == SlotStatus.OPEN,
+            )
 
             if date_from:
                 query = query.where(TimeSlot.start_time >= date_from)
@@ -78,19 +81,22 @@ class CourtRepo:
 
             query = query.distinct()
 
-        count_q = select(func.count()).select_from(Court)
+        count_q = select(func.count()).select_from(Vendor)
         if sport_types:
-            count_cond = or_(Court.sport_types.any(st.value) for st in sport_types)
+            count_cond = or_(Vendor.sport_types.any(st.value) for st in sport_types)
             count_q = count_q.where(count_cond)
         if is_active is not None:
-            count_q = count_q.where(Court.is_active == is_active)
+            count_q = count_q.where(Vendor.is_active == is_active)
         if manager_id is not None:
-            count_q = count_q.where(Court.manager_id == manager_id)
+            count_q = count_q.where(Vendor.manager_id == manager_id)
         if search:
-            count_q = count_q.where(Court.name.ilike(f"%{search}%"))
+            count_q = count_q.where(Vendor.name.ilike(f"%{search}%"))
 
         if date_from or date_to or price_min is not None or price_max is not None:
-            count_q = count_q.join(Court.time_slots).where(TimeSlot.is_reserved == False)
+            count_q = count_q.join(Vendor.time_slots).where(
+                TimeSlot.is_reserved == False,
+                TimeSlot.status == SlotStatus.OPEN,
+            )
             if date_from:
                 count_q = count_q.where(TimeSlot.start_time >= date_from)
             if date_to:
@@ -102,100 +108,105 @@ class CourtRepo:
 
         total = (await self.db.execute(count_q)).scalar_one()
 
-        order = Court.created_at.desc()
+        order = Vendor.created_at.desc()
         if sort in ("price_asc", "price_desc"):
             price_subq = (
                 select(func.min(TimeSlot.base_price))
-                .where(TimeSlot.court_id == Court.id, TimeSlot.is_reserved == False)
-                .correlate(Court)
+                .where(
+                    TimeSlot.vendor_id == Vendor.id,
+                    TimeSlot.is_reserved == False,
+                    TimeSlot.status == SlotStatus.OPEN,
+                )
+                .correlate(Vendor)
                 .scalar_subquery()
             )
             query = query.add_columns(price_subq)
             order = price_subq.asc() if sort == "price_asc" else price_subq.desc()
         elif sort == "rating":
-            order = Court.average_rating.desc()
+            order = Vendor.average_rating.desc()
 
         if after_id is not None:
             result = await self.db.execute(query.limit(limit).order_by(order))
         else:
             result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
-        courts = list(result.scalars().all())
+        vendors = list(result.scalars().all())
 
         # Distance filter (in-memory Haversine)
         if ref_lat is not None and ref_lon is not None and max_distance_km is not None:
             filtered = []
-            for c in courts:
+            for c in vendors:
                 if c.latitude is not None and c.longitude is not None:
                     d = self._haversine_km(ref_lat, ref_lon, c.latitude, c.longitude)
                     if d <= max_distance_km:
                         filtered.append(c)
-            courts = filtered
+            vendors = filtered
             total = len(filtered)
 
-        return courts, total
+        return vendors, total
 
     async def count_active(self) -> int:
-        result = await self.db.execute(select(func.count(Court.id)).where(Court.is_active == True))
+        result = await self.db.execute(select(func.count(Vendor.id)).where(Vendor.is_active == True))
         return result.scalar_one()
 
-    async def get_by_id(self, court_id: int) -> Court | None:
+    async def get_by_id(self, vendor_id: int) -> Vendor | None:
         result = await self.db.execute(
-            select(Court)
+            select(Vendor)
             .options(
-                selectinload(Court.court_images),
-                selectinload(Court.manager),
+                selectinload(Vendor.vendor_images),
+                selectinload(Vendor.manager),
             )
-            .where(Court.id == court_id)
+            .where(Vendor.id == vendor_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_by_id_with_images(self, court_id: int) -> Court | None:
+    async def get_by_id_with_images(self, vendor_id: int) -> Vendor | None:
         result = await self.db.execute(
-            select(Court)
+            select(Vendor)
             .options(
-                selectinload(Court.court_images),
-                selectinload(Court.manager),
+                selectinload(Vendor.vendor_images),
+                selectinload(Vendor.manager),
             )
-            .where(Court.id == court_id)
+            .where(Vendor.id == vendor_id)
         )
         return result.scalar_one_or_none()
 
     async def count_by_manager(self, manager_id: int) -> int:
         result = await self.db.execute(
-            select(func.count(Court.id)).where(Court.manager_id == manager_id)
+            select(func.count(Vendor.id)).where(Vendor.manager_id == manager_id)
         )
         return result.scalar_one()
 
-    async def create(self, data: dict) -> Court:
-        court = Court(**data)
-        self.db.add(court)
+    async def create(self, data: dict) -> Vendor:
+        vendor = Vendor(**data)
+        self.db.add(vendor)
         await self.db.flush()
-        await self.db.refresh(court)
-        return court
+        await self.db.refresh(vendor)
+        return vendor
 
-    async def update(self, court: Court, data: dict) -> Court:
+    async def update(self, vendor: Vendor, data: dict) -> Vendor:
         for key, value in data.items():
             if value is not None:
-                setattr(court, key, value)
+                setattr(vendor, key, value)
         await self.db.flush()
-        await self.db.refresh(court)
-        return court
+        await self.db.refresh(vendor)
+        return vendor
 
-    async def delete(self, court: Court) -> None:
-        await self.db.delete(court)
+    async def delete(self, vendor: Vendor) -> None:
+        await self.db.delete(vendor)
         await self.db.flush()
 
-    async def get_min_prices(self, court_ids: list[int]) -> dict[int, Decimal | None]:
-        """Return {court_id: min_base_price} for un-reserved time slots."""
-        if not court_ids:
+    async def get_min_prices(self, vendor_ids: list[int]) -> dict[int, Decimal | None]:
+        """Return {vendor_id: min_base_price} for un-reserved time slots."""
+        if not vendor_ids:
             return {}
 
         result = await self.db.execute(
-            select(TimeSlot.court_id, func.min(TimeSlot.base_price))
+            select(TimeSlot.vendor_id, func.min(TimeSlot.base_price))
             .where(
-                TimeSlot.court_id.in_(court_ids),
+                TimeSlot.vendor_id.in_(vendor_ids),
                 TimeSlot.is_reserved == False,
+                TimeSlot.status == SlotStatus.OPEN,
             )
-            .group_by(TimeSlot.court_id)
+            .group_by(TimeSlot.vendor_id)
         )
         return {row[0]: row[1] for row in result.all()}

@@ -20,8 +20,8 @@ class PaymentDetailResponse(BaseModel):
     gateway_fee: float | None = None
     paid_at: datetime | None = None
     created_at: datetime
-    court_name: str = ""
-    court_address: str = ""
+    vendor_name: str = ""
+    vendor_address: str = ""
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
     model_config = {"from_attributes": True}

@@ -14,7 +14,7 @@ class ReviewCreate(BaseModel):
 class ReviewResponse(BaseModel):
     id: int
     user_id: int
-    court_id: int
+    vendor_id: int
     booking_id: int
     rating: int
     comment: str | None
@@ -36,5 +36,5 @@ class ReviewRespondRequest(BaseModel):
 
 
 class ReviewDetailResponse(ReviewResponse):
-    court_name: str = ""
+    vendor_name: str = ""
     user_name: str = ""

@@ -12,25 +12,25 @@ from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.redis_client import get_redis
 from app.core.upload import delete_upload as delete_file
-from app.models.court import Court, SportType
-from app.models.court_image import CourtImage
 from app.models.user import User
-from app.repositories.court_repo import CourtRepo
-from app.schemas.court import (
-    CourtCreate,
-    CourtImageResponse,
-    CourtListResponse,
-    CourtResponse,
-    CourtUpdate,
+from app.models.vendor import SportType, Vendor
+from app.models.vendor_image import VendorImage
+from app.repositories.vendor_repo import VendorRepo
+from app.schemas.vendor import (
+    VendorCreate,
+    VendorImageResponse,
+    VendorListResponse,
+    VendorResponse,
+    VendorUpdate,
 )
 
 
-class CourtService:
+class VendorService:
     def __init__(self, db: AsyncSession, current_user: User | None) -> None:
-        self.repo = CourtRepo(db)
+        self.repo = VendorRepo(db)
         self.current_user = current_user
 
-    async def list_courts(
+    async def list_vendors(
         self,
         *,
         after_id: int | None = None,
@@ -47,8 +47,8 @@ class CourtService:
         ref_lon: float | None = None,
         max_distance_km: float | None = None,
         sort: str = "default",
-    ) -> CourtListResponse:
-        # If user is admin/manager, default to showing all courts (active=None)
+    ) -> VendorListResponse:
+        # If user is admin/manager, default to showing all vendors (active=None)
         manager_id: int | None = None
         if self.current_user and self.current_user.role in ("admin", "manager"):
             if is_active is None:
@@ -59,7 +59,7 @@ class CourtService:
             # Public user: force active=True
             is_active = True
 
-        courts, total = await self.repo.list(
+        vendors, total = await self.repo.list(
             after_id=after_id,
             skip=skip,
             limit=limit,
@@ -76,42 +76,36 @@ class CourtService:
             ref_lon=ref_lon,
             max_distance_km=max_distance_km,
         )
-        prices = await self.repo.get_min_prices([c.id for c in courts])
+        prices = await self.repo.get_min_prices([c.id for c in vendors])
         next_cursor = None
-        if courts and len(courts) == limit:
+        if vendors and len(vendors) == limit:
             from app.core.pagination import encode_cursor
 
-            next_cursor = encode_cursor(courts[-1].id)
-        return CourtListResponse(
-            courts=[self._to_response(c, min_price=prices.get(c.id)) for c in courts],
+            next_cursor = encode_cursor(vendors[-1].id)
+        return VendorListResponse(
+            vendors=[self._to_response(c, min_price=prices.get(c.id)) for c in vendors],
             total=total,
             next_cursor=next_cursor,
         )
 
-    async def get_court(self, court_id: int) -> CourtResponse:
-        court = await self.repo.get_by_id(court_id)
-        if not court:
+    async def get_vendor(self, vendor_id: int) -> VendorResponse:
+        vendor = await self.repo.get_by_id(vendor_id)
+        if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        if not court.is_active and (
+        if not vendor.is_active and (
             self.current_user is None or self.current_user.role not in ("admin", "manager")
         ):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        prices = await self.repo.get_min_prices([court_id])
-        return self._to_response(court, min_price=prices.get(court_id))
+        prices = await self.repo.get_min_prices([vendor_id])
+        return self._to_response(vendor, min_price=prices.get(vendor_id))
 
-    async def create_court(self, data: CourtCreate) -> CourtResponse:
+    async def create_vendor(self, data: VendorCreate) -> VendorResponse:
         if self.current_user.role != "manager":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="فقط مدیران مجموعه می‌توانند مجموعه ثبت کنند",
             )
-        existing_count = await self.repo.count_by_manager(self.current_user.id)
-        if existing_count > 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="شما قبلاً یک مجموعه ثبت کرده‌اید. هر مدیر فقط می‌تواند یک مجموعه داشته باشد.",
-            )
-        court = await self.repo.create(
+        vendor = await self.repo.create(
             data.model_dump(exclude={"images", "temp_ids"})
             | {"manager_id": self.current_user.id, "is_active": False}
         )
@@ -137,36 +131,41 @@ class CourtService:
             urls = data.images
         if urls:
             for idx, url in enumerate(urls):
-                self.repo.db.add(CourtImage(court_id=court.id, url=url, order=idx))
+                self.repo.db.add(VendorImage(vendor_id=vendor.id, url=url, order=idx))
             await self.repo.db.flush()
 
-        # Reload court with images to avoid MissingGreenlet error
-        court = await self.repo.get_by_id_with_images(court.id)
+        # Reload vendor with images to avoid MissingGreenlet error
+        vendor = await self.repo.get_by_id_with_images(vendor.id)
 
         await log_action(
             self.repo.db,
             self.current_user.id,
-            "court_created",
-            f"ایجاد مجموعه | '{court.name}' (id={court.id}) - {len(urls)} تصویر",
+            "vendor_created",
+            f"ایجاد مجموعه | '{vendor.name}' (id={vendor.id}) - {len(urls)} تصویر",
         )
-        prices = await self.repo.get_min_prices([court.id])
-        return self._to_response(court, min_price=prices.get(court.id))
+        prices = await self.repo.get_min_prices([vendor.id])
+        return self._to_response(vendor, min_price=prices.get(vendor.id))
 
-    async def update_court(self, court_id: int, data: CourtUpdate) -> CourtResponse:
-        court = await self.repo.get_by_id(court_id)
-        if not court:
+    async def update_vendor(self, vendor_id: int, data: VendorUpdate) -> VendorResponse:
+        vendor = await self.repo.get_by_id(vendor_id)
+        if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        if court.manager_id != self.current_user.id and self.current_user.role != "admin":
+        if vendor.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
             )
         update_data = data.model_dump(exclude_none=True, exclude={"images", "image_ids_to_remove"})
-        updated = await self.repo.update(court, update_data)
+        if self.current_user.role != "admin" and "is_active" in update_data:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="تغییر وضعیت تأیید مجموعه فقط توسط ادمین امکان‌پذیر است",
+            )
+        updated = await self.repo.update(vendor, update_data)
         if data.image_ids_to_remove:
             result = await self.repo.db.execute(
-                select(CourtImage).where(
-                    CourtImage.id.in_(data.image_ids_to_remove),
-                    CourtImage.court_id == court_id,
+                select(VendorImage).where(
+                    VendorImage.id.in_(data.image_ids_to_remove),
+                    VendorImage.vendor_id == vendor_id,
                 )
             )
             for img in result.scalars().all():
@@ -174,13 +173,13 @@ class CourtService:
                 await self.repo.db.delete(img)
             await self.repo.db.flush()
         if data.images is not None:
-            # Replace all court images with the provided set (order matters)
+            # Replace all vendor images with the provided set (order matters)
             existing = (
                 (
                     await self.repo.db.execute(
-                        select(CourtImage)
-                        .where(CourtImage.court_id == court_id)
-                        .order_by(CourtImage.order)
+                        select(VendorImage)
+                        .where(VendorImage.vendor_id == vendor_id)
+                        .order_by(VendorImage.order)
                     )
                 )
                 .scalars()
@@ -201,10 +200,10 @@ class CourtService:
                 if url in old_by_url:
                     old_by_url[url].order = idx
                 else:
-                    self.repo.db.add(CourtImage(court_id=court_id, url=url, order=idx))
+                    self.repo.db.add(VendorImage(vendor_id=vendor_id, url=url, order=idx))
             await self.repo.db.flush()
-        await self.repo.db.refresh(updated, ["court_images", "manager"])
-        details_parts = [f"ویرایش مجموعه | '{updated.name}' (id={court_id})"]
+        await self.repo.db.refresh(updated, ["vendor_images", "manager"])
+        details_parts = [f"ویرایش مجموعه | '{updated.name}' (id={vendor_id})"]
         if data.images:
             details_parts.append(f"{len(data.images)} تصویر جدید")
         if data.image_ids_to_remove:
@@ -212,74 +211,74 @@ class CourtService:
         await log_action(
             self.repo.db,
             self.current_user.id,
-            "court_updated",
+            "vendor_updated",
             " — ".join(details_parts),
         )
-        prices = await self.repo.get_min_prices([court_id])
-        return self._to_response(updated, min_price=prices.get(court_id))
+        prices = await self.repo.get_min_prices([vendor_id])
+        return self._to_response(updated, min_price=prices.get(vendor_id))
 
-    async def delete_court(self, court_id: int) -> None:
-        court = await self.repo.get_by_id(court_id)
-        if not court:
+    async def delete_vendor(self, vendor_id: int) -> None:
+        vendor = await self.repo.get_by_id(vendor_id)
+        if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        if court.manager_id != self.current_user.id and self.current_user.role != "admin":
+        if vendor.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
             )
-        # delete image files before removing the court record
-        for img in court.court_images or []:
+        # delete image files before removing the vendor record
+        for img in vendor.vendor_images or []:
             delete_file(img.url)
-        await self.repo.delete(court)
+        await self.repo.delete(vendor)
         await log_action(
             self.repo.db,
             self.current_user.id,
-            "court_deleted",
-            f"حذف مجموعه | '{court.name}' (id={court_id})",
+            "vendor_deleted",
+            f"حذف مجموعه | '{vendor.name}' (id={vendor_id})",
         )
 
-    async def toggle_court_status(self, court_id: int, is_active: bool) -> CourtResponse:
-        court = await self.repo.get_by_id(court_id)
-        if not court:
+    async def toggle_vendor_status(self, vendor_id: int, is_active: bool) -> VendorResponse:
+        vendor = await self.repo.get_by_id(vendor_id)
+        if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        if court.manager_id != self.current_user.id and self.current_user.role != "admin":
+        if vendor.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما مدیر این مجموعه نیستید"
             )
-        updated = await self.repo.update(court, {"is_active": is_active})
-        await self.repo.db.refresh(updated, ["court_images", "manager"])
+        updated = await self.repo.update(vendor, {"is_active": is_active})
+        await self.repo.db.refresh(updated, ["vendor_images", "manager"])
         status_label = "فعال" if is_active else "غیرفعال"
         await log_action(
             self.repo.db,
             self.current_user.id,
-            "court_toggled",
-            f"تغییر وضعیت مجموعه | '{court.name}' (id={court_id}) → {status_label}",
+            "vendor_toggled",
+            f"تغییر وضعیت مجموعه | '{vendor.name}' (id={vendor_id}) → {status_label}",
         )
-        prices = await self.repo.get_min_prices([court_id])
-        return self._to_response(updated, min_price=prices.get(court_id))
+        prices = await self.repo.get_min_prices([vendor_id])
+        return self._to_response(updated, min_price=prices.get(vendor_id))
 
-    def _to_response(self, court: Court, min_price: Decimal | None = None) -> CourtResponse:
-        resp = CourtResponse.model_validate(court)
+    def _to_response(self, vendor: Vendor, min_price: Decimal | None = None) -> VendorResponse:
+        resp = VendorResponse.model_validate(vendor)
         if min_price is not None:
             resp.base_price = min_price
-        if court.manager:
-            resp.manager_name = court.manager.full_name
-            resp.manager_phone = court.manager.phone
-        if court.court_images:
-            ordered = sorted(court.court_images, key=lambda x: x.order)
+        if vendor.manager:
+            resp.manager_name = vendor.manager.full_name
+            resp.manager_phone = vendor.manager.phone
+        if vendor.vendor_images:
+            ordered = sorted(vendor.vendor_images, key=lambda x: x.order)
             resp.images = [img.url for img in ordered]
-            resp.court_images = [CourtImageResponse.model_validate(img) for img in ordered]
+            resp.vendor_images = [VendorImageResponse.model_validate(img) for img in ordered]
         return resp
 
 
-async def get_court_service(
+async def get_vendor_service(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_manager),
-) -> CourtService:
-    return CourtService(db=db, current_user=current_user)
+) -> VendorService:
+    return VendorService(db=db, current_user=current_user)
 
 
-async def get_court_service_public(
+async def get_vendor_service_public(
     db: AsyncSession = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
-) -> CourtService:
-    return CourtService(db=db, current_user=current_user)
+) -> VendorService:
+    return VendorService(db=db, current_user=current_user)

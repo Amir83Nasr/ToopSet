@@ -7,18 +7,18 @@ from httpx import AsyncClient
 
 pytestmark = [pytest.mark.asyncio]
 
-_court_counter = 0
+_vendor_counter = 0
 
 
-async def _create_court(client: AsyncClient, token: dict) -> int:
-    """Create a court with a unique name and return its id."""
-    global _court_counter
-    _court_counter += 1
+async def _create_vendor(client: AsyncClient, token: dict) -> int:
+    """Create a vendor with a unique name and return its id."""
+    global _vendor_counter
+    _vendor_counter += 1
     headers = {"Authorization": f"Bearer {token['access_token']}"}
     resp = await client.post(
-        "/api/v1/courts",
+        "/api/v1/vendors",
         json={
-            "name": f"زمین محبوب {_court_counter}",
+            "name": f"زمین محبوب {_vendor_counter}",
             "sport_types": ["futsal"],
             "address": "قم، خیابان اصلی",
             "latitude": 34.6399,
@@ -27,7 +27,7 @@ async def _create_court(client: AsyncClient, token: dict) -> int:
         },
         headers=headers,
     )
-    assert resp.status_code == 201, f"Court creation failed: {resp.status_code} {resp.text[:200]}"
+    assert resp.status_code == 201, f"Vendor creation failed: {resp.status_code} {resp.text[:200]}"
     return resp.json()["id"]
 
 
@@ -42,16 +42,16 @@ class TestListFavorites:
         self, client: AsyncClient, user_token: dict, manager_token: dict
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        court_id = await _create_court(client, manager_token)
+        vendor_id = await _create_vendor(client, manager_token)
 
         # Add favorite
-        await client.post(f"/api/v1/favorites/{court_id}", headers=headers)
+        await client.post(f"/api/v1/favorites/{vendor_id}", headers=headers)
 
         resp = await client.get("/api/v1/favorites", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
-        assert data[0]["court_id"] == court_id
+        assert data[0]["vendor_id"] == vendor_id
 
     async def test_list_unauthenticated(self, client: AsyncClient) -> None:
         resp = await client.get("/api/v1/favorites")
@@ -63,31 +63,31 @@ class TestCheckFavorites:
         self, client: AsyncClient, user_token: dict, manager_token: dict
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        court = await _create_court(client, manager_token)
+        vendor = await _create_vendor(client, manager_token)
 
-        # Favorite the court
-        await client.post(f"/api/v1/favorites/{court}", headers=headers)
+        # Favorite the vendor
+        await client.post(f"/api/v1/favorites/{vendor}", headers=headers)
 
         resp = await client.get(
-            f"/api/v1/favorites/check?court_ids={court},99999",
+            f"/api/v1/favorites/check?vendor_ids={vendor},99999",
             headers=headers,
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["favorited_court_ids"] == [court]
+        assert data["favorited_vendor_ids"] == [vendor]
 
     async def test_check_none_favorited(
         self, client: AsyncClient, user_token: dict, manager_token: dict
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        court1 = await _create_court(client, manager_token)
+        vendor1 = await _create_vendor(client, manager_token)
 
         resp = await client.get(
-            f"/api/v1/favorites/check?court_ids={court1}",
+            f"/api/v1/favorites/check?vendor_ids={vendor1}",
             headers=headers,
         )
         assert resp.status_code == 200
-        assert resp.json()["favorited_court_ids"] == []
+        assert resp.json()["favorited_vendor_ids"] == []
 
 
 class TestAddFavorite:
@@ -95,15 +95,15 @@ class TestAddFavorite:
         self, client: AsyncClient, user_token: dict, manager_token: dict
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        court_id = await _create_court(client, manager_token)
+        vendor_id = await _create_vendor(client, manager_token)
 
-        resp = await client.post(f"/api/v1/favorites/{court_id}", headers=headers)
+        resp = await client.post(f"/api/v1/favorites/{vendor_id}", headers=headers)
         assert resp.status_code == 201
-        assert resp.json()["court_id"] == court_id
+        assert resp.json()["vendor_id"] == vendor_id
 
     async def test_add_unauthenticated(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
-        resp = await client.post(f"/api/v1/favorites/{court_id}")
+        vendor_id = await _create_vendor(client, manager_token)
+        resp = await client.post(f"/api/v1/favorites/{vendor_id}")
         assert resp.status_code == 401
 
 
@@ -112,11 +112,11 @@ class TestRemoveFavorite:
         self, client: AsyncClient, user_token: dict, manager_token: dict
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        court_id = await _create_court(client, manager_token)
+        vendor_id = await _create_vendor(client, manager_token)
 
         # Add then remove
-        await client.post(f"/api/v1/favorites/{court_id}", headers=headers)
-        resp = await client.delete(f"/api/v1/favorites/{court_id}", headers=headers)
+        await client.post(f"/api/v1/favorites/{vendor_id}", headers=headers)
+        resp = await client.delete(f"/api/v1/favorites/{vendor_id}", headers=headers)
         assert resp.status_code == 204
 
         # Verify gone

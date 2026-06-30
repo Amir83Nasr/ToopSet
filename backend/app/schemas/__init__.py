@@ -4,7 +4,7 @@ __all__ = [
     "auth",
     "booking",
     "contact",
-    "court",
+    "vendor",
     "error",
     "favorite",
     "notification",

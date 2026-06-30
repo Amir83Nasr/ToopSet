@@ -22,17 +22,17 @@ describe("HeroSection", () => {
     expect(screen.getByText("مشاهده سالن‌های ورزشی")).toBeInTheDocument()
   })
 
-  it("navigates to /courts when 'شروع رزرو آنلاین' is clicked", async () => {
+  it("navigates to /vendors when 'شروع رزرو آنلاین' is clicked", async () => {
     const user = userEvent.setup()
     render(<HeroSection />)
     await user.click(screen.getByText("شروع رزرو آنلاین"))
-    expect(mockRouter.push).toHaveBeenCalledWith("/courts")
+    expect(mockRouter.push).toHaveBeenCalledWith("/vendors")
   })
 
-  it("navigates to /courts when 'مشاهده سالن‌های ورزشی' is clicked", async () => {
+  it("navigates to /vendors when 'مشاهده سالن‌های ورزشی' is clicked", async () => {
     const user = userEvent.setup()
     render(<HeroSection />)
     await user.click(screen.getByText("مشاهده سالن‌های ورزشی"))
-    expect(mockRouter.push).toHaveBeenCalledWith("/courts")
+    expect(mockRouter.push).toHaveBeenCalledWith("/vendors")
   })
 })

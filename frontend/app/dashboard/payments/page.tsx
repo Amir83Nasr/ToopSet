@@ -49,8 +49,8 @@ interface PaymentDetail {
   gateway_fee: number | null
   paid_at: string | null
   created_at: string
-  court_name: string
-  court_address: string
+  vendor_name: string
+  vendor_address: string
   slot_start_time: string | null
   slot_end_time: string | null
 }
@@ -218,7 +218,7 @@ export default function PaymentsPage() {
             بخش نمایش داده می‌شود.
           </p>
           <Button asChild>
-            <Link href="/dashboard/courts">
+            <Link href="/dashboard/vendors">
               <CreditCard className="ml-2 size-4" />
               رزرو مجموعه
             </Link>
@@ -253,7 +253,7 @@ export default function PaymentsPage() {
                   <TableCell className="text-xs whitespace-nowrap">
                     {formatDate(p.created_at)}
                   </TableCell>
-                  <TableCell className="font-medium">{p.court_name}</TableCell>
+                  <TableCell className="font-medium">{p.vendor_name}</TableCell>
                   <TableCell>{formatAmount(p.amount)}</TableCell>
                   <TableCell>
                     <Badge variant={status.variant}>{status.label}</Badge>

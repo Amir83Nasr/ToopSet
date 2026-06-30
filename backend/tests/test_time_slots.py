@@ -4,21 +4,23 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = [pytest.mark.asyncio]
 
-_court_counter = 0
+_vendor_counter = 0
 
 
-async def _create_court(client: AsyncClient, token: dict) -> int:
-    """Create a court with a unique name and return its id."""
-    global _court_counter
-    _court_counter += 1
+async def _create_vendor(client: AsyncClient, token: dict, session: AsyncSession, *, active: bool = True) -> int:
+    """Create a vendor with a unique name and return its id."""
+    global _vendor_counter
+    _vendor_counter += 1
     headers = {"Authorization": f"Bearer {token['access_token']}"}
     resp = await client.post(
-        "/api/v1/courts",
+        "/api/v1/vendors",
         json={
-            "name": f"زمین سانس {_court_counter}",
+            "name": f"زمین سانس {_vendor_counter}",
             "sport_types": ["futsal"],
             "address": "قم، خیابان اصلی",
             "latitude": 34.6399,
@@ -27,8 +29,15 @@ async def _create_court(client: AsyncClient, token: dict) -> int:
         },
         headers=headers,
     )
-    assert resp.status_code == 201, f"Court creation failed: {resp.status_code} {resp.text[:200]}"
-    return resp.json()["id"]
+    assert resp.status_code == 201, f"Vendor creation failed: {resp.status_code} {resp.text[:200]}"
+    vendor_id = resp.json()["id"]
+    if active:
+        await session.execute(
+            text("UPDATE vendors SET is_active = true WHERE id = :vendor_id"),
+            {"vendor_id": vendor_id},
+        )
+        await session.flush()
+    return vendor_id
 
 
 _SLOT_BODY = {
@@ -39,11 +48,13 @@ _SLOT_BODY = {
 
 
 class TestListSlots:
-    """GET /courts/{court_id}/slots — empty court returns empty list."""
+    """GET /vendors/{vendor_id}/slots — empty vendor returns empty list."""
 
-    async def test_list_empty(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
-        resp = await client.get(f"/api/v1/courts/{court_id}/slots")
+    async def test_list_empty(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots")
         assert resp.status_code == 200
         data = resp.json()
         assert data["slots"] == []
@@ -51,53 +62,61 @@ class TestListSlots:
 
 
 class TestCreateSlot:
-    """POST /courts/{court_id}/slots — manager creates a time slot."""
+    """POST /vendors/{vendor_id}/slots — manager creates a time slot."""
 
-    async def test_create_success(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_create_success(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        body = {**_SLOT_BODY, "court_id": court_id}
-        resp = await client.post(f"/api/v1/courts/{court_id}/slots", json=body, headers=headers)
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
+        resp = await client.post(f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers)
         assert resp.status_code == 201
         data = resp.json()
-        assert data["court_id"] == court_id
+        assert data["vendor_id"] == vendor_id
         assert data["base_price"] == 150000.0
         assert data["is_reserved"] is False
         assert data["version"] == 1
         assert "id" in data
 
-    async def test_create_unauthenticated(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
-        body = {**_SLOT_BODY, "court_id": court_id}
-        resp = await client.post(f"/api/v1/courts/{court_id}/slots", json=body)
+    async def test_create_unauthenticated(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
+        resp = await client.post(f"/api/v1/vendors/{vendor_id}/slots", json=body)
         assert resp.status_code == 401
 
 
 class TestListSlotsAfterCreate:
-    """GET /courts/{court_id}/slots — after creation the slot appears."""
+    """GET /vendors/{vendor_id}/slots — after creation the slot appears."""
 
-    async def test_list_includes_slot(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_list_includes_slot(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        body = {**_SLOT_BODY, "court_id": court_id}
-        await client.post(f"/api/v1/courts/{court_id}/slots", json=body, headers=headers)
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
+        await client.post(f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers)
 
-        resp = await client.get(f"/api/v1/courts/{court_id}/slots")
+        resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
-        assert any(s["court_id"] == court_id for s in data["slots"])
+        assert any(s["vendor_id"] == vendor_id for s in data["slots"])
 
 
 class TestGetSlot:
     """GET /slots/{slot_id} — public slot detail."""
 
-    async def test_get_by_id(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_get_by_id(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        body = {**_SLOT_BODY, "court_id": court_id}
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
         create_resp = await client.post(
-            f"/api/v1/courts/{court_id}/slots", json=body, headers=headers
+            f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers
         )
         slot_id = create_resp.json()["id"]
 
@@ -105,13 +124,13 @@ class TestGetSlot:
         assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == slot_id
-        assert data["court_id"] == court_id
+        assert data["vendor_id"] == vendor_id
         assert not data["is_reserved"]
         assert data["base_price"] == 150000.0
         # Detail-specific fields
-        assert data["court_name"] != ""
-        assert data["court_address"] != ""
-        assert data["court_sport_type"] != ""
+        assert data["vendor_name"] != ""
+        assert data["vendor_address"] != ""
+        assert data["vendor_sport_type"] != ""
 
     async def test_get_not_found(self, client: AsyncClient) -> None:
         resp = await client.get("/api/v1/slots/99999")
@@ -119,10 +138,12 @@ class TestGetSlot:
 
 
 class TestGenerateSlots:
-    """POST /courts/{court_id}/slots/generate — bulk generation from templates."""
+    """POST /vendors/{vendor_id}/slots/generate — bulk generation from templates."""
 
-    async def test_generate_success(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_generate_success(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         payload = {
             "date_from": "2026-07-04",
@@ -134,7 +155,7 @@ class TestGenerateSlots:
             ],
         }
         resp = await client.post(
-            f"/api/v1/courts/{court_id}/slots/generate",
+            f"/api/v1/vendors/{vendor_id}/slots/generate",
             json=payload,
             headers=headers,
         )
@@ -146,19 +167,21 @@ class TestGenerateSlots:
 
 
 class TestUpdateSlot:
-    """PATCH /courts/{court_id}/slots/{slot_id} — manager updates a slot."""
+    """PATCH /vendors/{vendor_id}/slots/{slot_id} — manager updates a slot."""
 
-    async def test_update_price(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_update_price(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        body = {**_SLOT_BODY, "court_id": court_id}
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
         create_resp = await client.post(
-            f"/api/v1/courts/{court_id}/slots", json=body, headers=headers
+            f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers
         )
         slot_id = create_resp.json()["id"]
 
         resp = await client.patch(
-            f"/api/v1/courts/{court_id}/slots/{slot_id}",
+            f"/api/v1/vendors/{vendor_id}/slots/{slot_id}",
             json={"base_price": 200000},
             headers=headers,
         )
@@ -167,28 +190,32 @@ class TestUpdateSlot:
 
 
 class TestDeleteSlot:
-    """DELETE /courts/{court_id}/slots/{slot_id} — manager deletes a slot."""
+    """DELETE /vendors/{vendor_id}/slots/{slot_id} — manager deletes a slot."""
 
-    async def test_delete_success(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_delete_success(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        body = {**_SLOT_BODY, "court_id": court_id}
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
         create_resp = await client.post(
-            f"/api/v1/courts/{court_id}/slots", json=body, headers=headers
+            f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers
         )
         slot_id = create_resp.json()["id"]
 
         resp = await client.delete(
-            f"/api/v1/courts/{court_id}/slots/{slot_id}",
+            f"/api/v1/vendors/{vendor_id}/slots/{slot_id}",
             headers=headers,
         )
         assert resp.status_code == 204
 
-    async def test_delete_nonexistent(self, client: AsyncClient, manager_token: dict) -> None:
-        court_id = await _create_court(client, manager_token)
+    async def test_delete_nonexistent(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         resp = await client.delete(
-            f"/api/v1/courts/{court_id}/slots/99999",
+            f"/api/v1/vendors/{vendor_id}/slots/99999",
             headers=headers,
         )
         assert resp.status_code == 404

@@ -58,7 +58,7 @@ def _sanitize_svg(content: str) -> str:
     return content
 
 
-def save_upload(file_content: bytes, original_filename: str, subdir: str = "courts") -> str:
+def save_upload(file_content: bytes, original_filename: str, subdir: str = "vendors") -> str:
     ext = Path(original_filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError(f"Invalid file extension: {ext}")

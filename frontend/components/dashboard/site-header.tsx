@@ -27,7 +27,7 @@ const breadcrumbLabels: Record<string, string> = {
   user: "کاربر",
   manager: "مدیر مجموعه",
   admin: "مدیریت سیستم",
-  courts: "مجموعه‌ها",
+  vendors: "مجموعه‌ها",
   create: "ایجاد",
   edit: "ویرایش",
   schedule: "مدیریت زمان",
@@ -102,7 +102,7 @@ export function SiteHeader() {
           <ModeToggle />
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/courts">
+          <Link href="/vendors">
             <ExternalLink className="me-1.5 size-4" />
             جستجوی سالن
           </Link>

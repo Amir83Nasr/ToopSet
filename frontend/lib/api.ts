@@ -216,7 +216,7 @@ export async function uploadFile(file: File): Promise<UploadResult> {
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const url = `${API_BASE}/api/v1/uploads/court-image`
+  const url = `${API_BASE}/api/v1/uploads/vendor-image`
 
   let res: Response
   try {
