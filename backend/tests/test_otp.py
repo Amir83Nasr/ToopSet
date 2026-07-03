@@ -9,42 +9,112 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.redis_client import get_redis
 from app.models.user import User, UserRole
 from app.repositories.user_repo import OTP_PLACEHOLDER_HASH
+from app.services.otp_service import (
+    OTP_FAIL_PREFIX,
+    OTP_PREFIX,
+    OTP_SEND_PREFIX,
+    OTP_TTL,
+)
+from app.services.sms_provider import MockSmsProvider
 
 pytestmark = [pytest.mark.asyncio]
 
-OTP_PREFIX = "otp:"
 TEST_CODE = "123456"
 COUNTER = 0
 
 
 async def _set_otp(phone: str, code: str = TEST_CODE) -> None:
     r = await get_redis()
-    await r.set(f"{OTP_PREFIX}{phone}", code, ex=300)
+    await r.set(f"{OTP_PREFIX}{phone}", code, ex=OTP_TTL)
+    await r.delete(f"{OTP_FAIL_PREFIX}{phone}")
 
 
 async def _clean_otp(phone: str) -> None:
     r = await get_redis()
-    await r.delete(f"{OTP_PREFIX}{phone}")
+    await r.delete(
+        f"{OTP_PREFIX}{phone}",
+        f"{OTP_FAIL_PREFIX}{phone}",
+        f"{OTP_SEND_PREFIX}{phone}",
+    )
 
 
 # ── Send OTP ──────────────────────────────────────────────────────────
 
 
 class TestSendOtp:
+    async def test_mock_provider_prints_otp_to_terminal(self, capsys) -> None:
+        provider = MockSmsProvider()
+
+        await provider.send_otp("09120000110", "123456")
+
+        captured = capsys.readouterr()
+        assert "[SMS Mock] OTP for 09120000110: 123456" in captured.out
+
+    async def test_mock_provider_prints_generic_message_to_terminal(self, capsys) -> None:
+        provider = MockSmsProvider()
+
+        await provider.send_message("09120000111", "پیام تست")
+
+        captured = capsys.readouterr()
+        assert "[SMS Mock] Message for 09120000111: پیام تست" in captured.out
+
     async def test_send_new_user(self, client: AsyncClient) -> None:
         phone = "09120000100"
         resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_new_user"] is True
+        assert data["has_password"] is False
         assert data["message"] == "کد تأیید ارسال شد"
+        assert 0 < data["expires_in"] <= OTP_TTL
         # Mock provider → dev_code is returned in development
         assert data["dev_code"] is not None
         assert len(data["dev_code"]) == 6
         assert data["dev_code"].isdigit()
+        await _clean_otp(phone)
+
+    async def test_send_stores_code_for_ninety_seconds(self, client: AsyncClient) -> None:
+        phone = "09120000101"
+        resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
+        assert resp.status_code == 200
+
+        r = await get_redis()
+        ttl = await r.ttl(f"{OTP_PREFIX}{phone}")
+        assert 0 < ttl <= OTP_TTL
+        assert OTP_TTL == 90
+        await _clean_otp(phone)
+
+    async def test_send_same_phone_is_limited_to_once_per_ninety_seconds(
+        self, client: AsyncClient
+    ) -> None:
+        phone = "09120000102"
+        resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
+        assert resp.status_code == 200
+        first_code = resp.json()["dev_code"]
+
+        resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dev_code"] == first_code
+        assert 0 < data["expires_in"] <= OTP_TTL
+        await _clean_otp(phone)
+
+    async def test_send_reuses_existing_otp_remaining_ttl(self, client: AsyncClient) -> None:
+        phone = "09120000109"
+        r = await get_redis()
+        await r.set(f"{OTP_PREFIX}{phone}", TEST_CODE, ex=47)
+        await r.set(f"{OTP_SEND_PREFIX}{phone}", "1", ex=90)
+
+        resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dev_code"] == TEST_CODE
+        assert 0 < data["expires_in"] <= 47
         await _clean_otp(phone)
 
     async def test_send_existing_user(self, client: AsyncClient, user_token: dict) -> None:
@@ -53,8 +123,30 @@ class TestSendOtp:
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_new_user"] is False
+        assert data["has_password"] is True
         assert data["dev_code"] is not None
         assert len(data["dev_code"]) == 6
+        await _clean_otp(phone)
+
+    async def test_send_existing_otp_only_user_has_no_password(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        phone = "09120000103"
+        session.add(
+            User(
+                phone=phone,
+                password_hash=OTP_PLACEHOLDER_HASH,
+                full_name="کاربر بدون رمز",
+                role=UserRole.USER,
+            )
+        )
+        await session.flush()
+
+        resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["is_new_user"] is False
+        assert data["has_password"] is False
         await _clean_otp(phone)
 
     async def test_send_invalid_phone(self, client: AsyncClient) -> None:
@@ -80,7 +172,8 @@ class TestVerifyOtp:
         assert resp.status_code == 200
         data = resp.json()
         assert data["access_token"]
-        assert data["refresh_token"]
+        assert "refresh_token" not in data
+        assert client.cookies.get(settings.refresh_cookie_name)
         assert data["user"]["phone"] == phone
         assert data["user"]["full_name"] == "کاربر جدید"
         assert data["user"]["role"] == "user"
@@ -104,7 +197,8 @@ class TestVerifyOtp:
         assert resp.status_code == 200
         data = resp.json()
         assert data["access_token"]
-        assert data["refresh_token"]
+        assert "refresh_token" not in data
+        assert client.cookies.get(settings.refresh_cookie_name)
 
     async def test_verify_existing_user_inactive(
         self, client: AsyncClient, session: AsyncSession
@@ -142,6 +236,34 @@ class TestVerifyOtp:
         assert resp.status_code == 400
         assert "اشتباه" in resp.json()["detail"]
         await _clean_otp(phone)
+
+    async def test_verify_wrong_code_allows_five_failures_per_code(
+        self, client: AsyncClient
+    ) -> None:
+        phone = "09120000205"
+        await _set_otp(phone)
+
+        for _ in range(5):
+            resp = await client.post(
+                "/api/v1/auth/otp/verify",
+                json={"phone": phone, "code": "999999"},
+            )
+            assert resp.status_code == 400
+            assert "اشتباه" in resp.json()["detail"]
+
+        resp = await client.post(
+            "/api/v1/auth/otp/verify",
+            json={"phone": phone, "code": "999999"},
+        )
+        assert resp.status_code == 429
+        assert "بیش از حد" in resp.json()["detail"]
+
+        await _set_otp(phone, "654321")
+        resp = await client.post(
+            "/api/v1/auth/otp/verify",
+            json={"phone": phone, "code": "654321", "full_name": "تلاش مجدد"},
+        )
+        assert resp.status_code == 200
 
     async def test_verify_expired_code(self, client: AsyncClient) -> None:
         resp = await client.post(
@@ -200,6 +322,7 @@ class TestOtpEdgeCases:
     ) -> None:
         """Complete e2e: send OTP → read dev_code from response → verify → authenticate."""
         phone = "09120000301"
+        await _clean_otp(phone)
 
         # Step 1: Send OTP
         send_resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
@@ -222,7 +345,8 @@ class TestOtpEdgeCases:
         assert verify_resp.status_code == 200
         verify_data = verify_resp.json()
         assert verify_data["access_token"]
-        assert verify_data["refresh_token"]
+        assert "refresh_token" not in verify_data
+        assert client.cookies.get(settings.refresh_cookie_name)
         assert verify_data["user"]["phone"] == phone
         assert verify_data["user"]["full_name"] == "جریان کامل"
 

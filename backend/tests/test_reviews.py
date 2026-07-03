@@ -185,6 +185,34 @@ class TestListAfterCreate:
         assert my_data["total"] >= 1
         assert any(r["id"] == review_id for r in my_data["reviews"])
 
+    async def test_vendor_reviews_include_new_review(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        setup = await _setup_review_scenario(client, manager_token, user_token, session)
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+
+        create_resp = await client.post(
+            "/api/v1/reviews",
+            json={
+                "booking_id": setup["booking_id"],
+                "rating": 5,
+                "comment": "Vendor review endpoint works",
+            },
+            headers=user_headers,
+        )
+        assert create_resp.status_code == 201
+        review_id = create_resp.json()["id"]
+
+        vendor_resp = await client.get(f"/api/v1/vendors/{setup['vendor_id']}/reviews?limit=5")
+        assert vendor_resp.status_code == 200
+        vendor_data = vendor_resp.json()
+        assert vendor_data["total"] >= 1
+        assert any(r["id"] == review_id for r in vendor_data["reviews"])
+
 
 class TestReportReview:
     """POST /reviews/{review_id}/report — admin-only report."""

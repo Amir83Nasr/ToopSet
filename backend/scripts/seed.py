@@ -5,19 +5,22 @@ from decimal import Decimal
 
 from passlib.context import CryptContext
 
+import app.models  # noqa: F401
 from app.core.database import Base, async_session_factory, engine
 from app.core.timezone import iran_to_utc, now_iran
-from app.models.booking import Booking, BookingStatus
-from app.models.court import Court, SportType
-from app.models.favorite import Favorite
+from app.models.booking import Booking, BookingSource, BookingStatus, SettlementStatus
 from app.models.log import Log
-from app.models.notification import Notification
-from app.models.payment import Payment
+from app.models.notification import Notification, NotificationDelivery
+from app.models.payment import Payment, PaymentStatus
 from app.models.penalty import Penalty
+from app.models.refund import Refund, RefundStatus, RefundType
 from app.models.review import Review
 from app.models.setting import Setting
-from app.models.time_slot import TimeSlot
+from app.models.settlement import Settlement, SettlementItem, SettlementRequestStatus
+from app.models.slot_cancellation import SlotCancellation
+from app.models.time_slot import SlotStatus, TimeSlot
 from app.models.user import User, UserRole
+from app.models.vendor import SportType, Vendor
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
 
@@ -156,10 +159,10 @@ ALL_USERS = [
     ),
 ]
 
-# ── Courts — real locations in Qom ───────────────────────────────────────────
+# ── Vendors — real locations in Qom ──────────────────────────────────────────
 
-ALL_COURTS = [
-    Court(
+ALL_VENDORS = [
+    Vendor(
         name="مجموعه ورزشی تختی قم",
         sport_types=[SportType.FUTSAL.value, SportType.VOLLEYBALL.value],
         address="قم، بلوار امین، جنب پارک شهر، مجموعه ورزشی تختی",
@@ -167,7 +170,7 @@ ALL_COURTS = [
         longitude=50.87614,
         capacity=20,
     ),
-    Court(
+    Vendor(
         name="سالن بسکتبال ۲۲ بهمن",
         sport_types=[SportType.BASKETBALL.value],
         address="قم، خیابان ۲۲ بهمن، نرسیده به میدان جانبازان",
@@ -175,7 +178,7 @@ ALL_COURTS = [
         longitude=50.87031,
         capacity=30,
     ),
-    Court(
+    Vendor(
         name="زمین فوتسال الغدیر",
         sport_types=[SportType.FUTSAL.value],
         address="قم، بلوار الغدیر، نبش کوچه ۲۱",
@@ -183,7 +186,7 @@ ALL_COURTS = [
         longitude=50.89103,
         capacity=14,
     ),
-    Court(
+    Vendor(
         name="سالن ورزشی حضرت معصومه",
         sport_types=[SportType.VOLLEYBALL.value, SportType.HANDBALL.value],
         address="قم، خیابان دورشهر، کوچه شهید رحیمی، پلاک ۱۲",
@@ -191,7 +194,7 @@ ALL_COURTS = [
         longitude=50.87827,
         capacity=24,
     ),
-    Court(
+    Vendor(
         name="مجموعه ورزشی شهدای قم",
         sport_types=[SportType.FUTSAL.value, SportType.BASKETBALL.value],
         address="قم، بلوار امین، روبروی بوستان شهید بنایی",
@@ -199,7 +202,7 @@ ALL_COURTS = [
         longitude=50.86812,
         capacity=18,
     ),
-    Court(
+    Vendor(
         name="زمین والیبال دانشگاه قم",
         sport_types=[SportType.VOLLEYBALL.value],
         address="قم، بلوار جمهوری اسلامی، پردیس دانشگاه قم",
@@ -207,7 +210,7 @@ ALL_COURTS = [
         longitude=50.88055,
         capacity=16,
     ),
-    Court(
+    Vendor(
         name="سالن ورزشی صدرا",
         sport_types=[SportType.FUTSAL.value, SportType.VOLLEYBALL.value],
         address="قم، شهرک صدرا، فاز ۳، بلوار ورزش",
@@ -215,7 +218,7 @@ ALL_COURTS = [
         longitude=50.85001,
         capacity=22,
     ),
-    Court(
+    Vendor(
         name="زمین چمن مجموعه حرم",
         sport_types=[SportType.FOOTBALL.value],
         address="قم، خیابان ارم، جنب حرم مطهر حضرت معصومه",
@@ -223,7 +226,7 @@ ALL_COURTS = [
         longitude=50.88060,
         capacity=28,
     ),
-    Court(
+    Vendor(
         name="مجموعه ورزشی آفتاب قم",
         sport_types=[
             SportType.FUTSAL.value,
@@ -235,7 +238,7 @@ ALL_COURTS = [
         longitude=50.88500,
         capacity=25,
     ),
-    Court(
+    Vendor(
         name="زمین تنیس هتل پارسیا",
         sport_types=[SportType.VOLLEYBALL.value],
         address="قم، بلوار جمهوری اسلامی، روبروی هتل پارسیا",
@@ -243,7 +246,7 @@ ALL_COURTS = [
         longitude=50.87750,
         capacity=8,
     ),
-    Court(
+    Vendor(
         name="سالن هندبال شهید زینالدین",
         sport_types=[SportType.HANDBALL.value, SportType.FUTSAL.value],
         address="قم، خیابان امام خمینی، کوچه شهید زینالدین",
@@ -251,7 +254,7 @@ ALL_COURTS = [
         longitude=50.86980,
         capacity=20,
     ),
-    Court(
+    Vendor(
         name="مجموعه ورزشی قدس",
         sport_types=[SportType.BASKETBALL.value, SportType.VOLLEYBALL.value],
         address="قم، شهرک قدس، بلوار امام رضا، نبش کوچه ۱۰",
@@ -259,7 +262,7 @@ ALL_COURTS = [
         longitude=50.86030,
         capacity=26,
     ),
-    Court(
+    Vendor(
         name="زمین فوتسال بعثت",
         sport_types=[SportType.FUTSAL.value],
         address="قم، خیابان بعثت، کوچه ۱۸، پلاک ۳",
@@ -267,7 +270,7 @@ ALL_COURTS = [
         longitude=50.87560,
         capacity=14,
     ),
-    Court(
+    Vendor(
         name="سالن ورزشی شهید بهشتی",
         sport_types=[SportType.VOLLEYBALL.value, SportType.HANDBALL.value],
         address="قم، بلوار امین، مجتمع فرهنگی ورزشی شهید بهشتی",
@@ -275,7 +278,7 @@ ALL_COURTS = [
         longitude=50.87240,
         capacity=30,
     ),
-    Court(
+    Vendor(
         name="مجموعه ورزشی کوثر",
         sport_types=[
             SportType.FUTSAL.value,
@@ -324,25 +327,6 @@ def assign_manager(users: list[User]) -> User:
 
 
 async def seed():
-    # Clean existing data in dependency-safe order before dropping schema
-    async with async_session_factory() as db:
-        for table in (
-            Penalty.__table__,
-            WalletTransaction.__table__,
-            Notification.__table__,
-            Log.__table__,
-            Review.__table__,
-            Favorite.__table__,
-            Payment.__table__,
-            Booking.__table__,
-            TimeSlot.__table__,
-            Wallet.__table__,
-            Court.__table__,
-            User.__table__,
-        ):
-            await db.execute(table.delete())
-        await db.commit()
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -356,12 +340,12 @@ async def seed():
         manager = assign_manager(users)
         admin = users[0]
 
-        # ── Courts ──
-        for court in ALL_COURTS:
-            court.manager_id = manager.id
-        db.add_all(ALL_COURTS)
+        # ── Vendors ──
+        for vendor in ALL_VENDORS:
+            vendor.manager_id = manager.id
+        db.add_all(ALL_VENDORS)
         await db.flush()
-        courts: list[Court] = ALL_COURTS
+        vendors: list[Vendor] = ALL_VENDORS
 
         # ── Wallets ──
         wallet_balances: list[Decimal] = [
@@ -390,7 +374,7 @@ async def seed():
         db.add_all(wallets)
         await db.flush()
 
-        # ── Time slots (next 60 days, 5 fixed slots per court per day) ──
+        # ── Time slots (next 60 days, 5 fixed slots per vendor per day) ──
         now = now_iran()
         slots: list[TimeSlot] = []
         # Fixed slot schedules: (hour, minute, duration_hours)
@@ -403,9 +387,9 @@ async def seed():
             (19, 0, 2),  # 19:00 – 21:00
             (21, 0, 2),  # 21:00 – 23:00
         ]
-        for court in courts:
+        for vendor in vendors:
             for day_offset in range(60):
-                # 60 days × 7 slots = 420 slots per court — pick 5 random per day
+                # 60 days × 7 slots = 420 slots per vendor — pick 5 random per day
                 for hour, minute, duration in random.sample(slot_schedules, 5):
                     start_iran = now.replace(
                         hour=hour, minute=minute, second=0, microsecond=0
@@ -413,22 +397,25 @@ async def seed():
                     end_iran = start_iran + timedelta(hours=duration)
                     slots.append(
                         TimeSlot(
-                            court_id=court.id,
+                            vendor_id=vendor.id,
                             start_time=iran_to_utc(start_iran),
                             end_time=iran_to_utc(end_iran),
                             base_price=random_price(),
+                            ball_available=random.random() < 0.35,
+                            ball_price=random_price(50, 150),
                         )
                     )
         db.add_all(slots)
         await db.flush()
+        slot_by_id = {slot.id: slot for slot in slots}
 
         # ── Bookings & payments ──
-        # Create bookings spread across users and courts, then payments for confirmed ones
+        # Create bookings spread across users and vendors, then payments for confirmed ones
         bookings: list[Booking] = []
         payments: list[Payment] = []
 
         booking_specs = [
-            # (user_index, court_index, day_offset, hour_offset_in_day, status)
+            # (user_index, vendor_index, day_offset, hour_offset_in_day, status)
             # user 0 = mehdi, 1 = sara, etc.
             (2, 0, 0, 0, "pending_payment"),
             (2, 1, 0, 1, "confirmed"),
@@ -470,25 +457,33 @@ async def seed():
             (19, 6, 4, 2, "confirmed"),
         ]
 
-        for user_idx, court_idx, day_off, slot_in_day, status in booking_specs:
-            # Find a slot belonging to this court on this day offset
-            court = courts[court_idx]
+        for user_idx, vendor_idx, day_off, slot_in_day, status in booking_specs:
+            # Find a slot belonging to this vendor on this day offset
+            vendor = vendors[vendor_idx]
             day_slots = [
                 s
                 for s in slots
-                if s.court_id == court.id and (s.start_time.day - now.day) % 30 == day_off
+                if s.vendor_id == vendor.id and (s.start_time.day - now.day) % 30 == day_off
             ]
             if not day_slots or slot_in_day >= len(day_slots):
                 continue
             slot = day_slots[slot_in_day]
             user = regular_users[user_idx % len(regular_users)]
+            with_ball = slot.ball_available and random.random() < 0.4
+            ball_price = slot.ball_price if with_ball else Decimal("0")
+            total_price = slot.base_price + ball_price
 
             if status == "confirmed":
                 b = Booking(
                     user_id=user.id,
                     slot_id=slot.id,
                     status=BookingStatus.CONFIRMED,
-                    price_paid=slot.base_price,
+                    source=BookingSource.ONLINE,
+                    settlement_status=SettlementStatus.NOT_SETTLED,
+                    price_paid=total_price,
+                    slot_price=slot.base_price,
+                    ball_price=ball_price,
+                    with_ball=with_ball,
                 )
                 bookings.append(b)
             elif status == "pending_payment":
@@ -496,16 +491,28 @@ async def seed():
                     user_id=user.id,
                     slot_id=slot.id,
                     status=BookingStatus.PENDING_PAYMENT,
-                    price_paid=slot.base_price,
+                    source=BookingSource.ONLINE,
+                    settlement_status=SettlementStatus.NOT_SETTLED,
+                    price_paid=total_price,
+                    slot_price=slot.base_price,
+                    ball_price=ball_price,
+                    with_ball=with_ball,
+                    expires_at=iran_to_utc(now + timedelta(minutes=15)),
                 )
                 bookings.append(b)
             elif status == "cancelled":
+                penalty_amount = (total_price * Decimal("0.10")).quantize(Decimal("1"))
                 b = Booking(
                     user_id=user.id,
                     slot_id=slot.id,
                     status=BookingStatus.CANCELLED,
-                    price_paid=slot.base_price,
-                    penalty_amount=random_price(200, 500),
+                    source=BookingSource.ONLINE,
+                    settlement_status=SettlementStatus.EXCLUDED_DUE_TO_REFUND,
+                    price_paid=total_price,
+                    slot_price=slot.base_price,
+                    ball_price=ball_price,
+                    with_ball=with_ball,
+                    penalty_amount=penalty_amount,
                 )
                 bookings.append(b)
 
@@ -514,9 +521,18 @@ async def seed():
         db.add_all(bookings)
         await db.flush()
 
-        # Mark reserved slots
+        # Mark slot availability according to the active booking state.
         for b in bookings:
-            b.slot.is_reserved = True
+            slot = slot_by_id[b.slot_id]
+            if b.status == BookingStatus.CONFIRMED:
+                slot.is_reserved = True
+                slot.status = SlotStatus.RESERVED
+            elif b.status == BookingStatus.PENDING_PAYMENT:
+                slot.is_reserved = True
+                slot.status = SlotStatus.RESERVING
+            elif b.status == BookingStatus.CANCELLED:
+                slot.is_reserved = False
+                slot.status = SlotStatus.OPEN
 
         # ── Payments (confirmed → success, pending_payment → 30% failed) ──
         for b in bookings:
@@ -527,7 +543,7 @@ async def seed():
                     Payment(
                         booking_id=b.id,
                         amount=b.price_paid,
-                        status="success",
+                        status=PaymentStatus.SUCCESS,
                         gateway_name=f"زرین‌پال ({bank})",
                         gateway_transaction_id=f"ZP-{paid.strftime('%Y%m%d')}-{random.randint(1000000, 9999999)}",
                         card_number=card,
@@ -541,7 +557,7 @@ async def seed():
                         Payment(
                             booking_id=b.id,
                             amount=b.price_paid,
-                            status="failed",
+                            status=PaymentStatus.FAILED,
                             gateway_name=None,
                             gateway_transaction_id=None,
                             card_number=None,
@@ -549,6 +565,281 @@ async def seed():
                     )
 
         db.add_all(payments)
+        await db.flush()
+
+        # ── Manager-created bookings, refunds, cancellations and settlements ──
+        refunds: list[Refund] = []
+        slot_cancellations: list[SlotCancellation] = []
+        notification_deliveries: list[NotificationDelivery] = []
+        settlements: list[Settlement] = []
+        settlement_items: list[SettlementItem] = []
+
+        def free_slots_for_vendor(vendor: Vendor) -> list[TimeSlot]:
+            return sorted(
+                [
+                    slot
+                    for slot in slots
+                    if slot.vendor_id == vendor.id
+                    and not slot.is_reserved
+                    and slot.status == SlotStatus.OPEN
+                    and slot.start_time > iran_to_utc(now)
+                ],
+                key=lambda slot: slot.start_time,
+            )
+
+        # Manual one-off booking by manager. It has no online payment and should not be settled.
+        manual_slot = free_slots_for_vendor(vendors[0])[0]
+        manual_user = regular_users[0]
+        manual_booking = Booking(
+            user_id=manual_user.id,
+            slot_id=manual_slot.id,
+            status=BookingStatus.CONFIRMED,
+            source=BookingSource.MANAGER_MANUAL,
+            settlement_status=SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+            created_by_manager_id=manager.id,
+            customer_full_name=manual_user.full_name,
+            customer_phone=manual_user.phone,
+            price_paid=Decimal("0"),
+            slot_price=manual_slot.base_price,
+            ball_price=Decimal("0"),
+            with_ball=False,
+        )
+        bookings.append(manual_booking)
+        manual_slot.is_reserved = True
+        manual_slot.status = SlotStatus.RESERVED
+
+        # Recurring manager bookings: sample data for the weekly table and manager booking flow.
+        recurring_slots = free_slots_for_vendor(vendors[1])[:4]
+        for idx, slot in enumerate(recurring_slots, start=1):
+            recurring_booking = Booking(
+                user_id=regular_users[1].id,
+                slot_id=slot.id,
+                status=BookingStatus.CONFIRMED,
+                source=BookingSource.MANAGER_MANUAL,
+                settlement_status=SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                created_by_manager_id=manager.id,
+                customer_full_name="تیم ثابت شنبه شب",
+                customer_phone="09127001122",
+                price_paid=Decimal("0"),
+                slot_price=slot.base_price,
+                ball_price=Decimal("0"),
+                with_ball=False,
+            )
+            bookings.append(recurring_booking)
+            slot.is_reserved = True
+            slot.status = SlotStatus.RESERVED
+
+        # Manager cancellation of an online-paid booking, blocked without releasing the slot.
+        manager_cancel_slot = free_slots_for_vendor(vendors[2])[0]
+        manager_cancel_user = regular_users[2]
+        manager_cancel_total = manager_cancel_slot.base_price
+        manager_cancel_booking = Booking(
+            user_id=manager_cancel_user.id,
+            slot_id=manager_cancel_slot.id,
+            status=BookingStatus.CANCELLED,
+            source=BookingSource.ONLINE,
+            settlement_status=SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+            price_paid=manager_cancel_total,
+            slot_price=manager_cancel_slot.base_price,
+            ball_price=Decimal("0"),
+            with_ball=False,
+            penalty_amount=Decimal("0"),
+        )
+        bookings.append(manager_cancel_booking)
+        manager_cancel_slot.is_reserved = False
+        manager_cancel_slot.status = SlotStatus.BLOCKED
+
+        db.add_all([manual_booking, *bookings[-len(recurring_slots) - 1 :]])
+        await db.flush()
+
+        paid_at = now_iran()
+        payments.append(
+            Payment(
+                booking_id=manager_cancel_booking.id,
+                amount=manager_cancel_booking.price_paid,
+                status=PaymentStatus.SUCCESS,
+                gateway_name="زرین‌پال (تست لغو سالندار)",
+                gateway_transaction_id=f"ZP-MANAGER-CANCEL-{manager_cancel_booking.id}",
+                ref_id=f"REF-MC-{manager_cancel_booking.id}",
+                paid_at=paid_at,
+            )
+        )
+
+        # Refund rows for user-cancelled online bookings: 10% penalty charged to user.
+        for b in bookings:
+            if (
+                b.status == BookingStatus.CANCELLED
+                and b.source == BookingSource.ONLINE
+                and b.id != manager_cancel_booking.id
+            ):
+                slot = slot_by_id[b.slot_id]
+                penalty = b.penalty_amount or (b.price_paid * Decimal("0.10")).quantize(Decimal("1"))
+                refunds.append(
+                    Refund(
+                        booking_id=b.id,
+                        user_id=b.user_id,
+                        vendor_id=slot.vendor_id,
+                        slot_id=slot.id,
+                        slot_start_time=slot.start_time,
+                        slot_end_time=slot.end_time,
+                        original_amount=b.price_paid,
+                        slot_price=b.slot_price,
+                        ball_price=b.ball_price,
+                        total_paid=b.price_paid,
+                        penalty_amount=penalty,
+                        refund_amount=b.price_paid - penalty,
+                        reason="لغو توسط کاربر بیش از ۴۸ ساعت قبل از شروع سانس",
+                        type=RefundType.USER_CANCELLATION,
+                        status=RefundStatus.PENDING,
+                        penalty_charged_to_user=True,
+                        site_bears_penalty=False,
+                    )
+                )
+
+        refunds.append(
+            Refund(
+                booking_id=manager_cancel_booking.id,
+                user_id=manager_cancel_booking.user_id,
+                vendor_id=manager_cancel_slot.vendor_id,
+                slot_id=manager_cancel_slot.id,
+                slot_start_time=manager_cancel_slot.start_time,
+                slot_end_time=manager_cancel_slot.end_time,
+                original_amount=manager_cancel_booking.price_paid,
+                slot_price=manager_cancel_booking.slot_price,
+                ball_price=manager_cancel_booking.ball_price,
+                total_paid=manager_cancel_booking.price_paid,
+                penalty_amount=Decimal("0"),
+                refund_amount=manager_cancel_booking.price_paid,
+                reason="لغو توسط سالندار به دلیل تعمیرات مجموعه",
+                type=RefundType.MANAGER_CANCELLATION,
+                status=RefundStatus.PENDING,
+                penalty_charged_to_user=False,
+                site_bears_penalty=True,
+            )
+        )
+
+        cancellation_note = Notification(
+            user_id=manager_cancel_user.id,
+            type="slot_cancelled_by_manager",
+            message="سانس شما توسط سالندار لغو شد. وضعیت عودت وجه در حال بررسی است.",
+            is_read=False,
+        )
+        db.add(cancellation_note)
+        await db.flush()
+
+        slot_cancellations.append(
+            SlotCancellation(
+                slot_id=manager_cancel_slot.id,
+                booking_id=manager_cancel_booking.id,
+                vendor_id=manager_cancel_slot.vendor_id,
+                manager_id=manager.id,
+                affected_user_id=manager_cancel_user.id,
+                affected_full_name=manager_cancel_user.full_name,
+                affected_phone=manager_cancel_user.phone,
+                reason="تعمیرات اضطراری کف‌پوش سالن",
+                release_slot=False,
+                online_paid_amount=manager_cancel_booking.price_paid,
+                site_cost_amount=manager_cancel_booking.price_paid,
+                sms_status="sent",
+                notification_status="sent",
+                review_status="pending",
+            )
+        )
+        notification_deliveries.extend(
+            [
+                NotificationDelivery(
+                    notification_id=cancellation_note.id,
+                    user_id=manager_cancel_user.id,
+                    booking_id=manager_cancel_booking.id,
+                    channel="in_app",
+                    status="sent",
+                    attempts=1,
+                    sent_at=paid_at,
+                ),
+                NotificationDelivery(
+                    notification_id=cancellation_note.id,
+                    user_id=manager_cancel_user.id,
+                    booking_id=manager_cancel_booking.id,
+                    channel="sms",
+                    phone_number=manager_cancel_user.phone,
+                    status="sent",
+                    attempts=1,
+                    sent_at=paid_at,
+                ),
+            ]
+        )
+
+        db.add_all(payments[-1:])
+        db.add_all(refunds)
+        db.add_all(slot_cancellations)
+        db.add_all(notification_deliveries)
+        await db.flush()
+
+        online_confirmed = [
+            b
+            for b in bookings
+            if b.status == BookingStatus.CONFIRMED
+            and b.source == BookingSource.ONLINE
+            and b.settlement_status == SettlementStatus.NOT_SETTLED
+        ]
+        pending_items_source = online_confirmed[:3]
+        if pending_items_source:
+            requested_amount = sum((b.price_paid for b in pending_items_source), Decimal("0"))
+            settlement = Settlement(
+                manager_id=manager.id,
+                vendor_id=slot_by_id[pending_items_source[0].slot_id].vendor_id,
+                requested_amount=requested_amount,
+                bookings_count=len(pending_items_source),
+                period_from=pending_items_source[0].created_at,
+                period_to=paid_at,
+                status=SettlementRequestStatus.PENDING,
+                manager_note="درخواست تسویه نمونه برای رزروهای آنلاین موفق",
+            )
+            settlements.append(settlement)
+            db.add(settlement)
+            await db.flush()
+            for b in pending_items_source:
+                b.settlement_status = SettlementStatus.SETTLEMENT_REQUESTED
+                settlement_items.append(
+                    SettlementItem(
+                        settlement_id=settlement.id,
+                        booking_id=b.id,
+                        amount=b.price_paid,
+                    )
+                )
+
+        paid_items_source = online_confirmed[3:5]
+        if paid_items_source:
+            paid_amount = sum((b.price_paid for b in paid_items_source), Decimal("0"))
+            paid_settlement = Settlement(
+                manager_id=manager.id,
+                vendor_id=slot_by_id[paid_items_source[0].slot_id].vendor_id,
+                requested_amount=paid_amount,
+                approved_amount=paid_amount,
+                bookings_count=len(paid_items_source),
+                period_from=paid_items_source[0].created_at,
+                period_to=paid_at,
+                status=SettlementRequestStatus.PAID,
+                manager_note="تسویه پرداخت‌شده نمونه",
+                admin_note="پرداخت دستی انجام شد",
+                payment_tracking_code="PAY-SEED-1404-001",
+                approved_at=paid_at,
+                paid_at=paid_at,
+            )
+            settlements.append(paid_settlement)
+            db.add(paid_settlement)
+            await db.flush()
+            for b in paid_items_source:
+                b.settlement_status = SettlementStatus.SETTLED
+                settlement_items.append(
+                    SettlementItem(
+                        settlement_id=paid_settlement.id,
+                        booking_id=b.id,
+                        amount=b.price_paid,
+                    )
+                )
+
+        db.add_all(settlement_items)
         await db.flush()
 
         # ── Reviews ──
@@ -579,7 +870,7 @@ async def seed():
             (11, 12, "فوتسال عالی، کفپوش استاندارد. عالیه", 5),
             (13, 13, "جدید و مدرسه، امکانات کامل داره", 4),
             (14, 14, "خیلی خوبه، پیشنهاد میکنم حتما بیان", 4),
-            # Extra reviews for courts with only 1 review — ensure every court has ≥2
+            # Extra reviews for vendors with only 1 review — ensure every vendor has ≥2
             (4, 5, "والیبال عالی، همیشه سالن تمیز و مرتب هست", 4),
             (19, 5, "تخته‌ها نو شده بودن، کیفیت خوبی داشت", 4),
             (5, 7, "چمن مصنوعی خیلی باکیفیته، عالی بود", 5),
@@ -601,7 +892,7 @@ async def seed():
         reviews: list[Review] = []
         used_booking_ids: set[int] = set()
         for i, (ui, ci, comment, rating) in enumerate(review_data):
-            # find a booking by this user for this court that hasn't been used yet
+            # find a booking by this user for this vendor that hasn't been used yet
             booking = None
             for b in bookings:
                 if b.id in used_booking_ids:
@@ -612,7 +903,7 @@ async def seed():
                         if s.id == b.slot_id:
                             slot = s
                             break
-                    if slot and slot.court_id == courts[ci].id:
+                    if slot and slot.vendor_id == vendors[ci].id:
                         booking = b
                         break
 
@@ -621,7 +912,7 @@ async def seed():
                 reviews.append(
                     Review(
                         user_id=regular_users[ui % len(regular_users)].id,
-                        court_id=courts[ci].id,
+                        vendor_id=vendors[ci].id,
                         booking_id=booking.id,
                         rating=rating,
                         comment=comment,
@@ -631,16 +922,16 @@ async def seed():
         db.add_all(reviews)
         await db.flush()
 
-        # ── Update court average_rating from reviews ──
+        # ── Update vendor average_rating from reviews ──
         from sqlalchemy import func as sa_func
         from sqlalchemy import select
 
-        for court in courts:
+        for vendor in vendors:
             result = await db.execute(
-                select(sa_func.avg(Review.rating)).where(Review.court_id == court.id)
+                select(sa_func.avg(Review.rating)).where(Review.vendor_id == vendor.id)
             )
             avg = result.scalar()
-            court.average_rating = round(float(avg), 1) if avg else 0.0
+            vendor.average_rating = round(float(avg), 1) if avg else 0.0
 
         # ── Notifications ──
         notes: list[Notification] = []
@@ -684,7 +975,7 @@ async def seed():
                 "description": "ایمیل پشتیبانی",
             },
             {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
-            {"key": "cancel_window_hours", "value": "24", "description": "مهلت کنسل کردن (ساعت)"},
+            {"key": "cancel_window_hours", "value": "48", "description": "مهلت کنسل کردن (ساعت)"},
             {"key": "rules_text", "value": "", "description": "متن قوانین و مقررات"},
             {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
             {
@@ -706,7 +997,7 @@ async def seed():
             ),
             Log(
                 user_id=admin.id,
-                action="court_approved",
+                action="vendor_approved",
                 details="تأیید مجموعه | مجموعه ورزشی تختی قم تأیید شد",
             ),
             Log(
@@ -732,7 +1023,17 @@ async def seed():
             Log(
                 user_id=admin.id,
                 action="settings_updated",
-                details="تنظیمات سیستم | درصد جریمه لغو رزرو به ۵۰٪ تغییر کرد",
+                details="تنظیمات سیستم | مهلت لغو رزرو به ۴۸ ساعت تغییر کرد",
+            ),
+            Log(
+                user_id=manager.id,
+                action="manager_slot_cancelled",
+                details="لغو سانس توسط سالندار | سانس به دلیل تعمیرات اضطراری مسدود شد",
+            ),
+            Log(
+                user_id=admin.id,
+                action="settlement_requested",
+                details="درخواست تسویه | درخواست تسویه نمونه برای مجموعه ثبت شد",
             ),
         ]
         db.add_all(logs)
@@ -792,13 +1093,18 @@ async def seed():
         # ── Summary ──
         print("✅ Seed completed!")
         print(f"   Users:           {len(users)}")
-        print(f"   Courts:          {len(courts)}")
+        print(f"   Vendors:         {len(vendors)}")
         print(f"   Wallets:         {len(wallets)}")
         print(f"   Time slots:      {len(slots)}")
         print(f"   Bookings:        {len(bookings)}")
         print(f"   Payments:        {len(payments)}")
+        print(f"   Refunds:         {len(refunds)}")
+        print(f"   Cancellations:   {len(slot_cancellations)}")
+        print(f"   Settlements:     {len(settlements)}")
+        print(f"   SettlementItems: {len(settlement_items)}")
         print(f"   Reviews:         {len(reviews)}")
-        print(f"   Notifications:   {len(notes)}")
+        print(f"   Notifications:   {len(notes) + 1}")
+        print(f"   Deliveries:      {len(notification_deliveries)}")
         print(f"   Logs:            {len(logs)}")
         print(f"   Transactions:    {len(transactions)}")
         print(f"   Penalties:       {len(penalties)}")

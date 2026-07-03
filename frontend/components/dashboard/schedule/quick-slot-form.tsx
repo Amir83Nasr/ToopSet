@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { TimePicker } from "@/components/ui/time-picker"
 import { PersianInput } from "@/components/ui/persian-input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { formatPersianDate } from "./utils"
 
 interface QuickSlotFormProps {
@@ -15,6 +16,8 @@ interface QuickSlotFormProps {
     start_time: string
     end_time: string
     base_price: number
+    ball_available: boolean
+    ball_price: number
   }) => Promise<void>
   submitting?: boolean
 }
@@ -28,6 +31,8 @@ export function QuickSlotForm({
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
   const [price, setPrice] = useState("")
+  const [ballAvailable, setBallAvailable] = useState(false)
+  const [ballPrice, setBallPrice] = useState("")
 
   async function handleSubmit() {
     if (!start || !end || !price) return
@@ -35,6 +40,8 @@ export function QuickSlotForm({
       start_time: start,
       end_time: end,
       base_price: Number(price),
+      ball_available: ballAvailable,
+      ball_price: ballAvailable ? Number(ballPrice || 0) : 0,
     })
     onClose()
   }
@@ -73,6 +80,22 @@ export function QuickSlotForm({
             placeholder="۱۰۰۰۰۰"
           />
         </div>
+      </div>
+
+      <div className="grid gap-2 rounded-md border p-2 sm:grid-cols-[auto_1fr] sm:items-center">
+        <label className="flex items-center gap-2 text-xs">
+          <Checkbox
+            checked={ballAvailable}
+            onCheckedChange={(checked) => setBallAvailable(checked === true)}
+          />
+          رزرو توپ
+        </label>
+        <PersianInput
+          value={ballPrice}
+          onChange={(e) => setBallPrice(e.target.value)}
+          placeholder="قیمت توپ"
+          disabled={!ballAvailable}
+        />
       </div>
 
       <Button

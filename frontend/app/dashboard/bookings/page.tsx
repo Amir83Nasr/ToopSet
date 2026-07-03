@@ -1,31 +1,63 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BookingFilters } from "@/components/bookings/booking-filters"
 import { BookingTableSkeleton } from "@/components/bookings/booking-table-skeleton"
 import { BookingEmptyState } from "@/components/bookings/booking-empty-state"
 import { BookingTable } from "@/components/bookings/booking-table"
 import { BookingCancelDialog } from "@/components/bookings/booking-cancel-dialog"
-import type { BookingDetail } from "@/components/bookings/types"
+import type {
+  BookingCancellationTerms,
+  BookingDetail,
+} from "@/components/bookings/types"
 import { toast } from "@/lib/toast"
 import confetti from "canvas-confetti"
 import { RefreshCw } from "lucide-react"
 
+type BookingTab = "current" | "past" | "cancelled"
+
+const emptyStateByTab: Record<
+  BookingTab,
+  { title: string; description: string; showAction: boolean }
+> = {
+  current: {
+    title: "سانس جاری ندارید",
+    description: "برای رزرو سانس جدید، مجموعه مورد علاقه خود را انتخاب کنید.",
+    showAction: true,
+  },
+  past: {
+    title: "سانس قبلی ندارید",
+    description:
+      "بعد از برگزاری سانس‌ها، رزروهای تمام‌شده اینجا نمایش داده می‌شوند.",
+    showAction: false,
+  },
+  cancelled: {
+    title: "سانس لغوشده ندارید",
+    description:
+      "رزروهای لغوشده و وضعیت عودت مبلغ آن‌ها اینجا نمایش داده می‌شوند.",
+    showAction: false,
+  },
+}
+
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingDetail[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<number | null>(null)
   const [cancellingBooking, setCancellingBooking] =
     useState<BookingDetail | null>(null)
+  const [cancelTerms, setCancelTerms] =
+    useState<BookingCancellationTerms | null>(null)
+  const [cancelCardNumber, setCancelCardNumber] = useState("")
+  const [acceptedCancelTerms, setAcceptedCancelTerms] = useState(false)
   const [cancellingLoading, setCancellingLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [activeTab, setActiveTab] = useState<BookingTab>("current")
   const limit = usePaginationLimit()
 
   useEffect(() => {
@@ -40,21 +72,18 @@ export default function BookingsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      params.set("skip", String(page * limit))
-      params.set("limit", String(limit))
-      if (statusFilter !== "all") params.set("status", statusFilter)
-      if (debouncedSearch) params.set("search", debouncedSearch)
+      params.set("skip", "0")
+      params.set("limit", "20")
       const res = await api<{ bookings: BookingDetail[]; total: number }>(
         `/api/v1/bookings?${params}`
       )
       setBookings(res.bookings)
-      setTotal(res.total)
     } catch {
       // not authenticated
     } finally {
       setLoading(false)
     }
-  }, [page, limit, statusFilter, debouncedSearch])
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchBookings(), 0)
@@ -81,8 +110,22 @@ export default function BookingsPage() {
     }
   }
 
-  function handleCancelClick(b: BookingDetail) {
+  async function handleCancelClick(b: BookingDetail) {
     setCancellingBooking(b)
+    setCancelTerms(null)
+    setCancelCardNumber("")
+    setAcceptedCancelTerms(false)
+    try {
+      const terms = await api<BookingCancellationTerms>(
+        `/api/v1/bookings/${b.id}/cancellation-terms`
+      )
+      setCancelTerms(terms)
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : "خطا در دریافت شروط لغو"
+      toast.error(msg)
+      setCancellingBooking(null)
+    }
   }
 
   async function handleConfirmCancel() {
@@ -91,9 +134,19 @@ export default function BookingsPage() {
     try {
       await api(`/api/v1/bookings/${cancellingBooking.id}/cancel`, {
         method: "POST",
+        body: JSON.stringify({
+          accepted_terms: acceptedCancelTerms,
+          ...(cancelTerms?.requires_bank_card &&
+          !cancelTerms.has_verified_bank_card
+            ? { card_number: cancelCardNumber.replace(/\D/g, "") }
+            : {}),
+        }),
       })
       toast.success("رزرو لغو شد")
       setCancellingBooking(null)
+      setCancelTerms(null)
+      setCancelCardNumber("")
+      setAcceptedCancelTerms(false)
       fetchBookings()
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
@@ -103,7 +156,65 @@ export default function BookingsPage() {
     }
   }
 
-  const totalPages = Math.ceil(total / limit)
+  const filteredBookings = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase()
+    const now = new Date()
+
+    return bookings.filter((booking) => {
+      if (query && !booking.vendor_name.toLowerCase().includes(query)) {
+        return false
+      }
+
+      const isCancelled =
+        booking.status === "cancelled" || booking.status === "expired"
+      if (activeTab === "cancelled") return isCancelled
+      if (isCancelled) return false
+
+      const slotEnd = booking.slot_end_time
+        ? new Date(booking.slot_end_time)
+        : null
+      if (activeTab === "past") {
+        return !!slotEnd && slotEnd <= now
+      }
+      return !slotEnd || slotEnd > now
+    })
+  }, [bookings, debouncedSearch, activeTab])
+
+  const tabCounts = useMemo(() => {
+    const now = new Date()
+    return bookings.reduce(
+      (counts, booking) => {
+        const isCancelled =
+          booking.status === "cancelled" || booking.status === "expired"
+        if (isCancelled) {
+          counts.cancelled += 1
+          return counts
+        }
+        const slotEnd = booking.slot_end_time
+          ? new Date(booking.slot_end_time)
+          : null
+        if (slotEnd && slotEnd <= now) {
+          counts.past += 1
+        } else {
+          counts.current += 1
+        }
+        return counts
+      },
+      { current: 0, past: 0, cancelled: 0 }
+    )
+  }, [bookings])
+
+  const paginatedBookings = useMemo(() => {
+    const start = page * limit
+    return filteredBookings.slice(start, start + limit)
+  }, [filteredBookings, page, limit])
+
+  const totalPages = Math.ceil(filteredBookings.length / limit)
+
+  function handleTabChange(value: string) {
+    setActiveTab(value as BookingTab)
+    setPage(0)
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -118,36 +229,72 @@ export default function BookingsPage() {
         </Button>
       </div>
 
-      <BookingFilters
-        search={search}
-        onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusFilterChange={(val) => {
-          setStatusFilter(val)
-          setPage(0)
-        }}
-      />
+      <BookingFilters search={search} onSearchChange={setSearch} />
 
-      {loading ? (
-        <BookingTableSkeleton />
-      ) : bookings.length === 0 ? (
-        <BookingEmptyState hasActiveFilters={!!debouncedSearch} />
-      ) : (
-        <BookingTable
-          bookings={bookings}
-          totalPages={totalPages}
-          page={page}
-          onPageChange={setPage}
-          payingId={payingId}
-          onPay={handlePay}
-          onCancelClick={handleCancelClick}
-        />
-      )}
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="w-fit">
+          <TabsTrigger value="current">
+            سانس‌های جاری ({tabCounts.current.toLocaleString("fa-IR")})
+          </TabsTrigger>
+          <TabsTrigger value="past">
+            سانس‌های قبلی ({tabCounts.past.toLocaleString("fa-IR")})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled">
+            سانس‌های لغو شده ({tabCounts.cancelled.toLocaleString("fa-IR")})
+          </TabsTrigger>
+        </TabsList>
+
+        {(["current", "past", "cancelled"] as const).map((tab) => (
+          <TabsContent key={tab} value={tab} className="mt-4">
+            {loading ? (
+              <BookingTableSkeleton />
+            ) : filteredBookings.length === 0 ? (
+              <BookingEmptyState
+                hasActiveFilters={!!debouncedSearch}
+                title={
+                  debouncedSearch ? undefined : emptyStateByTab[activeTab].title
+                }
+                description={
+                  debouncedSearch
+                    ? undefined
+                    : emptyStateByTab[activeTab].description
+                }
+                showAction={
+                  debouncedSearch
+                    ? false
+                    : emptyStateByTab[activeTab].showAction
+                }
+              />
+            ) : (
+              <BookingTable
+                bookings={paginatedBookings}
+                totalPages={totalPages}
+                page={page}
+                onPageChange={setPage}
+                payingId={payingId}
+                onPay={handlePay}
+                onCancelClick={handleCancelClick}
+                showRefundStatus={activeTab === "cancelled"}
+              />
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
 
       <BookingCancelDialog
         booking={cancellingBooking}
+        terms={cancelTerms}
+        cardNumber={cancelCardNumber}
+        acceptedTerms={acceptedCancelTerms}
+        onCardNumberChange={setCancelCardNumber}
+        onAcceptedTermsChange={setAcceptedCancelTerms}
         onOpenChange={(o) => {
-          if (!o) setCancellingBooking(null)
+          if (!o) {
+            setCancellingBooking(null)
+            setCancelTerms(null)
+            setCancelCardNumber("")
+            setAcceptedCancelTerms(false)
+          }
         }}
         onConfirm={handleConfirmCancel}
         loading={cancellingLoading}

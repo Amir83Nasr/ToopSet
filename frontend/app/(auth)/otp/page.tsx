@@ -2,7 +2,7 @@
 
 import { Suspense } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { OtpForm } from "@/components/auth/otp-form"
 import { AuthHeroSlides } from "@/components/auth/auth-hero-slides"
@@ -11,9 +11,15 @@ import { ArrowRight } from "lucide-react"
 
 function OtpPageContent() {
   const { sendOtp, verifyOtp } = useAuth()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || undefined
   const reason = searchParams.get("reason")
+  const phone = searchParams.get("phone") || ""
+  const mode = searchParams.get("mode")
+  const purpose = mode === "password_reset" ? "password_reset" : "login"
+  const successRedirect =
+    purpose === "password_reset" ? "/dashboard/settings?reset_password=1" : redirect
 
   const reasonMessages: Record<string, string> = {
     session_expired: "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",
@@ -44,7 +50,15 @@ function OtpPageContent() {
           <OtpForm
             sendOtp={sendOtp}
             verifyOtp={verifyOtp}
-            redirect={redirect}
+            redirect={successRedirect}
+            initialPhone={phone}
+            purpose={purpose}
+            onLoginClick={(phone) => {
+              const params = new URLSearchParams()
+              params.set("phone", phone)
+              if (redirect) params.set("redirect", redirect)
+              router.push(`/login?${params.toString()}`)
+            }}
           />
         </div>
       </div>

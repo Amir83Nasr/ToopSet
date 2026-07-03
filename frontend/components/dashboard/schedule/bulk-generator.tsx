@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { TimePicker } from "@/components/ui/time-picker"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { PersianInput } from "@/components/ui/persian-input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
@@ -77,7 +78,13 @@ export function BulkGenerator({
     Array.from({ length: 7 }, () => true)
   )
   const [templates, setTemplates] = useState<TimeSlotTemplate[]>([
-    { start_time: "08:00", end_time: "10:00", base_price: "" },
+    {
+      start_time: "08:00",
+      end_time: "10:00",
+      base_price: "",
+      ball_price: "",
+      ball_available: false,
+    },
   ])
   const [savedTemplates, setSavedTemplates] = useState<ScheduleTemplate[]>([])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -96,7 +103,13 @@ export function BulkGenerator({
   function addTemplate() {
     setTemplates((prev) => [
       ...prev,
-      { start_time: "", end_time: "", base_price: "" },
+      {
+        start_time: "",
+        end_time: "",
+        base_price: "",
+        ball_price: "",
+        ball_available: false,
+      },
     ])
   }
 
@@ -107,7 +120,7 @@ export function BulkGenerator({
   function updateTemplate(
     index: number,
     field: keyof TimeSlotTemplate,
-    value: string
+    value: string | boolean
   ) {
     setTemplates((prev) => {
       const next = [...prev]
@@ -136,7 +149,13 @@ export function BulkGenerator({
 
   function handleApplyTemplate(tpl: ScheduleTemplate) {
     setSelectedDays([...tpl.days])
-    setTemplates(tpl.templates.map((t) => ({ ...t })))
+    setTemplates(
+      tpl.templates.map((t) => ({
+        ...t,
+        ball_price: t.ball_price ?? "",
+        ball_available: t.ball_available ?? false,
+      }))
+    )
   }
 
   function handleDeleteTemplate(id: string) {
@@ -152,7 +171,15 @@ export function BulkGenerator({
     setTemplates(
       extracted.templates.length > 0
         ? extracted.templates
-        : [{ start_time: "", end_time: "", base_price: "" }]
+        : [
+            {
+              start_time: "",
+              end_time: "",
+              base_price: "",
+              ball_price: "",
+              ball_available: false,
+            },
+          ]
     )
   }
 
@@ -296,6 +323,30 @@ export function BulkGenerator({
                           updateTemplate(index, "base_price", e.target.value)
                         }
                         placeholder="۵۰۰۰۰۰"
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="min-w-36 space-y-1">
+                      <label className="flex items-center gap-2 text-xs">
+                        <Checkbox
+                          checked={tpl.ball_available}
+                          onCheckedChange={(checked) =>
+                            updateTemplate(
+                              index,
+                              "ball_available",
+                              checked === true
+                            )
+                          }
+                        />
+                        رزرو توپ
+                      </label>
+                      <PersianInput
+                        value={tpl.ball_price}
+                        onChange={(e) =>
+                          updateTemplate(index, "ball_price", e.target.value)
+                        }
+                        placeholder="قیمت توپ"
+                        disabled={!tpl.ball_available}
                         className="w-full"
                       />
                     </div>

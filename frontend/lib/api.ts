@@ -32,9 +32,6 @@ const enToFa: Record<string, string> = {
   "Invalid refresh token": "توکن رفرش نامعتبر است",
   "Session expired — logged in from another device":
     "نشست شما به پایان رسید — از دستگاه دیگری وارد شده‌اید",
-  "Current password is incorrect": "رمز عبور فعلی اشتباه است",
-  "current_password is required to set a new password":
-    "برای تغییر رمز، رمز فعلی را وارد کنید",
   "Please log in first": "لطفاً ابتدا وارد حساب خود شوید",
   "You do not have permission": "شما دسترسی لازم را ندارید",
   "Invalid credentials": "اطلاعات ورود اشتباه است",
@@ -52,9 +49,21 @@ function translateMessage(message: string): string {
   return enToFa[message] || message
 }
 
-export function setTokens(access: string, refresh: string) {
+const NO_AUTH_REFRESH_PATHS = new Set([
+  "/api/v1/auth/login",
+  "/api/v1/auth/login/options",
+  "/api/v1/auth/register",
+  "/api/v1/auth/otp/send",
+  "/api/v1/auth/otp/verify",
+  "/api/v1/auth/refresh",
+])
+
+function shouldAttemptTokenRefresh(path: string): boolean {
+  return !NO_AUTH_REFRESH_PATHS.has(path)
+}
+
+export function setTokens(access: string) {
   setCookie("access_token", access)
-  setCookie("refresh_token", refresh)
 }
 
 export function clearTokens() {
@@ -70,17 +79,11 @@ async function tryRefreshToken(): Promise<boolean> {
 
   isRefreshing = true
   refreshPromise = (async () => {
-    const refreshToken = getCookie("refresh_token")
-    if (!refreshToken) {
-      clearTokens()
-      return false
-    }
-
     try {
       const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        credentials: "include",
       })
 
       if (!res.ok) {
@@ -89,7 +92,7 @@ async function tryRefreshToken(): Promise<boolean> {
       }
 
       const data = await res.json()
-      setTokens(data.access_token, data.refresh_token)
+      setTokens(data.access_token)
       return true
     } catch {
       clearTokens()
@@ -123,6 +126,7 @@ export async function api<T>(
     res = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers,
+      credentials: options.credentials ?? "include",
     })
   } catch (err) {
     throw new ApiError(
@@ -132,18 +136,18 @@ export async function api<T>(
   }
 
   if (res.status === 401) {
-    if (path === "/api/v1/auth/refresh") {
-      clearTokens()
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("auth:expired"))
+    if (!shouldAttemptTokenRefresh(path)) {
+      if (path === "/api/v1/auth/refresh") {
+        clearTokens()
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth:expired"))
+        }
+        throw new ApiError(
+          401,
+          "نشست شما به پایان رسیده. لطفاً دوباره وارد شوید."
+        )
       }
-      throw new ApiError(
-        401,
-        "نشست شما به پایان رسیده. لطفاً دوباره وارد شوید."
-      )
-    }
 
-    if (!token) {
       const body = await res.json().catch(() => ({ detail: "Unauthorized" }))
       throw new ApiError(401, translateMessage(body.detail || "Unauthorized"))
     }
@@ -158,6 +162,7 @@ export async function api<T>(
           ...(options.headers as Record<string, string>),
           Authorization: `Bearer ${newToken}`,
         },
+        credentials: options.credentials ?? "include",
       })
 
       if (!retryRes.ok) {
@@ -171,6 +176,11 @@ export async function api<T>(
       }
 
       return retryRes.json()
+    }
+
+    if (!token) {
+      const body = await res.json().catch(() => ({ detail: "Unauthorized" }))
+      throw new ApiError(401, translateMessage(body.detail || "Unauthorized"))
     }
 
     clearTokens()

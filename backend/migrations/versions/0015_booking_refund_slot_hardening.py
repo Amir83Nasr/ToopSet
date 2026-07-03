@@ -11,6 +11,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "0015"
 down_revision: str | None = "0014"
@@ -22,19 +23,21 @@ def upgrade() -> None:
     op.execute("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'pending_cancellation'")
     op.execute("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'transferred'")
 
-    slot_status = sa.Enum(
+    slot_status = postgresql.ENUM(
         "open",
         "pending_cancellation",
         "reserved",
         "closed",
         name="slotstatus",
+        create_type=False,
     )
-    slot_gender = sa.Enum("male", "female", name="slotgender")
-    bank_card_status = sa.Enum(
+    slot_gender = postgresql.ENUM("male", "female", name="slotgender", create_type=False)
+    bank_card_status = postgresql.ENUM(
         "pending_confirmation",
         "verified",
         "rejected",
         name="bankcardstatus",
+        create_type=False,
     )
     slot_status.create(op.get_bind(), checkfirst=True)
     slot_gender.create(op.get_bind(), checkfirst=True)

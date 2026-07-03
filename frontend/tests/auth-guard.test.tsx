@@ -13,6 +13,7 @@ describe("AuthGuard", () => {
       user: null,
       loading: true,
       login: vi.fn(),
+        checkLoginOptions: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
@@ -31,11 +32,12 @@ describe("AuthGuard", () => {
     expect(screen.queryByText("Protected Content")).not.toBeInTheDocument()
   })
 
-  it("renders nothing when not authenticated", () => {
+  it("shows a redirect message when not authenticated", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       loading: false,
       login: vi.fn(),
+        checkLoginOptions: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
@@ -50,8 +52,11 @@ describe("AuthGuard", () => {
       </AuthGuard>
     )
     expect(screen.queryByText("Protected Content")).not.toBeInTheDocument()
+    expect(
+      screen.getByText("برای ادامه باید وارد شوید؛ در حال انتقال به صفحه ورود...")
+    ).toBeInTheDocument()
     const spinner = container.querySelector(".animate-spin")
-    expect(spinner).not.toBeInTheDocument()
+    expect(spinner).toBeInTheDocument()
   })
 
   it("renders children when authenticated", () => {
@@ -62,11 +67,13 @@ describe("AuthGuard", () => {
         full_name: "کاربر تست",
         role: "user" as const,
         is_active: true,
+        has_password: true,
         avatar_url: null,
         created_at: "2026-01-01T00:00:00",
       },
       loading: false,
       login: vi.fn(),
+        checkLoginOptions: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),

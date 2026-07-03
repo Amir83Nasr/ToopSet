@@ -22,6 +22,12 @@ class BankCardRepo:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_user(self, user_id: int) -> BankCard | None:
+        result = await self.db.execute(
+            select(BankCard).where(BankCard.user_id == user_id).limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def get_verified_for_user(self, user_id: int) -> BankCard | None:
         result = await self.db.execute(
             select(BankCard)
@@ -40,7 +46,7 @@ class BankCardRepo:
         card_fingerprint: str,
         holder_name: str,
     ) -> BankCard:
-        card = await self.get_by_fingerprint(user_id, card_fingerprint)
+        card = await self.get_for_user(user_id)
         if card is None:
             card = BankCard(
                 user_id=user_id,

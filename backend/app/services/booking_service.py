@@ -4,13 +4,15 @@ from datetime import timedelta
 from decimal import Decimal
 
 from fastapi import Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.timezone import now_utc
-from app.models.booking import BookingStatus
+from app.models.booking import BookingSource, BookingStatus, SettlementStatus
+from app.models.refund import Refund, RefundType
 from app.models.time_slot import SlotStatus
 from app.models.user import User
 from app.repositories.bank_card_repo import BankCardRepo
@@ -23,11 +25,15 @@ from app.repositories.wallet_repo import WalletRepo
 from app.schemas.booking import (
     AdminBookingListResponse,
     AdminBookingResponse,
+    BookingCancellationTermsResponse,
+    BookingCancelRequest,
     BookingCreate,
     BookingDetailResponse,
     BookingListResponse,
     PaymentResponse,
 )
+from app.services.bank_card_service import BankCardService
+from app.services.finance_service import FinanceService
 from app.services.payment_service import (
     FraudDetectionError,
     GatewayTimeoutError,
@@ -35,6 +41,8 @@ from app.services.payment_service import (
     PaymentError,
     PaymentService,
 )
+
+PUBLIC_BOOKING_WINDOW_DAYS = 14
 
 
 class BookingService:
@@ -48,6 +56,9 @@ class BookingService:
         self.bank_card_repo = BankCardRepo(db)
         self.current_user = current_user
 
+    async def _get_verified_bank_card(self, user_id: int):
+        return await self.bank_card_repo.get_verified_for_user(user_id)
+
     async def _require_verified_bank_card(self, user_id: int) -> None:
         card = await self.bank_card_repo.get_verified_for_user(user_id)
         if card is None:
@@ -55,6 +66,129 @@ class BookingService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="برای بازگشت وجه ابتدا باید کارت بانکی تأییدشده ثبت کنید",
             )
+
+    async def _ensure_verified_bank_card(self, card_number: str | None = None) -> None:
+        if await self._get_verified_bank_card(self.current_user.id):
+            return
+        if not card_number:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="برای لغو و بازگشت وجه، شماره کارت را در پروفایل یا همین مرحله وارد کنید",
+            )
+        card_service = BankCardService(db=self.booking_repo.db, current_user=self.current_user)
+        card = await card_service.lookup_card(card_number)
+        await card_service.confirm_card(card.id)
+
+    async def _get_owned_booking_for_cancel(self, booking_id: int, *, for_update: bool = False):
+        booking = await self.booking_repo.get_by_id(booking_id, for_update=for_update)
+        if not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+        if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
+        return booking
+
+    async def get_cancellation_terms(self, booking_id: int) -> BookingCancellationTermsResponse:
+        booking = await self._get_owned_booking_for_cancel(booking_id)
+        slot = booking.slot
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+
+        rules = [
+            "لغو فقط برای رزروهای پرداخت‌نشده یا تأییدشده امکان‌پذیر است.",
+            "برای رزروهای تأییدشده، ثبت کارت بانکی تأییدشده جهت بازگشت وجه الزامی است.",
+            "اگر بیش از ۴۸ ساعت تا شروع سانس باقی مانده باشد، رزرو لغو می‌شود و ۹۰٪ مبلغ پرداختی عودت می‌شود.",
+            "اگر ۴۸ ساعت یا کمتر تا شروع سانس باقی مانده باشد، رزرو در انتظار جایگزین قرار می‌گیرد و فقط در صورت جایگزینی با کسر ۱۰٪ عودت می‌شود.",
+            "پس از شروع سانس، لغو توسط کاربر امکان‌پذیر نیست.",
+        ]
+
+        if booking.status in (BookingStatus.CANCELLED, BookingStatus.TRANSFERRED):
+            return BookingCancellationTermsResponse(
+                booking_id=booking.id,
+                can_cancel=False,
+                requires_bank_card=False,
+                has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
+                mode="already_cancelled",
+                refund_amount=0,
+                penalty_amount=0,
+                rules=rules,
+                blocking_reason="این رزرو قبلاً لغو شده است",
+            )
+        if booking.status == BookingStatus.PENDING_CANCELLATION:
+            return BookingCancellationTermsResponse(
+                booking_id=booking.id,
+                can_cancel=False,
+                requires_bank_card=False,
+                has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
+                mode="already_pending_cancellation",
+                refund_amount=0,
+                penalty_amount=0,
+                rules=rules,
+                blocking_reason="این رزرو قبلاً در انتظار جایگزین قرار گرفته است",
+            )
+        if booking.status not in (BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED):
+            return BookingCancellationTermsResponse(
+                booking_id=booking.id,
+                can_cancel=False,
+                requires_bank_card=False,
+                has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
+                mode="not_cancellable",
+                refund_amount=0,
+                penalty_amount=0,
+                rules=rules,
+                blocking_reason="این رزرو در وضعیت قابل لغو نیست",
+            )
+        if slot.start_time <= now_utc():
+            return BookingCancellationTermsResponse(
+                booking_id=booking.id,
+                can_cancel=False,
+                requires_bank_card=False,
+                has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
+                mode="started",
+                refund_amount=0,
+                penalty_amount=0,
+                rules=rules,
+                blocking_reason="زمان این سانس گذشته یا شروع شده و دیگر قابل لغو نیست",
+            )
+        if booking.status == BookingStatus.PENDING_PAYMENT:
+            return BookingCancellationTermsResponse(
+                booking_id=booking.id,
+                can_cancel=True,
+                requires_bank_card=False,
+                has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
+                mode="pending_payment",
+                refund_amount=0,
+                penalty_amount=0,
+                rules=rules,
+            )
+
+        has_card = bool(await self._get_verified_bank_card(booking.user_id))
+        time_until_slot = slot.start_time - now_utc()
+        if time_until_slot <= timedelta(hours=48):
+            return BookingCancellationTermsResponse(
+                booking_id=booking.id,
+                can_cancel=True,
+                requires_bank_card=True,
+                has_verified_bank_card=has_card,
+                mode="pending_replacement",
+                refund_amount=0,
+                penalty_amount=0,
+                rules=rules,
+            )
+
+        penalty_amount = Decimal(str(booking.price_paid)) * Decimal("0.10")
+        refund_amount = Decimal(str(booking.price_paid)) - penalty_amount
+        return BookingCancellationTermsResponse(
+            booking_id=booking.id,
+            can_cancel=True,
+            requires_bank_card=True,
+            has_verified_bank_card=has_card,
+            mode="refund_with_penalty",
+            refund_amount=float(refund_amount),
+            penalty_amount=float(penalty_amount),
+            rules=rules,
+        )
 
     async def _build_booking_detail_list(
         self, bookings: list, with_payment: bool = False
@@ -67,11 +201,21 @@ class BookingService:
             payment_map = {
                 bk_id: PaymentResponse.model_validate(p) for bk_id, p in payment_objs.items()
             }
+        refund_map: dict[int, Refund] = {}
+        if bookings:
+            refund_rows = await self.booking_repo.db.execute(
+                select(Refund)
+                .where(Refund.booking_id.in_([b.id for b in bookings]))
+                .order_by(Refund.requested_at.desc())
+            )
+            for refund in refund_rows.scalars().all():
+                refund_map.setdefault(refund.booking_id, refund)
         result = []
         for b in bookings:
             slot = b.slot  # already loaded via selectinload in the repo
             vendor = slot.vendor if slot else None
             payment = payment_map.get(b.id) if with_payment else None
+            refund = refund_map.get(b.id)
             result.append(
                 BookingDetailResponse(
                     id=b.id,
@@ -92,6 +236,9 @@ class BookingService:
                     slot_start_time=slot.start_time if slot else None,
                     slot_end_time=slot.end_time if slot else None,
                     payment=payment,
+                    refund_status=refund.status.value if refund else None,
+                    refund_amount=float(refund.refund_amount) if refund else None,
+                    refund_paid_at=refund.paid_at if refund else None,
                 )
             )
         return result
@@ -149,6 +296,14 @@ class BookingService:
         slot = booking.slot  # loaded via selectinload
         vendor = slot.vendor if slot else None
         payment = await self.payment_repo.get_by_booking(booking_id)
+        refund = (
+            await self.booking_repo.db.execute(
+                select(Refund)
+                .where(Refund.booking_id == booking_id)
+                .order_by(Refund.requested_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
 
         return BookingDetailResponse(
             id=booking.id,
@@ -169,6 +324,9 @@ class BookingService:
             slot_start_time=slot.start_time if slot else None,
             slot_end_time=slot.end_time if slot else None,
             payment=PaymentResponse.model_validate(payment) if payment else None,
+            refund_status=refund.status.value if refund else None,
+            refund_amount=float(refund.refund_amount) if refund else None,
+            refund_paid_at=refund.paid_at if refund else None,
         )
 
     async def create_booking(self, data: BookingCreate) -> BookingDetailResponse:
@@ -181,9 +339,19 @@ class BookingService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="این مجموعه هنوز توسط ادمین تأیید نشده است",
             )
-        if slot.status == SlotStatus.CLOSED:
+        if slot.status in (SlotStatus.CLOSED, SlotStatus.BLOCKED, SlotStatus.DISABLED):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="این سانس بسته شده است"
+            )
+        if slot.start_time <= now_utc():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="زمان این سانس گذشته و دیگر قابل رزرو نیست",
+            )
+        if slot.start_time > now_utc() + timedelta(days=PUBLIC_BOOKING_WINDOW_DAYS):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="رزرو فقط برای سانس‌های دو هفته آینده امکان‌پذیر است",
             )
         if data.with_ball and not slot.ball_available:
             raise HTTPException(
@@ -231,6 +399,8 @@ class BookingService:
                 "slot_id": data.slot_id,
                 "replaces_booking_id": replaces_booking_id,
                 "status": BookingStatus.PENDING_PAYMENT,
+                "source": BookingSource.ONLINE,
+                "settlement_status": SettlementStatus.NOT_SETTLED,
                 "price_paid": final_price,
                 "slot_price": slot_price,
                 "ball_price": ball_price,
@@ -239,6 +409,7 @@ class BookingService:
                 "expires_at": now_utc() + timedelta(minutes=10),
             }
         )
+        await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVING})
 
         # Notify manager about new booking
         if vendor:
@@ -316,19 +487,48 @@ class BookingService:
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         if booking.expires_at and booking.expires_at < now_utc():
-            await self.booking_repo.update(booking, {"status": BookingStatus.CANCELLED})
+            is_replacement = booking.replaces_booking_id is not None
+            await self.booking_repo.update(
+                booking,
+                {
+                    "status": BookingStatus.EXPIRED,
+                    "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                },
+            )
+            if slot and slot.status == SlotStatus.RESERVING:
+                if is_replacement:
+                    old_booking = await self.booking_repo.get_by_id(
+                        booking.replaces_booking_id, for_update=True
+                    )
+                    if old_booking and old_booking.status == BookingStatus.PENDING_CANCELLATION:
+                        await self.slot_repo.update(
+                            slot,
+                            {"is_reserved": True, "status": SlotStatus.PENDING_CANCELLATION},
+                        )
+                    else:
+                        await self.slot_repo.update(
+                            slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                        )
+                else:
+                    await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="مهلت پرداخت این رزرو تمام شده است",
             )
         is_replacement = booking.replaces_booking_id is not None
-        if slot.status == SlotStatus.CLOSED:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="این سانس بسته شده است")
-        if slot.is_reserved and not is_replacement:
+        if slot.status in (SlotStatus.CLOSED, SlotStatus.BLOCKED, SlotStatus.DISABLED):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="این سانس قبلاً رزرو شده است",
+                status_code=status.HTTP_409_CONFLICT, detail="این سانس بسته شده است"
             )
+        if slot.is_reserved and not is_replacement:
+            active = await self.booking_repo.get_active_by_slot(slot.id, for_update=True)
+            if slot.status == SlotStatus.RESERVING and active and active.id == booking.id:
+                pass
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="این سانس قبلاً رزرو شده است",
+                )
         if is_replacement and slot.status != SlotStatus.PENDING_CANCELLATION:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -395,17 +595,22 @@ class BookingService:
             if old_booking and old_booking.status == BookingStatus.PENDING_CANCELLATION:
                 penalty_amount = Decimal(str(old_booking.price_paid)) * Decimal("0.10")
                 refund_amount = Decimal(str(old_booking.price_paid)) - penalty_amount
-                old_wallet = await self.wallet_repo.get_or_create(old_booking.user_id)
-                await self.wallet_repo.add_balance(
-                    old_wallet,
-                    float(refund_amount),
-                    f"Refund after replacement booking #{booking_id}",
+                finance = FinanceService(self.booking_repo.db, self.current_user)
+                await finance.create_refund(
+                    booking=old_booking,
+                    refund_type=RefundType.REPLACED_AFTER_PENDING_CANCELLATION,
+                    reason="جایگزینی رزرو در وضعیت انتظار لغو",
+                    penalty_amount=penalty_amount,
+                    refund_amount=refund_amount,
+                    penalty_charged_to_user=True,
+                    site_bears_penalty=False,
                 )
                 await self.booking_repo.update(
                     old_booking,
                     {
                         "status": BookingStatus.TRANSFERRED,
                         "penalty_amount": penalty_amount,
+                        "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_REFUND,
                     },
                 )
                 await self.penalty_repo.create(
@@ -455,14 +660,10 @@ class BookingService:
             payment=PaymentResponse.model_validate(payment),
         )
 
-    async def cancel_booking(self, booking_id: int) -> BookingDetailResponse:
-        booking = await self.booking_repo.get_by_id(booking_id, for_update=True)
-        if not booking:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
-        if booking.user_id != self.current_user.id and self.current_user.role not in ("admin",):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
-            )
+    async def cancel_booking(
+        self, data: BookingCancelRequest, booking_id: int
+    ) -> BookingDetailResponse:
+        booking = await self._get_owned_booking_for_cancel(booking_id, for_update=True)
         if booking.status in (BookingStatus.CANCELLED, BookingStatus.TRANSFERRED):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="این رزرو قبلاً لغو شده است"
@@ -479,9 +680,37 @@ class BookingService:
         vendor = slot.vendor
 
         was_confirmed = booking.status == BookingStatus.CONFIRMED
+        if slot.start_time <= now_utc():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="زمان این سانس گذشته یا شروع شده و دیگر قابل لغو نیست",
+            )
 
         if booking.status == BookingStatus.PENDING_PAYMENT:
-            booking = await self.booking_repo.update(booking, {"status": BookingStatus.CANCELLED})
+            replaces_booking_id = booking.replaces_booking_id
+            booking = await self.booking_repo.update(
+                booking,
+                {
+                    "status": BookingStatus.CANCELLED,
+                    "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                },
+            )
+            if slot.status == SlotStatus.RESERVING:
+                if replaces_booking_id:
+                    old_booking = await self.booking_repo.get_by_id(
+                        replaces_booking_id, for_update=True
+                    )
+                    if old_booking and old_booking.status == BookingStatus.PENDING_CANCELLATION:
+                        await self.slot_repo.update(
+                            slot,
+                            {"is_reserved": True, "status": SlotStatus.PENDING_CANCELLATION},
+                        )
+                    else:
+                        await self.slot_repo.update(
+                            slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                        )
+                else:
+                    await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
             payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
                 id=booking.id,
@@ -507,7 +736,13 @@ class BookingService:
         now = now_utc()
         time_until_slot = slot.start_time - now
 
-        await self._require_verified_bank_card(booking.user_id)
+        if not data.accepted_terms:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="برای لغو رزرو باید شروط لغو را مطالعه و تأیید کنید",
+            )
+
+        await self._ensure_verified_bank_card(data.card_number)
 
         if time_until_slot <= timedelta(hours=48):
             booking = await self.booking_repo.update(
@@ -548,6 +783,7 @@ class BookingService:
         update_data: dict = {
             "status": BookingStatus.CANCELLED,
             "penalty_amount": penalty_amount,
+            "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_REFUND,
         }
         await self.penalty_repo.create(
             user_id=self.current_user.id,
@@ -568,16 +804,22 @@ class BookingService:
         if was_confirmed:
             await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
 
-        wallet = await self.wallet_repo.get_or_create(booking.user_id)
-        await self.wallet_repo.add_balance(
-            wallet, refund_amount, f"Refund for cancelled booking #{booking_id}"
+        finance = FinanceService(self.booking_repo.db, self.current_user)
+        await finance.create_refund(
+            booking=booking,
+            refund_type=RefundType.USER_CANCELLATION,
+            reason="لغو کاربر بیشتر از ۴۸ ساعت مانده به شروع سانس",
+            penalty_amount=Decimal(str(penalty_amount)),
+            refund_amount=Decimal(str(refund_amount)),
+            penalty_charged_to_user=True,
+            site_bears_penalty=False,
         )
 
         await log_action(
             self.booking_repo.db,
             self.current_user.id,
-            "wallet_credited",
-            f"بازگشت وجه به کیف پول | رزرو {booking_id} — مبلغ {refund_amount} تومان",
+            "refund_created",
+            f"رکورد عودت ساخته شد | رزرو {booking_id} — مبلغ {refund_amount} تومان",
         )
 
         # Notify manager about cancellation

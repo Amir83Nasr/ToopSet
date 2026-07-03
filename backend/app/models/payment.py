@@ -16,6 +16,7 @@ class PaymentStatus(str, enum.Enum):
     PENDING = "pending"
     SUCCESS = "success"
     FAILED = "failed"
+    EXPIRED = "expired"
 
 
 class Payment(Base):

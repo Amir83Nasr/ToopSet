@@ -25,6 +25,10 @@ class SmsProvider(ABC):
         """Send an OTP code to the given phone number."""
         ...
 
+    async def send_message(self, phone: str, message: str) -> None:
+        """Send a generic transactional SMS message."""
+        await self.send_otp(phone, message)
+
 
 class MockSmsProvider(SmsProvider):
     """Mock provider that prints OTP to console (for development)."""
@@ -34,7 +38,13 @@ class MockSmsProvider(SmsProvider):
         print("=" * 60)
         print(f"  [SMS Mock] OTP for {phone}: {code}")
         print("  [SMS Mock] Using mock provider — set SMS_PROVIDER=real to swap")
+        print("=" * 60, flush=True)
+
+    async def send_message(self, phone: str, message: str) -> None:
         print("=" * 60)
+        print(f"  [SMS Mock] Message for {phone}: {message}")
+        print("  [SMS Mock] Using mock provider — set SMS_PROVIDER=real to swap")
+        print("=" * 60, flush=True)
 
 
 # Stub for future real providers — uncomment and wire up when ready:

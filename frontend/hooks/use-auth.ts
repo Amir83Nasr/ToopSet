@@ -6,6 +6,8 @@ import { ApiError, api, clearTokens, setTokens } from "@/lib/api"
 import { getCookie } from "@/lib/cookies"
 import type {
   AuthResponse,
+  LoginOptionsRequest,
+  LoginOptionsResponse,
   LoginRequest,
   RegisterRequest,
   SendOtpRequest,
@@ -14,34 +16,53 @@ import type {
   VerifyOtpRequest,
 } from "@/types/auth"
 
+type CurrentUserResponse = {
+  id: number
+  phone: string
+  full_name: string
+  role: string
+  is_active: boolean
+  has_password: boolean
+  avatar_url?: string | null
+  created_at: string
+}
+
+let currentUserRequest: Promise<User | null> | null = null
+
+async function fetchCurrentUser(): Promise<User | null> {
+  const token = getCookie("access_token")
+  if (!token) return null
+
+  if (!currentUserRequest) {
+    currentUserRequest = api<CurrentUserResponse>("/api/v1/auth/me")
+      .then((data) => ({ ...data, role: data.role as User["role"] }))
+      .catch((err) => {
+        if (
+          err instanceof ApiError &&
+          [401, 403, 404].includes(err.status)
+        ) {
+          clearTokens()
+        }
+        return null
+      })
+      .finally(() => {
+        currentUserRequest = null
+      })
+  }
+
+  return currentUserRequest
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   const refreshUser = useCallback(async () => {
-    const token = getCookie("access_token")
-    if (!token) {
-      setUser(null)
-      setLoading(false)
-      return
-    }
     try {
-      const data = await api<{
-        id: number
-        phone: string
-        full_name: string
-        role: string
-        is_active: boolean
-        avatar_url?: string | null
-        created_at: string
-      }>("/api/v1/auth/me")
-      setUser({ ...data, role: data.role as User["role"] })
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        clearTokens()
-        setUser(null)
-      }
+      setUser(await fetchCurrentUser())
+    } catch {
+      setUser(null)
     } finally {
       setLoading(false)
     }
@@ -66,14 +87,15 @@ export function useAuth() {
     async (data: LoginRequest, redirect?: string) => {
       const res = await api<AuthResponse>("/api/v1/auth/login", {
         method: "POST",
+        credentials: "include",
         body: JSON.stringify(data),
       })
-      setTokens(res.access_token, res.refresh_token)
+      setTokens(res.access_token)
       setUser(res.user)
       if (redirect && redirect.startsWith("/")) {
         router.push(redirect)
       } else {
-        router.push("/dashboard")
+        router.push("/")
       }
     },
     [router]
@@ -83,18 +105,26 @@ export function useAuth() {
     async (data: RegisterRequest, redirect?: string) => {
       const res = await api<AuthResponse>("/api/v1/auth/register", {
         method: "POST",
+        credentials: "include",
         body: JSON.stringify(data),
       })
-      setTokens(res.access_token, res.refresh_token)
+      setTokens(res.access_token)
       setUser(res.user)
       if (redirect && redirect.startsWith("/")) {
         router.push(redirect)
       } else {
-        router.push("/dashboard")
+        router.push("/")
       }
     },
     [router]
   )
+
+  const checkLoginOptions = useCallback(async (data: LoginOptionsRequest) => {
+    return api<LoginOptionsResponse>("/api/v1/auth/login/options", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }, [])
 
   // ── OTP methods ──────────────────────────────────────────────────
 
@@ -110,20 +140,29 @@ export function useAuth() {
     async (data: VerifyOtpRequest, redirect?: string) => {
       const res = await api<AuthResponse>("/api/v1/auth/otp/verify", {
         method: "POST",
+        credentials: "include",
         body: JSON.stringify(data),
       })
-      setTokens(res.access_token, res.refresh_token)
+      setTokens(res.access_token)
       setUser(res.user)
       if (redirect && redirect.startsWith("/")) {
         router.push(redirect)
       } else {
-        router.push("/dashboard")
+        router.push("/")
       }
     },
     [router]
   )
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await api("/api/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      })
+    } catch {
+      // Local logout should still clear UI state if the server session is already gone.
+    }
     clearTokens()
     setUser(null)
     router.push("/")
@@ -133,6 +172,7 @@ export function useAuth() {
     user,
     loading,
     login,
+    checkLoginOptions,
     register,
     sendOtp,
     verifyOtp,

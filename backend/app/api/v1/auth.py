@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 from redis import asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,12 +8,15 @@ from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.rate_limiter import limiter
 from app.core.redis_client import get_redis
+from app.core.security import create_password_reset_token, decode_token
 from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload, save_upload
 from app.models.user import User
 from app.repositories.refresh_token_repo import RefreshTokenRepo
-from app.repositories.user_repo import UserRepository
+from app.repositories.user_repo import OTP_PLACEHOLDER_HASH, UserRepository
 from app.schemas.auth import (
     AvatarUploadResponse,
+    LoginOptionsRequest,
+    LoginOptionsResponse,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -29,6 +32,71 @@ from app.services.auth_service import AuthService
 from app.services.otp_service import OtpService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+PASSWORD_RESET_COOKIE = "password_reset_token"
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    response.set_cookie(
+        key=settings.refresh_cookie_name,
+        value=refresh_token,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.refresh_cookie_secure,
+        samesite=settings.refresh_cookie_samesite,
+        path="/api/v1/auth",
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.refresh_cookie_name,
+        path="/api/v1/auth",
+        samesite=settings.refresh_cookie_samesite,
+        secure=settings.refresh_cookie_secure,
+        httponly=True,
+    )
+
+
+def _clear_refresh_cookie_headers() -> dict[str, str]:
+    response = Response()
+    _clear_refresh_cookie(response)
+    return {"Set-Cookie": response.headers["set-cookie"]}
+
+
+def _invalid_refresh_exception(detail: str = "توکن رفرش نامعتبر یا منقضی شده") -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail=detail,
+        headers=_clear_refresh_cookie_headers(),
+    )
+
+
+def _set_password_reset_cookie(response: Response, reset_token: str) -> None:
+    response.set_cookie(
+        key=PASSWORD_RESET_COOKIE,
+        value=reset_token,
+        max_age=10 * 60,
+        httponly=True,
+        secure=settings.refresh_cookie_secure,
+        samesite=settings.refresh_cookie_samesite,
+        path="/api/v1/auth",
+    )
+
+
+def _clear_password_reset_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=PASSWORD_RESET_COOKIE,
+        path="/api/v1/auth",
+        samesite=settings.refresh_cookie_samesite,
+        secure=settings.refresh_cookie_secure,
+        httponly=True,
+    )
+
+
+def _refresh_token_from_request(request: Request, body: RefreshRequest | None = None) -> str | None:
+    if body and body.refresh_token:
+        return body.refresh_token
+    return request.cookies.get(settings.refresh_cookie_name)
 
 
 def _auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
@@ -48,7 +116,7 @@ async def _otp_service(
 
 
 @router.post("/otp/send", response_model=SendOtpResponse, summary="Send OTP code")
-@limiter.limit("3/minute")
+@limiter.limit("30/minute")
 async def send_otp(
     request: Request,
     body: SendOtpRequest,
@@ -65,6 +133,7 @@ async def send_otp(
 @limiter.limit("10/minute")
 async def verify_otp(
     request: Request,
+    response: Response,
     body: VerifyOtpRequest,
     redis: aioredis.Redis = Depends(get_redis),
     db: AsyncSession = Depends(get_db),
@@ -85,9 +154,14 @@ async def verify_otp(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    _set_refresh_cookie(response, refresh_token)
+    if body.purpose == "password_reset":
+        _set_password_reset_cookie(
+            response,
+            create_password_reset_token({"sub": str(user.id), "ver": user.token_version}),
+        )
     return TokenResponse(
         access_token=access_token,
-        refresh_token=refresh_token,
         user=UserResponse.model_validate(user),
     )
 
@@ -96,11 +170,30 @@ async def verify_otp(
 
 
 @router.post(
+    "/login/options",
+    response_model=LoginOptionsResponse,
+    summary="Check login options for a phone number",
+)
+@limiter.limit("10/minute")
+async def login_options(
+    request: Request,
+    body: LoginOptionsRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await UserRepository(db).get_by_phone(body.phone)
+    return LoginOptionsResponse(
+        is_new_user=user is None,
+        has_password=bool(user and user.password_hash != OTP_PLACEHOLDER_HASH),
+    )
+
+
+@router.post(
     "/register", response_model=TokenResponse, status_code=201, summary="Register a new user"
 )
 @limiter.limit("3/minute")
 async def register(
     request: Request,
+    response: Response,
     body: RegisterRequest,
     service: AuthService = Depends(_auth_service),
 ):
@@ -112,9 +205,9 @@ async def register(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    _set_refresh_cookie(response, refresh_token)
     return TokenResponse(
         access_token=access_token,
-        refresh_token=refresh_token,
         user=UserResponse.model_validate(user),
     )
 
@@ -123,6 +216,7 @@ async def register(
 @limiter.limit("5/minute")
 async def login(
     request: Request,
+    response: Response,
     body: LoginRequest,
     service: AuthService = Depends(_auth_service),
 ):
@@ -133,9 +227,9 @@ async def login(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    _set_refresh_cookie(response, refresh_token)
     return TokenResponse(
         access_token=access_token,
-        refresh_token=refresh_token,
         user=UserResponse.model_validate(user),
     )
 
@@ -144,18 +238,30 @@ async def login(
 @limiter.limit("10/minute")
 async def refresh(
     request: Request,
-    body: RefreshRequest,
+    response: Response,
+    body: RefreshRequest | None = None,
     service: AuthService = Depends(_auth_service),
 ):
-    new_access, new_refresh = await service.refresh(
-        body.refresh_token,
-        device_info=_device_info(request),
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
+    refresh_token = _refresh_token_from_request(request, body)
+    if not refresh_token:
+        raise _invalid_refresh_exception()
+    try:
+        new_access, new_refresh = await service.refresh(
+            refresh_token,
+            device_info=_device_info(request),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            exc.headers = {
+                **(exc.headers or {}),
+                **_clear_refresh_cookie_headers(),
+            }
+        raise
+    _set_refresh_cookie(response, new_refresh)
     return TokenResponse(
         access_token=new_access,
-        refresh_token=new_refresh,
     )
 
 
@@ -169,11 +275,29 @@ async def me(current_user: User = Depends(get_current_user)):
 
 @router.patch("/profile", response_model=UserResponse, summary="Update profile")
 async def update_profile(
+    request: Request,
+    response: Response,
     body: UpdateProfileRequest,
     current_user: User = Depends(get_current_user),
     service: AuthService = Depends(_auth_service),
 ):
-    updated_user = await service.update_profile(current_user, body)
+    password_reset_verified = False
+    reset_token = request.cookies.get(PASSWORD_RESET_COOKIE)
+    if reset_token:
+        reset_payload = decode_token(reset_token, expected_type="password_reset")
+        password_reset_verified = bool(
+            reset_payload
+            and reset_payload.get("sub") == str(current_user.id)
+            and reset_payload.get("ver") == current_user.token_version
+        )
+
+    updated_user = await service.update_profile(
+        current_user,
+        body,
+        password_change_verified=password_reset_verified,
+    )
+    if body.new_password is not None:
+        _clear_password_reset_cookie(response)
     return UserResponse.model_validate(updated_user)
 
 
@@ -273,25 +397,25 @@ async def revoke_session(
     summary="Logout all sessions",
 )
 async def logout_all_sessions(
+    response: Response,
     current_user: User = Depends(get_current_user),
     service: AuthService = Depends(_auth_service),
 ):
     await service.logout_all_sessions(current_user)
+    _clear_refresh_cookie(response)
     return LogoutResponse(detail="از تمام نشست‌ها خارج شدید")
 
 
 @router.post("/logout", response_model=LogoutResponse, summary="Logout current session")
 async def logout(
     request: Request,
+    response: Response,
     current_user: User = Depends(get_current_user),
     service: AuthService = Depends(_auth_service),
 ):
-    # Try to extract refresh token from Authorization header or body
-    refresh_token = None
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        refresh_token = auth_header[len("Bearer ") :]
+    refresh_token = request.cookies.get(settings.refresh_cookie_name)
     await service.logout(current_user, refresh_token)
+    _clear_refresh_cookie(response)
     return LogoutResponse()
 
 

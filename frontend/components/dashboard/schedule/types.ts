@@ -9,6 +9,8 @@ export interface TimeSlot {
   start_time: string
   end_time: string
   base_price: number
+  ball_price: number
+  ball_available: boolean
   is_reserved: boolean
   version: number
 }
@@ -17,6 +19,8 @@ export interface TimeSlotTemplate {
   start_time: string
   end_time: string
   base_price: string
+  ball_price: string
+  ball_available: boolean
 }
 
 export interface ScheduleTemplate {
@@ -31,7 +35,13 @@ export interface BulkGeneratePayload {
   date_from: string
   date_to: string
   days_of_week: number[]
-  templates: { start_time: string; end_time: string; base_price: number }[]
+  templates: {
+    start_time: string
+    end_time: string
+    base_price: number
+    ball_price: number
+    ball_available: boolean
+  }[]
 }
 
 export type SlotStatus = "available" | "reserved" | "past"

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
 from app.models.log import Log
 from app.repositories.refresh_token_repo import RefreshTokenRepo
 
@@ -126,7 +127,12 @@ class TestLogoutCurrent:
         """Logout revokes the refresh token, so new access tokens can't be minted."""
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         rt = user_token["refresh_token"]
-        await client.post("/api/v1/auth/logout", headers=headers)
+        assert rt
+        await client.post(
+            "/api/v1/auth/logout",
+            headers=headers,
+            cookies={settings.refresh_cookie_name: rt},
+        )
         # The old refresh token should now be rejected
         resp = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
         assert resp.status_code == 401
@@ -246,13 +252,14 @@ class TestSessionPersistence:
             json={"phone": "09121111401", "password": "Test1234", "full_name": "persist-ref"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = client.cookies.get(settings.refresh_cookie_name)
+        assert rt
 
         refresh_repo = RefreshTokenRepo(session)
         user_id = reg.json()["user"]["id"]
         count_before = await refresh_repo.count_active(user_id)
 
-        await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
+        await client.post("/api/v1/auth/refresh", cookies={settings.refresh_cookie_name: rt})
 
         count_after = await refresh_repo.count_active(user_id)
         # One old token revoked + one new token created → same count

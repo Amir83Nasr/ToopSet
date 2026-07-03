@@ -36,6 +36,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "/api/v1/users/me",
         "/api/v1/admin/",
     )
+    _DOCS_PATHS = (
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/docs/oauth2-redirect",
+    )
 
     async def dispatch(
         self,
@@ -47,11 +53,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "0"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'none'; img-src 'self' data:; "
-            "style-src 'self' 'unsafe-inline'; font-src 'self'; "
-            "connect-src 'self'; form-action 'none'; frame-ancestors 'none'"
-        )
+        if request.url.path in self._DOCS_PATHS:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://fastapi.tiangolo.com; "
+                "font-src 'self' https://cdn.jsdelivr.net; "
+                "connect-src 'self'; form-action 'none'; frame-ancestors 'none'"
+            )
+        else:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; img-src 'self' data:; "
+                "style-src 'self' 'unsafe-inline'; font-src 'self'; "
+                "connect-src 'self'; form-action 'none'; frame-ancestors 'none'"
+            )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = (
             "geolocation=(), microphone=(), camera=(), payment=()"
@@ -69,6 +85,7 @@ def _make_response(
     request: Request | None = None,
     error_code: str | None = None,
     fields: list[FieldError] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     body = ErrorResponse(
         detail=detail,
@@ -78,7 +95,7 @@ def _make_response(
         request_id=get_request_id() or None,
         fields=fields,
     ).model_dump(mode="json")
-    return JSONResponse(status_code=status_code, content=body)
+    return JSONResponse(status_code=status_code, content=body, headers=headers)
 
 
 async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -89,6 +106,7 @@ async def http_exception_handler(request: Request, exc: Exception) -> JSONRespon
         detail=exc.detail if isinstance(exc.detail, str) else str(exc.detail),
         request=request,
         error_code=_status_to_code(exc.status_code),
+        headers=exc.headers,
     )
 
 

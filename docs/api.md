@@ -47,13 +47,13 @@ Base: `/api/v1/auth`
 
 | متد و مسیر | دسترسی | کار |
 | --- | --- | --- |
-| `POST /otp/send` | public, rate `3/min` | ارسال کد ۶ رقمی OTP؛ در mock مقدار `dev_code` برمی‌گردد |
+| `POST /otp/send` | public, rate `30/min`, phone cooldown `90s` | ارسال کد ۶ رقمی OTP؛ در mock مقدار `dev_code` برمی‌گردد |
 | `POST /otp/verify` | public, rate `10/min` | تایید OTP؛ اگر کاربر جدید باشد با `full_name` می‌سازد و token pair می‌دهد |
 | `POST /register` | public, rate `3/min` | ثبت‌نام با phone/password/full_name و صدور token pair |
 | `POST /login` | public, rate `5/min` | بررسی رمز bcrypt، افزایش `token_version` و صدور token pair |
 | `POST /refresh` | public, rate `10/min` | rotation refresh token؛ token قدیمی revoke و token جدید ذخیره می‌شود |
 | `GET /me` | user | اطلاعات کاربر فعلی |
-| `PATCH /profile` | user | تغییر نام و در صورت ارسال رمز فعلی، تغییر رمز |
+| `PATCH /profile` | user | تغییر نام و/یا رمز عبور جدید بدون نیاز به رمز فعلی |
 | `POST /avatar` | user | آپلود avatar و حذف avatar قبلی |
 | `DELETE /avatar` | user | حذف avatar |
 | `GET /sessions` | user | لیست sessionهای فعال |
@@ -61,7 +61,7 @@ Base: `/api/v1/auth`
 | `DELETE /sessions` | user | logout همه sessionها و افزایش `token_version` |
 | `POST /logout` | user | logout session جاری؛ اگر refresh token در Authorization باشد همان session revoke می‌شود، وگرنه همه sessionها revoke می‌شوند |
 
-منطق سرویس‌ها: `AuthService` مسئول ثبت‌نام، login، refresh rotation، logout و update profile است. `OtpService` کد را با TTL پنج دقیقه در Redis ذخیره می‌کند، ارسال هر شماره را ۳ بار در ۱۰ دقیقه محدود می‌کند و بعد از ۵ خطای تایید در ۱۵ دقیقه lockout می‌دهد.
+منطق سرویس‌ها: `AuthService` مسئول ثبت‌نام، login، refresh rotation، logout و update profile است. `OtpService` کد را با TTL نود ثانیه در Redis ذخیره می‌کند، ارسال OTP برای هر شماره را به یک بار در هر نود ثانیه محدود می‌کند و برای هر کد فعال بعد از ۵ خطای تایید، درخواست کد جدید لازم می‌شود.
 
 ## Vendors API
 

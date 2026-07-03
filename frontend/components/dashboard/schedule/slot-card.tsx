@@ -62,8 +62,13 @@ export function SlotCard({
       </div>
 
       {!compact && (
-        <div className="mb-1.5 text-xs text-muted-foreground">
-          {formatPrice(slot.base_price)}
+        <div className="mb-1.5 space-y-0.5 text-xs text-muted-foreground">
+          <div>{formatPrice(slot.base_price)}</div>
+          {slot.ball_available && (
+            <div className="text-[11px]">
+              توپ: {formatPrice(slot.ball_price)}
+            </div>
+          )}
         </div>
       )}
 

@@ -20,6 +20,8 @@ class TimeSlotRepo:
         *,
         after_id: int | None = None,
         date: str | None = None,
+        start_from: datetime | None = None,
+        start_until: datetime | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> tuple[list[TimeSlot], int]:
@@ -28,6 +30,14 @@ class TimeSlotRepo:
 
         if after_id is not None:
             base = base.where(TimeSlot.id > after_id)
+
+        if start_from is not None:
+            base = base.where(TimeSlot.start_time >= start_from)
+            count_q = count_q.where(TimeSlot.start_time >= start_from)
+
+        if start_until is not None:
+            base = base.where(TimeSlot.start_time <= start_until)
+            count_q = count_q.where(TimeSlot.start_time <= start_until)
 
         if date:
             start_dt = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default function OldManagerBookingsPage() {
+export default function ManagerBookingsPage() {
   redirect("/dashboard/vendors")
 }

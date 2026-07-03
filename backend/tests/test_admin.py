@@ -11,6 +11,8 @@ from app.models.vendor import Vendor
 
 pytestmark = [pytest.mark.asyncio]
 
+BOOTSTRAP_HEADERS = {"X-Bootstrap-Secret": "test-bootstrap-secret"}
+
 
 class TestBroadcast:
     """POST /api/v1/admin/notifications/broadcast"""
@@ -246,6 +248,7 @@ class TestSeedAdmin:
     async def test_seed_admin_when_none_exists(self, client: AsyncClient) -> None:
         resp = await client.post(
             "/api/v1/admin/seed-admin",
+            headers=BOOTSTRAP_HEADERS,
             json={
                 "phone": "09120000003",
                 "password": "admin123",
@@ -263,6 +266,7 @@ class TestSeedAdmin:
         # First creation succeeds
         resp1 = await client.post(
             "/api/v1/admin/seed-admin",
+            headers=BOOTSTRAP_HEADERS,
             json={"phone": "09120000004", "password": "admin123"},
         )
         assert resp1.status_code == 201
@@ -270,6 +274,7 @@ class TestSeedAdmin:
         # Second attempt must fail (admin already exists)
         resp2 = await client.post(
             "/api/v1/admin/seed-admin",
+            headers=BOOTSTRAP_HEADERS,
             json={"phone": "09120000005", "password": "admin123"},
         )
         assert resp2.status_code == 400
@@ -289,6 +294,7 @@ class TestSeedAdmin:
         # Try seed-admin with the same phone
         resp = await client.post(
             "/api/v1/admin/seed-admin",
+            headers=BOOTSTRAP_HEADERS,
             json={
                 "phone": "09120000006",
                 "password": "admin123",

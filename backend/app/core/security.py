@@ -3,6 +3,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError, JWTClaimsError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -91,6 +92,13 @@ def create_refresh_token(data: dict) -> str:
     return jwt.encode(claims, signing_key, algorithm="HS256", headers=headers)
 
 
+def create_password_reset_token(data: dict) -> str:
+    signing_key, kid = _get_signing_key()
+    claims = _build_claims(data, timedelta(minutes=10), "password_reset")
+    headers = {"kid": kid} if kid else {}
+    return jwt.encode(claims, signing_key, algorithm="HS256", headers=headers)
+
+
 def tokens_for_user(
     user_id: int, role: str, token_version: int, session_id: str | None = None
 ) -> tuple[str, str]:
@@ -117,7 +125,7 @@ def tokens_for_user(
     return access_token, refresh_token
 
 
-def decode_token(token: str) -> dict | None:
+def decode_token(token: str, expected_type: str | None = None) -> dict | None:
     """Decode and validate *token* against all active signing keys.
 
     Handles clock skew by applying ``clock_skew_seconds`` leeway to the
@@ -136,24 +144,22 @@ def decode_token(token: str) -> dict | None:
                 token,
                 key,
                 algorithms=["HS256"],
+                issuer=settings.jwt_issuer,
+                audience=settings.jwt_audience,
                 options={
-                    "verify_aud": False,
-                    "verify_iss": False,
                     "verify_iat": False,
                     "verify_nbf": False,
-                    "verify_exp": False,
+                    "verify_exp": True,
+                    "leeway": settings.clock_skew_seconds,
                 },
             )
-        except JWTError:
+        except ExpiredSignatureError:
+            continue
+        except (JWTClaimsError, JWTError):
             continue
 
         # ── Manual claim validation ──────────────────────────────────
         now = _now()
-
-        # exp — must not be expired (with leeway)
-        exp = payload.get("exp")
-        if exp is not None and datetime.fromtimestamp(exp, tz=UTC) + leeway < now:
-            continue  # expired, try next key
 
         # iat — must be in the past (with leeway)
         iat = payload.get("iat")
@@ -163,6 +169,9 @@ def decode_token(token: str) -> dict | None:
         # nbf — must not be used before (with leeway)
         nbf = payload.get("nbf")
         if nbf is not None and datetime.fromtimestamp(nbf, tz=UTC) > now + leeway:
+            continue
+
+        if expected_type is not None and payload.get("type") != expected_type:
             continue
 
         return payload

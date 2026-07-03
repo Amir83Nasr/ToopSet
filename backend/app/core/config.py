@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     jwt_audience: str = "toopset-client"
     clock_skew_seconds: int = 10
     session_cleanup_interval_days: int = 30
+    app_environment: str = "development"
+    bootstrap_admin_secret: str = ""
+    allow_audit_log_deletion: bool = False
+    refresh_cookie_name: str = "refresh_token"
+    refresh_cookie_secure: bool = False
+    refresh_cookie_samesite: str = "lax"
 
     # Connection Pool
     db_pool_size: int = 20
@@ -102,6 +108,10 @@ class Settings(BaseSettings):
         if self.redis_password:
             return f"{scheme}://:{self.redis_password}@{self.redis_host}:{self.redis_port}/0"
         return f"{scheme}://{self.redis_host}:{self.redis_port}/0"
+
+    @property
+    def is_development_or_bootstrap(self) -> bool:
+        return self.app_environment.lower() in {"development", "dev", "test", "bootstrap"}
 
 
 settings = Settings()
@@ -180,6 +190,13 @@ def validate_env(settings: Settings | None = None) -> None:
 
     # ── PRODUCTION-only checks ────────────────────────────────────────
     if not _is_dev_defaults(settings):
+        if settings.app_environment.lower() in {"development", "dev", "test", "bootstrap"}:
+            errors.append("APP_ENVIRONMENT must not be development/bootstrap/test in production.")
+        if not settings.refresh_cookie_secure:
+            errors.append(
+                "REFRESH_COOKIE_SECURE must be true in production so refresh tokens are only "
+                "sent over HTTPS. Set REFRESH_COOKIE_SECURE=false only for local HTTP development."
+            )
         if settings.payment_gateway == "mock":
             errors.append(
                 "PAYMENT_GATEWAY is 'mock' in non-development environment. "

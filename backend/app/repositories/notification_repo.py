@@ -85,6 +85,20 @@ class NotificationRepo:
             await self.db.refresh(n)
         return n
 
+    async def mark_read_for_user(self, notification_id: int, user_id: int) -> Notification | None:
+        result = await self.db.execute(
+            select(Notification).where(
+                Notification.id == notification_id,
+                Notification.user_id == user_id,
+            )
+        )
+        n = result.scalar_one_or_none()
+        if n:
+            n.is_read = True
+            await self.db.flush()
+            await self.db.refresh(n)
+        return n
+
     async def mark_all_read(self, user_id: int) -> None:
         from sqlalchemy import update
 

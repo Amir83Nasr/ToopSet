@@ -92,9 +92,14 @@ class VendorService:
         vendor = await self.repo.get_by_id(vendor_id)
         if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        if not vendor.is_active and (
-            self.current_user is None or self.current_user.role not in ("admin", "manager")
-        ):
+        can_view_inactive = bool(
+            self.current_user
+            and (
+                self.current_user.role == "admin"
+                or vendor.manager_id == self.current_user.id
+            )
+        )
+        if not vendor.is_active and not can_view_inactive:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         prices = await self.repo.get_min_prices([vendor_id])
         return self._to_response(vendor, min_price=prices.get(vendor_id))

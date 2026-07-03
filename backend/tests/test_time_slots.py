@@ -99,11 +99,34 @@ class TestListSlotsAfterCreate:
         body = {**_SLOT_BODY, "vendor_id": vendor_id}
         await client.post(f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers)
 
-        resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots")
+        resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
         assert any(s["vendor_id"] == vendor_id for s in data["slots"])
+
+    async def test_public_list_hides_slots_beyond_two_weeks(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        body = {
+            **_SLOT_BODY,
+            "vendor_id": vendor_id,
+            "start_time": "2026-07-25T10:00:00",
+            "end_time": "2026-07-25T11:30:00",
+        }
+        await client.post(f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers)
+
+        public_resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots?date=2026-07-25")
+        assert public_resp.status_code == 200
+        assert public_resp.json()["slots"] == []
+
+        manager_resp = await client.get(
+            f"/api/v1/vendors/{vendor_id}/slots?date=2026-07-25", headers=headers
+        )
+        assert manager_resp.status_code == 200
+        assert manager_resp.json()["total"] == 1
 
 
 class TestGetSlot:
@@ -120,7 +143,7 @@ class TestGetSlot:
         )
         slot_id = create_resp.json()["id"]
 
-        resp = await client.get(f"/api/v1/slots/{slot_id}")
+        resp = await client.get(f"/api/v1/slots/{slot_id}", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == slot_id
@@ -188,6 +211,25 @@ class TestUpdateSlot:
         assert resp.status_code == 200
         assert resp.json()["base_price"] == 200000.0
 
+    async def test_update_rejects_mismatched_vendor_path(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        other_vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
+        create_resp = await client.post(
+            f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers
+        )
+        slot_id = create_resp.json()["id"]
+
+        resp = await client.patch(
+            f"/api/v1/vendors/{other_vendor_id}/slots/{slot_id}",
+            json={"base_price": 200000},
+            headers=headers,
+        )
+        assert resp.status_code == 404
+
 
 class TestDeleteSlot:
     """DELETE /vendors/{vendor_id}/slots/{slot_id} — manager deletes a slot."""
@@ -208,6 +250,24 @@ class TestDeleteSlot:
             headers=headers,
         )
         assert resp.status_code == 204
+
+    async def test_delete_rejects_mismatched_vendor_path(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        other_vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        body = {**_SLOT_BODY, "vendor_id": vendor_id}
+        create_resp = await client.post(
+            f"/api/v1/vendors/{vendor_id}/slots", json=body, headers=headers
+        )
+        slot_id = create_resp.json()["id"]
+
+        resp = await client.delete(
+            f"/api/v1/vendors/{other_vendor_id}/slots/{slot_id}",
+            headers=headers,
+        )
+        assert resp.status_code == 404
 
     async def test_delete_nonexistent(
         self, client: AsyncClient, manager_token: dict, session: AsyncSession

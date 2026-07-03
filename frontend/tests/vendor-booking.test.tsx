@@ -14,6 +14,8 @@ function makeSlots(
     start_time: `2026-06-20T0${8 + i}:00:00`,
     end_time: `2026-06-20T0${9 + i}:00:00`,
     base_price: 150000,
+    ball_price: 0,
+    ball_available: false,
     is_reserved: false,
     version: 1,
     ...overrides,

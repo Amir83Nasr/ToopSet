@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo } from "react"
-import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,153 +12,163 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { AlertTriangle, Loader2 } from "lucide-react"
-import type { BookingDetail } from "@/components/bookings/types"
-
-/* ── Cancellation preview computation (pure) ── */
-
-interface CancelPreview {
-  canCancel: boolean
-  refundPercent: number
-  penaltyPercent: number
-  refundAmount: number
-  penaltyAmount: number
-  reason: string
-}
-
-function getCancelPreview(b: BookingDetail, now: number): CancelPreview {
-  if (!b.slot_start_time) {
-    return {
-      canCancel: true,
-      refundPercent: 100,
-      penaltyPercent: 0,
-      refundAmount: b.price_paid,
-      penaltyAmount: 0,
-      reason: "",
-    }
-  }
-  const slotTime = new Date(b.slot_start_time).getTime()
-  const hoursUntil = (slotTime - now) / (1000 * 60 * 60)
-
-  if (hoursUntil < 2) {
-    return {
-      canCancel: false,
-      refundPercent: 0,
-      penaltyPercent: 0,
-      refundAmount: 0,
-      penaltyAmount: 0,
-      reason: "امکان لغو کمتر از ۲ ساعت مانده به شروع سانس وجود ندارد",
-    }
-  }
-  if (hoursUntil <= 24) {
-    const penalty = b.price_paid * 0.5
-    return {
-      canCancel: true,
-      refundPercent: 50,
-      penaltyPercent: 50,
-      refundAmount: b.price_paid * 0.5,
-      penaltyAmount: penalty,
-      reason: "لغو بین ۲ تا ۲۴ ساعت قبل: ۵۰٪ جریمه",
-    }
-  }
-  return {
-    canCancel: true,
-    refundPercent: 100,
-    penaltyPercent: 0,
-    refundAmount: b.price_paid,
-    penaltyAmount: 0,
-    reason: "لغو بیش از ۲۴ ساعت قبل: بازگشت کامل وجه",
-  }
-}
-
-/* ── Dialog component ── */
+import { AlertTriangle, CreditCard, Loader2 } from "lucide-react"
+import type {
+  BookingCancellationTerms,
+  BookingDetail,
+} from "@/components/bookings/types"
 
 interface BookingCancelDialogProps {
   booking: BookingDetail | null
+  terms: BookingCancellationTerms | null
+  cardNumber: string
+  acceptedTerms: boolean
+  onCardNumberChange: (value: string) => void
+  onAcceptedTermsChange: (value: boolean) => void
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
   loading: boolean
 }
 
+function formatMoney(amount: number): string {
+  return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`
+}
+
+function modeLabel(mode: string): string {
+  switch (mode) {
+    case "pending_payment":
+      return "لغو رزرو پرداخت‌نشده"
+    case "pending_replacement":
+      return "در انتظار جایگزین"
+    case "refund_with_penalty":
+      return "عودت با کسر جریمه"
+    default:
+      return "بررسی شروط لغو"
+  }
+}
+
 export function BookingCancelDialog({
   booking,
+  terms,
+  cardNumber,
+  acceptedTerms,
+  onCardNumberChange,
+  onAcceptedTermsChange,
   onOpenChange,
   onConfirm,
   loading,
 }: BookingCancelDialogProps) {
-  const preview = useMemo(
-    // eslint-disable-next-line react-hooks/purity
-    () => (booking ? getCancelPreview(booking, Date.now()) : null),
-    [booking]
+  const needsCard = Boolean(
+    terms?.requires_bank_card && !terms.has_verified_bank_card
   )
+  const canSubmit =
+    Boolean(terms?.can_cancel) &&
+    acceptedTerms &&
+    (!needsCard || cardNumber.replace(/\D/g, "").length === 16)
 
   return (
     <AlertDialog
       open={!!booking}
-      onOpenChange={(o) => {
-        if (!o) onOpenChange(false)
+      onOpenChange={(open) => {
+        if (!open) onOpenChange(false)
       }}
     >
       <AlertDialogContent>
-        {booking && preview && (
+        {booking && (
           <>
             <AlertDialogHeader>
               <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
               <AlertDialogDescription>
-                آیا از لغو رزرو {booking.vendor_name} مطمئن هستید؟
+                شروط لغو رزرو {booking.vendor_name} را بررسی و تایید کنید.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
-            <div className="space-y-3 rounded-lg border p-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">مبلغ پرداختی</span>
-                <span>
-                  {new Intl.NumberFormat("fa-IR").format(booking.price_paid)}{" "}
-                  تومان
-                </span>
+            {!terms ? (
+              <div className="flex items-center justify-center gap-2 rounded-lg border p-6 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                در حال دریافت شروط لغو...
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">درصد بازگشت</span>
-                <span
-                  className={
-                    preview.refundPercent >= 100
-                      ? "text-status-confirmed"
-                      : "text-status-pending"
-                  }
-                >
-                  {toPersianDigits(preview.refundPercent)}٪
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">مبلغ بازگشتی</span>
-                <span className="font-medium text-status-confirmed">
-                  {new Intl.NumberFormat("fa-IR").format(preview.refundAmount)}{" "}
-                  تومان
-                </span>
-              </div>
-              {preview.penaltyAmount > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">جریمه</span>
-                  <span className="font-medium text-destructive">
-                    {new Intl.NumberFormat("fa-IR").format(
-                      preview.penaltyAmount
-                    )}{" "}
-                    تومان
-                  </span>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2 rounded-lg border p-4 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">نوع لغو</span>
+                    <span className="font-medium">{modeLabel(terms.mode)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">مبلغ پرداختی</span>
+                    <span>{formatMoney(booking.price_paid)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">مبلغ بازگشتی</span>
+                    <span className="font-medium text-status-confirmed">
+                      {formatMoney(terms.refund_amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">جریمه</span>
+                    <span className="font-medium text-destructive">
+                      {formatMoney(terms.penalty_amount)}
+                    </span>
+                  </div>
                 </div>
-              )}
-              {!preview.canCancel && (
-                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                  <AlertTriangle className="size-4 shrink-0" />
-                  <span>{preview.reason}</span>
+
+                {terms.blocking_reason && (
+                  <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                    <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                    <span>{terms.blocking_reason}</span>
+                  </div>
+                )}
+
+                <div className="rounded-lg border p-4">
+                  <p className="mb-2 text-sm font-medium">شروط لغو</p>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {terms.rules.map((rule) => (
+                      <li key={rule} className="flex gap-2">
+                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
+                        <span>{rule}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
-            </div>
+
+                {needsCard && (
+                  <div className="space-y-2 rounded-lg border p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <CreditCard className="size-4 text-muted-foreground" />
+                      شماره کارت برای بازگشت وجه
+                    </div>
+                    <Input
+                      value={cardNumber}
+                      onChange={(e) => onCardNumberChange(e.target.value)}
+                      inputMode="numeric"
+                      dir="ltr"
+                      className="text-end"
+                      placeholder="6037 0000 0000 0000"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      این کارت همان لحظه استعلام و برای عودت وجه ثبت می‌شود.
+                    </p>
+                  </div>
+                )}
+
+                <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
+                  <Checkbox
+                    checked={acceptedTerms}
+                    disabled={!terms.can_cancel}
+                    onCheckedChange={(checked) =>
+                      onAcceptedTermsChange(checked === true)
+                    }
+                  />
+                  <span>شروط لغو را مطالعه کردم و تایید می‌کنم.</span>
+                </label>
+              </div>
+            )}
 
             <AlertDialogFooter>
               <AlertDialogCancel>انصراف</AlertDialogCancel>
               <Button
-                disabled={!preview.canCancel || loading}
+                disabled={!canSubmit || loading}
                 onClick={onConfirm}
                 variant="destructive"
                 className="hover:bg-destructive/90"

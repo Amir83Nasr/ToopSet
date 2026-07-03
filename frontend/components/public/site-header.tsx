@@ -53,7 +53,7 @@ import { getInitials, toPersianDigits } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/vendors", label: "جستجوی سالن‌ها" },
+  { href: "/vendors", label: "جستجوی مجموعه‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
@@ -95,6 +95,11 @@ export function SiteHeader() {
               <Link href={link.href}>{link.label}</Link>
             </Button>
           ))}
+          {isAuthenticated && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/bookings">رزروهای من</Link>
+            </Button>
+          )}
         </nav>
 
         {/* Desktop Auth */}
@@ -396,7 +401,7 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              <Link href="/otp">
+              <Link href="/login">
                 <Button className="px-4" size="sm">
                   ورود / ثبت‌نام
                 </Button>
@@ -439,6 +444,15 @@ export function SiteHeader() {
                     {link.label}
                   </Link>
                 ))}
+                {isAuthenticated && (
+                  <Link
+                    href="/dashboard/bookings"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    رزروهای من
+                  </Link>
+                )}
               </nav>
               <div className="mt-6 border-t pt-6">
                 {isAuthenticated && user ? (
@@ -507,7 +521,7 @@ export function SiteHeader() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 px-3">
-                    <Link href="/otp" onClick={() => setMobileOpen(false)}>
+                    <Link href="/login" onClick={() => setMobileOpen(false)}>
                       <Button className="w-full">ورود / ثبت‌نام</Button>
                     </Link>
                   </div>

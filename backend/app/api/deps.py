@@ -1,24 +1,13 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
-from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
+from app.core.security import decode_token
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 
 security = HTTPBearer(auto_error=False)
-
-_DECODE_OPTIONS = {"verify_aud": False, "verify_iss": False}
-
-
-def _validate_token_type(payload: dict, expected: str) -> bool:
-    """Validate the ``type`` claim.  Backward-compat: accept tokens without the claim."""
-    actual = payload.get("type")
-    if actual is None:
-        return True  # legacy token — accept
-    return actual == expected
 
 
 async def get_current_user_optional(
@@ -27,16 +16,11 @@ async def get_current_user_optional(
 ) -> User | None:
     if token is None:
         return None
-    try:
-        payload = jwt.decode(
-            token.credentials, settings.secret_key, algorithms=["HS256"], options=_DECODE_OPTIONS
-        )
-        user_id = payload.get("sub")
-        if user_id is None:
-            return None
-        if not _validate_token_type(payload, "access"):
-            return None
-    except JWTError:
+    payload = decode_token(token.credentials, expected_type="access")
+    if payload is None:
+        return None
+    user_id = payload.get("sub")
+    if user_id is None:
         return None
 
     repo = UserRepository(db)
@@ -58,21 +42,14 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="وارد حساب خود نشده‌اید"
         )
 
-    try:
-        payload = jwt.decode(
-            token.credentials, settings.secret_key, algorithms=["HS256"], options=_DECODE_OPTIONS
-        )
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="توکن نامعتبر است")
-        if not _validate_token_type(payload, "access"):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="نوع توکن نامعتبر است"
-            )
-    except JWTError:
+    payload = decode_token(token.credentials, expected_type="access")
+    if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="توکن نامعتبر یا منقضی شده"
         )
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="توکن نامعتبر است")
 
     repo = UserRepository(db)
     user = await repo.get_by_id(int(user_id))

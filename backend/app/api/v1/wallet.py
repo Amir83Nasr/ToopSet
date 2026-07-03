@@ -32,6 +32,20 @@ async def lookup_bank_card(
     return BankCardResponse.model_validate(card)
 
 
+@router.get(
+    "/bank-cards/verified",
+    response_model=BankCardResponse | None,
+    summary="Get current verified bank card",
+)
+async def get_verified_bank_card(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = BankCardService(db=db, current_user=current_user)
+    card = await service.repo.get_verified_for_user(current_user.id)
+    return BankCardResponse.model_validate(card) if card else None
+
+
 @router.post(
     "/bank-cards/{card_id}/confirm",
     response_model=BankCardResponse,

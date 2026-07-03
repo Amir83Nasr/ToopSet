@@ -96,7 +96,7 @@ async def update_slot(
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.update_slot(slot_id, data)
+    return await service.update_vendor_slot(vendor_id, slot_id, data)
 
 
 @legacy_router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
@@ -107,7 +107,7 @@ async def delete_slot(
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    await service.delete_slot(slot_id)
+    await service.delete_vendor_slot(vendor_id, slot_id)
 
 
 # Dedicated slot detail router — used by the booking flow

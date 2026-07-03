@@ -35,6 +35,7 @@ import {
   LogOut,
   LayoutDashboard,
   Calendar,
+  Undo2,
   type LucideIcon,
 } from "lucide-react"
 
@@ -133,6 +134,21 @@ const navGroups: NavGroup[] = [
         url: "/dashboard/admin/payments",
         icon: CreditCard,
       },
+      {
+        title: "عودت‌ها",
+        url: "/dashboard/admin/refunds",
+        icon: Undo2,
+      },
+      {
+        title: "لغوهای سالندار",
+        url: "/dashboard/admin/manager-cancellations",
+        icon: Calendar,
+      },
+      {
+        title: "تسویه‌ها",
+        url: "/dashboard/admin/settlements",
+        icon: CreditCard,
+      },
       { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
       { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
     ],
@@ -142,7 +158,9 @@ const navGroups: NavGroup[] = [
   {
     label: "مدیریت مجموعه",
     roles: ["manager"],
-    items: [{ title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 }],
+    items: [
+      { title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 },
+    ],
   },
 
   // ── Personal (manager) ──

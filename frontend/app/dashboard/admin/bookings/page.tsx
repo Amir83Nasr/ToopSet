@@ -77,6 +77,10 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fa-IR")
 }
 
+function formatWeekday(iso: string): string {
+  return new Date(iso).toLocaleDateString("fa-IR", { weekday: "long" })
+}
+
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fa-IR", {
     hour: "2-digit",
@@ -222,6 +226,7 @@ export default function AdminBookingsPage() {
                 <TableHead className="w-28 text-right">شماره تماس</TableHead>
                 <TableHead>مجموعه</TableHead>
                 <TableHead>تاریخ</TableHead>
+                <TableHead>روز</TableHead>
                 <TableHead>ساعت</TableHead>
                 <TableHead>مبلغ</TableHead>
                 <TableHead>وضعیت</TableHead>
@@ -231,7 +236,7 @@ export default function AdminBookingsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-20" />
                     </TableCell>
@@ -262,6 +267,7 @@ export default function AdminBookingsPage() {
                 <TableHead className="w-36 text-right">شماره تماس</TableHead>
                 <TableHead>مجموعه</TableHead>
                 <TableHead className="w-24">تاریخ</TableHead>
+                <TableHead className="w-20">روز</TableHead>
                 <TableHead className="w-28">ساعت</TableHead>
                 <TableHead className="w-28">مبلغ</TableHead>
                 <TableHead className="w-20">وضعیت</TableHead>
@@ -285,6 +291,9 @@ export default function AdminBookingsPage() {
                   </TableCell>
                   <TableCell>
                     {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
                   </TableCell>
                   <TableCell>
                     {b.slot_start_time && b.slot_end_time

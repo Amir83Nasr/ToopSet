@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import log_action
+from app.core.phone import normalize_phone
 from app.core.security import (
     decode_token,
     hash_password,
@@ -14,16 +17,21 @@ from app.core.security import (
 from app.models.user import User
 from app.repositories.refresh_token_repo import RefreshTokenRepo
 from app.repositories.user_repo import UserRepository
+from app.repositories.user_repo import OTP_PLACEHOLDER_HASH
 
 SECURITY_LOG_EVENTS = True
 
 
 async def _security_log(
-    db: AsyncSession, user_id: int | None, action: str, details: str | None = None
+    db: AsyncSession,
+    user_id: int | None,
+    action: str,
+    details: str | None = None,
+    severity: str = "INFO",
 ) -> None:
     """Write a structured security audit log entry."""
     if SECURITY_LOG_EVENTS:
-        await log_action(db, user_id, action, details)
+        await log_action(db, user_id, action, details, severity=severity)
 
 
 class AuthService:
@@ -48,6 +56,7 @@ class AuthService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> tuple[User, str, str]:
+        phone = normalize_phone(phone)
         existing = await self.repo.get_by_phone(phone)
         if existing:
             raise HTTPException(
@@ -87,8 +96,16 @@ class AuthService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> tuple[User, str, str]:
+        phone = normalize_phone(phone)
         user = await self.repo.get_by_phone(phone)
         if not user or not verify_password(password, user.password_hash):
+            await _security_log(
+                self.repo.db,
+                user.id if user else None,
+                "password_login_failed",
+                f"ورود ناموفق با رمز عبور | شماره {phone}",
+                severity="WARNING",
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="شماره تلفن یا رمز عبور اشتباه است"
             )
@@ -131,17 +148,10 @@ class AuthService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> tuple[str, str]:
-        payload = decode_token(refresh_token)
+        payload = decode_token(refresh_token, expected_type="refresh")
         if payload is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="توکن رفرش نامعتبر یا منقضی شده"
-            )
-
-        # Validate token type
-        token_type = payload.get("type")
-        if token_type is not None and token_type != "refresh":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="نوع توکن نامعتبر است"
             )
 
         user_id = payload.get("sub")
@@ -172,16 +182,15 @@ class AuthService:
         if stored is None or stored.revoked_at is not None:
             # Replay attack or already-used token
             if stored is not None and stored.revoked_at is not None:
-                # Replay detected — revoke all sessions for this user
-                await self.refresh_repo.revoke_all_for_user(user.id)
-                # Bump token version to invalidate all JWTs
-                user.token_version += 1
-                await self.repo.update_user(user.id, {"token_version": user.token_version})
+                # Replay detected — revoke the affected session/chain.
+                if session_id:
+                    await self.refresh_repo.revoke_all_for_session(session_id, user_id=user.id)
                 await _security_log(
                     self.repo.db,
                     user.id,
-                    "token_replay_detected",
-                    f"تلاش استفاده مجدد از توکن رفرش | نشست {session_id[:8] if session_id else '?'}... | همه نشست‌ها لغو شد",
+                    "refresh_token_reuse",
+                    f"استفاده مجدد مشکوک از توکن رفرش | نشست {session_id[:8] if session_id else '?'}... | نشست لغو شد",
+                    severity="WARNING",
                 )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -228,7 +237,7 @@ class AuthService:
     async def logout(self, current_user: User, refresh_token: str | None = None) -> None:
         """Revoke the current session."""
         if refresh_token:
-            payload = decode_token(refresh_token)
+            payload = decode_token(refresh_token, expected_type="refresh")
             session_id = payload.get("sid") if payload else None
             if session_id:
                 await self.refresh_repo.revoke_all_for_session(session_id, user_id=current_user.id)
@@ -240,13 +249,12 @@ class AuthService:
                 )
                 return
 
-        # Fallback: no valid refresh token — revoke all sessions anyway
-        count = await self.refresh_repo.revoke_all_for_user(current_user.id)
         await _security_log(
             self.repo.db,
             current_user.id,
             "user_logout",
-            f"خروج از حساب | {count} نشست لغو شد",
+            "خروج از حساب | توکن رفرش نشست جاری ارسال نشد",
+            severity="WARNING",
         )
 
     async def logout_all_sessions(self, current_user: User) -> int:
@@ -315,7 +323,12 @@ class AuthService:
 
     # ── Profile update ───────────────────────────────────────────────
 
-    async def update_profile(self, current_user: User, data) -> User:
+    async def update_profile(
+        self,
+        current_user: User,
+        data,
+        password_change_verified: bool = False,
+    ) -> User:
         from app.schemas.auth import UpdateProfileRequest
 
         if not isinstance(data, UpdateProfileRequest):
@@ -329,16 +342,21 @@ class AuthService:
             changed_fields.append("نام")
 
         if data.new_password is not None:
-            if data.current_password is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="برای تغییر رمز عبور، رمز فعلی را وارد کنید",
-                )
-            if not verify_password(data.current_password, current_user.password_hash):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="رمز عبور فعلی اشتباه است",
-                )
+            if current_user.password_hash != OTP_PLACEHOLDER_HASH and not password_change_verified:
+                if not data.current_password or not verify_password(
+                    data.current_password, current_user.password_hash
+                ):
+                    await _security_log(
+                        self.repo.db,
+                        current_user.id,
+                        "password_change_failed",
+                        "تغییر رمز عبور ناموفق | رمز عبور فعلی نامعتبر است",
+                        severity="WARNING",
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="رمز عبور فعلی نامعتبر است",
+                    )
             update_data["password_hash"] = hash_password(data.new_password)
             changed_fields.append("رمز عبور")
 
@@ -357,6 +375,18 @@ class AuthService:
                 f"ویرایش پروفایل | '{current_user.full_name}' — تغییر {', '.join(changed_fields)}",
             )
 
+        if data.new_password is not None:
+            count = await self.refresh_repo.revoke_all_for_user(current_user.id)
+            updated_user.token_version += 1
+            await self.repo.update_user(updated_user.id, {"token_version": updated_user.token_version})
+            await _security_log(
+                self.repo.db,
+                current_user.id,
+                "password_changed",
+                f"تغییر رمز عبور | {count} نشست لغو شد و نسخه توکن افزایش یافت",
+                severity="WARNING",
+            )
+
         return updated_user
 
     # ── Internal helpers ─────────────────────────────────────────────
@@ -369,7 +399,7 @@ class AuthService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> None:
-        payload = decode_token(refresh_token)
+        payload = decode_token(refresh_token, expected_type="refresh")
         if payload is None:
             return
         session_id = payload.get("sid") or ""
@@ -392,7 +422,7 @@ class AuthService:
     @staticmethod
     def _extract_session_id(refresh_token: str) -> str:
         """Extract the ``sid`` claim from a refresh token."""
-        payload = decode_token(refresh_token)
+        payload = decode_token(refresh_token, expected_type="refresh")
         if payload:
             return payload.get("sid", "")
         return ""

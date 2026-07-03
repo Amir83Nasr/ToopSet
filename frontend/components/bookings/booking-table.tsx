@@ -28,11 +28,40 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fa-IR")
 }
 
+function formatWeekday(iso: string): string {
+  return new Date(iso).toLocaleDateString("fa-IR", { weekday: "long" })
+}
+
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fa-IR", {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+function formatMoney(amount: number): string {
+  return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`
+}
+
+function refundBadge(booking: BookingDetail): {
+  label: string
+  variant: "default" | "secondary" | "destructive" | "outline"
+} {
+  switch (booking.refund_status) {
+    case "paid":
+      return { label: "عودت داده شده", variant: "default" }
+    case "approved":
+      return { label: "تایید شده، در انتظار پرداخت", variant: "secondary" }
+    case "pending":
+      return { label: "در انتظار بررسی عودت", variant: "outline" }
+    case "rejected":
+      return { label: "عودت رد شده", variant: "destructive" }
+    default:
+      if (booking.payment?.status === "success" || booking.price_paid > 0) {
+        return { label: "عودت ثبت نشده", variant: "outline" }
+      }
+      return { label: "پرداختی نداشته", variant: "secondary" }
+  }
 }
 
 /* ── Props ── */
@@ -45,6 +74,7 @@ interface BookingTableProps {
   payingId: number | null
   onPay: (bookingId: number) => void
   onCancelClick: (booking: BookingDetail) => void
+  showRefundStatus?: boolean
 }
 
 export function BookingTable({
@@ -55,6 +85,7 @@ export function BookingTable({
   payingId,
   onPay,
   onCancelClick,
+  showRefundStatus = false,
 }: BookingTableProps) {
   return (
     <div>
@@ -63,10 +94,14 @@ export function BookingTable({
           <TableRow>
             <TableHead>مجموعه</TableHead>
             <TableHead className="w-24">تاریخ</TableHead>
+            <TableHead className="w-20">روز</TableHead>
             <TableHead className="w-28">ساعت</TableHead>
             <TableHead className="w-28">مبلغ</TableHead>
             <TableHead className="w-16">تعداد</TableHead>
             <TableHead className="w-20">وضعیت</TableHead>
+            {showRefundStatus && (
+              <TableHead className="w-44">وضعیت عودت</TableHead>
+            )}
             <TableHead className="w-40 text-right">عملیات</TableHead>
           </TableRow>
         </TableHeader>
@@ -76,6 +111,12 @@ export function BookingTable({
               label: b.status,
               variant: "outline" as const,
             }
+            const canCancel =
+              b.status === "pending_payment" ||
+              (b.status === "confirmed" &&
+                !!b.slot_start_time &&
+                new Date(b.slot_start_time) > new Date())
+            const refund = refundBadge(b)
             return (
               <TableRow key={b.id}>
                 <TableCell className="max-w-48 truncate font-medium">
@@ -83,6 +124,9 @@ export function BookingTable({
                 </TableCell>
                 <TableCell>
                   {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
+                </TableCell>
+                <TableCell>
+                  {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
                 </TableCell>
                 <TableCell>
                   {b.slot_start_time && b.slot_end_time
@@ -96,6 +140,18 @@ export function BookingTable({
                 <TableCell>
                   <Badge variant={st.variant}>{st.label}</Badge>
                 </TableCell>
+                {showRefundStatus && (
+                  <TableCell>
+                    <div className="space-y-1">
+                      <Badge variant={refund.variant}>{refund.label}</Badge>
+                      {b.refund_amount !== null && (
+                        <div className="text-xs text-muted-foreground">
+                          {formatMoney(b.refund_amount)}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="flex gap-2">
                     {b.status === "pending_payment" && (
@@ -122,7 +178,7 @@ export function BookingTable({
                         </Button>
                       </>
                     )}
-                    {b.status === "confirmed" && (
+                    {canCancel && b.status === "confirmed" && (
                       <Button
                         variant="outline"
                         size="sm"

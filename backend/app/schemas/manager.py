@@ -10,6 +10,10 @@ class ManagerBookingResponse(BaseModel):
     user_id: int
     slot_id: int
     status: str
+    source: str = "online"
+    settlement_status: str = "not_settled"
+    customer_full_name: str | None = None
+    customer_phone: str | None = None
     price_paid: float
     penalty_amount: float | None = None
     participants_count: int = 1
@@ -19,6 +23,7 @@ class ManagerBookingResponse(BaseModel):
     vendor_name: str = ""
     vendor_address: str = ""
     user_name: str = ""
+    user_phone: str = ""
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
 

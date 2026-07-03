@@ -34,6 +34,7 @@ export const sportTypes = [
   "basketball",
   "futsal",
   "handball",
+  "football",
 ] as const
 
 export const vendorCreateSchema = z.object({

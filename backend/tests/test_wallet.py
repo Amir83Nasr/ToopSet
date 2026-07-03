@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import func, select
+
+from app.models.bank_card import BankCard
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -102,3 +105,51 @@ class TestTransactions:
         assert len(txs) == 1
         assert txs[0]["amount"] == 30000.0
         assert txs[0]["type"] == "deposit"
+
+
+class TestBankCards:
+    async def test_user_can_have_only_one_verified_card_and_replace_it(
+        self, client: AsyncClient, session, user_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        user_id = user_token["user"]["id"]
+
+        first_lookup = await client.post(
+            "/api/v1/wallet/bank-cards/lookup",
+            json={"card_number": "6037991234567891"},
+            headers=headers,
+        )
+        assert first_lookup.status_code == 200
+        first_card = first_lookup.json()
+
+        first_confirm = await client.post(
+            f"/api/v1/wallet/bank-cards/{first_card['id']}/confirm",
+            headers=headers,
+        )
+        assert first_confirm.status_code == 200
+        assert first_confirm.json()["masked_card_number"] == "603799******7891"
+
+        second_lookup = await client.post(
+            "/api/v1/wallet/bank-cards/lookup",
+            json={"card_number": "5892101234567890"},
+            headers=headers,
+        )
+        assert second_lookup.status_code == 200
+        second_card = second_lookup.json()
+        assert second_card["id"] == first_card["id"]
+
+        second_confirm = await client.post(
+            f"/api/v1/wallet/bank-cards/{second_card['id']}/confirm",
+            headers=headers,
+        )
+        assert second_confirm.status_code == 200
+        assert second_confirm.json()["masked_card_number"] == "589210******7890"
+
+        verified = await client.get("/api/v1/wallet/bank-cards/verified", headers=headers)
+        assert verified.status_code == 200
+        assert verified.json()["masked_card_number"] == "589210******7890"
+
+        count = await session.scalar(
+            select(func.count()).select_from(BankCard).where(BankCard.user_id == user_id)
+        )
+        assert count == 1

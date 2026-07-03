@@ -11,6 +11,7 @@ from sqlalchemy import NullPool, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.core.database import Base, get_db
+from app.core.config import settings
 from app.main import app
 
 TEST_DB_URL = "postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test"
@@ -23,6 +24,9 @@ engine = create_async_engine(TEST_DB_URL, echo=False, poolclass=NullPool)
 from app.core.rate_limiter import limiter as _app_limiter  # noqa: E402
 
 _app_limiter.enabled = False
+settings.refresh_cookie_secure = False
+settings.bootstrap_admin_secret = "test-bootstrap-secret"
+settings.allow_audit_log_deletion = True
 
 # ── Strip PrometheusMiddleware for tests ──────────────────────────────
 # BaseHTTPMiddleware wraps requests in an anyio TaskGroup whose tasks can
@@ -102,7 +106,7 @@ async def _register_and_promote(
     data2 = resp2.json()
     return {
         "access_token": data2["access_token"],
-        "refresh_token": data2["refresh_token"],
+        "refresh_token": client.cookies.get(settings.refresh_cookie_name),
         "user": data2["user"],
     }
 

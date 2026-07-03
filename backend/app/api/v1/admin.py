@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hmac
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -10,21 +11,25 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Header,
     Query,
     Response,
     UploadFile,
     status,
 )
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.pagination import decode_cursor, encode_cursor
+from app.core.phone import normalize_phone
 from app.core.security import hash_password
-from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload
+from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload, validate_upload_content
 from app.models.setting import Setting
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -35,6 +40,15 @@ from app.repositories.user_repo import UserRepository
 from app.repositories.vendor_repo import VendorRepo
 from app.schemas.setting import SettingResponse, SettingUpdateRequest
 from app.schemas.vendor import VendorResponse
+from app.schemas.finance import (
+    RefundListResponse,
+    RefundResponse,
+    RefundStatusUpdate,
+    SettlementListResponse,
+    SettlementResponse,
+    SettlementStatusUpdate,
+    SlotCancellationResponse,
+)
 
 # Hero images are stored in the frontend public directory so Next.js serves them directly
 _HERO_UPLOAD_DIR = (
@@ -46,6 +60,59 @@ _HERO_UPLOAD_DIR = (
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _refund_response(refund) -> RefundResponse:
+    return RefundResponse(
+        id=refund.id,
+        booking_id=refund.booking_id,
+        user_id=refund.user_id,
+        vendor_id=refund.vendor_id,
+        slot_id=refund.slot_id,
+        slot_start_time=refund.slot_start_time,
+        slot_end_time=refund.slot_end_time,
+        original_amount=float(refund.original_amount),
+        slot_price=float(refund.slot_price) if refund.slot_price is not None else None,
+        ball_price=float(refund.ball_price),
+        total_paid=float(refund.total_paid),
+        penalty_amount=float(refund.penalty_amount),
+        refund_amount=float(refund.refund_amount),
+        reason=refund.reason,
+        type=refund.type,
+        status=refund.status,
+        penalty_charged_to_user=refund.penalty_charged_to_user,
+        site_bears_penalty=refund.site_bears_penalty,
+        requested_at=refund.requested_at,
+        approved_at=refund.approved_at,
+        paid_at=refund.paid_at,
+        admin_note=refund.admin_note,
+        payment_tracking_code=refund.payment_tracking_code,
+        user_name=refund.user.full_name if getattr(refund, "user", None) else "",
+        user_phone=refund.user.phone if getattr(refund, "user", None) else "",
+        vendor_name=refund.vendor.name if getattr(refund, "vendor", None) else "",
+    )
+
+
+def _settlement_response(s) -> SettlementResponse:
+    return SettlementResponse(
+        id=s.id,
+        manager_id=s.manager_id,
+        vendor_id=s.vendor_id,
+        requested_amount=float(s.requested_amount),
+        approved_amount=float(s.approved_amount) if s.approved_amount is not None else None,
+        bookings_count=s.bookings_count,
+        period_from=s.period_from,
+        period_to=s.period_to,
+        status=s.status,
+        manager_note=s.manager_note,
+        admin_note=s.admin_note,
+        payment_tracking_code=s.payment_tracking_code,
+        requested_at=s.requested_at,
+        approved_at=s.approved_at,
+        paid_at=s.paid_at,
+        vendor_name=s.vendor.name if getattr(s, "vendor", None) else "",
+        manager_name=s.manager.full_name if getattr(s, "manager", None) else "",
+    )
 
 
 class BroadcastRequest(BaseModel):
@@ -159,6 +226,20 @@ async def clear_logs(
 ):
     from app.services.cache_service import invalidate_admin_list_cache
 
+    await log_action(
+        db,
+        _.id,
+        "audit_log_delete_attempt",
+        f"درخواست پاکسازی همه لاگ‌ها توسط ادمین '{_.full_name}'",
+        severity="WARNING",
+    )
+    if not (settings.is_development_or_bootstrap and settings.allow_audit_log_deletion):
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="حذف لاگ‌های امنیتی در این محیط غیرفعال است",
+        )
+
     repo = LogRepo(db)
     await repo.clear_all()
     await invalidate_admin_list_cache("logs")
@@ -174,6 +255,20 @@ async def delete_log(
     _: User = Depends(get_current_admin),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
+
+    await log_action(
+        db,
+        _.id,
+        "audit_log_delete_attempt",
+        f"درخواست حذف لاگ امنیتی id={log_id} توسط ادمین '{_.full_name}'",
+        severity="WARNING",
+    )
+    if not (settings.is_development_or_bootstrap and settings.allow_audit_log_deletion):
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="حذف لاگ‌های امنیتی در این محیط غیرفعال است",
+        )
 
     repo = LogRepo(db)
     await repo.delete_by_id(log_id)
@@ -646,6 +741,184 @@ async def seed_default_settings(
     return {"seeded": count}
 
 
+# ── Refunds, manager cancellations, and settlements ───────────────────
+
+
+@router.get("/refunds", response_model=RefundListResponse, summary="List user refunds")
+async def list_refunds(
+    status_filter: str | None = Query(None, alias="status"),
+    type_filter: str | None = Query(None, alias="type"),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    from sqlalchemy.orm import selectinload
+
+    from app.models.refund import Refund
+
+    stmt = select(Refund).options(
+        selectinload(Refund.user),
+        selectinload(Refund.vendor),
+        selectinload(Refund.slot),
+    )
+    if status_filter:
+        stmt = stmt.where(Refund.status == status_filter)
+    if type_filter:
+        stmt = stmt.where(Refund.type == type_filter)
+    stmt = stmt.order_by(Refund.requested_at.desc())
+    refunds = list((await db.execute(stmt)).scalars().all())
+    return RefundListResponse(refunds=[_refund_response(r) for r in refunds], total=len(refunds))
+
+
+@router.patch(
+    "/refunds/{refund_id}",
+    response_model=RefundResponse,
+    summary="Update refund status",
+)
+async def update_refund_status(
+    refund_id: int,
+    data: RefundStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    from sqlalchemy.orm import selectinload
+
+    from app.core.timezone import now_utc
+    from app.models.refund import Refund, RefundStatus
+
+    refund = (
+        await db.execute(
+            select(Refund)
+            .options(selectinload(Refund.user), selectinload(Refund.vendor), selectinload(Refund.slot))
+            .where(Refund.id == refund_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if not refund:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="عودت یافت نشد")
+
+    refund.status = data.status
+    refund.admin_note = data.admin_note
+    if data.payment_tracking_code:
+        refund.payment_tracking_code = data.payment_tracking_code
+    now = now_utc()
+    if data.status == RefundStatus.APPROVED:
+        refund.approved_at = now
+    elif data.status == RefundStatus.PAID:
+        if refund.approved_at is None:
+            refund.approved_at = now
+        refund.paid_at = now
+    await db.flush()
+    await log_action(
+        db,
+        current_user.id,
+        "refund_status_updated",
+        f"تغییر وضعیت عودت | refund={refund_id} → {data.status.value}",
+    )
+    return _refund_response(refund)
+
+
+@router.get(
+    "/manager-cancellations",
+    response_model=list[SlotCancellationResponse],
+    summary="List slots cancelled by managers",
+)
+async def list_manager_cancellations(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    from sqlalchemy.orm import selectinload
+
+    from app.models.slot_cancellation import SlotCancellation
+
+    rows = list(
+        (
+            await db.execute(
+                select(SlotCancellation)
+                .options(selectinload(SlotCancellation.vendor))
+                .order_by(SlotCancellation.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    manager_ids = {r.manager_id for r in rows}
+    managers = {}
+    if manager_ids:
+        users = (await db.execute(select(User).where(User.id.in_(manager_ids)))).scalars().all()
+        managers = {u.id: u for u in users}
+    return [
+        SlotCancellationResponse(
+            id=r.id,
+            slot_id=r.slot_id,
+            booking_id=r.booking_id,
+            vendor_id=r.vendor_id,
+            manager_id=r.manager_id,
+            affected_user_id=r.affected_user_id,
+            affected_full_name=r.affected_full_name,
+            affected_phone=r.affected_phone,
+            reason=r.reason,
+            release_slot=r.release_slot,
+            online_paid_amount=float(r.online_paid_amount) if r.online_paid_amount is not None else None,
+            site_cost_amount=float(r.site_cost_amount),
+            sms_status=r.sms_status,
+            notification_status=r.notification_status,
+            review_status=r.review_status,
+            created_at=r.created_at,
+            vendor_name=r.vendor.name if r.vendor else "",
+            manager_name=managers[r.manager_id].full_name if r.manager_id in managers else "",
+        )
+        for r in rows
+    ]
+
+
+@router.get(
+    "/settlements",
+    response_model=SettlementListResponse,
+    summary="List all settlement requests",
+)
+async def list_admin_settlements(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    from app.services.finance_service import FinanceService
+
+    settlements, total = await FinanceService(db, current_user).list_settlements(manager_only=False)
+    return SettlementListResponse(
+        settlements=[_settlement_response(s) for s in settlements],
+        total=total,
+    )
+
+
+@router.patch(
+    "/settlements/{settlement_id}",
+    response_model=SettlementResponse,
+    summary="Update settlement status",
+)
+async def update_admin_settlement(
+    settlement_id: int,
+    data: SettlementStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    from app.services.finance_service import FinanceService
+
+    settlement = await FinanceService(db, current_user).update_settlement_status(
+        settlement_id,
+        new_status=data.status,
+        approved_amount=data.approved_amount,
+        admin_note=data.admin_note,
+        payment_tracking_code=data.payment_tracking_code,
+    )
+    await db.refresh(settlement, ["vendor", "manager"])
+    await log_action(
+        db,
+        current_user.id,
+        "settlement_status_updated",
+        f"تغییر وضعیت تسویه | settlement={settlement_id} → {data.status.value}",
+    )
+    return _settlement_response(settlement)
+
+
 # ── Hero image management ──────────────────────────────────────────────
 
 
@@ -654,7 +927,7 @@ _HERO_SETTING_KEY = "login_hero_slides"
 
 def _save_hero_image(content: bytes, original_filename: str) -> str:
     """Save a hero image to frontend/public/uploads/hero/ and return the relative URL."""
-    ext = Path(original_filename).suffix.lower()
+    ext = validate_upload_content(content, original_filename)
     _HERO_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = _HERO_UPLOAD_DIR / filename
@@ -700,7 +973,10 @@ async def upload_hero_image(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"نوع فایل {ext} مجاز نیست")
 
-    relative_url = _save_hero_image(content, file.filename or "image.jpg")
+    try:
+        relative_url = _save_hero_image(content, file.filename or "image.jpg")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Read or create the setting
     setting = (
@@ -783,13 +1059,37 @@ class SeedAdminRequest(BaseModel):
 @router.post("/seed-admin", status_code=status.HTTP_201_CREATED, summary="Create initial admin")
 async def seed_admin(
     data: SeedAdminRequest,
+    x_bootstrap_secret: str | None = Header(default=None, alias="X-Bootstrap-Secret"),
     db: AsyncSession = Depends(get_db),
 ):
     """Create the first admin user. Only works when no admin exists yet.
     Once an admin is created, use the admin dashboard to manage users."""
     from sqlalchemy import func, select
 
+    if not settings.is_development_or_bootstrap or not settings.bootstrap_admin_secret:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="این مسیر در محیط فعلی فعال نیست",
+        )
+    if not x_bootstrap_secret or not hmac.compare_digest(
+        x_bootstrap_secret, settings.bootstrap_admin_secret
+    ):
+        await log_action(
+            db,
+            None,
+            "seed_admin_failed",
+            "تلاش ناموفق برای bootstrap ادمین | secret نامعتبر",
+            severity="WARNING",
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="دسترسی غیرمجاز")
+
+    phone = normalize_phone(data.phone)
     repo = UserRepository(db)
+
+    # Serialize first-admin bootstrap so two concurrent requests cannot both
+    # observe admin_count=0 before inserting.
+    await db.execute(text("SELECT pg_advisory_xact_lock(9021001)"))
+
     admin_count = (
         await db.execute(select(func.count(User.id)).where(User.role == "admin"))
     ).scalar_one()
@@ -800,7 +1100,7 @@ async def seed_admin(
             detail="یک ادمین قبلاً وجود دارد. از طریق داشبورد ادمین کاربر جدید ایجاد کنید.",
         )
 
-    existing = await repo.get_by_phone(data.phone)
+    existing = await repo.get_by_phone(phone)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -809,16 +1109,31 @@ async def seed_admin(
 
     from app.models.user import UserRole
 
-    user = User(
-        phone=data.phone,
-        password_hash=hash_password(data.password),
-        full_name=data.full_name,
-        role=UserRole.ADMIN,
-        is_active=True,
-    )
-    db.add(user)
-    await db.commit()
+    try:
+        user = User(
+            phone=phone,
+            password_hash=hash_password(data.password),
+            full_name=data.full_name,
+            role=UserRole.ADMIN,
+            is_active=True,
+        )
+        db.add(user)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="این شماره تلفن قبلاً ثبت شده است",
+        )
     await db.refresh(user)
+    await log_action(
+        db,
+        user.id,
+        "seed_admin_created",
+        f"اولین ادمین با شماره {phone} ساخته شد",
+        severity="WARNING",
+    )
+    await db.commit()
 
     return {
         "id": user.id,

@@ -1,21 +1,48 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field, field_validator
+
+from app.core.phone import normalize_phone
+from app.repositories.user_repo import OTP_PLACEHOLDER_HASH
 
 
 class RegisterRequest(BaseModel):
-    phone: str = Field(..., min_length=10, max_length=16, examples=["09120000000"])
+    phone: str = Field(..., min_length=11, max_length=11, examples=["09120000000"])
     password: str = Field(..., min_length=8, max_length=128, examples=["Str0ng!Pass"])
     full_name: str = Field(..., min_length=1, max_length=128, examples=["کاربر تست"])
 
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_field(cls, value: str) -> str:
+        return normalize_phone(value)
+
 
 class LoginRequest(BaseModel):
-    phone: str = Field(..., examples=["09306853363"])
+    phone: str = Field(..., min_length=11, max_length=11, examples=["09306853363"])
     password: str = Field(..., examples=["Amir83Nasr"])
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_field(cls, value: str) -> str:
+        return normalize_phone(value)
+
+
+class LoginOptionsRequest(BaseModel):
+    phone: str = Field(..., min_length=11, max_length=11, examples=["09306853363"])
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_field(cls, value: str) -> str:
+        return normalize_phone(value)
+
+
+class LoginOptionsResponse(BaseModel):
+    is_new_user: bool
+    has_password: bool
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str | None = None
 
 
 class UserResponse(BaseModel):
@@ -26,8 +53,14 @@ class UserResponse(BaseModel):
     is_active: bool
     avatar_url: str | None = None
     created_at: datetime | None = None
+    password_hash: str | None = Field(None, exclude=True)
 
     model_config = {"from_attributes": True}
+
+    @computed_field
+    @property
+    def has_password(self) -> bool:
+        return bool(self.password_hash and self.password_hash != OTP_PLACEHOLDER_HASH)
 
 
 class AvatarUploadResponse(BaseModel):
@@ -36,15 +69,14 @@ class AvatarUploadResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     full_name: str | None = Field(None, min_length=1, max_length=128)
-    current_password: str | None = Field(None, min_length=1, max_length=128)
     new_password: str | None = Field(
         None, min_length=8, max_length=128, description="Min 8 characters"
     )
+    current_password: str | None = Field(None, min_length=1, max_length=128)
 
 
 class TokenResponse(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
     user: UserResponse | None = None
 
@@ -53,12 +85,22 @@ class TokenResponse(BaseModel):
 
 
 class SendOtpRequest(BaseModel):
-    phone: str = Field(..., min_length=10, max_length=16, examples=["09120000000"])
+    phone: str = Field(..., min_length=11, max_length=11, examples=["09120000000"])
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_field(cls, value: str) -> str:
+        return normalize_phone(value)
 
 
 class SendOtpResponse(BaseModel):
     message: str
     is_new_user: bool
+    expires_in: int = Field(..., ge=0, description="Remaining OTP lifetime in seconds.")
+    has_password: bool = Field(
+        False,
+        description="True when the phone belongs to an existing password-enabled user.",
+    )
     dev_code: str | None = Field(
         None,
         min_length=6,
@@ -69,8 +111,9 @@ class SendOtpResponse(BaseModel):
 
 
 class VerifyOtpRequest(BaseModel):
-    phone: str = Field(..., min_length=10, max_length=16, examples=["09120000000"])
+    phone: str = Field(..., min_length=11, max_length=11, examples=["09120000000"])
     code: str = Field(..., min_length=6, max_length=6, examples=["123456"])
+    purpose: str = Field("login", pattern="^(login|password_reset)$")
     full_name: str | None = Field(
         None,
         min_length=1,
@@ -78,3 +121,8 @@ class VerifyOtpRequest(BaseModel):
         description="Required only for new users (is_new_user=true)",
         examples=["علی محمدی"],
     )
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_field(cls, value: str) -> str:
+        return normalize_phone(value)

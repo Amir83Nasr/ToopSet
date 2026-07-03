@@ -15,11 +15,32 @@ class BookingCreate(BaseModel):
     with_ball: bool = False
 
 
+class BookingCancelRequest(BaseModel):
+    accepted_terms: bool = False
+    card_number: str | None = Field(None, min_length=16, max_length=24)
+
+
+class BookingCancellationTermsResponse(BaseModel):
+    booking_id: int
+    can_cancel: bool
+    requires_bank_card: bool
+    has_verified_bank_card: bool
+    mode: str
+    refund_amount: float
+    penalty_amount: float
+    rules: list[str]
+    blocking_reason: str | None = None
+
+
 class BookingResponse(BaseModel):
     id: int
     user_id: int
     slot_id: int
     status: BookingStatus
+    source: str = "online"
+    settlement_status: str = "not_settled"
+    customer_full_name: str | None = None
+    customer_phone: str | None = None
     price_paid: float
     slot_price: float | None = None
     ball_price: float = 0
@@ -61,6 +82,9 @@ class BookingDetailResponse(BookingResponse):
     slot_start_time: datetime | None = None
     slot_end_time: datetime | None = None
     payment: PaymentResponse | None = None
+    refund_status: str | None = None
+    refund_amount: float | None = None
+    refund_paid_at: datetime | None = None
 
 
 class AdminBookingResponse(BaseModel):
@@ -68,6 +92,10 @@ class AdminBookingResponse(BaseModel):
     user_id: int
     slot_id: int
     status: str
+    source: str = "online"
+    settlement_status: str = "not_settled"
+    customer_full_name: str | None = None
+    customer_phone: str | None = None
     price_paid: float
     slot_price: float | None = None
     ball_price: float = 0

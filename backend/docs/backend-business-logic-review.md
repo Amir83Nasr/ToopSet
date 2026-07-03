@@ -145,7 +145,7 @@ class RegisterRequest(BaseModel):
 
 ### نقاط مثبت
 
-- OTP با Redis و TTL پنج دقیقه‌ای ذخیره می‌شود.
+- OTP با Redis و TTL نود ثانیه‌ای ذخیره می‌شود.
 - ارسال OTP rate limit داخلی per-phone دارد.
 - تلاش ناموفق OTP محدود می‌شود.
 - refresh token rotation و replay detection وجود دارد.

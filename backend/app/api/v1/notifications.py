@@ -89,13 +89,9 @@ async def mark_read(
     from app.services.cache_service import invalidate_admin_list_cache
 
     repo = NotificationRepo(db)
-    n = await repo.mark_read(notification_id)
+    n = await repo.mark_read_for_user(notification_id, current_user.id)
     if not n:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="اعلان یافت نشد")
-    if n.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="شما به این اعلان دسترسی ندارید"
-        )
     await invalidate_admin_list_cache("notifications")
     return NotificationResponse.model_validate(n)
 

@@ -155,12 +155,15 @@ export function extractTemplateFromSlots(slots: TimeSlot[]): {
 
     const start = slot.start_time.slice(11, 16)
     const end = slot.end_time.slice(11, 16)
-    const key = `${start}-${end}`
+    const ballPrice = slot.ball_price?.toString() ?? ""
+    const key = `${start}-${end}-${slot.ball_available}-${ballPrice}`
     if (!templateMap.has(key)) {
       templateMap.set(key, {
         start_time: start,
         end_time: end,
         base_price: slot.base_price.toString(),
+        ball_price: ballPrice,
+        ball_available: slot.ball_available,
       })
     }
   })

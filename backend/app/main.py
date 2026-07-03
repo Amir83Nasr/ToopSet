@@ -32,6 +32,7 @@ from app.api.v1.users import router as users_router
 from app.api.v1.vendors import legacy_router as legacy_vendors_router
 from app.api.v1.vendors import router as vendors_router
 from app.api.v1.wallet import router as wallet_router
+from app.api.openapi_docs import install_openapi_docs
 from app.core.config import EnvValidationError, settings, validate_env
 from app.core.correlation_id import CorrelationIdMiddleware
 from app.core.database import async_session_factory, engine
@@ -77,7 +78,7 @@ async def _cancel_expired_pending():
     while True:
         try:
             async with async_session_factory() as db:
-                from app.models.booking import BookingStatus
+                from app.models.booking import BookingStatus, SettlementStatus
                 from app.models.time_slot import SlotStatus
                 from app.repositories.booking_repo import BookingRepo
                 from app.repositories.time_slot_repo import TimeSlotRepo
@@ -110,7 +111,13 @@ async def _cancel_expired_pending():
                             await slot_repo.update(
                                 slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                             )
-                    await repo.update(b, {"status": BookingStatus.CANCELLED})
+                    await repo.update(
+                        b,
+                        {
+                            "status": BookingStatus.EXPIRED,
+                            "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                        },
+                    )
                 if expired:
                     await db.commit()
         except Exception:
@@ -261,3 +268,6 @@ async def health():
 @app.get("/metrics", include_in_schema=False)
 async def metrics():
     return metrics_response()
+
+
+install_openapi_docs(app)

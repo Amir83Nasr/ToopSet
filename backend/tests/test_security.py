@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from http.cookies import SimpleCookie
 from unittest.mock import patch
 
 import pytest
@@ -18,8 +19,23 @@ from app.core.security import (
     hash_token,
     tokens_for_user,
 )
+from app.models.refresh_token import RefreshToken
 
 pytestmark = [pytest.mark.asyncio]
+
+
+def _refresh_cookie(client: AsyncClient) -> str:
+    token = client.cookies.get(settings.refresh_cookie_name)
+    assert token
+    return token
+
+
+def _refresh_cookie_from_response(response) -> str:
+    cookie = SimpleCookie()
+    cookie.load(response.headers["set-cookie"])
+    token = cookie[settings.refresh_cookie_name].value
+    assert token
+    return token
 
 
 # ── Token basics ──────────────────────────────────────────────────────────
@@ -110,7 +126,7 @@ class TestRefreshRotation:
             json={"phone": "09121111000", "password": "Test1234", "full_name": "test"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
 
         # First refresh succeeds
         r1 = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
@@ -128,15 +144,16 @@ class TestRefreshRotation:
             json={"phone": "09121111001", "password": "Test1234", "full_name": "chain"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
 
         for i in range(3):
             r = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
             assert r.status_code == 200, f"Refresh #{i} failed"
             data = r.json()
             assert data["access_token"] is not None
-            assert data["refresh_token"] != rt  # new token
-            rt = data["refresh_token"]
+            new_rt = _refresh_cookie(client)
+            assert new_rt != rt
+            rt = new_rt
 
     async def test_refresh_with_invalid_token(self, client: AsyncClient):
         r = await client.post("/api/v1/auth/refresh", json={"refresh_token": "garbage"})
@@ -147,16 +164,18 @@ class TestRefreshRotation:
 
 
 class TestReplayDetection:
-    """Verify replay attack detection revokes all sessions and bumps token_version."""
+    """Verify replay attack detection without breaking normal browser races."""
 
-    async def test_replay_revokes_all_sessions(self, client: AsyncClient, session):
-        """Using a revoked refresh token should trigger replay protection."""
+    async def test_recent_rotated_token_reuse_does_not_revoke_session(
+        self, client: AsyncClient, session
+    ):
+        """Immediate reuse of a rotated token can happen during multi-tab refresh."""
         reg = await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111002", "password": "Test1234", "full_name": "replay"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
         at = reg.json()["access_token"]
 
         # Use the refresh token once
@@ -167,10 +186,10 @@ class TestReplayDetection:
         r2 = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
         assert r2.status_code == 401
 
-        # The access token should also be invalidated (token_version bumped)
+        # The access token should not be invalidated for a near-simultaneous race.
         headers = {"Authorization": f"Bearer {at}"}
         r3 = await client.get("/api/v1/auth/me", headers=headers)
-        assert r3.status_code == 401
+        assert r3.status_code == 200
 
         # A new login should work
         login = await client.post(
@@ -181,6 +200,8 @@ class TestReplayDetection:
 
     async def test_replay_generates_security_event(self, client: AsyncClient, session):
         """Replay detection should log an event in the logs table."""
+        from sqlalchemy import select
+
         from app.models.log import Log
 
         reg = await client.post(
@@ -188,17 +209,23 @@ class TestReplayDetection:
             json={"phone": "09121111003", "password": "Test1234", "full_name": "replay2"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
 
         # Use once
         await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
+
+        result = await session.execute(
+            select(RefreshToken).where(RefreshToken.token_hash == hash_token(rt))
+        )
+        stored = result.scalar_one()
+        stored.revoked_at = datetime.now(UTC) - timedelta(seconds=60)
+        await session.flush()
+
         # Replay
         await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
 
         # Check log
-        result = await session.execute(
-            __import__("sqlalchemy").select(Log).where(Log.action == "token_replay_detected")
-        )
+        result = await session.execute(select(Log).where(Log.action == "refresh_token_reuse"))
         logs = list(result.scalars().all())
         assert len(logs) >= 1
 
@@ -217,7 +244,7 @@ class TestMultiDevice:
         )
         assert reg.status_code == 201
         at1 = reg.json()["access_token"]
-        rt1 = reg.json()["refresh_token"]
+        rt1 = _refresh_cookie(client)
 
         # First refresh works
         r1 = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt1})
@@ -248,7 +275,7 @@ class TestMultiDevice:
             json={"phone": "09121111005", "password": "Test1234"},
         )
         assert login_a.status_code == 200
-        rt_a = login_a.json()["refresh_token"]
+        rt_a = _refresh_cookie(client)
 
         # Device A refreshes successfully
         r_a = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_a})
@@ -260,7 +287,7 @@ class TestMultiDevice:
             json={"phone": "09121111005", "password": "Test1234"},
         )
         assert login_b.status_code == 200
-        rt_b = login_b.json()["refresh_token"]
+        rt_b = _refresh_cookie(client)
 
         # Device B can refresh
         r_b = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_b})
@@ -280,7 +307,7 @@ class TestSequentialRefresh:
             json={"phone": "09121111006", "password": "Test1234", "full_name": "seq"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
 
         # First refresh succeeds
         r1 = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
@@ -443,7 +470,7 @@ class TestTokenVersion:
             json={"phone": "09121111008", "password": "Test1234", "full_name": "ver-ref"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
 
         # Login bumps version
         await client.post(
@@ -484,7 +511,7 @@ class TestTokenExpiry:
                 json={"phone": "09121111010", "password": "Test1234", "full_name": "exp-rt"},
             )
             assert reg.status_code == 201
-            rt = reg.json()["refresh_token"]
+            rt = _refresh_cookie_from_response(reg)
 
         r = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
         assert r.status_code == 401
@@ -503,12 +530,16 @@ class TestLogout:
             json={"phone": "09121111011", "password": "Test1234", "full_name": "logout"},
         )
         assert reg.status_code == 201
-        rt = reg.json()["refresh_token"]
+        rt = _refresh_cookie(client)
         at = reg.json()["access_token"]
         headers = {"Authorization": f"Bearer {at}"}
 
         # Logout
-        r = await client.post("/api/v1/auth/logout", headers=headers)
+        r = await client.post(
+            "/api/v1/auth/logout",
+            headers=headers,
+            cookies={settings.refresh_cookie_name: rt},
+        )
         assert r.status_code == 200
 
         # Refresh with the same token should fail
@@ -525,7 +556,11 @@ class TestLogout:
         at = reg.json()["access_token"]
         headers = {"Authorization": f"Bearer {at}"}
 
-        await client.post("/api/v1/auth/logout", headers=headers)
+        await client.post(
+            "/api/v1/auth/logout",
+            headers=headers,
+            cookies={settings.refresh_cookie_name: _refresh_cookie(client)},
+        )
 
         # New login works
         login = await client.post(
@@ -539,10 +574,10 @@ class TestLogout:
 
 
 class TestBackwardCompat:
-    """Verify backward compatibility with tokens without new claims."""
+    """Strict JWT validation rejects legacy tokens without required claims."""
 
     async def test_legacy_access_token_without_type(self):
-        """Tokens without the 'type' claim should still work."""
+        """Tokens without issuer/audience/type are rejected."""
         from jose import jwt as jose_jwt
 
         from app.core.security import _get_active_keys
@@ -553,9 +588,7 @@ class TestBackwardCompat:
             key,
             algorithm="HS256",
         )
-        payload = decode_token(token)
-        assert payload is not None
-        assert payload["sub"] == "1"
+        assert decode_token(token, expected_type="access") is None
 
     async def test_legacy_refresh_token_without_sid(self, client: AsyncClient):
         """Refresh tokens without sid should still work for one cycle."""
@@ -597,16 +630,8 @@ class TestBackwardCompat:
             algorithm="HS256",
         )
 
-        # Try to use it as a refresh token
         r = await client.post("/api/v1/auth/refresh", json={"refresh_token": token})
-        # Should either work (backward compat) or fail (ver=0 but user ver might be 0)
-        # Since no token was ever persisted, get_by_hash returns None
-        # That means our refresh flow treats it as non-existent...
-        # Legacy without persistence: get_by_hash returns None,
-        # then code checks `stored is None` → True → raises 401
-        # Hmm, this means legacy refresh tokens without persistence DON'T work.
-        # Let's assert the actual behavior:
-        assert r.status_code in (200, 401)
+        assert r.status_code == 401
 
 
 # ── Hash token utility ────────────────────────────────────────────────────

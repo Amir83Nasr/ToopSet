@@ -8,6 +8,7 @@ export function createMockUser(overrides: Partial<User> = {}): User {
     full_name: "کاربر تست",
     role: "user",
     is_active: true,
+    has_password: true,
     avatar_url: null,
     created_at: "2026-01-01T00:00:00",
     ...overrides,
@@ -15,6 +16,7 @@ export function createMockUser(overrides: Partial<User> = {}): User {
 }
 
 export const mockLogin = vi.fn()
+export const mockCheckLoginOptions = vi.fn()
 export const mockRegister = vi.fn()
 export const mockLogout = vi.fn()
 export const mockRefreshUser = vi.fn()
@@ -26,6 +28,7 @@ export function createMockUseAuth(user: User | null = null, loading = false) {
     user,
     loading,
     login: mockLogin,
+    checkLoginOptions: mockCheckLoginOptions,
     register: mockRegister,
     logout: mockLogout,
     refreshUser: mockRefreshUser,

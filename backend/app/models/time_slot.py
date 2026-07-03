@@ -14,8 +14,11 @@ _values_callable = lambda x: [e.value for e in x]  # noqa: E731
 
 class SlotStatus(str, enum.Enum):
     OPEN = "open"
+    RESERVING = "reserving"
     PENDING_CANCELLATION = "pending_cancellation"
     RESERVED = "reserved"
+    BLOCKED = "blocked"
+    DISABLED = "disabled"
     CLOSED = "closed"
 
 

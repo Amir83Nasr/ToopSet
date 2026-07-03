@@ -7,7 +7,7 @@ import { useForm, Controller, useWatch, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { vendorUpdateSchema, type VendorUpdateInput } from "@/lib/validations"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits, toLocalDateStr } from "@/lib/utils"
+import { toLocalDateStr } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,14 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,37 +50,16 @@ import {
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PersianInput } from "@/components/ui/persian-input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/lib/toast"
-import { BOOKING_STATUS_LABELS, BOOKING_STATUS_STYLES } from "@/lib/constants"
 import type { DateRange } from "@daypicker/react"
 import dynamic from "next/dynamic"
 import { AmenityCheckboxes } from "@/components/vendors/amenity-checkboxes"
 import { ImageUpload } from "@/components/vendors/image-upload"
-import { type VendorData, type TimeSlot } from "@/components/vendors/vendor-shared"
+import {
+  type VendorData,
+  type TimeSlot,
+} from "@/components/vendors/vendor-shared"
 import { WeeklyGrid } from "@/components/dashboard/schedule/weekly-grid"
 import { BulkGenerator } from "@/components/dashboard/schedule/bulk-generator"
 import { QuickSlotForm } from "@/components/dashboard/schedule/quick-slot-form"
@@ -96,6 +83,7 @@ import {
   Plus,
   CalendarCheck,
   XCircle,
+  Wallet,
 } from "lucide-react"
 
 const LocationPicker = dynamic(
@@ -111,6 +99,7 @@ const sportTypes = [
   { value: "basketball", label: "بسکتبال" },
   { value: "futsal", label: "فوتسال" },
   { value: "handball", label: "هندبال" },
+  { value: "football", label: "فوتبال" },
 ]
 
 interface ManagerBooking {
@@ -118,6 +107,10 @@ interface ManagerBooking {
   user_id: number
   slot_id: number
   status: string
+  source?: string
+  settlement_status?: string
+  customer_full_name?: string | null
+  customer_phone?: string | null
   price_paid: number
   penalty_amount: number | null
   participants_count: number
@@ -127,12 +120,30 @@ interface ManagerBooking {
   vendor_name: string
   vendor_address: string
   user_name: string
+  user_phone?: string
   slot_start_time: string | null
   slot_end_time: string | null
 }
 
+interface FinanceSummary {
+  total_online_revenue: number
+  successful_online_bookings: number
+  settled_bookings: number
+  settlement_requested_bookings: number
+  available_for_settlement_bookings: number
+  not_due_bookings: number
+  manual_bookings: number
+  settlement_requested_amount: number
+  settled_amount: number
+  available_for_settlement: number
+}
+
 function formatBookingDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fa-IR")
+}
+
+function formatBookingWeekday(iso: string): string {
+  return new Date(iso).toLocaleDateString("fa-IR", { weekday: "long" })
 }
 
 function formatBookingTime(iso: string): string {
@@ -140,6 +151,21 @@ function formatBookingTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+function getTimeInputValue(iso: string): string {
+  const date = new Date(iso)
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes()
+  ).padStart(2, "0")}`
+}
+
+function getPersianDayIndex(date: Date): number {
+  return (date.getDay() + 1) % 7
+}
+
+function formatMoney(amount: number): string {
+  return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`
 }
 
 export default function DashboardVendorEditPage() {
@@ -177,17 +203,32 @@ export default function DashboardVendorEditPage() {
   const [editStartTime, setEditStartTime] = useState("")
   const [editEndTime, setEditEndTime] = useState("")
   const [editPrice, setEditPrice] = useState("")
+  const [editBallAvailable, setEditBallAvailable] = useState(false)
+  const [editBallPrice, setEditBallPrice] = useState("")
   const [editLoading, setEditLoading] = useState(false)
 
   // Bookings state
   const [bookings, setBookings] = useState<ManagerBooking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
-  const [bookingsPage, setBookingsPage] = useState(0)
-  const [bookingsTotal, setBookingsTotal] = useState(0)
-  const [bookingsStatusFilter, setBookingsStatusFilter] = useState("all")
+  const [financeSummary, setFinanceSummary] = useState<FinanceSummary | null>(
+    null
+  )
+  const [financeLoading, setFinanceLoading] = useState(false)
+  const [settlementRequesting, setSettlementRequesting] = useState(false)
   const [cancellingBooking, setCancellingBooking] =
     useState<ManagerBooking | null>(null)
   const [cancellingLoading, setCancellingLoading] = useState(false)
+  const [selectedBookedSlot, setSelectedBookedSlot] = useState<TimeSlot | null>(
+    null
+  )
+  const [manualBookingSlot, setManualBookingSlot] = useState<TimeSlot | null>(
+    null
+  )
+  const [managerBookingName, setManagerBookingName] = useState("")
+  const [managerBookingPhone, setManagerBookingPhone] = useState("")
+  const [managerBookingWeeks, setManagerBookingWeeks] = useState("1")
+  const [manualBookingLoading, setManualBookingLoading] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
 
   // Week helpers
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart])
@@ -197,6 +238,31 @@ export default function DashboardVendorEditPage() {
     const to = formatPersianDate(weekDays[6])
     return `${from} — ${to}`
   }, [weekDays])
+  const bookingsBySlot = useMemo(() => {
+    const map = new Map<number, ManagerBooking>()
+    bookings.forEach((booking) => {
+      if (booking.status !== "cancelled" && booking.status !== "expired") {
+        map.set(booking.slot_id, booking)
+      }
+    })
+    return map
+  }, [bookings])
+  const weekSlotsByDay = useMemo(() => {
+    const groups = new Map<string, TimeSlot[]>()
+    weekDays.forEach((day) => groups.set(toLocalDateStr(day), []))
+    allSlots.forEach((slot) => {
+      const key = toLocalDateStr(new Date(slot.start_time))
+      const group = groups.get(key)
+      if (group) group.push(slot)
+    })
+    groups.forEach((slots) =>
+      slots.sort(
+        (a, b) =>
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      )
+    )
+    return groups
+  }, [allSlots, weekDays])
 
   // Edit form state
   const [vendorImages, setVendorImages] = useState<string[]>([])
@@ -283,6 +349,17 @@ export default function DashboardVendorEditPage() {
     }
   }
 
+  function toggleSportType(value: string) {
+    const next = watchSportTypes.includes(value)
+      ? watchSportTypes.filter((sport) => sport !== value)
+      : [...watchSportTypes, value]
+
+    setValue("sport_types", next as VendorUpdateInput["sport_types"], {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
+
   // ── Slot management ──
 
   function goNextWeek() {
@@ -362,6 +439,8 @@ export default function DashboardVendorEditPage() {
             start_time: t.start_time,
             end_time: t.end_time,
             base_price: parseFloat(t.base_price),
+            ball_available: t.ball_available,
+            ball_price: t.ball_available ? parseFloat(t.ball_price || "0") : 0,
           })),
         }),
       })
@@ -387,6 +466,8 @@ export default function DashboardVendorEditPage() {
     start_time: string
     end_time: string
     base_price: number
+    ball_available: boolean
+    ball_price: number
   }) {
     if (!quickSlotDate) return
     setQuickSlotSubmitting(true)
@@ -394,9 +475,12 @@ export default function DashboardVendorEditPage() {
       await api(`/api/v1/vendors/${vendorId}/slots`, {
         method: "POST",
         body: JSON.stringify({
+          vendor_id: vendorId,
           start_time: `${toLocalDateStr(quickSlotDate)}T${data.start_time}:00`,
           end_time: `${toLocalDateStr(quickSlotDate)}T${data.end_time}:00`,
           base_price: data.base_price,
+          ball_available: data.ball_available,
+          ball_price: data.ball_price,
         }),
       })
       toast.success("سانس با موفقیت ایجاد شد")
@@ -420,6 +504,8 @@ export default function DashboardVendorEditPage() {
     setEditStartTime(start)
     setEditEndTime(end)
     setEditPrice(String(slot.base_price))
+    setEditBallAvailable(slot.ball_available)
+    setEditBallPrice(String(slot.ball_price || ""))
   }
 
   async function handleSaveEdit() {
@@ -432,6 +518,8 @@ export default function DashboardVendorEditPage() {
           start_time: editStartTime,
           end_time: editEndTime,
           base_price: parseFloat(editPrice),
+          ball_available: editBallAvailable,
+          ball_price: editBallAvailable ? parseFloat(editBallPrice || "0") : 0,
         }),
       })
       toast.success("سانس با موفقیت ویرایش شد")
@@ -452,34 +540,123 @@ export default function DashboardVendorEditPage() {
     setBookingsLoading(true)
     try {
       const params = new URLSearchParams()
-      params.set("skip", String(bookingsPage * 20))
-      params.set("limit", "20")
+      params.set("skip", "0")
+      params.set("limit", "500")
       params.set("vendor_id", String(vendorId))
-      if (bookingsStatusFilter !== "all")
-        params.set("status", bookingsStatusFilter)
       const res = await api<{ bookings: ManagerBooking[]; total: number }>(
         `/api/v1/manager/bookings?${params}`
       )
       setBookings(res.bookings)
-      setBookingsTotal(res.total)
     } catch {
       toast.error("خطا در دریافت رزروها")
     } finally {
       setBookingsLoading(false)
     }
-  }, [bookingsPage, vendorId, bookingsStatusFilter, canManage])
+  }, [vendorId, canManage])
+
+  const fetchFinance = useCallback(async () => {
+    if (!canManage) return
+    setFinanceLoading(true)
+    try {
+      const summary = await api<FinanceSummary>(
+        `/api/v1/manager/finance/summary?vendor_id=${vendorId}`
+      )
+      setFinanceSummary(summary)
+    } catch {
+      toast.error("خطا در دریافت اطلاعات مالی")
+    } finally {
+      setFinanceLoading(false)
+    }
+  }, [vendorId, canManage])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchBookings(), 0)
     return () => clearTimeout(timer)
   }, [fetchBookings])
 
-  async function handleCancelBooking(bookingId: number) {
+  useEffect(() => {
+    const timer = setTimeout(() => fetchFinance(), 0)
+    return () => clearTimeout(timer)
+  }, [fetchFinance])
+
+  async function handleRequestSettlement() {
+    setSettlementRequesting(true)
+    try {
+      await api("/api/v1/manager/settlements", {
+        method: "POST",
+        body: JSON.stringify({ vendor_id: vendorId }),
+      })
+      toast.success("درخواست تسویه ثبت شد")
+      fetchFinance()
+      fetchBookings()
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : "خطا در ثبت درخواست تسویه"
+      toast.error(msg)
+    } finally {
+      setSettlementRequesting(false)
+    }
+  }
+
+  function settlementStateForBooking(booking: ManagerBooking): {
+    label: string
+    className: string
+  } {
+    if (booking.source !== "online" || booking.status !== "confirmed") {
+      return {
+        label: "غیرقابل تسویه",
+        className: "bg-muted text-muted-foreground",
+      }
+    }
+    if (booking.slot_end_time && new Date(booking.slot_end_time) > new Date()) {
+      return {
+        label: "هنوز موعد سانس نرسیده",
+        className:
+          "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+      }
+    }
+    switch (booking.settlement_status) {
+      case "settled":
+        return {
+          label: "تسویه شده",
+          className:
+            "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+        }
+      case "settlement_requested":
+      case "included_in_settlement":
+        return {
+          label: "در جریان تسویه",
+          className:
+            "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+        }
+      case "not_settled":
+        return {
+          label: "قابل تسویه",
+          className: "bg-primary/10 text-primary",
+        }
+      default:
+        return {
+          label: "تسویه نشده",
+          className: "bg-muted text-muted-foreground",
+        }
+    }
+  }
+
+  async function handleCancelBooking(bookingId: number, releaseSlot = true) {
     setCancellingLoading(true)
     try {
-      await api(`/api/v1/bookings/${bookingId}/cancel`, { method: "POST" })
+      await api(`/api/v1/manager/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({
+          release_slot: releaseSlot,
+          reason: cancelReason || undefined,
+        }),
+      })
       toast.success("رزرو لغو شد")
       setCancellingBooking(null)
+      setSelectedBookedSlot(null)
+      setCancelReason("")
+      fetchData()
       fetchBookings()
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
@@ -487,6 +664,62 @@ export default function DashboardVendorEditPage() {
     } finally {
       setCancellingLoading(false)
     }
+  }
+
+  async function handleManualSlotBooking() {
+    if (!manualBookingSlot) return
+    const weeks = Math.max(1, Number(managerBookingWeeks) || 1)
+    const startDate = new Date(manualBookingSlot.start_time)
+    const dateTo = new Date(startDate)
+    dateTo.setDate(startDate.getDate() + (weeks - 1) * 7)
+
+    setManualBookingLoading(true)
+    try {
+      await api("/api/v1/manager/bookings/recurring", {
+        method: "POST",
+        body: JSON.stringify({
+          vendor_id: vendorId,
+          full_name: managerBookingName,
+          phone_number: managerBookingPhone,
+          date_from: toLocalDateStr(startDate),
+          date_to: toLocalDateStr(dateTo),
+          days_of_week: [getPersianDayIndex(startDate)],
+          start_time: getTimeInputValue(manualBookingSlot.start_time),
+          end_time: getTimeInputValue(manualBookingSlot.end_time),
+          allow_partial: true,
+        }),
+      })
+      toast.success("رزرو سانس ثبت شد")
+      setManualBookingSlot(null)
+      setManagerBookingName("")
+      setManagerBookingPhone("")
+      setManagerBookingWeeks("1")
+      fetchData()
+      fetchBookings()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در ثبت رزرو"
+      toast.error(msg)
+    } finally {
+      setManualBookingLoading(false)
+    }
+  }
+
+  function handleBookingSlotClick(slot: TimeSlot) {
+    const booking = bookingsBySlot.get(slot.id)
+    if (booking || slot.is_reserved || slot.status === "reserved") {
+      setSelectedBookedSlot(slot)
+      setCancellingBooking(booking ?? null)
+      return
+    }
+    if (
+      slot.status === "blocked" ||
+      slot.status === "disabled" ||
+      slot.status === "closed"
+    ) {
+      toast.error("این سانس قابل رزرو نیست")
+      return
+    }
+    setManualBookingSlot(slot)
   }
 
   async function handleDeletePastSlots() {
@@ -602,13 +835,22 @@ export default function DashboardVendorEditPage() {
             زمان‌بندی
           </TabsTrigger>
           {canManage && (
-            <TabsTrigger
-              value="bookings"
-              className="gap-2.5 px-6 py-3 text-base"
-            >
-              <CalendarCheck className="size-5" />
-              رزروها
-            </TabsTrigger>
+            <>
+              <TabsTrigger
+                value="bookings"
+                className="gap-2.5 px-6 py-3 text-base"
+              >
+                <CalendarCheck className="size-5" />
+                رزروها
+              </TabsTrigger>
+              <TabsTrigger
+                value="finance"
+                className="gap-2.5 px-6 py-3 text-base"
+              >
+                <Wallet className="size-5" />
+                مالی
+              </TabsTrigger>
+            </>
           )}
         </TabsList>
 
@@ -688,8 +930,11 @@ export default function DashboardVendorEditPage() {
                     {sportTypes.map((sport) => {
                       const checked = watchSportTypes.includes(sport.value)
                       return (
-                        <label
+                        <button
+                          type="button"
                           key={sport.value}
+                          aria-pressed={checked}
+                          onClick={() => toggleSportType(sport.value)}
                           className={`group flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 text-sm transition-all ${
                             checked
                               ? "border-primary bg-primary/4 shadow-sm ring-1 ring-primary/20"
@@ -722,7 +967,7 @@ export default function DashboardVendorEditPage() {
                           <span className="font-medium text-foreground/90">
                             {sport.label}
                           </span>
-                        </label>
+                        </button>
                       )
                     })}
                   </div>
@@ -987,6 +1232,27 @@ export default function DashboardVendorEditPage() {
                     onChange={(e) => setEditPrice(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2 rounded-lg border p-3">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <Checkbox
+                      checked={editBallAvailable}
+                      onCheckedChange={(checked) =>
+                        setEditBallAvailable(checked === true)
+                      }
+                    />
+                    امکان رزرو توپ برای این سانس
+                  </label>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-ball-price">قیمت توپ (تومان)</Label>
+                    <PersianInput
+                      id="edit-ball-price"
+                      placeholder="مثلاً ۵۰,۰۰۰"
+                      value={editBallPrice}
+                      onChange={(e) => setEditBallPrice(e.target.value)}
+                      disabled={!editBallAvailable}
+                    />
+                  </div>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditingSlot(null)}>
@@ -1013,215 +1279,584 @@ export default function DashboardVendorEditPage() {
         </TabsContent>
 
         {/* ═══ رزروها Tab ═══ */}
-        <TabsContent value="bookings" className="mt-8 min-h-125">
-          {bookingsLoading ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>کاربر</TableHead>
-                  <TableHead>تاریخ</TableHead>
-                  <TableHead>ساعت</TableHead>
-                  <TableHead>مبلغ</TableHead>
-                  <TableHead>وضعیت</TableHead>
-                  <TableHead className="text-right">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : bookings.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <div className="mb-4 rounded-full bg-muted p-4">
-                  <CalendarCheck className="size-10 text-muted-foreground" />
-                </div>
-                <h3 className="mb-1 text-lg font-semibold">
-                  هیچ رزروی یافت نشد
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  هنوز رزروی برای این مجموعه ثبت نشده است
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div>
-              <div className="mb-4 flex items-center gap-3">
-                <Select
-                  value={bookingsStatusFilter}
-                  onValueChange={(v) => {
-                    setBookingsStatusFilter(v)
-                    setBookingsPage(0)
-                  }}
-                >
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="همه وضعیت‌ها" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectGroup>
-                      <SelectLabel>وضعیت رزرو</SelectLabel>
-                      <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                      <SelectItem value="pending_payment">
-                        در انتظار پرداخت
-                      </SelectItem>
-                      <SelectItem value="confirmed">تایید شده</SelectItem>
-                      <SelectItem value="cancelled">لغو شده</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchBookings()}
-                >
-                  <RefreshCw className="ml-1.5 size-4" />
-                  بروزرسانی
-                </Button>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-32">کاربر</TableHead>
-                    <TableHead className="w-24">تاریخ</TableHead>
-                    <TableHead className="w-28">ساعت</TableHead>
-                    <TableHead className="w-28">مبلغ</TableHead>
-                    <TableHead className="w-20">وضعیت</TableHead>
-                    <TableHead className="w-32 text-right">عملیات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bookings.map((b) => (
-                    <TableRow key={b.id}>
-                      <TableCell className="max-w-32 truncate">
-                        {b.user_name}
-                      </TableCell>
-                      <TableCell>
-                        {b.slot_start_time
-                          ? formatBookingDate(b.slot_start_time)
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {b.slot_start_time && b.slot_end_time
-                          ? `${formatBookingTime(b.slot_start_time)} - ${formatBookingTime(b.slot_end_time)}`
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {new Intl.NumberFormat("fa-IR").format(b.price_paid)}{" "}
-                        تومان
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${BOOKING_STATUS_STYLES[b.status] || ""}`}
-                        >
-                          {BOOKING_STATUS_LABELS[b.status]?.label || b.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {b.status !== "cancelled" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCancellingBooking(b)}
-                          >
-                            <XCircle className="ml-1 size-4" />
-                            لغو
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
+        <TabsContent value="bookings" className="mt-8 min-h-125 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={goPrevWeek}>
+                <ChevronRight className="size-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={goThisWeek}>
+                این هفته
+              </Button>
+              <Button variant="outline" size="sm" onClick={goNextWeek}>
+                <ChevronLeft className="size-4" />
+              </Button>
+            </div>
+            <div className="text-sm font-medium">{weekLabel}</div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchData()
+                fetchBookings()
+              }}
+            >
+              <RefreshCw className="ml-1.5 size-4" />
+              بروزرسانی
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>رزروهای هفته</CardTitle>
+              <CardDescription>
+                روی سانس رزرو شده برای مشاهده اطلاعات و لغو کلیک کنید؛ روی سانس
+                آزاد برای ثبت رزرو چند هفته‌ای کلیک کنید.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {bookingsLoading ? (
+                <div className="grid gap-3 md:grid-cols-7">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <Skeleton key={i} className="h-56 rounded-lg" />
                   ))}
-                </TableBody>
-              </Table>
-              {Math.ceil(bookingsTotal / 20) > 1 && (
-                <div className="flex items-center justify-between px-4 py-3">
-                  <p className="text-sm text-muted-foreground">
-                    صفحه {toPersianDigits(bookingsPage + 1)} از{" "}
-                    {toPersianDigits(Math.ceil(bookingsTotal / 20))}
-                  </p>
-                  <Pagination className="mx-0 w-auto">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          text="قبلی"
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setBookingsPage((p) => p - 1)
-                          }}
-                          className={
-                            bookingsPage === 0
-                              ? "pointer-events-none opacity-50"
-                              : ""
-                          }
-                        />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationNext
-                          text="بعدی"
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setBookingsPage((p) => p + 1)
-                          }}
-                          className={
-                            bookingsPage >= Math.ceil(bookingsTotal / 20) - 1
-                              ? "pointer-events-none opacity-50"
-                              : ""
-                          }
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                </div>
+              ) : (
+                <div className="overflow-x-auto pb-2">
+                  <div className="grid min-w-[1120px] grid-cols-7 gap-3">
+                    {weekDays.map((day) => {
+                      const dayKey = toLocalDateStr(day)
+                      const daySlots = weekSlotsByDay.get(dayKey) ?? []
+
+                      return (
+                        <section
+                          key={dayKey}
+                          className="flex min-h-[420px] flex-col rounded-lg border bg-muted/10"
+                        >
+                          <div className="border-b bg-card px-3 py-2">
+                            <div className="text-sm font-semibold">
+                              {day.toLocaleDateString("fa-IR", {
+                                weekday: "long",
+                              })}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {day.toLocaleDateString("fa-IR", {
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 space-y-2 p-2">
+                            {daySlots.length === 0 ? (
+                              <div className="flex h-32 items-center justify-center rounded-md border border-dashed px-3 text-center text-xs text-muted-foreground">
+                                سانسی ثبت نشده
+                              </div>
+                            ) : (
+                              daySlots.map((slot) => {
+                                const booking = bookingsBySlot.get(slot.id)
+                                const isBooked =
+                                  !!booking ||
+                                  slot.is_reserved ||
+                                  slot.status === "reserved" ||
+                                  slot.status === "reserving"
+                                const blocked =
+                                  slot.status === "blocked" ||
+                                  slot.status === "disabled" ||
+                                  slot.status === "closed"
+                                const statusLabel = blocked
+                                  ? "غیرفعال"
+                                  : isBooked
+                                    ? "رزرو شده"
+                                    : "آزاد"
+                                const personName =
+                                  booking?.user_name ||
+                                  booking?.customer_full_name ||
+                                  "رزروکننده نامشخص"
+                                const personPhone =
+                                  booking?.user_phone || booking?.customer_phone
+
+                                return (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    onClick={() => handleBookingSlotClick(slot)}
+                                    className={`block w-full rounded-lg border p-3 text-right text-xs shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                                      blocked
+                                        ? "border-muted bg-muted/40 text-muted-foreground"
+                                        : isBooked
+                                          ? "border-destructive/30 bg-destructive/5"
+                                          : "border-primary/30 bg-primary/5"
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <div className="text-sm font-semibold whitespace-nowrap">
+                                          {formatBookingTime(slot.start_time)} -{" "}
+                                          {formatBookingTime(slot.end_time)}
+                                        </div>
+                                        <div className="mt-1 truncate text-muted-foreground">
+                                          {isBooked && booking
+                                            ? personName
+                                            : formatMoney(slot.base_price)}
+                                        </div>
+                                      </div>
+                                      <span
+                                        className={`shrink-0 rounded-full px-2 py-1 text-[11px] ${
+                                          blocked
+                                            ? "bg-muted text-muted-foreground"
+                                            : isBooked
+                                              ? "bg-destructive/10 text-destructive"
+                                              : "bg-primary/10 text-primary"
+                                        }`}
+                                      >
+                                        {statusLabel}
+                                      </span>
+                                    </div>
+
+                                    <div className="mt-3 grid gap-1 border-t pt-2 text-muted-foreground">
+                                      {isBooked && booking ? (
+                                        <>
+                                          <div className="truncate">
+                                            تماس: {personPhone || "نامشخص"}
+                                          </div>
+                                          <div className="truncate">
+                                            مبلغ:{" "}
+                                            {formatMoney(booking.price_paid)}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div>
+                                            قیمت سانس:{" "}
+                                            {formatMoney(slot.base_price)}
+                                          </div>
+                                          {slot.ball_available && (
+                                            <div>
+                                              توپ:{" "}
+                                              {formatMoney(slot.ball_price)}
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </section>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
-            </div>
-          )}
+            </CardContent>
+          </Card>
 
-          {/* Booking cancel dialog */}
-          <AlertDialog
-            open={!!cancellingBooking}
-            onOpenChange={(o) => {
-              if (!o) setCancellingBooking(null)
+          <Dialog
+            open={!!selectedBookedSlot}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedBookedSlot(null)
+                setCancellingBooking(null)
+                setCancelReason("")
+              }
             }}
           >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
-                <AlertDialogDescription>
-                  آیا از لغو این رزرو توسط {cancellingBooking?.user_name} مطمئن
-                  هستید؟
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                <AlertDialogAction
-                  disabled={cancellingLoading}
-                  onClick={() =>
-                    cancellingBooking &&
-                    handleCancelBooking(cancellingBooking.id)
-                  }
-                  className="bg-destructive hover:bg-destructive/90"
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>جزئیات رزرو سانس</DialogTitle>
+                <DialogDescription>
+                  اطلاعات رزروکننده و عملیات لغو این سانس
+                </DialogDescription>
+              </DialogHeader>
+              {selectedBookedSlot && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-3 text-sm">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <span className="text-muted-foreground">تاریخ: </span>
+                        {formatBookingDate(selectedBookedSlot.start_time)}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">ساعت: </span>
+                        {formatBookingTime(
+                          selectedBookedSlot.start_time
+                        )} - {formatBookingTime(selectedBookedSlot.end_time)}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">نام: </span>
+                        {cancellingBooking?.user_name ||
+                          cancellingBooking?.customer_full_name ||
+                          "نامشخص"}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">تماس: </span>
+                        {cancellingBooking?.user_phone ||
+                          cancellingBooking?.customer_phone ||
+                          "نامشخص"}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          نوع رزرو:{" "}
+                        </span>
+                        {cancellingBooking?.source === "manager_manual"
+                          ? "دستی سالندار"
+                          : "آنلاین کاربر"}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">مبلغ: </span>
+                        {formatMoney(cancellingBooking?.price_paid ?? 0)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cancel-reason">علت لغو</Label>
+                    <Textarea
+                      id="cancel-reason"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="مثلاً تعمیرات، مشکل مجموعه، تعطیلی..."
+                    />
+                  </div>
+                </div>
+              )}
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedBookedSlot(null)
+                    setCancellingBooking(null)
+                  }}
                 >
-                  {cancellingLoading ? (
-                    <>
-                      <Loader2 className="ml-1 size-4 animate-spin" /> در حال
-                      لغو...
-                    </>
-                  ) : (
-                    "تأیید لغو"
+                  بستن
+                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={!cancellingBooking || cancellingLoading}
+                    onClick={() =>
+                      cancellingBooking &&
+                      handleCancelBooking(cancellingBooking.id, false)
+                    }
+                  >
+                    {cancellingLoading && (
+                      <Loader2 className="ml-1 size-4 animate-spin" />
+                    )}
+                    لغو بدون آزادسازی
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={!cancellingBooking || cancellingLoading}
+                    onClick={() =>
+                      cancellingBooking &&
+                      handleCancelBooking(cancellingBooking.id, true)
+                    }
+                  >
+                    {cancellingLoading && (
+                      <Loader2 className="ml-1 size-4 animate-spin" />
+                    )}
+                    لغو و آزادسازی
+                  </Button>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={!!manualBookingSlot}
+            onOpenChange={(open) => {
+              if (!open) setManualBookingSlot(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>رزرو سانس آزاد</DialogTitle>
+                <DialogDescription>
+                  رزرو توسط سالندار بدون پرداخت آنلاین ثبت می‌شود.
+                </DialogDescription>
+              </DialogHeader>
+              {manualBookingSlot && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-3 text-sm">
+                    <div>
+                      {formatBookingDate(manualBookingSlot.start_time)}،{" "}
+                      {formatBookingTime(manualBookingSlot.start_time)} -{" "}
+                      {formatBookingTime(manualBookingSlot.end_time)}
+                    </div>
+                    {(() => {
+                      const weeks = Math.max(
+                        1,
+                        Number(managerBookingWeeks) || 1
+                      )
+                      const start = new Date(manualBookingSlot.start_time)
+                      const end = new Date(start)
+                      end.setDate(start.getDate() + (weeks - 1) * 7)
+                      return (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          بازه ثبت: {start.toLocaleDateString("fa-IR")} تا{" "}
+                          {end.toLocaleDateString("fa-IR")}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="manager-booking-name">نام کامل</Label>
+                      <Input
+                        id="manager-booking-name"
+                        value={managerBookingName}
+                        onChange={(e) => setManagerBookingName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manager-booking-phone">شماره تماس</Label>
+                      <Input
+                        id="manager-booking-phone"
+                        value={managerBookingPhone}
+                        onChange={(e) => setManagerBookingPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manager-booking-weeks">
+                        تعداد هفته‌های رزرو
+                      </Label>
+                      <Input
+                        id="manager-booking-weeks"
+                        type="number"
+                        min={1}
+                        max={26}
+                        value={managerBookingWeeks}
+                        onChange={(e) => setManagerBookingWeeks(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setManualBookingSlot(null)}
+                >
+                  انصراف
+                </Button>
+                <Button
+                  disabled={
+                    manualBookingLoading ||
+                    !managerBookingName ||
+                    !managerBookingPhone
+                  }
+                  onClick={handleManualSlotBooking}
+                >
+                  {manualBookingLoading && (
+                    <Loader2 className="ml-1 size-4 animate-spin" />
                   )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  ثبت رزرو
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* ═══ مالی Tab ═══ */}
+        <TabsContent value="finance" className="mt-8 min-h-125 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+            <div>
+              <h2 className="text-base font-semibold">داشبورد مالی مجموعه</h2>
+              <p className="text-sm text-muted-foreground">
+                تسویه فقط برای رزروهای آنلاین تاییدشده‌ای فعال است که موعد سانس
+                آن‌ها گذشته باشد.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  fetchFinance()
+                  fetchBookings()
+                }}
+                disabled={financeLoading || bookingsLoading}
+              >
+                <RefreshCw className="ml-1.5 size-4" />
+                بروزرسانی
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleRequestSettlement}
+                disabled={
+                  settlementRequesting ||
+                  financeLoading ||
+                  !financeSummary ||
+                  financeSummary.available_for_settlement <= 0
+                }
+              >
+                {settlementRequesting ? (
+                  <Loader2 className="ml-1.5 size-4 animate-spin" />
+                ) : (
+                  <Wallet className="ml-1.5 size-4" />
+                )}
+                درخواست تسویه موارد قابل تسویه
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>رزرو آنلاین موفق</CardDescription>
+                <CardTitle className="text-2xl">
+                  {financeSummary?.successful_online_bookings ?? 0}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {formatMoney(financeSummary?.total_online_revenue ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>قابل تسویه</CardDescription>
+                <CardTitle className="text-2xl">
+                  {financeSummary?.available_for_settlement_bookings ?? 0}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {formatMoney(financeSummary?.available_for_settlement ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>در جریان تسویه</CardDescription>
+                <CardTitle className="text-2xl">
+                  {financeSummary?.settlement_requested_bookings ?? 0}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {formatMoney(financeSummary?.settlement_requested_amount ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>تسویه شده</CardDescription>
+                <CardTitle className="text-2xl">
+                  {financeSummary?.settled_bookings ?? 0}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {formatMoney(financeSummary?.settled_amount ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>هنوز موعد نرسیده</CardDescription>
+                <CardTitle className="text-2xl">
+                  {financeSummary?.not_due_bookings ?? 0}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                قابل تسویه بعد از برگزاری سانس
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>رکورد رزروها</CardTitle>
+              <CardDescription>
+                وضعیت تسویه هر رزرو بر اساس پرداخت آنلاین، تایید رزرو، وضعیت
+                تسویه و زمان پایان سانس نمایش داده می‌شود.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {bookingsLoading || financeLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 rounded-md" />
+                  ))}
+                </div>
+              ) : bookings.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  رزروی برای این مجموعه ثبت نشده است.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">مشتری</TableHead>
+                        <TableHead className="text-right">تاریخ سانس</TableHead>
+                        <TableHead className="text-right">روز</TableHead>
+                        <TableHead className="text-right">ساعت</TableHead>
+                        <TableHead className="text-right">مبلغ</TableHead>
+                        <TableHead className="text-right">نوع رزرو</TableHead>
+                        <TableHead className="text-right">
+                          وضعیت تسویه
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookings.map((booking) => {
+                        const state = settlementStateForBooking(booking)
+                        const sourceLabel =
+                          booking.source === "manager_manual"
+                            ? "دستی سالندار"
+                            : "آنلاین"
+                        return (
+                          <TableRow key={booking.id}>
+                            <TableCell className="min-w-40 font-medium">
+                              <div>
+                                {booking.user_name ||
+                                  booking.customer_full_name ||
+                                  "نامشخص"}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {booking.user_phone ||
+                                  booking.customer_phone ||
+                                  "بدون شماره"}
+                              </div>
+                            </TableCell>
+                            <TableCell className="min-w-28">
+                              {booking.slot_start_time
+                                ? formatBookingDate(booking.slot_start_time)
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="min-w-24">
+                              {booking.slot_start_time
+                                ? formatBookingWeekday(booking.slot_start_time)
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="min-w-32">
+                              {booking.slot_start_time && booking.slot_end_time
+                                ? `${formatBookingTime(
+                                    booking.slot_start_time
+                                  )} - ${formatBookingTime(
+                                    booking.slot_end_time
+                                  )}`
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="min-w-28">
+                              {formatMoney(booking.price_paid)}
+                            </TableCell>
+                            <TableCell className="min-w-28">
+                              {sourceLabel}
+                            </TableCell>
+                            <TableCell className="min-w-40">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${state.className}`}
+                              >
+                                {state.label}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

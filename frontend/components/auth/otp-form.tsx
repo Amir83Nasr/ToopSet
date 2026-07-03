@@ -32,32 +32,37 @@ import { toast } from "@/lib/toast"
 import { ApiError } from "@/lib/api"
 import type { UseAuthReturn } from "@/hooks/use-auth"
 
-const RESEND_COOLDOWN = 120
-
 type Step = "phone" | "verify"
 
 interface Props {
   sendOtp: UseAuthReturn["sendOtp"]
   verifyOtp: UseAuthReturn["verifyOtp"]
   redirect?: string
+  initialPhone?: string
+  purpose?: "login" | "password_reset"
   onSuccess?: () => void
-  onLoginClick?: () => void
+  onLoginClick?: (phone: string) => void
 }
 
 export function OtpForm({
   sendOtp,
   verifyOtp,
   redirect,
+  initialPhone = "",
+  purpose = "login",
   onSuccess,
   onLoginClick,
 }: Props) {
-  const [step, setStep] = useState<Step>("phone")
-  const [phone, setPhone] = useState("")
+  const [step, setStep] = useState<Step>(initialPhone ? "verify" : "phone")
+  const [phone, setPhone] = useState(initialPhone)
   const [isNewUser, setIsNewUser] = useState(false)
+  const [hasPassword, setHasPassword] = useState(false)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
+  const [otpError, setOtpError] = useState("")
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const initialOtpSentRef = useRef(false)
 
   // ── Cleanup timer ───────────────────────────────────────────────────
 
@@ -67,8 +72,8 @@ export function OtpForm({
     }
   }, [])
 
-  const startResendTimer = useCallback(() => {
-    setResendTimer(RESEND_COOLDOWN)
+  const startResendTimer = useCallback((seconds: number) => {
+    setResendTimer(Math.max(0, seconds))
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       setResendTimer((prev) => {
@@ -87,17 +92,19 @@ export function OtpForm({
   const phoneForm = useForm<OtpPhoneInput>({
     resolver: zodResolver(otpPhoneSchema),
     mode: "onChange",
-    defaultValues: { phone: "" },
+    defaultValues: { phone: initialPhone },
   })
 
   async function onSendOtp(data: OtpPhoneInput) {
     setSending(true)
+    setOtpError("")
     try {
       const res = await sendOtp(data)
       setPhone(data.phone)
       setIsNewUser(res.is_new_user)
+      setHasPassword(res.has_password)
       setStep("verify")
-      startResendTimer()
+      startResendTimer(res.expires_in)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در ارسال کد")
     } finally {
@@ -105,11 +112,21 @@ export function OtpForm({
     }
   }
 
+  useEffect(() => {
+    if (!initialPhone || initialOtpSentRef.current) return
+    initialOtpSentRef.current = true
+    onSendOtp({ phone: initialPhone })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPhone])
+
   async function onResendOtp() {
     setSending(true)
+    setOtpError("")
     try {
-      await sendOtp({ phone })
-      startResendTimer()
+      const res = await sendOtp({ phone })
+      setIsNewUser(res.is_new_user)
+      setHasPassword(res.has_password)
+      startResendTimer(res.expires_in)
       toast.success("کد تأیید مجدداً ارسال شد")
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در ارسال کد")
@@ -136,18 +153,21 @@ export function OtpForm({
 
   async function onVerifyOtp(data: VerifyOtpInput) {
     setVerifying(true)
+    setOtpError("")
     try {
       await verifyOtp(
         {
           phone: data.phone,
           code: data.code,
+          purpose,
           ...(data.full_name ? { full_name: data.full_name } : {}),
         },
         redirect
       )
       onSuccess?.()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "خطا در تأیید کد")
+      const message = err instanceof ApiError ? err.message : "خطا در تأیید کد"
+      setOtpError(message)
     } finally {
       setVerifying(false)
     }
@@ -155,6 +175,8 @@ export function OtpForm({
 
   const handleBackToPhone = useCallback(() => {
     setStep("phone")
+    setOtpError("")
+    setHasPassword(false)
     phoneForm.setValue("phone", phone)
   }, [phone, phoneForm])
 
@@ -175,6 +197,8 @@ export function OtpForm({
           <p className="text-sm text-balance text-muted-foreground">
             {step === "phone"
               ? "برای رزرو سالن ورزشی وارد حساب خود شوید"
+              : purpose === "password_reset"
+                ? `کد ۶ رقمی بازیابی رمز ارسال شده به ${toPersianDigits(phone)} را وارد کنید`
               : `کد ۶ رقمی ارسال شده به ${toPersianDigits(phone)} را وارد کنید`}
           </p>
         </div>
@@ -292,7 +316,10 @@ export function OtpForm({
                   <InputOTP
                     maxLength={6}
                     value={field.value || ""}
-                    onChange={(val) => field.onChange(val)}
+                    onChange={(val) => {
+                      setOtpError("")
+                      field.onChange(val)
+                    }}
                     onComplete={handleOtpComplete}
                     disabled={verifying}
                     containerClassName="justify-center"
@@ -316,6 +343,10 @@ export function OtpForm({
                     : undefined
                 }
               />
+              <FieldError
+                className="text-center font-bold"
+                errors={otpError ? [{ message: otpError }] : undefined}
+              />
             </Field>
 
             <Field>
@@ -325,7 +356,11 @@ export function OtpForm({
                 disabled={verifying || (codeValue?.length ?? 0) < 6}
               >
                 {verifying ? <Spinner data-icon="inline-start" /> : null}
-                {verifying ? "در حال ورود..." : "تأیید و ورود"}
+                {verifying
+                  ? "در حال تأیید..."
+                  : purpose === "password_reset"
+                    ? "تأیید و ادامه"
+                    : "تأیید و ورود"}
               </Button>
             </Field>
 
@@ -357,8 +392,12 @@ export function OtpForm({
         )}
 
         <FieldDescription className="text-center">
-          {onLoginClick ? (
-            <Button type="button" variant="link" onClick={onLoginClick}>
+          {step === "verify" && hasPassword && onLoginClick ? (
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => onLoginClick(phone)}
+            >
               ورود با رمز عبور
             </Button>
           ) : null}

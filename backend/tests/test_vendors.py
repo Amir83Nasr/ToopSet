@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -76,6 +78,30 @@ class TestGetVendor:
     async def test_get_not_found(self, client: AsyncClient):
         resp = await client.get("/api/v1/vendors/99999")
         assert resp.status_code == 404
+
+    async def test_inactive_vendor_hidden_from_other_manager(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ):
+        owner_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        create = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=owner_headers)
+        vendor_id = create.json()["id"]
+
+        await session.execute(
+            text("UPDATE users SET role = 'manager' WHERE id = :id"),
+            {"id": user_token["user"]["id"]},
+        )
+        await session.flush()
+
+        other_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        resp = await client.get(f"/api/v1/vendors/{vendor_id}", headers=other_headers)
+        assert resp.status_code == 404
+
+        owner_resp = await client.get(f"/api/v1/vendors/{vendor_id}", headers=owner_headers)
+        assert owner_resp.status_code == 200
 
 
 class TestCreateVendor:

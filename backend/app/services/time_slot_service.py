@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
-from app.core.timezone import iran_to_utc
+from app.core.timezone import iran_to_utc, now_utc
 from app.models.time_slot import SlotStatus
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -31,6 +31,7 @@ from app.services.cache_service import (
 # Index in frontend: 0=شنبه(Sat) … 6=جمعه(Fri)
 # Python weekday(): Mon=0 … Sun=6
 _WEEKDAY_MAP = [5, 6, 0, 1, 2, 3, 4]
+PUBLIC_SLOT_VISIBILITY_DAYS = 14
 
 
 class TimeSlotService:
@@ -59,6 +60,10 @@ class TimeSlotService:
                 detail="تا قبل از تأیید ادمین امکان مدیریت سانس‌های این مجموعه وجود ندارد",
             )
 
+    def _public_slot_window(self) -> tuple[datetime, datetime]:
+        start = now_utc()
+        return start, start + timedelta(days=PUBLIC_SLOT_VISIBILITY_DAYS)
+
     async def list_slots(
         self,
         vendor_id: int,
@@ -73,12 +78,17 @@ class TimeSlotService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         if not vendor.is_active and not self._can_manage_vendor(vendor):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+        can_manage = self._can_manage_vendor(vendor)
+        start_from: datetime | None = None
+        start_until: datetime | None = None
+        if not can_manage:
+            start_from, start_until = self._public_slot_window()
 
         # Track whether response came from Redis (for X-Cache header)
         self._from_cache = False
 
         # Try Redis cache (first page only for simplicity, not for cursor requests)
-        if after_id is None and skip == 0 and limit <= 50:
+        if not can_manage and after_id is None and skip == 0 and limit <= 50:
             cached = await get_cached_slot_list(vendor_id, date=date)
             if cached is not None:
                 self._from_cache = True
@@ -86,12 +96,18 @@ class TimeSlotService:
                 return TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
 
         slots, total = await self.repo.list_by_vendor(
-            vendor_id, after_id=after_id, date=date, skip=skip, limit=limit
+            vendor_id,
+            after_id=after_id,
+            date=date,
+            start_from=start_from,
+            start_until=start_until,
+            skip=skip,
+            limit=limit,
         )
         serialised = [TimeSlotResponse.model_validate(s).model_dump(mode="json") for s in slots]
 
         # Warm cache for the common case (first page, no offset)
-        if after_id is None and skip == 0 and limit <= 50:
+        if not can_manage and after_id is None and skip == 0 and limit <= 50:
             await cache_slot_list(vendor_id, serialised, date=date)
 
         next_cursor = None
@@ -112,6 +128,10 @@ class TimeSlotService:
         vendor = slot.vendor
         if vendor and not vendor.is_active and not self._can_manage_vendor(vendor):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if vendor and not self._can_manage_vendor(vendor):
+            start_from, start_until = self._public_slot_window()
+            if slot.start_time < start_from or slot.start_time > start_until:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         return TimeSlotDetailResponse(
             id=slot.id,
             vendor_id=slot.vendor_id,
@@ -167,9 +187,42 @@ class TimeSlotService:
                 status_code=status.HTTP_409_CONFLICT, detail="امکان ویرایش سانس رزرو شده وجود ندارد"
             )
         update_data = data.model_dump(exclude_none=True)
-        if update_data.get("status") == SlotStatus.RESERVED:
+        if update_data.get("status") in (SlotStatus.RESERVED, SlotStatus.RESERVING):
             update_data["is_reserved"] = True
-        elif update_data.get("status") in (SlotStatus.OPEN, SlotStatus.CLOSED):
+        elif update_data.get("status") in (
+            SlotStatus.OPEN,
+            SlotStatus.CLOSED,
+            SlotStatus.BLOCKED,
+            SlotStatus.DISABLED,
+        ):
+            update_data["is_reserved"] = False
+        updated = await self.repo.update(slot, update_data)
+        await invalidate_slot_list(updated.vendor_id)
+        return TimeSlotResponse.model_validate(updated)
+
+    async def update_vendor_slot(
+        self, vendor_id: int, slot_id: int, data: TimeSlotUpdate
+    ) -> TimeSlotResponse:
+        slot = await self.repo.get_by_id(slot_id)
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.vendor_id != vendor_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.vendor:
+            self._require_vendor_manager(slot.vendor)
+        if slot.is_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="امکان ویرایش سانس رزرو شده وجود ندارد"
+            )
+        update_data = data.model_dump(exclude_none=True)
+        if update_data.get("status") in (SlotStatus.RESERVED, SlotStatus.RESERVING):
+            update_data["is_reserved"] = True
+        elif update_data.get("status") in (
+            SlotStatus.OPEN,
+            SlotStatus.CLOSED,
+            SlotStatus.BLOCKED,
+            SlotStatus.DISABLED,
+        ):
             update_data["is_reserved"] = False
         updated = await self.repo.update(slot, update_data)
         await invalidate_slot_list(updated.vendor_id)
@@ -186,6 +239,21 @@ class TimeSlotService:
                 status_code=status.HTTP_409_CONFLICT, detail="امکان حذف سانس رزرو شده وجود ندارد"
             )
         vendor_id = slot.vendor_id
+        await self.repo.delete(slot)
+        await invalidate_slot_list(vendor_id)
+
+    async def delete_vendor_slot(self, vendor_id: int, slot_id: int) -> None:
+        slot = await self.repo.get_by_id(slot_id)
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.vendor_id != vendor_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.vendor:
+            self._require_vendor_manager(slot.vendor)
+        if slot.is_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="امکان حذف سانس رزرو شده وجود ندارد"
+            )
         await self.repo.delete(slot)
         await invalidate_slot_list(vendor_id)
 

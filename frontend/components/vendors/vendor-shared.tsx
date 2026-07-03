@@ -37,8 +37,19 @@ export interface TimeSlot {
   start_time: string
   end_time: string
   base_price: number
+  ball_price: number
+  ball_available: boolean
+  status?: string
   is_reserved: boolean
   version: number
+}
+
+export function isSlotPendingCancellation(slot: Pick<TimeSlot, "status">) {
+  return slot.status === "pending_cancellation"
+}
+
+export function isSlotBookable(slot: Pick<TimeSlot, "is_reserved" | "status">) {
+  return !slot.is_reserved || isSlotPendingCancellation(slot)
 }
 
 export interface Review {

@@ -9,6 +9,8 @@ import { toPersianDigits } from "@/lib/utils"
 import {
   formatTime,
   formatPrice,
+  isSlotBookable,
+  isSlotPendingCancellation,
   type TimeSlot,
 } from "@/components/vendors/vendor-shared"
 
@@ -150,13 +152,15 @@ export function VendorBooking({
             <div className="space-y-3">
               {slots.map((slot) => {
                 const isSelected = selectedSlot?.id === slot.id
+                const pendingCancellation = isSlotPendingCancellation(slot)
+                const bookable = isSlotBookable(slot)
                 return (
                   <button
                     key={slot.id}
-                    onClick={() => !slot.is_reserved && onSlotSelect(slot)}
-                    disabled={slot.is_reserved}
+                    onClick={() => bookable && onSlotSelect(slot)}
+                    disabled={!bookable}
                     className={`flex w-full items-center justify-between rounded-xl border-2 p-4 text-right transition-all ${
-                      slot.is_reserved
+                      !bookable
                         ? "border-destructive/30 bg-destructive/5 opacity-60 dark:border-destructive/20"
                         : isSelected
                           ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20"
@@ -166,7 +170,7 @@ export function VendorBooking({
                     <div className="flex items-center gap-4">
                       <div
                         className={`flex size-12 items-center justify-center rounded-xl ${
-                          slot.is_reserved
+                          !bookable
                             ? "bg-red-100 text-red-500 dark:bg-red-900/20"
                             : isSelected
                               ? "bg-primary text-primary-foreground"
@@ -190,21 +194,21 @@ export function VendorBooking({
                     </div>
                     <Badge
                       variant={
-                        slot.is_reserved
+                        !bookable
                           ? "secondary"
                           : isSelected
                             ? "default"
                             : "outline"
                       }
                       className={`shrink-0 px-3 py-1 text-[11px] ${
-                        slot.is_reserved
+                        !bookable
                           ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
                           : isSelected
                             ? ""
                             : "border-primary/30 text-green-600 dark:border-primary/30"
                       }`}
                     >
-                      {slot.is_reserved
+                      {!bookable
                         ? "رزرو شده"
                         : isSelected
                           ? "انتخاب شد"
@@ -218,7 +222,7 @@ export function VendorBooking({
         )}
 
         {/* Booking CTA */}
-        {selectedSlot && !selectedSlot.is_reserved && (
+        {selectedSlot && isSlotBookable(selectedSlot) && (
           <div className="mt-6 space-y-4 rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 via-primary/3 to-transparent p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">

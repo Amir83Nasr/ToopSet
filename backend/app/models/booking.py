@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, SmallInteger, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, SmallInteger, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -18,6 +18,21 @@ class BookingStatus(str, enum.Enum):
     PENDING_CANCELLATION = "pending_cancellation"
     TRANSFERRED = "transferred"
     CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class BookingSource(str, enum.Enum):
+    ONLINE = "online"
+    MANAGER_MANUAL = "manager_manual"
+
+
+class SettlementStatus(str, enum.Enum):
+    NOT_SETTLED = "not_settled"
+    SETTLEMENT_REQUESTED = "settlement_requested"
+    INCLUDED_IN_SETTLEMENT = "included_in_settlement"
+    SETTLED = "settled"
+    EXCLUDED_DUE_TO_REFUND = "excluded_due_to_refund"
+    EXCLUDED_DUE_TO_CANCELLATION = "excluded_due_to_cancellation"
 
 
 class Booking(Base):
@@ -37,6 +52,23 @@ class Booking(Base):
         server_default="pending_payment",
         index=True,
     )
+    source: Mapped[BookingSource] = mapped_column(
+        Enum(BookingSource, values_callable=_values_callable),
+        default=BookingSource.ONLINE,
+        server_default="online",
+        index=True,
+    )
+    settlement_status: Mapped[SettlementStatus] = mapped_column(
+        Enum(SettlementStatus, values_callable=_values_callable),
+        default=SettlementStatus.NOT_SETTLED,
+        server_default="not_settled",
+        index=True,
+    )
+    created_by_manager_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    customer_full_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    customer_phone: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     price_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     slot_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
     ball_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
@@ -51,8 +83,10 @@ class Booking(Base):
         DateTime(timezone=True), default=None, nullable=True
     )
 
-    user: Mapped["User"] = relationship(back_populates="bookings")
+    user: Mapped["User"] = relationship(back_populates="bookings", foreign_keys=[user_id])
+    created_by_manager: Mapped["User | None"] = relationship(foreign_keys=[created_by_manager_id])
     slot: Mapped["TimeSlot"] = relationship(back_populates="booking")
     payments: Mapped[list["Payment"]] = relationship(back_populates="booking")
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
     penalties: Mapped[list["Penalty"]] = relationship(back_populates="booking")
+    refunds: Mapped[list["Refund"]] = relationship(back_populates="booking")

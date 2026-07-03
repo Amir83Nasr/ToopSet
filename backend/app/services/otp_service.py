@@ -1,8 +1,8 @@
 """OTP-based authentication service.
 
 Flow:
-    1. User enters phone → send_otp() stores 6-digit code in Redis (5 min TTL),
-       sends via SMS provider, returns is_new_user flag
+    1. User enters phone → send_otp() stores 6-digit code in Redis (90s TTL),
+       sends via SMS provider, returns is_new_user and has_password flags
     2. User enters code → verify_otp() checks Redis, creates user if new,
        returns JWT tokens
 """
@@ -15,23 +15,22 @@ from fastapi import HTTPException, status
 from redis import asyncio as aioredis
 
 from app.core.logger import log_action
+from app.core.phone import normalize_phone
 from app.core.security import tokens_for_user
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.services.sms_provider import SmsProvider, get_sms_provider
 
-OTP_TTL = 300  # 5 minutes
+OTP_TTL = 90  # 90 seconds
 OTP_PREFIX = "otp:"
 OTP_PLACEHOLDER_HASH = "__otp_user__"
 
 # Per-phone OTP send rate limiting
-OTP_SEND_LIMIT = 3  # max OTP sends
-OTP_SEND_WINDOW = 600  # per 10 minutes (seconds)
+OTP_SEND_COOLDOWN = 90  # one OTP send per 90 seconds
 OTP_SEND_PREFIX = "otp_send:"
 
 # OTP failed-attempt lockout
-OTP_FAIL_LIMIT = 5  # max failed verify attempts
-OTP_FAIL_WINDOW = 900  # per 15 minutes (seconds) → lockout
+OTP_FAIL_LIMIT = 5  # max failed verify attempts per active OTP code
 OTP_FAIL_PREFIX = "otp_fail:"
 
 
@@ -53,32 +52,47 @@ class OtpService:
     async def send_otp(self, phone: str) -> dict:
         """Generate a 6-digit code, store in Redis, send via SMS.
 
-        Rate-limited per phone number (max 3 sends per 10 minutes).
-        Returns {"message": ..., "is_new_user": bool}.
+        Rate-limited per phone number (one send every 90 seconds).
+        Returns {"message": ..., "is_new_user": bool, "has_password": bool}.
         """
-        # Per-phone rate limit
-        send_key = f"{OTP_SEND_PREFIX}{phone}"
-        send_count = await self.redis.get(send_key)
-        if send_count is not None and int(send_count) >= OTP_SEND_LIMIT:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="درخواست کد تأیید بیش از حد مجاز. لطفاً ۱۰ دقیقه بعد تلاش کنید.",
-            )
+        phone = normalize_phone(phone)
 
         user = await self.repo.get_by_phone(phone)
         is_new = user is None
+        has_password = user is not None and user.password_hash != OTP_PLACEHOLDER_HASH
+
+        existing_code = await self._retrieve_code(phone)
+        if existing_code is not None:
+            ttl = await self.redis.ttl(f"{OTP_PREFIX}{phone}")
+            return {
+                "message": "کد تأیید قبلاً ارسال شده است",
+                "is_new_user": is_new,
+                "has_password": has_password,
+                "expires_in": max(int(ttl), 0),
+                "code": existing_code,
+            }
+
+        # Per-phone cooldown only blocks brand-new OTP generation. Existing
+        # valid OTPs can be reused until they are consumed, expired, or locked.
+        send_key = f"{OTP_SEND_PREFIX}{phone}"
+        send_blocked = await self.redis.get(send_key)
+        if send_blocked is not None:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="کد تأیید قبلاً ارسال شده است. لطفاً ۹۰ ثانیه بعد دوباره تلاش کنید.",
+            )
 
         code = self._generate_code()
         await self._store_code(phone, code)
         await self.sms.send_otp(phone, code)
 
-        # Increment send counter (atomic, sets TTL on first creation)
-        await self.redis.incr(send_key)
-        await self.redis.expire(send_key, OTP_SEND_WINDOW, nx=True)
+        await self.redis.set(send_key, "1", ex=OTP_SEND_COOLDOWN)
 
         return {
             "message": "کد تأیید ارسال شد",
             "is_new_user": is_new,
+            "has_password": has_password,
+            "expires_in": OTP_TTL,
             "code": code,
         }
 
@@ -90,8 +104,9 @@ class OtpService:
     ) -> tuple[User, str, str]:
         """Verify the OTP code, create user if new, return (user, access, refresh).
 
-        Tracks failed attempts per phone; locks out after 5 failures in 15 minutes.
+        Tracks failed attempts per active OTP code; locks out after 5 failures.
         """
+        phone = normalize_phone(phone)
         # Check for phone-level lockout from too many failures
         fail_key = f"{OTP_FAIL_PREFIX}{phone}"
         fail_count = await self.redis.get(fail_key)
@@ -104,11 +119,18 @@ class OtpService:
             )
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="تلاش‌های ناموفق بیش از حد مجاز. لطفاً ۱۵ دقیقه بعد تلاش کنید.",
+                detail="تلاش‌های ناموفق برای این کد بیش از حد مجاز است. لطفاً کد جدید بگیرید.",
             )
 
         stored = await self._retrieve_code(phone)
         if stored is None:
+            await log_action(
+                self.repo.db,
+                None,
+                "otp_verification_failed",
+                f"تأیید OTP ناموفق | کد منقضی شده برای شماره {phone}",
+                severity="WARNING",
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="کد تأیید منقضی شده است. لطفاً دوباره درخواست دهید.",
@@ -117,7 +139,14 @@ class OtpService:
         if stored != code:
             # Record failed attempt
             await self.redis.incr(fail_key)
-            await self.redis.expire(fail_key, OTP_FAIL_WINDOW, nx=True)
+            await self.redis.expire(fail_key, OTP_TTL, nx=True)
+            await log_action(
+                self.repo.db,
+                None,
+                "otp_verification_failed",
+                f"تأیید OTP ناموفق | کد اشتباه برای شماره {phone}",
+                severity="WARNING",
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="کد تأیید اشتباه است",
@@ -126,6 +155,7 @@ class OtpService:
         # Successful verification — clear fail counter and OTP code
         await self.redis.delete(fail_key)
         await self._delete_code(phone)
+        await self.redis.delete(f"{OTP_SEND_PREFIX}{phone}")
 
         user = await self.repo.get_by_phone(phone)
 
@@ -180,7 +210,9 @@ class OtpService:
 
     async def _store_code(self, phone: str, code: str) -> None:
         key = f"{OTP_PREFIX}{phone}"
+        fail_key = f"{OTP_FAIL_PREFIX}{phone}"
         await self.redis.set(key, code, ex=OTP_TTL)
+        await self.redis.delete(fail_key)
 
     async def _retrieve_code(self, phone: str) -> str | None:
         key = f"{OTP_PREFIX}{phone}"

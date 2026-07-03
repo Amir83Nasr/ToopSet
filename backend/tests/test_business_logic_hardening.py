@@ -204,8 +204,24 @@ class TestRefundAndBallLogic:
         assert cancelled.json()["status"] == "cancelled"
         assert cancelled.json()["penalty_amount"] == 10.0
 
+        refund = await session.execute(
+            text(
+                """
+                SELECT refund_amount, penalty_amount, status, type
+                FROM refunds
+                WHERE booking_id = :booking_id
+                """
+            ),
+            {"booking_id": booking_id},
+        )
+        refund_row = refund.mappings().one()
+        assert float(refund_row["refund_amount"]) == 90.0
+        assert float(refund_row["penalty_amount"]) == 10.0
+        assert refund_row["status"] == "pending"
+        assert refund_row["type"] == "user_cancellation"
+
         balance = await client.get("/api/v1/wallet/balance", headers=headers)
-        assert balance.json()["balance"] == 90.0
+        assert balance.json()["balance"] == 0.0
 
     async def test_with_ball_booking_uses_slot_plus_ball_price(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict

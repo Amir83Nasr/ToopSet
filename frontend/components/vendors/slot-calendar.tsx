@@ -302,6 +302,9 @@ export function SlotCalendar({
         <div>
           {/* Table header */}
           <div className="flex items-center border-b bg-muted/20 px-4 py-2.5">
+            <span className="w-20 text-xs font-medium text-muted-foreground">
+              روز
+            </span>
             <span className="flex-1 text-xs font-medium text-muted-foreground">
               زمان
             </span>
@@ -322,23 +325,32 @@ export function SlotCalendar({
           <div className="divide-y">
             {slotsForDay.map((slot) => {
               const reserved = slot.is_reserved
+              const past = new Date(slot.start_time).getTime() <= Date.now()
+              const disabled = reserved || past
+              const slotDay = new Date(slot.start_time).toLocaleDateString(
+                "fa-IR",
+                { weekday: "long" }
+              )
               return (
                 <div
                   key={slot.id}
-                  onClick={() => !reserved && onSlotClick?.(slot)}
+                  onClick={() => !disabled && onSlotClick?.(slot)}
                   className={`flex items-center px-4 py-3 text-right transition-colors ${
-                    reserved
+                    disabled
                       ? "opacity-40"
                       : onSlotClick
                         ? "cursor-pointer hover:bg-muted/10"
                         : ""
                   }`}
                 >
+                  <div className="w-20 text-xs font-medium text-muted-foreground">
+                    {slotDay}
+                  </div>
                   {/* Time */}
                   <div className="flex flex-1 items-center gap-3">
                     <div
                       className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                        reserved
+                        disabled
                           ? "bg-muted text-muted-foreground"
                           : "bg-primary/10 text-primary"
                       }`}
@@ -357,7 +369,7 @@ export function SlotCalendar({
                     <div className="w-28 text-center">
                       <span
                         className={`text-sm font-bold ${
-                          reserved ? "text-muted-foreground" : "text-primary"
+                          disabled ? "text-muted-foreground" : "text-primary"
                         }`}
                       >
                         {formatPrice(slot.base_price)}
@@ -367,7 +379,11 @@ export function SlotCalendar({
 
                   {/* Status */}
                   <div className="w-24 text-center">
-                    {reserved ? (
+                    {past ? (
+                      <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
+                        گذشته
+                      </span>
+                    ) : reserved ? (
                       <span className="inline-flex h-6 items-center rounded-full bg-red-50 px-2.5 text-[10px] font-semibold text-red-600 dark:bg-red-950 dark:text-red-400">
                         رزرو شده
                       </span>
@@ -379,7 +395,7 @@ export function SlotCalendar({
                   </div>
 
                   {/* Delete (managers only) */}
-                  {canManage && onSlotDelete && !reserved && (
+                  {canManage && onSlotDelete && !disabled && (
                     <div className="w-12 text-center">
                       <Button
                         variant="ghost"

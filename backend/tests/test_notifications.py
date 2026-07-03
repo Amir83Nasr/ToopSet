@@ -228,7 +228,9 @@ class TestMarkRead:
 
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         resp = await client.post(f"/api/v1/notifications/{n.id}/read", headers=mgr_headers)
-        assert resp.status_code == 403
+        assert resp.status_code == 404
+        await session.refresh(n)
+        assert n.is_read is False
 
     async def test_mark_read_unauthenticated(
         self, client: AsyncClient, user_token: dict, session: AsyncSession

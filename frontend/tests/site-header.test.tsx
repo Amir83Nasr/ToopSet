@@ -22,6 +22,7 @@ describe("SiteHeader", () => {
         user: null,
         loading: false,
         login: vi.fn(),
+        checkLoginOptions: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
@@ -39,7 +40,7 @@ describe("SiteHeader", () => {
     it("renders nav links", () => {
       renderWithProviders(<SiteHeader />)
       expect(screen.getByText("صفحه اصلی")).toBeInTheDocument()
-      expect(screen.getByText("جستجوی سالن‌ها")).toBeInTheDocument()
+      expect(screen.getByText("جستجوی مجموعه‌ها")).toBeInTheDocument()
       expect(screen.getByText("ارتباط با ما")).toBeInTheDocument()
     })
 
@@ -56,6 +57,7 @@ describe("SiteHeader", () => {
         user: null,
         loading: true,
         login: vi.fn(),
+        checkLoginOptions: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
@@ -81,11 +83,13 @@ describe("SiteHeader", () => {
           full_name: "کاربر تست",
           role: "user" as const,
           is_active: true,
+          has_password: true,
           avatar_url: null,
           created_at: "2026-01-01T00:00:00",
         },
         loading: false,
         login: vi.fn(),
+        checkLoginOptions: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),

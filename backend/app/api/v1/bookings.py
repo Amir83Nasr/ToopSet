@@ -9,6 +9,8 @@ from app.core.pagination import decode_cursor
 from app.models.user import User
 from app.schemas.booking import (
     AdminBookingListResponse,
+    BookingCancelRequest,
+    BookingCancellationTermsResponse,
     BookingCreate,
     BookingDetailResponse,
     BookingListResponse,
@@ -128,10 +130,23 @@ async def pay_booking(
 @router.post("/{booking_id}/cancel", response_model=BookingDetailResponse, summary="Cancel booking")
 async def cancel_booking(
     booking_id: int,
+    data: BookingCancelRequest | None = None,
     service: BookingService = Depends(get_booking_service),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
 
-    result = await service.cancel_booking(booking_id)
+    result = await service.cancel_booking(data or BookingCancelRequest(), booking_id)
     await invalidate_admin_list_cache("bookings")
     return result
+
+
+@router.get(
+    "/{booking_id}/cancellation-terms",
+    response_model=BookingCancellationTermsResponse,
+    summary="Preview booking cancellation terms",
+)
+async def get_cancellation_terms(
+    booking_id: int,
+    service: BookingService = Depends(get_booking_service),
+):
+    return await service.get_cancellation_terms(booking_id)

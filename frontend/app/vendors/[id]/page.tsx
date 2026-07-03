@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { api, ApiError } from "@/lib/api"
+import { toast } from "@/lib/toast"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,8 @@ import {
   amenityLabels,
   formatPrice,
   formatTime,
+  isSlotBookable,
+  isSlotPendingCancellation,
   type VendorData,
   type TimeSlot,
   type Review,
@@ -85,6 +88,12 @@ function enCa(d: Date): string {
 
 function isToday(dateStr: string): boolean {
   return dateStr === enCa(new Date())
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date)
+  next.setDate(date.getDate() + days)
+  return next
 }
 
 // ── Loading skeleton ──
@@ -137,12 +146,15 @@ export default function PublicVendorDetailPage() {
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
 
   const canManage = user?.role === "manager" || user?.role === "admin"
 
   // ── Week calculation ──
 
   const weekStart = useMemo(() => getWeekStart(weekOffset), [weekOffset])
+  const publicMinDate = useMemo(() => enCa(new Date()), [])
+  const publicMaxDate = useMemo(() => enCa(addDays(new Date(), 14)), [])
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -175,11 +187,28 @@ export default function PublicVendorDetailPage() {
     [weekDays, selectedDate]
   )
 
+  const canGoPrevWeek = weekOffset > 0
+  const canGoNextWeek = useMemo(() => {
+    const nextWeekStart = getWeekStart(weekOffset + 1)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(nextWeekStart)
+      d.setDate(nextWeekStart.getDate() + i)
+      return enCa(d)
+    }).some((dateStr) => dateStr >= publicMinDate && dateStr <= publicMaxDate)
+  }, [publicMaxDate, publicMinDate, weekOffset])
+
   // Effective selected date — falls back to first day when selection is invalid
   const effectiveDate =
-    selectedDate && weekDays.find((d) => d.date === selectedDate)
+    selectedDate &&
+    weekDays.find(
+      (d) =>
+        d.date === selectedDate &&
+        d.date >= publicMinDate &&
+        d.date <= publicMaxDate
+    )
       ? selectedDate
-      : weekDays[0]?.date || ""
+      : weekDays.find((d) => d.date >= publicMinDate && d.date <= publicMaxDate)
+          ?.date || ""
 
   // ── Fetch vendor + reviews ──
 
@@ -244,10 +273,22 @@ export default function PublicVendorDetailPage() {
     fetchSlots(effectiveDate)
   }, [effectiveDate, vendorId, fetchSlots])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCurrentTime(Date.now()), 0)
+    return () => window.clearTimeout(timer)
+  }, [slots])
+
   function handleBookSlot(slot: TimeSlot) {
+    if (new Date(slot.start_time).getTime() <= Date.now()) {
+      toast.error("زمان این سانس گذشته و دیگر قابل رزرو نیست")
+      return
+    }
     if (!isAuthenticated) {
+      toast.info("برای رزرو سانس باید اول وارد شوید", {
+        description: "بعد از ورود، همین سانس برای ادامه رزرو باز می‌شود.",
+      })
       router.push(
-        `/login?redirect=${encodeURIComponent(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)}`
+        `/login?reason=login_required&redirect=${encodeURIComponent(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)}`
       )
       return
     }
@@ -255,11 +296,11 @@ export default function PublicVendorDetailPage() {
   }
 
   function goPrevWeek() {
-    setWeekOffset((prev) => prev - 1)
+    setWeekOffset((prev) => Math.max(0, prev - 1))
   }
 
   function goNextWeek() {
-    setWeekOffset((prev) => prev + 1)
+    if (canGoNextWeek) setWeekOffset((prev) => prev + 1)
   }
 
   // ── Render ──
@@ -434,7 +475,8 @@ export default function PublicVendorDetailPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={goPrevWeek}
-                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground"
+                      disabled={!canGoPrevWeek}
+                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-card disabled:hover:text-muted-foreground"
                     >
                       <ChevronRight className="size-4" />
                     </button>
@@ -443,7 +485,8 @@ export default function PublicVendorDetailPage() {
                     </span>
                     <button
                       onClick={goNextWeek}
-                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground"
+                      disabled={!canGoNextWeek}
+                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-card disabled:hover:text-muted-foreground"
                     >
                       <ChevronLeft className="size-4" />
                     </button>
@@ -454,17 +497,23 @@ export default function PublicVendorDetailPage() {
                 <div className="flex border-b">
                   {weekDays.map((day) => {
                     const isActive = day.date === selectedDate
+                    const isOutsideWindow =
+                      day.date < publicMinDate || day.date > publicMaxDate
                     return (
                       <button
                         key={day.date}
+                        disabled={isOutsideWindow}
                         onClick={() => {
+                          if (isOutsideWindow) return
                           setSelectedDate(day.date)
                           setSelectedSlot(null)
                         }}
                         className={`flex flex-1 flex-col items-center gap-0.5 py-3 text-center transition-colors ${
-                          isActive
-                            ? "border-b-2 border-primary text-foreground"
-                            : "border-b-2 border-transparent text-muted-foreground hover:border-muted-foreground/20 hover:text-foreground"
+                          isOutsideWindow
+                            ? "cursor-not-allowed border-b-2 border-transparent text-muted-foreground/35"
+                            : isActive
+                              ? "border-b-2 border-primary text-foreground"
+                              : "border-b-2 border-transparent text-muted-foreground hover:border-muted-foreground/20 hover:text-foreground"
                         }`}
                       >
                         <span className="text-[10px] leading-none font-medium">
@@ -513,6 +562,9 @@ export default function PublicVendorDetailPage() {
                     <div>
                       {/* Header row */}
                       <div className="flex items-center border-b bg-muted/30 px-4 py-2.5">
+                        <span className="w-20 text-xs font-medium text-muted-foreground">
+                          روز
+                        </span>
                         <span className="flex-1 text-xs font-medium text-muted-foreground">
                           زمان
                         </span>
@@ -528,25 +580,34 @@ export default function PublicVendorDetailPage() {
                       <div className="*:last:border-b-0">
                         {slots.map((slot) => {
                           const isSelected = selectedSlot?.id === slot.id
+                          const isPast =
+                            currentTime > 0 &&
+                            new Date(slot.start_time).getTime() <= currentTime
+                          const bookable = isSlotBookable(slot)
+                          const disabled = !bookable || isPast
+                          const slotDay = new Date(
+                            slot.start_time
+                          ).toLocaleDateString("fa-IR", { weekday: "long" })
                           return (
                             <button
                               key={slot.id}
-                              onClick={() =>
-                                !slot.is_reserved && setSelectedSlot(slot)
-                              }
-                              disabled={slot.is_reserved}
+                              onClick={() => !disabled && setSelectedSlot(slot)}
+                              disabled={disabled}
                               className={`flex w-full items-center border-b px-4 py-3.5 text-right transition-colors ${
-                                slot.is_reserved
+                                disabled
                                   ? "cursor-not-allowed opacity-35"
                                   : isSelected
                                     ? "bg-primary/5"
                                     : "cursor-pointer hover:bg-muted/20"
                               }`}
                             >
+                              <div className="w-20 text-xs font-medium text-muted-foreground">
+                                {slotDay}
+                              </div>
                               <div className="flex flex-1 items-center gap-3">
                                 <div
                                   className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                                    slot.is_reserved
+                                    disabled
                                       ? "bg-muted text-muted-foreground"
                                       : isSelected
                                         ? "bg-primary text-primary-foreground"
@@ -566,7 +627,7 @@ export default function PublicVendorDetailPage() {
                               <div className="w-28 text-center">
                                 <span
                                   className={`text-sm font-bold ${
-                                    slot.is_reserved
+                                    disabled
                                       ? "text-muted-foreground"
                                       : "text-primary"
                                   }`}
@@ -575,9 +636,13 @@ export default function PublicVendorDetailPage() {
                                 </span>
                               </div>
                               <div className="w-24 text-center">
-                                {slot.is_reserved ? (
-                                  <span className="inline-flex h-6 items-center rounded-full bg-red-50 px-2.5 text-[10px] font-semibold text-red-600 dark:bg-red-950 dark:text-red-400">
-                                    رزرو شده
+                                {isPast ? (
+                                  <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
+                                    گذشته
+                                  </span>
+                                ) : slot.is_reserved ? (
+                                  <span className="inline-flex h-6 items-center rounded-full border border-emerald-200 bg-emerald-50/60 px-2.5 text-[10px] font-semibold text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
+                                    آزاد
                                   </span>
                                 ) : isSelected ? (
                                   <span className="inline-flex h-6 items-center rounded-full bg-primary px-2.5 text-[10px] font-semibold text-primary-foreground">
@@ -596,52 +661,56 @@ export default function PublicVendorDetailPage() {
                     </div>
 
                     {/* Booking CTA */}
-                    {selectedSlot && !selectedSlot.is_reserved && (
-                      <div className="border-t">
-                        <div className="px-5 py-4">
-                          {/* Slot info + pricing combined */}
-                          <div className="rounded-lg bg-primary/5 px-4 py-3.5">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                                  <Clock className="size-5 text-primary" />
+                    {selectedSlot &&
+                      isSlotBookable(selectedSlot) &&
+                      (currentTime === 0 ||
+                        new Date(selectedSlot.start_time).getTime() >
+                          currentTime) && (
+                        <div className="border-t">
+                          <div className="px-5 py-4">
+                            {/* Slot info + pricing combined */}
+                            <div className="rounded-lg bg-primary/5 px-4 py-3.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                    <Clock className="size-5 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                      {selectedDayInfo?.fullPersian ||
+                                        selectedDate}
+                                    </p>
+                                    <p className="text-sm font-semibold text-foreground">
+                                      {formatTime(selectedSlot.start_time)}
+                                      <span className="mx-1.5 text-muted-foreground/30">
+                                        —
+                                      </span>
+                                      {formatTime(selectedSlot.end_time)}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-xs font-medium text-muted-foreground">
-                                    {selectedDayInfo?.fullPersian ||
-                                      selectedDate}
+                                <div className="text-left">
+                                  <p className="text-[10px] font-medium text-muted-foreground">
+                                    مبلغ قابل پرداخت
                                   </p>
-                                  <p className="text-sm font-semibold text-foreground">
-                                    {formatTime(selectedSlot.start_time)}
-                                    <span className="mx-1.5 text-muted-foreground/30">
-                                      —
-                                    </span>
-                                    {formatTime(selectedSlot.end_time)}
+                                  <p className="text-base font-bold text-primary">
+                                    {formatPrice(selectedSlot.base_price)}
                                   </p>
                                 </div>
-                              </div>
-                              <div className="text-left">
-                                <p className="text-[10px] font-medium text-muted-foreground">
-                                  مبلغ قابل پرداخت
-                                </p>
-                                <p className="text-base font-bold text-primary">
-                                  {formatPrice(selectedSlot.base_price)}
-                                </p>
                               </div>
                             </div>
-                          </div>
 
-                          <Button
-                            size="default"
-                            className="mt-3 w-full font-semibold shadow-xs"
-                            onClick={() => handleBookSlot(selectedSlot)}
-                          >
-                            <CheckCircle2 className="ms-1.5 size-4" />
-                            {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
-                          </Button>
+                            <Button
+                              size="default"
+                              className="mt-3 w-full font-semibold shadow-xs"
+                              onClick={() => handleBookSlot(selectedSlot)}
+                            >
+                              <CheckCircle2 className="ms-1.5 size-4" />
+                              {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </>
                 )}
               </div>
@@ -721,7 +790,8 @@ export default function PublicVendorDetailPage() {
                   <Award className="size-4 shrink-0 text-primary" />
                   امکانات مجموعه
                 </h3>
-                {vendor.amenities && Object.keys(vendor.amenities).length > 0 ? (
+                {vendor.amenities &&
+                Object.keys(vendor.amenities).length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(vendor.amenities).map(([key, val]) => (
                       <span

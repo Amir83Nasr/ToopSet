@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -33,11 +31,10 @@ class ReviewRepo:
             query = query.where(Review.id > after_id)
 
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         reviews = list(result.scalars().all())
         total = count_result.scalar_one()
@@ -63,11 +60,10 @@ class ReviewRepo:
             query = query.where(Review.id > after_id)
 
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         reviews = list(result.scalars().all())
         total = count_result.scalar_one()

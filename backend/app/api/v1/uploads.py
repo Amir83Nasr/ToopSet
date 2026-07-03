@@ -29,7 +29,10 @@ async def upload_vendor_image(
     if f".{ext}" not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"نوع فایل .{ext} مجاز نیست")
 
-    relative_url = save_upload(content, file.filename or "image.jpg", subdir="vendors")
+    try:
+        relative_url = save_upload(content, file.filename or "image.jpg", subdir="vendors")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     base = str(request.base_url).rstrip("/")
     absolute_url = f"{base}{relative_url}"
     temp_id = uuid.uuid4().hex

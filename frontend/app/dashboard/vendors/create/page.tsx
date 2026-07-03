@@ -38,6 +38,7 @@ const sportTypes = [
   { value: "basketball", label: "بسکتبال" },
   { value: "futsal", label: "فوتسال" },
   { value: "handball", label: "هندبال" },
+  { value: "football", label: "فوتبال" },
 ]
 
 export default function CreateVendorPage() {

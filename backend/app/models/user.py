@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Index, String, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,6 +21,7 @@ class User(Base):
     __tablename__ = "users"
 
     __table_args__ = (
+        CheckConstraint("phone ~ '^09[0-9]{9}$'", name="ck_users_phone_ir_mobile"),
         Index("ix_users_role", "role"),
         Index("ix_users_created_at", "created_at"),
     )
@@ -40,7 +41,9 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     vendors: Mapped[list["Vendor"]] = relationship(back_populates="manager")
-    bookings: Mapped[list["Booking"]] = relationship(back_populates="user")
+    bookings: Mapped[list["Booking"]] = relationship(
+        back_populates="user", foreign_keys="Booking.user_id"
+    )
     reviews: Mapped[list["Review"]] = relationship(back_populates="user")
     penalties: Mapped[list["Penalty"]] = relationship(back_populates="user")
     logs: Mapped[list["Log"]] = relationship(back_populates="user")
