@@ -99,7 +99,9 @@ async def update_slot(
     return await service.update_vendor_slot(vendor_id, slot_id, data)
 
 
-@legacy_router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
+@legacy_router.delete(
+    "/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot"
+)
 @router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
 async def delete_slot(
     vendor_id: int,

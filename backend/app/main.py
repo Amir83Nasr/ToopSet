@@ -12,6 +12,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError, StatementError
 
 from app import __version__
+from app.api.openapi_docs import install_openapi_docs
 from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bookings import router as bookings_router
@@ -32,7 +33,6 @@ from app.api.v1.users import router as users_router
 from app.api.v1.vendors import legacy_router as legacy_vendors_router
 from app.api.v1.vendors import router as vendors_router
 from app.api.v1.wallet import router as wallet_router
-from app.api.openapi_docs import install_openapi_docs
 from app.core.config import EnvValidationError, settings, validate_env
 from app.core.correlation_id import CorrelationIdMiddleware
 from app.core.database import async_session_factory, engine

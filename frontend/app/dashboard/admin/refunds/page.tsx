@@ -65,7 +65,9 @@ export default function AdminRefundsPage() {
       const res = await api<{ refunds: Refund[] }>("/api/v1/admin/refunds")
       setRefunds(res.refunds)
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "خطا در دریافت عودت‌ها")
+      toast.error(
+        err instanceof ApiError ? err.message : "خطا در دریافت عودت‌ها"
+      )
     } finally {
       setLoading(false)
     }
@@ -93,7 +95,9 @@ export default function AdminRefundsPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">عودت‌های کاربران</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            عودت‌های کاربران
+          </h1>
           <p className="text-muted-foreground">
             عودت‌ها خودکار پرداخت نمی‌شوند و فقط وضعیت آن‌ها ثبت می‌شود.
           </p>
@@ -107,7 +111,9 @@ export default function AdminRefundsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <p className="p-4 text-sm text-muted-foreground">در حال بارگذاری...</p>
+            <p className="p-4 text-sm text-muted-foreground">
+              در حال بارگذاری...
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -127,25 +133,34 @@ export default function AdminRefundsPage() {
                   <TableRow key={r.id}>
                     <TableCell>
                       <div>{r.user_name}</div>
-                      <div className="text-xs text-muted-foreground">{r.user_phone}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.user_phone}
+                      </div>
                     </TableCell>
                     <TableCell>{r.vendor_name}</TableCell>
-                    <TableCell>{new Date(r.slot_start_time).toLocaleString("fa-IR")}</TableCell>
+                    <TableCell>
+                      {new Date(r.slot_start_time).toLocaleString("fa-IR")}
+                    </TableCell>
                     <TableCell>{money(r.total_paid)}</TableCell>
                     <TableCell>{money(r.penalty_amount)}</TableCell>
                     <TableCell>{money(r.refund_amount)}</TableCell>
                     <TableCell>{refundType[r.type] || r.type}</TableCell>
                     <TableCell>
-                      <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
+                      <Select
+                        value={r.status}
+                        onValueChange={(v) => updateStatus(r.id, v)}
+                      >
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(refundStatus).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
+                          {Object.entries(refundStatus).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
                     </TableCell>

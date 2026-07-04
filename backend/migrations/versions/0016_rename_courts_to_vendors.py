@@ -44,17 +44,17 @@ def upgrade() -> None:
     op.alter_column("favorites", "court_id", new_column_name="vendor_id")
     op.alter_column("vendor_images", "court_id", new_column_name="vendor_id")
 
-    op.execute('ALTER INDEX IF EXISTS ix_courts_manager_id RENAME TO ix_vendors_manager_id')
-    op.execute('ALTER INDEX IF EXISTS ix_courts_is_active RENAME TO ix_vendors_is_active')
-    op.execute('ALTER INDEX IF EXISTS ix_courts_created_at RENAME TO ix_vendors_created_at')
-    op.execute('ALTER INDEX IF EXISTS ix_courts_is_deleted RENAME TO ix_vendors_is_deleted')
-    op.execute('ALTER INDEX IF EXISTS ix_time_slots_court_id RENAME TO ix_time_slots_vendor_id')
+    op.execute("ALTER INDEX IF EXISTS ix_courts_manager_id RENAME TO ix_vendors_manager_id")
+    op.execute("ALTER INDEX IF EXISTS ix_courts_is_active RENAME TO ix_vendors_is_active")
+    op.execute("ALTER INDEX IF EXISTS ix_courts_created_at RENAME TO ix_vendors_created_at")
+    op.execute("ALTER INDEX IF EXISTS ix_courts_is_deleted RENAME TO ix_vendors_is_deleted")
+    op.execute("ALTER INDEX IF EXISTS ix_time_slots_court_id RENAME TO ix_time_slots_vendor_id")
     op.execute(
         "ALTER INDEX IF EXISTS ix_time_slots_court_id_start_time "
         "RENAME TO ix_time_slots_vendor_id_start_time"
     )
-    op.execute('ALTER INDEX IF EXISTS ix_reviews_court_id RENAME TO ix_reviews_vendor_id')
-    op.execute('ALTER INDEX IF EXISTS ix_favorites_court_id RENAME TO ix_favorites_vendor_id')
+    op.execute("ALTER INDEX IF EXISTS ix_reviews_court_id RENAME TO ix_reviews_vendor_id")
+    op.execute("ALTER INDEX IF EXISTS ix_favorites_court_id RENAME TO ix_favorites_vendor_id")
     op.execute(
         "ALTER INDEX IF EXISTS ix_court_images_court_id RENAME TO ix_vendor_images_vendor_id"
     )
@@ -63,7 +63,9 @@ def upgrade() -> None:
         "time_slots", "uq_time_slots_court_start_end", "uq_time_slots_vendor_start_end"
     )
     _rename_constraint_if_exists("favorites", "uq_user_court_favorite", "uq_user_vendor_favorite")
-    _rename_constraint_if_exists("time_slots", "time_slots_court_id_fkey", "time_slots_vendor_id_fkey")
+    _rename_constraint_if_exists(
+        "time_slots", "time_slots_court_id_fkey", "time_slots_vendor_id_fkey"
+    )
     _rename_constraint_if_exists("reviews", "reviews_court_id_fkey", "reviews_vendor_id_fkey")
     _rename_constraint_if_exists("favorites", "favorites_court_id_fkey", "favorites_vendor_id_fkey")
     _rename_constraint_if_exists(
@@ -83,7 +85,9 @@ def downgrade() -> None:
     )
     _rename_constraint_if_exists("favorites", "favorites_vendor_id_fkey", "favorites_court_id_fkey")
     _rename_constraint_if_exists("reviews", "reviews_vendor_id_fkey", "reviews_court_id_fkey")
-    _rename_constraint_if_exists("time_slots", "time_slots_vendor_id_fkey", "time_slots_court_id_fkey")
+    _rename_constraint_if_exists(
+        "time_slots", "time_slots_vendor_id_fkey", "time_slots_court_id_fkey"
+    )
     _rename_constraint_if_exists("favorites", "uq_user_vendor_favorite", "uq_user_court_favorite")
     _rename_constraint_if_exists(
         "time_slots", "uq_time_slots_vendor_start_end", "uq_time_slots_court_start_end"
@@ -92,17 +96,17 @@ def downgrade() -> None:
     op.execute(
         "ALTER INDEX IF EXISTS ix_vendor_images_vendor_id RENAME TO ix_court_images_court_id"
     )
-    op.execute('ALTER INDEX IF EXISTS ix_favorites_vendor_id RENAME TO ix_favorites_court_id')
-    op.execute('ALTER INDEX IF EXISTS ix_reviews_vendor_id RENAME TO ix_reviews_court_id')
+    op.execute("ALTER INDEX IF EXISTS ix_favorites_vendor_id RENAME TO ix_favorites_court_id")
+    op.execute("ALTER INDEX IF EXISTS ix_reviews_vendor_id RENAME TO ix_reviews_court_id")
     op.execute(
         "ALTER INDEX IF EXISTS ix_time_slots_vendor_id_start_time "
         "RENAME TO ix_time_slots_court_id_start_time"
     )
-    op.execute('ALTER INDEX IF EXISTS ix_time_slots_vendor_id RENAME TO ix_time_slots_court_id')
-    op.execute('ALTER INDEX IF EXISTS ix_vendors_is_deleted RENAME TO ix_courts_is_deleted')
-    op.execute('ALTER INDEX IF EXISTS ix_vendors_created_at RENAME TO ix_courts_created_at')
-    op.execute('ALTER INDEX IF EXISTS ix_vendors_is_active RENAME TO ix_courts_is_active')
-    op.execute('ALTER INDEX IF EXISTS ix_vendors_manager_id RENAME TO ix_courts_manager_id')
+    op.execute("ALTER INDEX IF EXISTS ix_time_slots_vendor_id RENAME TO ix_time_slots_court_id")
+    op.execute("ALTER INDEX IF EXISTS ix_vendors_is_deleted RENAME TO ix_courts_is_deleted")
+    op.execute("ALTER INDEX IF EXISTS ix_vendors_created_at RENAME TO ix_courts_created_at")
+    op.execute("ALTER INDEX IF EXISTS ix_vendors_is_active RENAME TO ix_courts_is_active")
+    op.execute("ALTER INDEX IF EXISTS ix_vendors_manager_id RENAME TO ix_courts_manager_id")
 
     op.alter_column("vendor_images", "vendor_id", new_column_name="court_id")
     op.alter_column("favorites", "vendor_id", new_column_name="court_id")

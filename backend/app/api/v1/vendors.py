@@ -34,7 +34,9 @@ async def list_vendors(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     sport_types: list[SportType] | None = Query(None),
-    sport_type: SportType | None = Query(None, description="Backward-compatible single sport filter"),
+    sport_type: SportType | None = Query(
+        None, description="Backward-compatible single sport filter"
+    ),
     search: str | None = None,
     is_active: bool | None = None,
     date_from: str | None = Query(None),

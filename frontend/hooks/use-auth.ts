@@ -37,10 +37,7 @@ async function fetchCurrentUser(): Promise<User | null> {
     currentUserRequest = api<CurrentUserResponse>("/api/v1/auth/me")
       .then((data) => ({ ...data, role: data.role as User["role"] }))
       .catch((err) => {
-        if (
-          err instanceof ApiError &&
-          [401, 403, 404].includes(err.status)
-        ) {
+        if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
           clearTokens()
         }
         return null

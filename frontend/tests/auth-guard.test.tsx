@@ -13,7 +13,7 @@ describe("AuthGuard", () => {
       user: null,
       loading: true,
       login: vi.fn(),
-        checkLoginOptions: vi.fn(),
+      checkLoginOptions: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
@@ -37,7 +37,7 @@ describe("AuthGuard", () => {
       user: null,
       loading: false,
       login: vi.fn(),
-        checkLoginOptions: vi.fn(),
+      checkLoginOptions: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
@@ -53,7 +53,9 @@ describe("AuthGuard", () => {
     )
     expect(screen.queryByText("Protected Content")).not.toBeInTheDocument()
     expect(
-      screen.getByText("برای ادامه باید وارد شوید؛ در حال انتقال به صفحه ورود...")
+      screen.getByText(
+        "برای ادامه باید وارد شوید؛ در حال انتقال به صفحه ورود..."
+      )
     ).toBeInTheDocument()
     const spinner = container.querySelector(".animate-spin")
     expect(spinner).toBeInTheDocument()
@@ -73,7 +75,7 @@ describe("AuthGuard", () => {
       },
       loading: false,
       login: vi.fn(),
-        checkLoginOptions: vi.fn(),
+      checkLoginOptions: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),

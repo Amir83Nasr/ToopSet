@@ -199,7 +199,7 @@ export function OtpForm({
               ? "برای رزرو سالن ورزشی وارد حساب خود شوید"
               : purpose === "password_reset"
                 ? `کد ۶ رقمی بازیابی رمز ارسال شده به ${toPersianDigits(phone)} را وارد کنید`
-              : `کد ۶ رقمی ارسال شده به ${toPersianDigits(phone)} را وارد کنید`}
+                : `کد ۶ رقمی ارسال شده به ${toPersianDigits(phone)} را وارد کنید`}
           </p>
         </div>
 

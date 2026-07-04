@@ -71,14 +71,19 @@ class BookingRepo:
 
     async def get_by_slot(self, slot_id: int) -> Booking | None:
         result = await self.db.execute(
-            select(Booking).where(Booking.slot_id == slot_id).order_by(Booking.created_at.desc()).limit(1)
+            select(Booking)
+            .where(Booking.slot_id == slot_id)
+            .order_by(Booking.created_at.desc())
+            .limit(1)
         )
         return result.scalar_one_or_none()
 
     async def get_active_by_slot(self, slot_id: int, *, for_update: bool = False) -> Booking | None:
         stmt = (
             select(Booking)
-            .options(selectinload(Booking.user), selectinload(Booking.slot).selectinload(TimeSlot.vendor))
+            .options(
+                selectinload(Booking.user), selectinload(Booking.slot).selectinload(TimeSlot.vendor)
+            )
             .where(Booking.slot_id == slot_id, Booking.status.in_(ACTIVE_SLOT_STATUSES))
             .order_by(Booking.created_at.desc())
             .limit(1)

@@ -4,7 +4,6 @@ from collections.abc import Mapping
 
 from fastapi import FastAPI
 
-
 OperationKey = tuple[str, str]
 
 
@@ -195,8 +194,7 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "bookings, slots, and revenue-related activity."
     ),
     ("get", "/api/v1/dashboard/admin/monthly-recap"): (
-        "Returns admin monthly recap data used by the admin dashboard overview "
-        "and charts."
+        "Returns admin monthly recap data used by the admin dashboard overview and charts."
     ),
     ("get", "/api/v1/dashboard/admin/charts"): (
         "Returns aggregated chart datasets for the admin dashboard. Data is "
@@ -222,8 +220,7 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "to interact with the review."
     ),
     ("post", "/api/v1/reviews/{review_id}/respond"): (
-        "Adds or updates a manager response to a review for one of the manager's "
-        "vendors."
+        "Adds or updates a manager response to a review for one of the manager's vendors."
     ),
     ("delete", "/api/v1/reviews/{review_id}"): (
         "Deletes a review when the current user has permission to remove it. "
@@ -243,8 +240,7 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "`privacy_text` are exposed without authentication."
     ),
     ("get", "/api/v1/settings/{key}"): (
-        "Returns one system setting by key for authenticated users. Missing keys "
-        "return 404."
+        "Returns one system setting by key for authenticated users. Missing keys return 404."
     ),
     ("post", "/api/v1/uploads/vendor-image"): (
         "Uploads a temporary vendor image for a manager. The file is validated, "
@@ -342,12 +338,10 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "legacy `court_ids` query parameter is accepted as an alias."
     ),
     ("post", "/api/v1/favorites/{vendor_id}"): (
-        "Adds one vendor to the authenticated user's favorites and returns the "
-        "favorite record."
+        "Adds one vendor to the authenticated user's favorites and returns the favorite record."
     ),
     ("delete", "/api/v1/favorites/{vendor_id}"): (
-        "Removes one vendor from the authenticated user's favorites. Returns 204 "
-        "on success."
+        "Removes one vendor from the authenticated user's favorites. Returns 204 on success."
     ),
     ("get", "/api/v1/manager/bookings"): (
         "Manager endpoint that lists bookings for the manager's vendors. Supports "

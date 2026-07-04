@@ -233,7 +233,9 @@ export function LoginForm({
                 {passwordForm.formState.isSubmitting ? (
                   <Spinner data-icon="inline-start" />
                 ) : null}
-                {passwordForm.formState.isSubmitting ? "در حال ورود..." : "ورود"}
+                {passwordForm.formState.isSubmitting
+                  ? "در حال ورود..."
+                  : "ورود"}
               </Button>
             </Field>
 

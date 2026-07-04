@@ -39,7 +39,9 @@ class Settlement(Base):
     manager_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     payment_tracking_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -50,15 +52,15 @@ class Settlement(Base):
 
 class SettlementItem(Base):
     __tablename__ = "settlement_items"
-    __table_args__ = (
-        UniqueConstraint("booking_id", name="uq_settlement_items_booking_id"),
-    )
+    __table_args__ = (UniqueConstraint("booking_id", name="uq_settlement_items_booking_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     settlement_id: Mapped[int] = mapped_column(
         ForeignKey("settlements.id", ondelete="CASCADE"), index=True
     )
-    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"), index=True)
+    booking_id: Mapped[int] = mapped_column(
+        ForeignKey("bookings.id", ondelete="CASCADE"), index=True
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
 
     settlement: Mapped["Settlement"] = relationship(back_populates="items")

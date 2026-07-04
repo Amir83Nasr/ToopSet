@@ -146,7 +146,9 @@ class TestPendingVendors:
         vendor_id = vendor.id
 
         admin_headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
-        resp = await client.post(f"/api/v1/admin/vendors/{vendor_id}/approve", headers=admin_headers)
+        resp = await client.post(
+            f"/api/v1/admin/vendors/{vendor_id}/approve", headers=admin_headers
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_active"] is True
@@ -179,7 +181,9 @@ class TestPendingVendors:
         list_data = list_resp.json()
         assert vendor_id not in [c["id"] for c in list_data["vendors"]]
 
-    async def test_approve_non_existent_vendor(self, client: AsyncClient, admin_token: dict) -> None:
+    async def test_approve_non_existent_vendor(
+        self, client: AsyncClient, admin_token: dict
+    ) -> None:
         headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
         resp = await client.post("/api/v1/admin/vendors/99999/approve", headers=headers)
         assert resp.status_code == 404

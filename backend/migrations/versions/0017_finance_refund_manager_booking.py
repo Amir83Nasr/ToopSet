@@ -204,7 +204,9 @@ def upgrade() -> None:
     op.create_index("ix_slot_cancellations_booking_id", "slot_cancellations", ["booking_id"])
     op.create_index("ix_slot_cancellations_vendor_id", "slot_cancellations", ["vendor_id"])
     op.create_index("ix_slot_cancellations_manager_id", "slot_cancellations", ["manager_id"])
-    op.create_index("ix_slot_cancellations_affected_user_id", "slot_cancellations", ["affected_user_id"])
+    op.create_index(
+        "ix_slot_cancellations_affected_user_id", "slot_cancellations", ["affected_user_id"]
+    )
 
     op.create_table(
         "notification_deliveries",
@@ -223,15 +225,21 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["booking_id"], ["bookings.id"], ondelete="SET NULL"),
     )
-    op.create_index("ix_notification_deliveries_notification_id", "notification_deliveries", ["notification_id"])
+    op.create_index(
+        "ix_notification_deliveries_notification_id", "notification_deliveries", ["notification_id"]
+    )
     op.create_index("ix_notification_deliveries_user_id", "notification_deliveries", ["user_id"])
-    op.create_index("ix_notification_deliveries_booking_id", "notification_deliveries", ["booking_id"])
+    op.create_index(
+        "ix_notification_deliveries_booking_id", "notification_deliveries", ["booking_id"]
+    )
 
 
 def downgrade() -> None:
     op.drop_index("ix_notification_deliveries_booking_id", table_name="notification_deliveries")
     op.drop_index("ix_notification_deliveries_user_id", table_name="notification_deliveries")
-    op.drop_index("ix_notification_deliveries_notification_id", table_name="notification_deliveries")
+    op.drop_index(
+        "ix_notification_deliveries_notification_id", table_name="notification_deliveries"
+    )
     op.drop_table("notification_deliveries")
 
     op.drop_index("ix_slot_cancellations_affected_user_id", table_name="slot_cancellations")

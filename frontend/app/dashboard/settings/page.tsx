@@ -126,9 +126,11 @@ export default function SettingsPage() {
     }
   }, [name, refreshUser])
 
+  const hasPassword = user?.has_password
+
   const changePassword = useCallback(async () => {
     if (!newPass) return toast.error("رمز جدید را وارد کنید")
-    if (user?.has_password && !passwordResetMode && !currentPass) {
+    if (hasPassword && !passwordResetMode && !currentPass) {
       return toast.error("رمز فعلی را وارد کنید")
     }
     if (newPass.length < 8) return toast.error("حداقل ۸ کاراکتر")
@@ -139,7 +141,7 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({
           new_password: newPass,
-          ...(user?.has_password && !passwordResetMode
+          ...(hasPassword && !passwordResetMode
             ? { current_password: currentPass }
             : {}),
         }),
@@ -159,7 +161,7 @@ export default function SettingsPage() {
     } finally {
       setChangingPass(false)
     }
-  }, [currentPass, newPass, confirmPass, passwordResetMode, user?.has_password])
+  }, [currentPass, newPass, confirmPass, passwordResetMode, hasPassword])
 
   const handleAvatarSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

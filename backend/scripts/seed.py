@@ -673,7 +673,9 @@ async def seed():
                 and b.id != manager_cancel_booking.id
             ):
                 slot = slot_by_id[b.slot_id]
-                penalty = b.penalty_amount or (b.price_paid * Decimal("0.10")).quantize(Decimal("1"))
+                penalty = b.penalty_amount or (b.price_paid * Decimal("0.10")).quantize(
+                    Decimal("1")
+                )
                 refunds.append(
                     Refund(
                         booking_id=b.id,

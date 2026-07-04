@@ -52,10 +52,14 @@ export default function AdminSettlementsPage() {
   const fetchSettlements = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api<{ settlements: Settlement[] }>("/api/v1/admin/settlements")
+      const res = await api<{ settlements: Settlement[] }>(
+        "/api/v1/admin/settlements"
+      )
       setSettlements(res.settlements)
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "خطا در دریافت تسویه‌ها")
+      toast.error(
+        err instanceof ApiError ? err.message : "خطا در دریافت تسویه‌ها"
+      )
     } finally {
       setLoading(false)
     }
@@ -83,7 +87,9 @@ export default function AdminSettlementsPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">درخواست‌های تسویه</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            درخواست‌های تسویه
+          </h1>
           <p className="text-muted-foreground">
             رزروهای داخل درخواست بعد از ثبت، دوباره وارد درخواست دیگر نمی‌شوند.
           </p>
@@ -97,7 +103,9 @@ export default function AdminSettlementsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <p className="p-4 text-sm text-muted-foreground">در حال بارگذاری...</p>
+            <p className="p-4 text-sm text-muted-foreground">
+              در حال بارگذاری...
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -117,18 +125,25 @@ export default function AdminSettlementsPage() {
                     <TableCell>{s.vendor_name}</TableCell>
                     <TableCell>{money(s.requested_amount)}</TableCell>
                     <TableCell>{s.bookings_count}</TableCell>
-                    <TableCell>{new Date(s.requested_at).toLocaleDateString("fa-IR")}</TableCell>
                     <TableCell>
-                      <Select value={s.status} onValueChange={(v) => updateStatus(s.id, v)}>
+                      {new Date(s.requested_at).toLocaleDateString("fa-IR")}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={s.status}
+                        onValueChange={(v) => updateStatus(s.id, v)}
+                      >
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(statusLabels).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
+                          {Object.entries(statusLabels).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
                     </TableCell>

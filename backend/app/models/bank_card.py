@@ -19,9 +19,7 @@ class BankCardStatus(str, enum.Enum):
 
 class BankCard(Base):
     __tablename__ = "bank_cards"
-    __table_args__ = (
-        UniqueConstraint("user_id", name="uq_bank_cards_user_id"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", name="uq_bank_cards_user_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)

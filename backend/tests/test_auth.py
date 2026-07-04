@@ -53,9 +53,7 @@ class TestRegister:
             "02111111111",
         ],
     )
-    async def test_register_rejects_invalid_phone_format(
-        self, client: AsyncClient, phone: str
-    ):
+    async def test_register_rejects_invalid_phone_format(self, client: AsyncClient, phone: str):
         resp = await client.post(
             "/api/v1/auth/register",
             json={"phone": phone, "password": "Test1234", "full_name": "test"},
@@ -143,9 +141,7 @@ class TestLoginOptions:
         )
         assert resp.status_code == 422
 
-    async def test_forgot_password_otp_allows_creating_new_password(
-        self, client: AsyncClient
-    ):
+    async def test_forgot_password_otp_allows_creating_new_password(self, client: AsyncClient):
         await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111113", "password": "Test1234", "full_name": "test"},
@@ -183,7 +179,7 @@ class TestLoginOptions:
 
 class TestRefresh:
     async def test_refresh_success(self, client: AsyncClient):
-        reg = await client.post(
+        await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111111", "password": "Test1234", "full_name": "test"},
         )

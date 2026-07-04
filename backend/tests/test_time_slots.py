@@ -12,7 +12,9 @@ pytestmark = [pytest.mark.asyncio]
 _vendor_counter = 0
 
 
-async def _create_vendor(client: AsyncClient, token: dict, session: AsyncSession, *, active: bool = True) -> int:
+async def _create_vendor(
+    client: AsyncClient, token: dict, session: AsyncSession, *, active: bool = True
+) -> int:
     """Create a vendor with a unique name and return its id."""
     global _vendor_counter
     _vendor_counter += 1

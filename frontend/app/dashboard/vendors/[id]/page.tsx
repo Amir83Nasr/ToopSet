@@ -82,7 +82,6 @@ import {
   Trash2,
   Plus,
   CalendarCheck,
-  XCircle,
   Wallet,
 } from "lucide-react"
 

@@ -157,7 +157,9 @@ function PaymentPageContent() {
                   </Button>
                   {vendorId && (
                     <Button asChild>
-                      <Link href={`/vendors/${vendorId}`}>انتخاب سانس دیگر</Link>
+                      <Link href={`/vendors/${vendorId}`}>
+                        انتخاب سانس دیگر
+                      </Link>
                     </Button>
                   )}
                 </div>

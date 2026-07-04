@@ -510,7 +510,9 @@ class BookingService:
                             slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                         )
                 else:
-                    await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
+                    await self.slot_repo.update(
+                        slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                    )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="مهلت پرداخت این رزرو تمام شده است",
@@ -710,7 +712,9 @@ class BookingService:
                             slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                         )
                 else:
-                    await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
+                    await self.slot_repo.update(
+                        slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                    )
             payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
                 id=booking.id,

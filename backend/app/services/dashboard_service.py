@@ -112,7 +112,9 @@ class DashboardService:
         today_start = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
         async def _active_vendors() -> int:
-            r = await self.db.execute(select(func.count(Vendor.id)).where(Vendor.is_active.is_(True)))
+            r = await self.db.execute(
+                select(func.count(Vendor.id)).where(Vendor.is_active.is_(True))
+            )
             return r.scalar() or 0
 
         async def _today_bookings() -> int:

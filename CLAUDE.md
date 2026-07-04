@@ -2,62 +2,120 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project
+## Project Overview
 
 **ToopSet (توپ‌سِت)** — Online platform for booking sports courts in Qom, Iran.
-**Version:** 0.4.0 (single truth in `VERSION` file at repo root)
 
-## Communication
+- **Version:** 0.4.0 — single source of truth is the `VERSION` file at the repo root (see `make version-check` / `make version-bump`).
 
-- All conversations, responses, explanations, reports, summaries, documentation, comments, commit messages, and generated text must be written in **English**.
-- Always respond in English, regardless of the language used by the user, unless the user explicitly requests another language.
-- Internally interpret non-English requests if necessary, but all visible output must remain in English.
+## Project-Specific Rules
 
-## UI Numbers
+### UI Numbers
 
-All numbers displayed in the user interface MUST be in **Persian digits** (e.g. `۱۲۳۴۵` instead of `12345`). Use the `toPersianDigits()` utility from `@/lib/utils` for every numeric value shown to users: prices, phone numbers, dates, counts, pagination, ratings, etc. The only exceptions are raw data in `<input>` fields and LTR text that needs English digits for consistency (e.g. time format `HH:MM`).
+All numbers displayed in the user interface **MUST** use **Persian digits** (e.g. `۱۲۳۴۵` instead of `12345`).
 
-## Working Style
+- Use the `toPersianDigits()` utility from `@/lib/utils` for every numeric value shown to users: prices, phone numbers, dates, counts, pagination, ratings, etc.
+- **Exceptions:** raw values inside `<input>` fields, and LTR text that requires English digits for consistency (e.g. time format `HH:MM`).
 
-- Act as a Senior Software Engineer.
-- Prefer production-ready implementations over quick fixes.
-- Always identify the root cause before implementing a solution.
-- Avoid workarounds whenever a proper fix is possible.
-- Follow existing project architecture and coding conventions.
-- Keep the codebase clean, maintainable, and consistent.
-- Minimize regressions.
+### Section-Header Comments
 
-## Permissions
+Config, env, and infra files (`.env*`, `Makefile`, `Dockerfile`, `.pre-commit-config.yaml`, etc.) group related settings using a boxed comment header:
+
+```text
+# ── Redis (backend/.env) ──────────────────────────────────
+```
+
+- Use `#` (or the file's native comment token) followed by a space, `──` (two box-drawing dashes, U+2500), a space, the section title, then a run of `──` padding out to the surrounding lines' width.
+- Include a short parenthetical for context when it helps (e.g. which file/env the section applies to, or a clarifying note like `(mock = no real gateway)`).
+- Match the existing file's padding width and dash character exactly — don't mix plain hyphens (`-`) with box-drawing dashes (`─`) in the same file.
+- Apply this style when adding new sections to files that already use it; don't retrofit files that don't.
+
+## Agent Permissions
 
 Assume full project-level permission to:
 
-- Read any file in the repository.
-- Modify any existing source file.
-- Create new files.
-- Delete obsolete files.
-- Refactor existing code.
+- Read, create, modify, refactor, or delete any file in the repository.
 - Add dependencies when necessary.
-- Update configuration files.
-- Update database models and migrations.
-- Update frontend and backend.
+- Update configuration, database models, and migrations.
+- Update frontend and backend code.
 - Add or modify tests.
 - Improve security, performance, and maintainability.
 - Execute any project-related command required for development, testing, debugging, formatting, linting, migrations, builds, or deployments.
 
-Do not interrupt your workflow by asking for confirmation before making engineering decisions or project modifications.
+## Development Workflow
 
-Only ask for clarification when there is a genuine business requirement ambiguity that cannot be resolved by inspecting the existing codebase.
+### Pre-Commit Verification (Mandatory)
 
-## Quality Standards
+**No commit may be created until all pre-commit checks pass.** This applies to every commit, without exception.
 
-Before considering any task complete, ensure:
+1. Run `make precommit` (wraps `pre-commit run --all-files`, covering Ruff format/lint for the backend and Prettier/ESLint for the frontend, plus the general hygiene hooks in `.pre-commit-config.yaml`).
+2. Fix every reported issue.
+3. Re-run `make precommit` until it exits with no errors.
+4. Only create the commit once the repository is clean.
+5. **Never** bypass hooks with `--no-verify` or similar flags.
 
-- The implementation compiles successfully.
-- Linting passes.
-- Formatting is correct.
-- Existing tests continue to pass.
+Before considering any task complete, also verify:
+
+- The implementation compiles / builds successfully (`make build`, `make typecheck`).
+- Linting passes (`make lint`).
+- Formatting is correct (`make format`).
+- Existing tests continue to pass (`make test`).
 - New functionality is covered by appropriate tests.
 - No obvious regressions have been introduced.
+
+Only commit after all of the above are green.
+
+### Commit Guidelines
+
+This repository follows the **[Conventional Commits](https://www.conventionalcommits.org/)** specification.
+
+**Format:**
+
+```text
+<type>(optional-scope): short summary
+
+optional body
+
+optional footer
+```
+
+**Allowed types:**
+
+| Type       | When to use it                                                            |
+| ---------- | ------------------------------------------------------------------------- |
+| `feat`     | A new feature for the user                                                |
+| `fix`      | A bug fix                                                                 |
+| `refactor` | Code change that neither fixes a bug nor adds a feature                   |
+| `perf`     | Change that improves performance                                          |
+| `docs`     | Documentation-only changes                                                |
+| `test`     | Adding or correcting tests                                                |
+| `build`    | Changes to build system or dependencies (npm, pip, Docker, etc.)          |
+| `ci`       | Changes to CI configuration/scripts                                       |
+| `chore`    | Routine maintenance that doesn't fit other types (tooling, configs, etc.) |
+| `style`    | Formatting/whitespace changes that don't affect code meaning              |
+| `revert`   | Reverts a previous commit                                                 |
+
+**Examples:**
+
+```text
+feat(courts): add multi-select sport filter with mono-color badges
+
+fix(map): add CartoDB tile fallback for Neshan 204 errors
+
+refactor(courts): admin-style pagination and shadcn card redesign
+
+docs(project): synchronize documentation with current codebase state
+
+perf(map): reduce tile fallback delay to 1s and add DNS prefetch
+```
+
+**Best practices for atomic commits:**
+
+- One logical change per commit — avoid bundling unrelated fixes/features.
+- Use a scope (e.g. `courts`, `map`, `dashboard`, `config`) that matches the affected module/feature area.
+- Keep the summary line under ~72 characters, written in the imperative mood ("add", not "added"/"adds").
+- Use the body to explain _why_, not just _what_, when the change isn't self-evident.
+- Reference issues/tickets in the footer when applicable.
 
 ## Reporting
 
@@ -70,17 +128,3 @@ After every completed task, provide:
 - **Tests Performed**
 - **Final Status**
 - **Remaining Recommendations** (if any)
-
-## Context Files (`context/`)
-
-| File                                 | Content                                                           |
-| ------------------------------------ | ----------------------------------------------------------------- |
-| [architect.md](context/architect.md) | Layers, data flow, business rules, stack, background tasks        |
-| [backend.md](context/backend.md)     | Models, services, repos, auth deps, key decisions, technical debt |
-| [frontend.md](context/frontend.md)   | Pages, components, API client, maps, Persian utilities            |
-| [commands.md](context/commands.md)   | Full Makefile reference                                           |
-| [commit.md](context/commit.md)       | Conventional Commits type/scope rules                             |
-| [config.md](context/config.md)       | Comment style, naming, env vars, Makefile structure               |
-| [ui.md](context/ui.md)               | Component structure, layout blocks, theming                       |
-| [MEMORY.md](context/MEMORY.md)       | Session memory index                                              |
-| [TODO.md](TODO.md)                   | Task tracking and backlog                                         |

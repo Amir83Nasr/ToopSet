@@ -130,7 +130,9 @@ class FinanceService:
         if not vendor or not vendor.is_active:
             raise HTTPException(status.HTTP_409_CONFLICT, detail="مجموعه فعال نیست")
         if participants_count > vendor.capacity:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="تعداد شرکت‌کنندگان بیش از ظرفیت است")
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail="تعداد شرکت‌کنندگان بیش از ظرفیت است"
+            )
         if slot.status != SlotStatus.OPEN or slot.is_reserved:
             raise HTTPException(status.HTTP_409_CONFLICT, detail="این سانس آزاد نیست")
         existing = await self.booking_repo.get_active_by_slot(slot.id, for_update=True)
@@ -178,9 +180,13 @@ class FinanceService:
         if date_to < date_from:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="بازه تاریخ نامعتبر است")
         if date_to > date_from + timedelta(days=186):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="رزرو بلندمدت حداکثر تا ۶ ماه مجاز است")
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail="رزرو بلندمدت حداکثر تا ۶ ماه مجاز است"
+            )
         if participants_count > vendor.capacity:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="تعداد شرکت‌کنندگان بیش از ظرفیت است")
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail="تعداد شرکت‌کنندگان بیش از ظرفیت است"
+            )
 
         target_slots: list[TimeSlot] = []
         conflicts: list[dict] = []
@@ -212,9 +218,13 @@ class FinanceService:
             if not slot:
                 conflicts.append({"date": str(current), "reason": "سانس برای این الگو وجود ندارد"})
             elif slot.status != SlotStatus.OPEN or slot.is_reserved:
-                conflicts.append({"date": str(current), "slot_id": slot.id, "reason": "سانس آزاد نیست"})
+                conflicts.append(
+                    {"date": str(current), "slot_id": slot.id, "reason": "سانس آزاد نیست"}
+                )
             elif await self.booking_repo.get_active_by_slot(slot.id, for_update=True):
-                conflicts.append({"date": str(current), "slot_id": slot.id, "reason": "رزرو فعال دارد"})
+                conflicts.append(
+                    {"date": str(current), "slot_id": slot.id, "reason": "رزرو فعال دارد"}
+                )
             else:
                 target_slots.append(slot)
             current += timedelta(days=1)
@@ -254,12 +264,20 @@ class FinanceService:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         vendor = await self._get_vendor_for_manager(slot.vendor_id)
 
-        if booking.status in (BookingStatus.CANCELLED, BookingStatus.TRANSFERRED, BookingStatus.EXPIRED):
+        if booking.status in (
+            BookingStatus.CANCELLED,
+            BookingStatus.TRANSFERRED,
+            BookingStatus.EXPIRED,
+        ):
             raise HTTPException(status.HTTP_409_CONFLICT, detail="این رزرو قبلاً لغو شده است")
 
         online_payment = await self._get_success_payment(booking.id)
         site_cost = Decimal("0")
-        if booking.source == BookingSource.ONLINE and online_payment and booking.status == BookingStatus.CONFIRMED:
+        if (
+            booking.source == BookingSource.ONLINE
+            and online_payment
+            and booking.status == BookingStatus.CONFIRMED
+        ):
             site_cost = Decimal(str(booking.price_paid))
             await self.create_refund(
                 booking=booking,
@@ -280,7 +298,9 @@ class FinanceService:
         else:
             await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.BLOCKED})
 
-        affected_name = booking.customer_full_name or (booking.user.full_name if booking.user else None)
+        affected_name = booking.customer_full_name or (
+            booking.user.full_name if booking.user else None
+        )
         affected_phone = booking.customer_phone or (booking.user.phone if booking.user else None)
         message = f"سانس شما در مجموعه {vendor.name} لغو شد."
         notification_status = "not_created"
@@ -352,11 +372,7 @@ class FinanceService:
             .options(selectinload(Booking.slot))
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
             .join(Vendor, TimeSlot.vendor_id == Vendor.id)
-            .where(
-                Vendor.manager_id == manager_id
-                if self.current_user.role != "admin"
-                else True
-            )
+            .where(Vendor.manager_id == manager_id if self.current_user.role != "admin" else True)
         )
         if vendor_id:
             base = base.where(Vendor.id == vendor_id)
@@ -369,13 +385,10 @@ class FinanceService:
         successful_online = [
             b
             for b in bookings
-            if b.source == BookingSource.ONLINE
-            and b.status == BookingStatus.CONFIRMED
+            if b.source == BookingSource.ONLINE and b.status == BookingStatus.CONFIRMED
         ]
         now = now_utc()
-        completed_online = [
-            b for b in successful_online if b.slot and b.slot.end_time <= now
-        ]
+        completed_online = [b for b in successful_online if b.slot and b.slot.end_time <= now]
         not_due = [
             b
             for b in successful_online
@@ -398,14 +411,11 @@ class FinanceService:
         )
         refunds_amount = (
             await self.db.execute(
-                select(func.coalesce(func.sum(Refund.refund_amount), 0)).join(
-                    TimeSlot, Refund.slot_id == TimeSlot.id
-                )
+                select(func.coalesce(func.sum(Refund.refund_amount), 0))
+                .join(TimeSlot, Refund.slot_id == TimeSlot.id)
                 .join(Vendor, TimeSlot.vendor_id == Vendor.id)
                 .where(
-                    Vendor.manager_id == manager_id
-                    if self.current_user.role != "admin"
-                    else True
+                    Vendor.manager_id == manager_id if self.current_user.role != "admin" else True
                 )
             )
         ).scalar_one()
@@ -417,11 +427,7 @@ class FinanceService:
             ),
             "successful_online_bookings": len(successful_online),
             "settled_bookings": len(
-                [
-                    b
-                    for b in successful_online
-                    if b.settlement_status == SettlementStatus.SETTLED
-                ]
+                [b for b in successful_online if b.settlement_status == SettlementStatus.SETTLED]
             ),
             "settlement_requested_bookings": len(
                 [
@@ -453,9 +459,7 @@ class FinanceService:
             "refunds_amount": float(refunds_amount or 0),
             "settlement_requested_amount": float(settlement_requested_amount),
             "settled_amount": float(settled_amount),
-            "available_for_settlement": float(
-                sum(Decimal(str(b.price_paid)) for b in eligible)
-            ),
+            "available_for_settlement": float(sum(Decimal(str(b.price_paid)) for b in eligible)),
         }
 
     async def _eligible_settlement_bookings(
@@ -521,7 +525,9 @@ class FinanceService:
         return settlement
 
     async def list_settlements(self, *, manager_only: bool) -> tuple[list[Settlement], int]:
-        stmt = select(Settlement).options(selectinload(Settlement.vendor), selectinload(Settlement.manager))
+        stmt = select(Settlement).options(
+            selectinload(Settlement.vendor), selectinload(Settlement.manager)
+        )
         if manager_only and self.current_user.role != "admin":
             stmt = stmt.where(Settlement.manager_id == self.current_user.id)
         stmt = stmt.order_by(Settlement.requested_at.desc())

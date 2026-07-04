@@ -6,8 +6,8 @@ from app.models.log import Log
 from app.models.notification import Notification, NotificationDelivery
 from app.models.payment import Payment
 from app.models.penalty import Penalty
-from app.models.refund import Refund
 from app.models.refresh_token import RefreshToken
+from app.models.refund import Refund
 from app.models.review import Review
 from app.models.setting import Setting
 from app.models.settlement import Settlement, SettlementItem

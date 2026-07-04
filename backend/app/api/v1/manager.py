@@ -260,7 +260,9 @@ async def manager_finance_summary(
     current_user: User = Depends(get_current_manager),
 ):
     service = FinanceService(db, current_user)
-    return await service.settlement_summary(vendor_id=vendor_id, date_from=date_from, date_to=date_to)
+    return await service.settlement_summary(
+        vendor_id=vendor_id, date_from=date_from, date_to=date_to
+    )
 
 
 @router.post(
@@ -303,7 +305,9 @@ async def list_manager_settlements(
 
 
 @router.get(
-    "/slots", response_model=ManagerSlotListResponse, summary="List time slots for manager's vendors"
+    "/slots",
+    response_model=ManagerSlotListResponse,
+    summary="List time slots for manager's vendors",
 )
 async def list_manager_slots(
     cursor: str | None = Query(None, description="Cursor for next page"),

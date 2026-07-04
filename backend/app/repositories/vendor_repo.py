@@ -145,7 +145,9 @@ class VendorRepo:
         return vendors, total
 
     async def count_active(self) -> int:
-        result = await self.db.execute(select(func.count(Vendor.id)).where(Vendor.is_active == True))
+        result = await self.db.execute(
+            select(func.count(Vendor.id)).where(Vendor.is_active == True)
+        )
         return result.scalar_one()
 
     async def get_by_id(self, vendor_id: int) -> Vendor | None:

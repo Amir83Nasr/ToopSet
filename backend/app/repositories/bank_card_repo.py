@@ -23,9 +23,7 @@ class BankCardRepo:
         return result.scalar_one_or_none()
 
     async def get_for_user(self, user_id: int) -> BankCard | None:
-        result = await self.db.execute(
-            select(BankCard).where(BankCard.user_id == user_id).limit(1)
-        )
+        result = await self.db.execute(select(BankCard).where(BankCard.user_id == user_id).limit(1))
         return result.scalar_one_or_none()
 
     async def get_verified_for_user(self, user_id: int) -> BankCard | None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import hmac
+import json
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -10,8 +10,8 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
-    HTTPException,
     Header,
+    HTTPException,
     Query,
     Response,
     UploadFile,
@@ -29,7 +29,12 @@ from app.core.logger import log_action
 from app.core.pagination import decode_cursor, encode_cursor
 from app.core.phone import normalize_phone
 from app.core.security import hash_password
-from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload, validate_upload_content
+from app.core.upload import (
+    ALLOWED_EXTENSIONS,
+    MAX_FILE_SIZE,
+    delete_upload,
+    validate_upload_content,
+)
 from app.models.setting import Setting
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -38,8 +43,6 @@ from app.repositories.notification_repo import NotificationRepo
 from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
 from app.repositories.vendor_repo import VendorRepo
-from app.schemas.setting import SettingResponse, SettingUpdateRequest
-from app.schemas.vendor import VendorResponse
 from app.schemas.finance import (
     RefundListResponse,
     RefundResponse,
@@ -49,6 +52,8 @@ from app.schemas.finance import (
     SettlementStatusUpdate,
     SlotCancellationResponse,
 )
+from app.schemas.setting import SettingResponse, SettingUpdateRequest
+from app.schemas.vendor import VendorResponse
 
 # Hero images are stored in the frontend public directory so Next.js serves them directly
 _HERO_UPLOAD_DIR = (
@@ -349,7 +354,9 @@ async def list_pending_vendors(
     summary="Approve vendor",
     include_in_schema=False,
 )
-@router.post("/vendors/{vendor_id}/approve", response_model=VendorResponse, summary="Approve vendor")
+@router.post(
+    "/vendors/{vendor_id}/approve", response_model=VendorResponse, summary="Approve vendor"
+)
 async def approve_vendor(
     vendor_id: int,
     db: AsyncSession = Depends(get_db),
@@ -409,7 +416,9 @@ async def reject_vendor(
     include_in_schema=False,
 )
 @router.delete(
-    "/vendors/{vendor_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Permanently delete vendor"
+    "/vendors/{vendor_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Permanently delete vendor",
 )
 async def hard_delete_vendor(
     vendor_id: int,
@@ -463,7 +472,9 @@ async def hard_delete_user(
 
     # Pre-check related data to avoid FK violations
     vendor_count = (
-        await db.execute(select(func.count()).select_from(Vendor).where(Vendor.manager_id == user_id))
+        await db.execute(
+            select(func.count()).select_from(Vendor).where(Vendor.manager_id == user_id)
+        )
     ).scalar_one()
     booking_count = (
         await db.execute(
@@ -788,7 +799,9 @@ async def update_refund_status(
     refund = (
         await db.execute(
             select(Refund)
-            .options(selectinload(Refund.user), selectinload(Refund.vendor), selectinload(Refund.slot))
+            .options(
+                selectinload(Refund.user), selectinload(Refund.vendor), selectinload(Refund.slot)
+            )
             .where(Refund.id == refund_id)
             .with_for_update()
         )
@@ -858,7 +871,9 @@ async def list_manager_cancellations(
             affected_phone=r.affected_phone,
             reason=r.reason,
             release_slot=r.release_slot,
-            online_paid_amount=float(r.online_paid_amount) if r.online_paid_amount is not None else None,
+            online_paid_amount=float(r.online_paid_amount)
+            if r.online_paid_amount is not None
+            else None,
             site_cost_amount=float(r.site_cost_amount),
             sms_status=r.sms_status,
             notification_status=r.notification_status,

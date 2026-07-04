@@ -271,7 +271,9 @@ export default function VendorsPage() {
                   <TableRow
                     key={vendor.id}
                     className="cursor-pointer"
-                    onClick={() => router.push(`/dashboard/vendors/${vendor.id}`)}
+                    onClick={() =>
+                      router.push(`/dashboard/vendors/${vendor.id}`)
+                    }
                   >
                     <TableCell className="text-right font-medium">
                       <div className="flex items-center gap-2">

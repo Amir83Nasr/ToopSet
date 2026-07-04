@@ -87,7 +87,9 @@ class TestGetVendor:
         session: AsyncSession,
     ):
         owner_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        create = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=owner_headers)
+        create = await client.post(
+            "/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=owner_headers
+        )
         vendor_id = create.json()["id"]
 
         await session.execute(
@@ -168,7 +170,9 @@ class TestDeleteVendor:
         self, client: AsyncClient, manager_token: dict, admin_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        create = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=mgr_headers)
+        create = await client.post(
+            "/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=mgr_headers
+        )
         vendor_id = create.json()["id"]
 
         admin_headers = {"Authorization": f"Bearer {admin_token['access_token']}"}

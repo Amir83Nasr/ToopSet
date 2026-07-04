@@ -16,8 +16,7 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.repositories.refresh_token_repo import RefreshTokenRepo
-from app.repositories.user_repo import UserRepository
-from app.repositories.user_repo import OTP_PLACEHOLDER_HASH
+from app.repositories.user_repo import OTP_PLACEHOLDER_HASH, UserRepository
 
 SECURITY_LOG_EVENTS = True
 
@@ -378,7 +377,9 @@ class AuthService:
         if data.new_password is not None:
             count = await self.refresh_repo.revoke_all_for_user(current_user.id)
             updated_user.token_version += 1
-            await self.repo.update_user(updated_user.id, {"token_version": updated_user.token_version})
+            await self.repo.update_user(
+                updated_user.id, {"token_version": updated_user.token_version}
+            )
             await _security_log(
                 self.repo.db,
                 current_user.id,
@@ -404,7 +405,6 @@ class AuthService:
             return
         session_id = payload.get("sid") or ""
         exp = payload.get("exp")
-        from datetime import datetime, timezone
 
         expires_at = (
             datetime.fromtimestamp(exp, tz=timezone.utc) if exp else datetime.now(timezone.utc)

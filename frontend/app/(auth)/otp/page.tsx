@@ -19,7 +19,9 @@ function OtpPageContent() {
   const mode = searchParams.get("mode")
   const purpose = mode === "password_reset" ? "password_reset" : "login"
   const successRedirect =
-    purpose === "password_reset" ? "/dashboard/settings?reset_password=1" : redirect
+    purpose === "password_reset"
+      ? "/dashboard/settings?reset_password=1"
+      : redirect
 
   const reasonMessages: Record<string, string> = {
     session_expired: "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",

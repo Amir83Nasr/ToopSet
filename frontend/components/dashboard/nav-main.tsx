@@ -158,9 +158,7 @@ const navGroups: NavGroup[] = [
   {
     label: "مدیریت مجموعه",
     roles: ["manager"],
-    items: [
-      { title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 },
-    ],
+    items: [{ title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 }],
   },
 
   // ── Personal (manager) ──

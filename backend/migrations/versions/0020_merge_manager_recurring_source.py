@@ -36,7 +36,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("ALTER TABLE bookings ALTER COLUMN source DROP DEFAULT")
     op.execute("ALTER TYPE bookingsource RENAME TO bookingsource_old")
-    op.execute("CREATE TYPE bookingsource AS ENUM ('online', 'manager_manual', 'manager_recurring')")
+    op.execute(
+        "CREATE TYPE bookingsource AS ENUM ('online', 'manager_manual', 'manager_recurring')"
+    )
     op.execute(
         """
         ALTER TABLE bookings

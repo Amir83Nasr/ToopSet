@@ -81,6 +81,7 @@ export function SlotCalendar({
   className,
 }: SlotCalendarProps) {
   const [weekOffset, setWeekOffset] = useState(0)
+  const [now] = useState(Date.now)
   // Default to today's date so visitors see current day slots on first load
   const [selectedDate, setSelectedDate] = useState(() => {
     const t = new Date()
@@ -325,7 +326,7 @@ export function SlotCalendar({
           <div className="divide-y">
             {slotsForDay.map((slot) => {
               const reserved = slot.is_reserved
-              const past = new Date(slot.start_time).getTime() <= Date.now()
+              const past = new Date(slot.start_time).getTime() <= now
               const disabled = reserved || past
               const slotDay = new Date(slot.start_time).toLocaleDateString(
                 "fa-IR",

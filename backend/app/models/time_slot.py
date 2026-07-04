@@ -30,7 +30,9 @@ class SlotGender(str, enum.Enum):
 class TimeSlot(Base):
     __tablename__ = "time_slots"
     __table_args__ = (
-        UniqueConstraint("vendor_id", "start_time", "end_time", name="uq_time_slots_vendor_start_end"),
+        UniqueConstraint(
+            "vendor_id", "start_time", "end_time", name="uq_time_slots_vendor_start_end"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

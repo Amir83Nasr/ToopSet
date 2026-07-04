@@ -10,8 +10,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import NullPool, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from app.core.database import Base, get_db
 from app.core.config import settings
+from app.core.database import Base, get_db
 from app.main import app
 
 TEST_DB_URL = "postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test"

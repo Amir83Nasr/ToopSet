@@ -42,7 +42,9 @@ export default function AdminManagerCancellationsPage() {
   const fetchRows = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api<ManagerCancellation[]>("/api/v1/admin/manager-cancellations")
+      const res = await api<ManagerCancellation[]>(
+        "/api/v1/admin/manager-cancellations"
+      )
       setRows(res)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در دریافت لغوها")
@@ -62,7 +64,8 @@ export default function AdminManagerCancellationsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">لغوهای سالندار</h1>
           <p className="text-muted-foreground">
-            این لیست از عودت‌های معمولی کاربر جداست و وضعیت پیامک/اعلان را نشان می‌دهد.
+            این لیست از عودت‌های معمولی کاربر جداست و وضعیت پیامک/اعلان را نشان
+            می‌دهد.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchRows}>
@@ -74,7 +77,9 @@ export default function AdminManagerCancellationsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <p className="p-4 text-sm text-muted-foreground">در حال بارگذاری...</p>
+            <p className="p-4 text-sm text-muted-foreground">
+              در حال بارگذاری...
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -96,13 +101,17 @@ export default function AdminManagerCancellationsPage() {
                     <TableCell>{r.manager_name}</TableCell>
                     <TableCell>
                       <div>{r.affected_full_name || "-"}</div>
-                      <div className="text-xs text-muted-foreground">{r.affected_phone || "-"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.affected_phone || "-"}
+                      </div>
                     </TableCell>
                     <TableCell>{money(r.online_paid_amount)}</TableCell>
                     <TableCell>{money(r.site_cost_amount)}</TableCell>
                     <TableCell>{r.sms_status || "-"}</TableCell>
                     <TableCell>{r.notification_status || "-"}</TableCell>
-                    <TableCell>{r.release_slot ? "آزاد شده" : "بلاک شده"}</TableCell>
+                    <TableCell>
+                      {r.release_slot ? "آزاد شده" : "بلاک شده"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -42,7 +42,9 @@ class Booking(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    slot_id: Mapped[int] = mapped_column(ForeignKey("time_slots.id", ondelete="CASCADE"), index=True)
+    slot_id: Mapped[int] = mapped_column(
+        ForeignKey("time_slots.id", ondelete="CASCADE"), index=True
+    )
     replaces_booking_id: Mapped[int | None] = mapped_column(
         ForeignKey("bookings.id", ondelete="SET NULL"), nullable=True, index=True
     )
