@@ -4,11 +4,15 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from passlib.context import CryptContext
+from sqlalchemy import text as sa_text
 
 import app.models  # noqa: F401
 from app.core.database import Base, async_session_factory, engine
 from app.core.timezone import iran_to_utc, now_iran
+from app.models.bank_card import BankCard, BankCardStatus
 from app.models.booking import Booking, BookingSource, BookingStatus, SettlementStatus
+from app.models.contact import ContactMessage
+from app.models.favorite import Favorite
 from app.models.log import Log
 from app.models.notification import Notification, NotificationDelivery
 from app.models.payment import Payment, PaymentStatus
@@ -18,9 +22,10 @@ from app.models.review import Review
 from app.models.setting import Setting
 from app.models.settlement import Settlement, SettlementItem, SettlementRequestStatus
 from app.models.slot_cancellation import SlotCancellation
-from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.time_slot import SlotGender, SlotStatus, TimeSlot
 from app.models.user import User, UserRole
 from app.models.vendor import SportType, Vendor
+from app.models.vendor_image import VendorImage
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
 
@@ -161,6 +166,69 @@ ALL_USERS = [
 
 # ── Vendors — real locations in Qom ──────────────────────────────────────────
 
+AMENITY_PROFILES = {
+    "premium": {
+        "رختکن": True,
+        "دوش": True,
+        "سرویس بهداشتی": True,
+        "پارکینگ": True,
+        "نورپردازی": "LED حرفه‌ای",
+        "کفپوش": "استاندارد بین‌المللی",
+        "سالن سرپوشیده": True,
+        "بوفه": True,
+        "اینترنت وای‌فای": True,
+        "دوربین مداربسته": True,
+    },
+    "standard": {
+        "رختکن": True,
+        "دوش": True,
+        "سرویس بهداشتی": True,
+        "پارکینگ": True,
+        "نورپردازی": "استاندارد",
+        "کفپوش": "استاندارد",
+        "سالن سرپوشیده": True,
+        "بوفه": False,
+        "اینترنت وای‌فای": False,
+        "دوربین مداربسته": True,
+    },
+    "basic": {
+        "رختکن": True,
+        "دوش": False,
+        "سرویس بهداشتی": True,
+        "پارکینگ": False,
+        "نورپردازی": "معمولی",
+        "کفپوش": "استاندارد",
+        "سالن سرپوشیده": True,
+        "بوفه": False,
+        "دوربین مداربسته": True,
+    },
+    "open_air": {
+        "رختکن": False,
+        "دوش": False,
+        "سرویس بهداشتی": True,
+        "پارکینگ": True,
+        "نورپردازی": "استاندارد",
+        "کفپوش": "چمن مصنوعی",
+        "سالن سرپوشیده": False,
+        "بوفه": False,
+        "دوربین مداربسته": False,
+    },
+    "full_service": {
+        "رختکن": True,
+        "دوش": True,
+        "سرویس بهداشتی": True,
+        "پارکینگ": "رایگان",
+        "نورپردازی": "LED حرفه‌ای",
+        "کفپوش": "استاندارد بین‌المللی",
+        "سالن سرپوشیده": True,
+        "بوفه": True,
+        "اینترنت وای‌فای": True,
+        "دوربین مداربسته": True,
+        "سالن بدنسازی": True,
+        "کافه": True,
+    },
+}
+
 ALL_VENDORS = [
     Vendor(
         name="مجموعه ورزشی تختی قم",
@@ -169,6 +237,7 @@ ALL_VENDORS = [
         latitude=34.63941,
         longitude=50.87614,
         capacity=20,
+        amenities=AMENITY_PROFILES["standard"],
     ),
     Vendor(
         name="سالن بسکتبال ۲۲ بهمن",
@@ -177,6 +246,7 @@ ALL_VENDORS = [
         latitude=34.62572,
         longitude=50.87031,
         capacity=30,
+        amenities=AMENITY_PROFILES["standard"],
     ),
     Vendor(
         name="زمین فوتسال الغدیر",
@@ -185,6 +255,7 @@ ALL_VENDORS = [
         latitude=34.61887,
         longitude=50.89103,
         capacity=14,
+        amenities=AMENITY_PROFILES["basic"],
     ),
     Vendor(
         name="سالن ورزشی حضرت معصومه",
@@ -193,6 +264,7 @@ ALL_VENDORS = [
         latitude=34.64219,
         longitude=50.87827,
         capacity=24,
+        amenities=AMENITY_PROFILES["premium"],
     ),
     Vendor(
         name="مجموعه ورزشی شهدای قم",
@@ -201,6 +273,7 @@ ALL_VENDORS = [
         latitude=34.64876,
         longitude=50.86812,
         capacity=18,
+        amenities=AMENITY_PROFILES["standard"],
     ),
     Vendor(
         name="زمین والیبال دانشگاه قم",
@@ -209,6 +282,7 @@ ALL_VENDORS = [
         latitude=34.65253,
         longitude=50.88055,
         capacity=16,
+        amenities=AMENITY_PROFILES["basic"],
     ),
     Vendor(
         name="سالن ورزشی صدرا",
@@ -217,6 +291,7 @@ ALL_VENDORS = [
         latitude=34.61012,
         longitude=50.85001,
         capacity=22,
+        amenities=AMENITY_PROFILES["premium"],
     ),
     Vendor(
         name="زمین چمن مجموعه حرم",
@@ -225,6 +300,7 @@ ALL_VENDORS = [
         latitude=34.64190,
         longitude=50.88060,
         capacity=28,
+        amenities=AMENITY_PROFILES["open_air"],
     ),
     Vendor(
         name="مجموعه ورزشی آفتاب قم",
@@ -237,6 +313,7 @@ ALL_VENDORS = [
         latitude=34.63500,
         longitude=50.88500,
         capacity=25,
+        amenities=AMENITY_PROFILES["full_service"],
     ),
     Vendor(
         name="زمین تنیس هتل پارسیا",
@@ -245,6 +322,7 @@ ALL_VENDORS = [
         latitude=34.64780,
         longitude=50.87750,
         capacity=8,
+        amenities=AMENITY_PROFILES["premium"],
     ),
     Vendor(
         name="سالن هندبال شهید زینالدین",
@@ -253,6 +331,7 @@ ALL_VENDORS = [
         latitude=34.64010,
         longitude=50.86980,
         capacity=20,
+        amenities=AMENITY_PROFILES["standard"],
     ),
     Vendor(
         name="مجموعه ورزشی قدس",
@@ -261,6 +340,7 @@ ALL_VENDORS = [
         latitude=34.62050,
         longitude=50.86030,
         capacity=26,
+        amenities=AMENITY_PROFILES["standard"],
     ),
     Vendor(
         name="زمین فوتسال بعثت",
@@ -269,6 +349,7 @@ ALL_VENDORS = [
         latitude=34.63120,
         longitude=50.87560,
         capacity=14,
+        amenities=AMENITY_PROFILES["basic"],
     ),
     Vendor(
         name="سالن ورزشی شهید بهشتی",
@@ -277,6 +358,7 @@ ALL_VENDORS = [
         latitude=34.64550,
         longitude=50.87240,
         capacity=30,
+        amenities=AMENITY_PROFILES["premium"],
     ),
     Vendor(
         name="مجموعه ورزشی کوثر",
@@ -289,6 +371,7 @@ ALL_VENDORS = [
         latitude=34.59800,
         longitude=50.89800,
         capacity=35,
+        amenities=AMENITY_PROFILES["full_service"],
     ),
 ]
 
@@ -315,6 +398,52 @@ def random_price(min_: int = 500, max_: int = 2000) -> Decimal:
     return Decimal(str(random.randint(min_, max_) * 1000))
 
 
+# ── Real uploaded filenames for vendor images ────────────────────────────────
+
+VENDOR_IMAGE_FILES = [
+    "082eff1f329f46a4bbc5261b1e907927.jpeg",
+    "46fa6af19d634b0f8484200d5cde0e4f.jpeg",
+    "5a38bfc3ab00439e885ae428d9c72982.jpeg",
+    "5b518ca817834edf8e2f45c2df3b1c0d.jpeg",
+    "5c8d45c9471e470b92337795bb0e1281.jpeg",
+    "677429b5caed476e8a3b867e3892c1c1.jpg",
+    "922131acb6b64cf581607c67e88f857f.jpeg",
+    "9bab887eebcd463586bca8c65a2c64ca.jpeg",
+    "a64da5ecac024a9eb37209f3121b9fe9.jpeg",
+    "ba545dda754c4652aa81d2956fc506d9.jpg",
+    "c386c718f8ba49248dbb0f727b6afe75.jpeg",
+    "c578c51b2e594535a49ab9801af85a55.jpg",
+    "d86126fe7f4b4e12821b4d6f5ff21429.png",
+    "d920e46c57204c58a3290e60f7f0f84b.png",
+    "da1693f5a8ec46e1b38cea8283a25264.jpeg",
+    "db7ccabec4904dd488fdc184b6e2aa0b.jpeg",
+    "de00f2113ed543b29b2caf9f8c735263.jpeg",
+    "debbbb0229124cb4ab3a20c236c763e7.png",
+    "2575658a4a7045508881fcbc16319a3c.jpg",
+    "70f1cda56a7f4cc38aea1cbb14cb5cd5.jpeg",
+    "9e4d856082604c0686aa70f32792be0b.jpeg",
+    "e7bd300ab69d4fca88d823d0b3d8aa68.jpeg",
+]
+
+
+def assign_participants(sport_types: list[str]) -> int:
+    """Return a realistic participants count based on sport type."""
+    sport = sport_types[0] if sport_types else "futsal"
+    counts = {
+        SportType.FUTSAL.value: random.randint(8, 12),
+        SportType.VOLLEYBALL.value: random.randint(10, 14),
+        SportType.BASKETBALL.value: random.randint(8, 12),
+        SportType.HANDBALL.value: random.randint(12, 16),
+        SportType.FOOTBALL.value: random.randint(18, 24),
+    }
+    return counts.get(sport, 10)
+
+
+def assign_gender(vendor_index: int) -> SlotGender:
+    """Assign FEMALE to vendors at even indices for gender diversity."""
+    return SlotGender.FEMALE if vendor_index % 3 == 0 else SlotGender.MALE
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -328,7 +457,10 @@ def assign_manager(users: list[User]) -> User:
 
 async def seed():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # Drop all tables with CASCADE to handle legacy tables (e.g. old `courts`)
+        # that may still reference our tables via foreign keys.
+        await conn.execute(sa_text("DROP SCHEMA public CASCADE"))
+        await conn.execute(sa_text("CREATE SCHEMA public"))
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session_factory() as db:
@@ -346,6 +478,24 @@ async def seed():
         db.add_all(ALL_VENDORS)
         await db.flush()
         vendors: list[Vendor] = ALL_VENDORS
+
+        # ── Vendor Images ──
+        vendor_images: list[VendorImage] = []
+        for vi, vendor in enumerate(vendors):
+            # Each vendor gets 1-2 images, cycling through real filenames
+            img_count = 2 if vi % 3 != 0 else 1
+            for img_idx in range(img_count):
+                file_idx = (vi * 2 + img_idx) % len(VENDOR_IMAGE_FILES)
+                filename = VENDOR_IMAGE_FILES[file_idx]
+                vendor_images.append(
+                    VendorImage(
+                        vendor_id=vendor.id,
+                        url=f"/uploads/courts/{filename}",
+                        order=img_idx,
+                    )
+                )
+        db.add_all(vendor_images)
+        await db.flush()
 
         # ── Wallets ──
         wallet_balances: list[Decimal] = [
@@ -374,9 +524,59 @@ async def seed():
         db.add_all(wallets)
         await db.flush()
 
+        # ── Bank Cards ──
+        bank_cards: list[BankCard] = [
+            BankCard(
+                user_id=admin.id,
+                encrypted_card_number="enc:AQEAAAABAAAAQJ9nF8k3m2x5R6v7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f",
+                masked_card_number="603799******4281",
+                card_fingerprint="fp_admin_001_603799",
+                holder_name=admin.full_name,
+                status=BankCardStatus.VERIFIED,
+                verified_at=now_iran(),
+            ),
+            BankCard(
+                user_id=manager.id,
+                encrypted_card_number="enc:AQEAAAABAAAAQK8mF8k3m2x5R6v7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2g",
+                masked_card_number="589210******7632",
+                card_fingerprint="fp_manager_001_589210",
+                holder_name=manager.full_name,
+                status=BankCardStatus.VERIFIED,
+                verified_at=now_iran(),
+            ),
+            BankCard(
+                user_id=regular_users[0].id,
+                encrypted_card_number="enc:AQEAAAABAAAAQJ9nF8k3m2x5R6v7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2h",
+                masked_card_number="627353******1155",
+                card_fingerprint="fp_user_002_627353",
+                holder_name=regular_users[0].full_name,
+                status=BankCardStatus.VERIFIED,
+                verified_at=now_iran(),
+            ),
+            BankCard(
+                user_id=regular_users[3].id,
+                encrypted_card_number="enc:AQEAAAABAAAAQJ9nF8k3m2x5R6v7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2i",
+                masked_card_number="502229******3344",
+                card_fingerprint="fp_user_005_502229",
+                holder_name=regular_users[3].full_name,
+                status=BankCardStatus.PENDING_CONFIRMATION,
+            ),
+            BankCard(
+                user_id=regular_users[8].id,
+                encrypted_card_number="enc:AQEAAAABAAAAQJ9nF8k3m2x5R6v7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2j",
+                masked_card_number="610433******5566",
+                card_fingerprint="fp_user_010_610433",
+                holder_name=regular_users[8].full_name,
+                status=BankCardStatus.PENDING_CONFIRMATION,
+            ),
+        ]
+        db.add_all(bank_cards)
+        await db.flush()
+
         # ── Time slots (next 60 days, 5 fixed slots per vendor per day) ──
         now = now_iran()
         slots: list[TimeSlot] = []
+        slot_by_vendor_day: dict[tuple[int, int], list[TimeSlot]] = {}
         # Fixed slot schedules: (hour, minute, duration_hours)
         slot_schedules = [
             (9, 0, 2),  # 09:00 – 11:00
@@ -387,24 +587,29 @@ async def seed():
             (19, 0, 2),  # 19:00 – 21:00
             (21, 0, 2),  # 21:00 – 23:00
         ]
-        for vendor in vendors:
+        for vi, vendor in enumerate(vendors):
             for day_offset in range(60):
+                target_date = now + timedelta(days=day_offset)
+                day_slots: list[TimeSlot] = []
+                slot_gender = assign_gender(vi)
                 # 60 days × 7 slots = 420 slots per vendor — pick 5 random per day
                 for hour, minute, duration in random.sample(slot_schedules, 5):
-                    start_iran = now.replace(
+                    start_iran = target_date.replace(
                         hour=hour, minute=minute, second=0, microsecond=0
-                    ) + timedelta(days=day_offset)
-                    end_iran = start_iran + timedelta(hours=duration)
-                    slots.append(
-                        TimeSlot(
-                            vendor_id=vendor.id,
-                            start_time=iran_to_utc(start_iran),
-                            end_time=iran_to_utc(end_iran),
-                            base_price=random_price(),
-                            ball_available=random.random() < 0.35,
-                            ball_price=random_price(50, 150),
-                        )
                     )
+                    end_iran = start_iran + timedelta(hours=duration)
+                    slot = TimeSlot(
+                        vendor_id=vendor.id,
+                        start_time=iran_to_utc(start_iran),
+                        end_time=iran_to_utc(end_iran),
+                        base_price=random_price(),
+                        ball_available=random.random() < 0.35,
+                        ball_price=random_price(50, 150),
+                        gender=slot_gender,
+                    )
+                    day_slots.append(slot)
+                slots.extend(day_slots)
+                slot_by_vendor_day[(vendor.id, day_offset)] = day_slots
         db.add_all(slots)
         await db.flush()
         slot_by_id = {slot.id: slot for slot in slots}
@@ -415,7 +620,7 @@ async def seed():
         payments: list[Payment] = []
 
         booking_specs = [
-            # (user_index, vendor_index, day_offset, hour_offset_in_day, status)
+            # (user_index, vendor_index, day_offset, slot_in_day, status)
             # user 0 = mehdi, 1 = sara, etc.
             (2, 0, 0, 0, "pending_payment"),
             (2, 1, 0, 1, "confirmed"),
@@ -458,20 +663,16 @@ async def seed():
         ]
 
         for user_idx, vendor_idx, day_off, slot_in_day, status in booking_specs:
-            # Find a slot belonging to this vendor on this day offset
             vendor = vendors[vendor_idx]
-            day_slots = [
-                s
-                for s in slots
-                if s.vendor_id == vendor.id and (s.start_time.day - now.day) % 30 == day_off
-            ]
-            if not day_slots or slot_in_day >= len(day_slots):
+            day_slots = slot_by_vendor_day.get((vendor.id, day_off), [])
+            if slot_in_day >= len(day_slots):
                 continue
             slot = day_slots[slot_in_day]
             user = regular_users[user_idx % len(regular_users)]
             with_ball = slot.ball_available and random.random() < 0.4
             ball_price = slot.ball_price if with_ball else Decimal("0")
             total_price = slot.base_price + ball_price
+            participants = assign_participants(vendor.sport_types)
 
             if status == "confirmed":
                 b = Booking(
@@ -484,6 +685,7 @@ async def seed():
                     slot_price=slot.base_price,
                     ball_price=ball_price,
                     with_ball=with_ball,
+                    participants_count=participants,
                 )
                 bookings.append(b)
             elif status == "pending_payment":
@@ -497,6 +699,7 @@ async def seed():
                     slot_price=slot.base_price,
                     ball_price=ball_price,
                     with_ball=with_ball,
+                    participants_count=participants,
                     expires_at=iran_to_utc(now + timedelta(minutes=15)),
                 )
                 bookings.append(b)
@@ -513,11 +716,10 @@ async def seed():
                     ball_price=ball_price,
                     with_ball=with_ball,
                     penalty_amount=penalty_amount,
+                    participants_count=participants,
                 )
                 bookings.append(b)
 
-        # need to flush first so bookings have ids for payments
-        # We add bookings in batches, alternately flushing
         db.add_all(bookings)
         await db.flush()
 
@@ -535,10 +737,12 @@ async def seed():
                 slot.status = SlotStatus.OPEN
 
         # ── Payments (confirmed → success, pending_payment → 30% failed) ──
+        payment_counter = 1
         for b in bookings:
             if b.status == BookingStatus.CONFIRMED:
                 card, bank = random_card()
                 paid = b.created_at or now_iran()
+                gateway_fee = (b.price_paid * Decimal("0.008")).quantize(Decimal("1"))
                 payments.append(
                     Payment(
                         booking_id=b.id,
@@ -546,10 +750,13 @@ async def seed():
                         status=PaymentStatus.SUCCESS,
                         gateway_name=f"زرین‌پال ({bank})",
                         gateway_transaction_id=f"ZP-{paid.strftime('%Y%m%d')}-{random.randint(1000000, 9999999)}",
+                        ref_id=f"REF-{paid.strftime('%Y%m')}-{payment_counter:04d}",
+                        gateway_fee=gateway_fee,
                         card_number=card,
                         paid_at=paid,
                     )
                 )
+                payment_counter += 1
             elif b.status == BookingStatus.PENDING_PAYMENT:
                 # Some pending bookings have failed payments
                 if random.random() < 0.3:
@@ -603,6 +810,7 @@ async def seed():
             slot_price=manual_slot.base_price,
             ball_price=Decimal("0"),
             with_ball=False,
+            participants_count=10,
         )
         bookings.append(manual_booking)
         manual_slot.is_reserved = True
@@ -624,6 +832,7 @@ async def seed():
                 slot_price=slot.base_price,
                 ball_price=Decimal("0"),
                 with_ball=False,
+                participants_count=12,
             )
             bookings.append(recurring_booking)
             slot.is_reserved = True
@@ -644,6 +853,7 @@ async def seed():
             ball_price=Decimal("0"),
             with_ball=False,
             penalty_amount=Decimal("0"),
+            participants_count=10,
         )
         bookings.append(manager_cancel_booking)
         manager_cancel_slot.is_reserved = False
@@ -660,7 +870,10 @@ async def seed():
                 status=PaymentStatus.SUCCESS,
                 gateway_name="زرین‌پال (تست لغو سالندار)",
                 gateway_transaction_id=f"ZP-MANAGER-CANCEL-{manager_cancel_booking.id}",
-                ref_id=f"REF-MC-{manager_cancel_booking.id}",
+                ref_id=f"REF-MC-{manager_cancel_booking.id:04d}",
+                gateway_fee=(manager_cancel_booking.price_paid * Decimal("0.008")).quantize(
+                    Decimal("1")
+                ),
                 paid_at=paid_at,
             )
         )
@@ -891,6 +1104,18 @@ async def seed():
             (16, 14, "جای خوبی برای بسکتبال و والیبال", 4),
         ]
 
+        # Manager responses for a selection of reviews
+        REVIEW_RESPONSES: dict[int, str] = {
+            0: "ممنون از نظر شما. همیشه تلاش می‌کنیم بهترین خدمات رو ارائه بدیم.",
+            2: "خوشحالیم که راضی بودید. منتظر حضور دوباره شما هستیم.",
+            7: "ممنون از نظر سازنده‌تان. به زودی کفپوش سالن رو تعویض می‌کنیم.",
+            12: "سپاس از ارزیابی شما. نورپردازی سالن جدیداً به‌روزرسانی شده.",
+            14: "ممنون. قیمت‌ها رو نسبت به رقبا مناسب نگه داشتیم.",
+            18: "از وقت‌شناسی تیم ما عذرخواهی می‌کنیم. حتماً پیگیری می‌کنیم.",
+            25: "ممنون از نظر شما. تخته‌های والیبال رو تعویض کردیم.",
+            30: "خوشحالیم که رضایت دارید. همیشه در خدمت شما هستیم.",
+        }
+
         reviews: list[Review] = []
         used_booking_ids: set[int] = set()
         for i, (ui, ci, comment, rating) in enumerate(review_data):
@@ -911,6 +1136,7 @@ async def seed():
 
             if booking:
                 used_booking_ids.add(booking.id)
+                response = REVIEW_RESPONSES.get(i)
                 reviews.append(
                     Review(
                         user_id=regular_users[ui % len(regular_users)].id,
@@ -918,6 +1144,7 @@ async def seed():
                         booking_id=booking.id,
                         rating=rating,
                         comment=comment,
+                        response=response,
                     )
                 )
 
@@ -996,46 +1223,64 @@ async def seed():
                 user_id=admin.id,
                 action="user_created",
                 details="ایجاد کاربر جدید | کاربر سارا مرادی با نقش کاربر عادی",
+                severity="INFO",
+                ip_address="127.0.0.1",
             ),
             Log(
                 user_id=admin.id,
                 action="vendor_approved",
                 details="تأیید مجموعه | مجموعه ورزشی تختی قم تأیید شد",
+                severity="INFO",
+                ip_address="127.0.0.1",
             ),
             Log(
                 user_id=manager.id,
                 action="booking_created",
                 details="رزرو جدید | رزرو زمین فوتسال الغدیر توسط مهدی امامی",
+                severity="INFO",
+                ip_address="10.0.0.5",
             ),
             Log(
                 user_id=admin.id,
                 action="broadcast_sent",
                 details="ارسال پیام همگانی | پیام تخفیف عید قربان برای همه کاربران ارسال شد",
+                severity="INFO",
+                ip_address="127.0.0.1",
             ),
             Log(
                 user_id=manager.id,
                 action="court_updated",
                 details="به‌روزرسانی مجموعه | قیمت مجموعه ورزشی تختی قم تغییر کرد",
+                severity="INFO",
+                ip_address="10.0.0.5",
             ),
             Log(
                 user_id=admin.id,
                 action="user_role_changed",
                 details="تغییر نقش | نقش ایمان کربلایی به مدیر مجموعه تغییر کرد",
+                severity="WARNING",
+                ip_address="127.0.0.1",
             ),
             Log(
                 user_id=admin.id,
                 action="settings_updated",
                 details="تنظیمات سیستم | مهلت لغو رزرو به ۴۸ ساعت تغییر کرد",
+                severity="INFO",
+                ip_address="127.0.0.1",
             ),
             Log(
                 user_id=manager.id,
                 action="manager_slot_cancelled",
                 details="لغو سانس توسط سالندار | سانس به دلیل تعمیرات اضطراری مسدود شد",
+                severity="WARNING",
+                ip_address="10.0.0.5",
             ),
             Log(
                 user_id=admin.id,
                 action="settlement_requested",
                 details="درخواست تسویه | درخواست تسویه نمونه برای مجموعه ثبت شد",
+                severity="INFO",
+                ip_address="127.0.0.1",
             ),
         ]
         db.add_all(logs)
@@ -1058,7 +1303,7 @@ async def seed():
             WalletTransaction(
                 wallet_id=wallets[0].id,
                 amount=Decimal("150000"),
-                type="withdraw",
+                type="withdrawal",
                 description="پرداخت رزرو مجموعه تختی",
             ),
         ]
@@ -1090,27 +1335,102 @@ async def seed():
         db.add_all(penalties)
         await db.flush()
 
+        # ── Favorites ──
+        favorites: list[Favorite] = []
+        favorite_pairs = [
+            (2, 0),
+            (2, 2),
+            (2, 8),
+            (3, 3),
+            (3, 6),
+            (4, 1),
+            (4, 4),
+            (5, 5),
+            (5, 8),
+            (6, 0),
+            (6, 7),
+            (7, 8),
+            (7, 14),
+            (8, 3),
+            (8, 10),
+            (9, 4),
+            (9, 11),
+            (10, 5),
+            (10, 6),
+            (11, 2),
+            (12, 13),
+            (13, 0),
+            (14, 14),
+            (15, 12),
+        ]
+        for user_idx, vendor_idx in favorite_pairs:
+            if user_idx < len(regular_users) and vendor_idx < len(vendors):
+                favorites.append(
+                    Favorite(
+                        user_id=regular_users[user_idx].id,
+                        vendor_id=vendors[vendor_idx].id,
+                    )
+                )
+        db.add_all(favorites)
+        await db.flush()
+
+        # ── Contact Messages ──
+        contact_messages: list[ContactMessage] = [
+            ContactMessage(
+                name="محمد رضایی",
+                email="m.rezaei@example.com",
+                phone="09125556677",
+                subject="پیشنهاد همکاری",
+                message="سلام. من صاحب یک مجموعه ورزشی در شهرک قدس هستم. مایل به همکاری با توپ‌ست برای ثبت مجموعه در سامانه هستم. لطفاً راهنمایی بفرمایید.",
+            ),
+            ContactMessage(
+                name="سارا احمدی",
+                phone="09123334455",
+                subject="مشکل در پرداخت",
+                message="سلام. دیروز برای رزرو زمین فوتسال مبلغ از حساب من کسر شد اما رزرو انجام نشد. لطفاً پیگیری کنید. شماره پیگیری تراکنش: ۱۴۰۴۰۳۲۱-۰۰۴۵",
+            ),
+            ContactMessage(
+                name="رضا کریمی",
+                email="r.karimi@example.com",
+                phone="09125554433",
+                subject="ثبت نام مدیر مجموعه",
+                message="سلام. چگونه می‌توانم به عنوان مدیر مجموعه در سامانه ثبت نام کنم؟ مدارک لازم چیست؟",
+            ),
+            ContactMessage(
+                name="زهرا موسوی",
+                phone="09128886655",
+                subject="انتقاد و پیشنهاد",
+                message="سامانه خوبی دارید. کاش امکان رزرو هفتگی هم وجود داشت تا هر هفته مجبور نباشیم جداگانه رزرو کنیم.",
+            ),
+        ]
+        db.add_all(contact_messages)
+        await db.flush()
+
         await db.commit()
 
         # ── Summary ──
         print("✅ Seed completed!")
-        print(f"   Users:           {len(users)}")
-        print(f"   Vendors:         {len(vendors)}")
-        print(f"   Wallets:         {len(wallets)}")
-        print(f"   Time slots:      {len(slots)}")
-        print(f"   Bookings:        {len(bookings)}")
-        print(f"   Payments:        {len(payments)}")
-        print(f"   Refunds:         {len(refunds)}")
-        print(f"   Cancellations:   {len(slot_cancellations)}")
-        print(f"   Settlements:     {len(settlements)}")
-        print(f"   SettlementItems: {len(settlement_items)}")
-        print(f"   Reviews:         {len(reviews)}")
-        print(f"   Notifications:   {len(notes) + 1}")
-        print(f"   Deliveries:      {len(notification_deliveries)}")
-        print(f"   Logs:            {len(logs)}")
-        print(f"   Transactions:    {len(transactions)}")
-        print(f"   Penalties:       {len(penalties)}")
-        print(f"   Settings:        {len(setting_models)}")
+        print(f"   Users:              {len(users)}")
+        print(f"   Vendors:            {len(vendors)}")
+        print(f"   Vendor Images:      {len(vendor_images)}")
+        print(f"   Wallets:            {len(wallets)}")
+        print(f"   Bank Cards:         {len(bank_cards)}")
+        print(f"   Time slots:         {len(slots)}")
+        print(f"   Bookings:           {len(bookings)}")
+        print(f"   Payments:           {len(payments)}")
+        print(f"   Refunds:            {len(refunds)}")
+        print(f"   Cancellations:      {len(slot_cancellations)}")
+        print(f"   Settlements:        {len(settlements)}")
+        print(f"   SettlementItems:    {len(settlement_items)}")
+        print(f"   Reviews:            {len(reviews)}")
+        print(f"   Notifications:      {len(notes) + 1}")
+        print(f"   Deliveries:         {len(notification_deliveries)}")
+        print(f"   Logs:               {len(logs)}")
+        print(f"   Transactions:       {len(transactions)}")
+        print(f"   Penalties:          {len(penalties)}")
+        print(f"   Settings:           {len(setting_models)}")
+        print(f"   Favorites:          {len(favorites)}")
+        print(f"   Contact Messages:   {len(contact_messages)}")
 
 
 if __name__ == "__main__":
