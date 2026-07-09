@@ -1,6 +1,5 @@
 "use client"
 
-import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,13 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { CheckCheck } from "lucide-react"
 
 /* ── Helpers ── */
@@ -118,7 +111,7 @@ export function NotificationTable({
                 {!n.is_read && (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon-sm"
                     onClick={() => onMarkRead(n.id)}
                   >
                     <CheckCheck className="size-4" />
@@ -130,43 +123,11 @@ export function NotificationTable({
         </TableBody>
       </Table>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="text-sm text-muted-foreground">
-            صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
-          </p>
-          <Pagination className="mx-0 w-auto">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  text="قبلی"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    onPageChange(page - 1)
-                  }}
-                  className={page === 0 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  text="بعدی"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    onPageChange(page + 1)
-                  }}
-                  className={
-                    page >= totalPages - 1
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+      />
     </div>
   )
 }

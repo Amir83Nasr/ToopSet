@@ -31,13 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import { ShieldX, History, RefreshCw, Trash2, X } from "lucide-react"
@@ -267,7 +261,7 @@ export default function AdminLogsPage() {
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="همه عملیات" />
               </SelectTrigger>
-              <SelectContent position="popper">
+              <SelectContent>
                 <SelectGroup>
                   <SelectLabel>همه</SelectLabel>
                   <SelectItem value="all">همه عملیات</SelectItem>
@@ -452,7 +446,7 @@ export default function AdminLogsPage() {
                         <TooltipTrigger asChild>
                           <Button
                             variant="destructive"
-                            size="sm"
+                            size="icon-sm"
                             onClick={() => {
                               setDeletingLogId(log.id)
                               setDeleteDialogOpen(true)
@@ -471,46 +465,11 @@ export default function AdminLogsPage() {
               </TableBody>
             </Table>
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از{" "}
-                {toPersianDigits(totalPages)}
-              </p>
-              <Pagination className="mx-0 w-auto">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      text="قبلی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p - 1)
-                      }}
-                      className={
-                        page === 0 ? "pointer-events-none opacity-50" : ""
-                      }
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      text="بعدی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p + 1)
-                      }}
-                      className={
-                        page >= totalPages - 1
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
@@ -11,7 +11,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -23,22 +32,18 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { toPersianDigits } from "@/lib/utils"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
 import {
   CheckCircle,
   XCircle,
   ExternalLink,
   Building2,
   RefreshCw,
-  ShieldAlert,
 } from "lucide-react"
 
 interface PendingVendor {
@@ -66,7 +71,31 @@ export default function AdminPendingVendorsPage() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [sportFilter, setSportFilter] = useState("all")
   const limit = usePaginationLimit()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const filteredVendors = useMemo(() => {
+    let result = vendors
+    if (sportFilter !== "all") {
+      result = result.filter((v) => v.sport_types?.includes(sportFilter))
+    }
+    if (!debouncedSearch) return result
+    const q = debouncedSearch.trim().toLowerCase()
+    return result.filter(
+      (v) =>
+        v.name?.toLowerCase().includes(q) ||
+        v.manager_name?.toLowerCase().includes(q)
+    )
+  }, [vendors, debouncedSearch, sportFilter])
 
   const fetchVendors = useCallback(async () => {
     setLoading(true)
@@ -156,6 +185,35 @@ export default function AdminPendingVendorsPage() {
         </Button>
       </div>
 
+      {/* Search & filter bar */}
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی مجموعه یا مدیر..."
+        />
+        <div>
+          <Select
+            value={sportFilter}
+            onValueChange={(val) => setSportFilter(val)}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="همه ورزش‌ها" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>نوع ورزش</SelectLabel>
+                <SelectItem value="all">همه ورزش‌ها</SelectItem>
+                <SelectItem value="volleyball">والیبال</SelectItem>
+                <SelectItem value="basketball">بسکتبال</SelectItem>
+                <SelectItem value="futsal">فوتسال</SelectItem>
+                <SelectItem value="handball">هندبال</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      </DataTableToolbar>
+
       {loading ? (
         <Card className="min-h-0 flex-1">
           <CardHeader>
@@ -181,18 +239,21 @@ export default function AdminPendingVendorsPage() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredVendors.length === 0 ? (
+        <Card className="min-h-0 flex-1">
+          <CardContent className="flex h-full flex-col items-center justify-center py-16">
+            <Building2 className="mb-4 size-12 text-muted-foreground" />
+            <p className="text-lg text-muted-foreground">
+              مجموعه‌ای با این جستجو یافت نشد
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <ScrollReveal>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <Card className="flex min-h-0 flex-1 flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ShieldAlert className="size-4" />
-                  {formatPersianNumber(total)} مجموعه در انتظار تایید
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="min-h-0 flex-1 overflow-auto p-0 *:data-[slot=table-container]:overflow-visible *:data-[slot=table-container]:rounded-none *:data-[slot=table-container]:border-0">
-                <Table>
+          <div className="flex min-h-0 flex-1 flex-col gap-6">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
+                <Table tableWrapperClassName="overflow-visible rounded-none border-0">
                   <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
                       <TableHead>نام مجموعه</TableHead>
@@ -204,7 +265,7 @@ export default function AdminPendingVendorsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {vendors.map((vendor) => (
+                    {filteredVendors.map((vendor) => (
                       <TableRow
                         key={vendor.id}
                         className="cursor-pointer"
@@ -285,50 +346,14 @@ export default function AdminPendingVendorsPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
+              </div>
 
-              {/* Pagination */}
-              {total > limit && (
-                <div className="flex items-center justify-between border-t px-4 py-3">
-                  <p className="text-sm text-muted-foreground">
-                    صفحه {toPersianDigits(page + 1)} از{" "}
-                    {toPersianDigits(Math.ceil(total / limit))}
-                  </p>
-                  <Pagination className="mx-0 w-auto">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          text="قبلی"
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setPage((p) => p - 1)
-                          }}
-                          className={
-                            page === 0 ? "pointer-events-none opacity-50" : ""
-                          }
-                        />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationNext
-                          text="بعدی"
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setPage((p) => p + 1)
-                          }}
-                          className={
-                            page >= Math.ceil(total / limit) - 1
-                              ? "pointer-events-none opacity-50"
-                              : ""
-                          }
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
-            </Card>
+              <TablePagination
+                page={page}
+                totalPages={Math.ceil(total / limit)}
+                onPageChange={setPage}
+              />
+            </div>
           </div>
         </ScrollReveal>
       )}

@@ -53,12 +53,7 @@ export function QuickSlotForm({
           <Clock className="size-4 text-primary" />
           {formatPersianDate(date)}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-6"
-          onClick={onClose}
-        >
+        <Button variant="ghost" size="icon-xs" onClick={onClose}>
           <X className="size-3.5" />
         </Button>
       </div>

@@ -57,8 +57,8 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
               <p className="flex-1 text-sm font-medium">{error.message}</p>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0"
+                size="icon-xs"
+                className="shrink-0"
                 onClick={() => clearError(error.id)}
               >
                 <X className="h-4 w-4" />

@@ -146,8 +146,8 @@ export function HeroImagesEditor({ settingId, className }: Props) {
                 <Button
                   type="button"
                   variant="destructive"
-                  size="icon"
-                  className="size-8 opacity-0 transition-opacity group-hover:opacity-100"
+                  size="icon-sm"
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
                   onClick={() => handleDelete(i)}
                 >
                   <Trash2 className="size-4" />

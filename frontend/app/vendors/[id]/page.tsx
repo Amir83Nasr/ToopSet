@@ -701,7 +701,7 @@ export default function PublicVendorDetailPage() {
                             </div>
 
                             <Button
-                              size="default"
+                              size="md"
                               className="mt-3 w-full font-semibold shadow-xs"
                               onClick={() => handleBookSlot(selectedSlot)}
                             >

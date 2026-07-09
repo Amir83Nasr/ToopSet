@@ -287,7 +287,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    color: var(--color-foreground);
     transition:
       background-color 0.3s ease,
       color 0.3s ease;
@@ -462,50 +462,28 @@ html body[data-scroll-locked] {
     0 1px 4px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* grid pattern overlay between app background and content */
-
-#toopset-root::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(
-    ellipse 50% 50% at center,
-    #000 80%,
-    transparent 100%
-  );
-  -webkit-mask-image: radial-gradient(
-    ellipse 50% 50% at center,
-    #000 80%,
-    transparent 100%
-  );
+:root {
+  --grid-line: rgba(0, 0, 0, 0.06);
 }
 
-.dark #toopset-root::before {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+.dark {
+  --grid-line: rgba(255, 255, 255, 0.05);
 }
 
-/* grid pattern on dashboard content area — sits behind children naturally */
+/* ── Grid background (reusable utility + default targets) ── */
 
-#dash-content {
+.bg-grid-pattern,
+body,
+[data-slot="sidebar-inset"] {
   background-color: var(--color-background);
   background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
-.dark #dash-content {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+body {
+  min-height: 100svh;
 }
 
 /* ── Shimmer text animation ── */

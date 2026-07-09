@@ -88,10 +88,9 @@ export function AmenityCheckboxes({ value, onChange }: AmenityCheckboxesProps) {
                   </span>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     size="icon-xs"
                     onClick={() => handleRemoveCustom(key)}
-                    className="text-muted-foreground hover:text-destructive"
                   >
                     <X className="size-3" />
                   </Button>

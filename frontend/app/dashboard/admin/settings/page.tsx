@@ -282,11 +282,11 @@ export default function AdminSettingsPage() {
                         </div>
 
                         <Button
-                          size="icon"
+                          size="icon-sm"
                           variant="ghost"
                           disabled={!hasChanged || isSaving}
                           onClick={() => handleSave(key)}
-                          className={`mt-0.5 size-8 shrink-0 self-start rounded-full transition-all ${
+                          className={`mt-0.5 shrink-0 self-start rounded-full transition-all ${
                             hasChanged
                               ? "bg-primary/10 text-primary opacity-100 hover:bg-primary/20"
                               : "opacity-0 group-hover:opacity-100"

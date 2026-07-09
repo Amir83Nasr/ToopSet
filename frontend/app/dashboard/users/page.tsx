@@ -12,8 +12,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
 import {
   Select,
   SelectContent,
@@ -39,18 +42,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
 import {
   Loader2,
   RefreshCw,
-  Search,
   ShieldX,
   ToggleRight,
   UserCog,
@@ -229,68 +225,62 @@ export default function UsersPage() {
       </div>
 
       {/* Search & filter bar */}
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="جستجوی کاربر..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pr-10"
-            />
+      <DataTableToolbar>
+        <SearchInput
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder="جستجوی کاربر..."
+        />
+        <div className="flex gap-2">
+          <div>
+            <Select
+              value={roleFilter}
+              onValueChange={(val) => {
+                setRoleFilter(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>نقش</SelectLabel>
+                  <SelectItem value="all">همه نقش‌ها</SelectItem>
+                  {roleOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex gap-2">
-            <div>
-              <Select
-                value={roleFilter}
-                onValueChange={(val) => {
-                  setRoleFilter(val)
-                  setPage(0)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectGroup>
-                    <SelectLabel>نقش</SelectLabel>
-                    <SelectItem value="all">همه نقش‌ها</SelectItem>
-                    {roleOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Select
-                value={statusFilter}
-                onValueChange={(val) => {
-                  setStatusFilter(val)
-                  setPage(0)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectGroup>
-                    <SelectLabel>وضعیت</SelectLabel>
-                    {statusOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>وضعیت</SelectLabel>
+                  {statusOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
+      </DataTableToolbar>
 
       {/* Loading state */}
       {loading ? (
@@ -343,11 +333,14 @@ export default function UsersPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {roleOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            <SelectLabel>نقش</SelectLabel>
+                            {roleOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -384,7 +377,7 @@ export default function UsersPage() {
                             <TooltipTrigger asChild>
                               <Button
                                 variant="destructive"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => handleDeleteClick(u)}
                               >
                                 <Trash2 className="size-4" />
@@ -404,46 +397,11 @@ export default function UsersPage() {
           </Table>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از{" "}
-                {toPersianDigits(totalPages)}
-              </p>
-              <Pagination className="mx-0 w-auto">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      text="قبلی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p - 1)
-                      }}
-                      className={
-                        page === 0 ? "pointer-events-none opacity-50" : ""
-                      }
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      text="بعدی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p + 1)
-                      }}
-                      className={
-                        page >= totalPages - 1
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
 

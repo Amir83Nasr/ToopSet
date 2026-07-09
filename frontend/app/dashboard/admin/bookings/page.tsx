@@ -36,22 +36,18 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import { Input } from "@/components/ui/input"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
 import {
   Loader2,
   ShieldX,
   XCircle,
   CalendarCheck,
   RefreshCw,
-  Search,
 } from "lucide-react"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_STYLES } from "@/lib/constants"
 
 interface AdminBooking {
@@ -179,43 +175,37 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* Search & filter bar */}
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="جستجوی کاربر یا مجموعه..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-10"
-            />
-          </div>
-          <div>
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="همه وضعیت‌ها" />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectGroup>
-                  <SelectLabel>وضعیت رزرو</SelectLabel>
-                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                  <SelectItem value="pending_payment">
-                    در انتظار پرداخت
-                  </SelectItem>
-                  <SelectItem value="confirmed">تایید شده</SelectItem>
-                  <SelectItem value="cancelled">لغو شده</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی کاربر یا مجموعه..."
+        />
+        <div>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v)
+              setPage(0)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="همه وضعیت‌ها" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>وضعیت رزرو</SelectLabel>
+                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                <SelectItem value="pending_payment">
+                  در انتظار پرداخت
+                </SelectItem>
+                <SelectItem value="confirmed">تایید شده</SelectItem>
+                <SelectItem value="cancelled">لغو شده</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      </DataTableToolbar>
 
       {loading ? (
         <div>
@@ -326,46 +316,11 @@ export default function AdminBookingsPage() {
               ))}
             </TableBody>
           </Table>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از{" "}
-                {toPersianDigits(totalPages)}
-              </p>
-              <Pagination className="mx-0 w-auto">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      text="قبلی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p - 1)
-                      }}
-                      className={
-                        page === 0 ? "pointer-events-none opacity-50" : ""
-                      }
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      text="بعدی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p + 1)
-                      }}
-                      className={
-                        page >= totalPages - 1
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
 
@@ -387,11 +342,11 @@ export default function AdminBookingsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>انصراف</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={cancellingLoading}
               onClick={() =>
                 cancellingBooking && handleCancelBooking(cancellingBooking.id)
               }
-              className="bg-destructive hover:bg-destructive/90"
             >
               {cancellingLoading ? (
                 <>

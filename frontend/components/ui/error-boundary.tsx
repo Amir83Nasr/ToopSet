@@ -1,62 +1,92 @@
 "use client"
 
 import { Component, type ErrorInfo, type ReactNode } from "react"
-import { AlertTriangle, RefreshCw } from "lucide-react"
 import * as Sentry from "@sentry/nextjs"
-import { Button } from "@/components/ui/button"
+
+import { ErrorPage, type ErrorPageProps } from "@/components/ui/error-page"
 
 interface Props {
   children: ReactNode
+  /** Optional custom fallback completely replacing the default error UI */
   fallback?: ReactNode
+  /** Called when the user clicks retry */
   onReset?: () => void
+  /** Props forwarded to the default ErrorPage fallback */
+  errorPageProps?: Partial<
+    Pick<
+      ErrorPageProps,
+      | "title"
+      | "description"
+      | "showBack"
+      | "showHome"
+      | "homeHref"
+      | "retryLabel"
+      | "backLabel"
+      | "homeLabel"
+      | "actions"
+      | "illustration"
+    >
+  >
 }
 
 interface State {
   hasError: boolean
   error: Error | null
+  componentStack: string | null
 }
 
+/**
+ * Error boundary that catches render-phase errors in its subtree.
+ *
+ * - **Error UI** is delegated to <ErrorPage compact> — clean separation.
+ * - **Error logging** goes to Sentry via componentDidCatch.
+ * - **Recovery** resets local state (re-renders children).
+ *
+ * ★ Insight ─────────────────────────────────────────
+ * By extracting UI into ErrorPage, the boundary only worries about
+ * catching, logging, and resetting — the three concerns named in the
+ * design requirements. Consumers can customise appearance without
+ * touching boundary logic.
+ * ──────────────────────────────────────────────────
+ */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false, error: null, componentStack: null }
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+    return { hasError: true, error, componentStack: null }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState({ componentStack: errorInfo.componentStack ?? null })
+
     Sentry.captureException(error, {
       extra: { componentStack: errorInfo.componentStack },
     })
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null })
+    this.setState({ hasError: false, error: null, componentStack: null })
     this.props.onReset?.()
   }
 
   render() {
     if (this.state.hasError) {
+      /* Allow full replacement via the fallback prop */
       if (this.props.fallback) {
         return this.props.fallback
       }
 
       return (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-destructive/20 bg-destructive/5 p-8 text-center">
-          <AlertTriangle className="h-10 w-10 text-destructive" />
-          <div>
-            <h3 className="text-lg font-semibold">خطایی رخ داد</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {this.state.error?.message || "خطای غیرمنتظره"}
-            </p>
-          </div>
-          <Button variant="outline" onClick={this.handleReset}>
-            <RefreshCw className="ml-1.5 h-4 w-4" />
-            تلاش مجدد
-          </Button>
-        </div>
+        <ErrorPage
+          compact
+          error={this.state.error}
+          componentStack={this.state.componentStack ?? undefined}
+          onRetry={this.handleReset}
+          {...this.props.errorPageProps}
+        />
       )
     }
 

@@ -28,17 +28,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
+import { Loader2, Mail, Phone, RefreshCw, Trash2, User, X } from "lucide-react"
 import {
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Mail,
-  Phone,
-  RefreshCw,
-  Trash2,
-  User,
-} from "lucide-react"
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { toLocalDateStr, todayStr } from "@/lib/utils"
 
 interface ContactMessage {
   id: number
@@ -64,11 +62,59 @@ export default function ContactMessagesPage() {
   const [messages, setMessages] = useState<ContactMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState(todayStr())
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
     null
   )
   const [deleteTarget, setDeleteTarget] = useState<ContactMessage | null>(null)
   const limit = 20
+
+  const filteredMessages = messages
+    .filter((msg) => {
+      if (!debouncedSearch) return true
+      const q = debouncedSearch.trim().toLowerCase()
+      return (
+        msg.name.toLowerCase().includes(q) ||
+        msg.email.toLowerCase().includes(q) ||
+        msg.subject.toLowerCase().includes(q)
+      )
+    })
+    .filter((msg) => {
+      if (
+        dateFrom &&
+        new Date(msg.created_at) < new Date(dateFrom + "T00:00:00")
+      )
+        return false
+      if (dateTo && new Date(msg.created_at) > new Date(dateTo + "T23:59:59"))
+        return false
+      return true
+    })
+
+  const paginatedMessages = filteredMessages.slice(
+    page * limit,
+    page * limit + limit
+  )
+  const totalPages = Math.ceil(filteredMessages.length / limit)
+
+  const hasActiveFilter = dateFrom !== "" || debouncedSearch !== ""
+
+  function clearFilters() {
+    setDateFrom("")
+    setDateTo(todayStr())
+    setSearch("")
+  }
 
   const fetchMessages = useCallback(async () => {
     setLoading(true)
@@ -125,6 +171,34 @@ export default function ContactMessagesPage() {
         </Button>
       </div>
 
+      {/* Search & filter bar */}
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی پیام..."
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangePicker
+            value={{
+              from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
+              to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+            }}
+            onChange={(range) => {
+              setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
+              setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
+            }}
+            className="w-fit"
+          />
+          {hasActiveFilter && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <X className="ml-1.5 size-4" />
+              حذف فیلتر
+            </Button>
+          )}
+        </div>
+      </DataTableToolbar>
+
       {/* Loading */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -139,6 +213,16 @@ export default function ContactMessagesPage() {
             <p className="text-lg text-muted-foreground">پیامی یافت نشد</p>
           </CardContent>
         </Card>
+      ) : paginatedMessages.length === 0 ? (
+        /* Filtered empty */
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
+            <Mail className="size-12 text-muted-foreground" />
+            <p className="text-lg text-muted-foreground">
+              پیامی با این جستجو یافت نشد
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* Messages table */}
@@ -147,13 +231,14 @@ export default function ContactMessagesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>فرستنده</TableHead>
+                  <TableHead className="w-44">ایمیل</TableHead>
                   <TableHead>موضوع</TableHead>
                   <TableHead>تاریخ</TableHead>
                   <TableHead className="text-right">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {messages.map((msg) => (
+                {paginatedMessages.map((msg) => (
                   <TableRow
                     key={msg.id}
                     className="cursor-pointer"
@@ -162,10 +247,13 @@ export default function ContactMessagesPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium">{msg.name}</p>
-                        <p className="text-xs text-muted-foreground" dir="ltr">
-                          {msg.email}
-                        </p>
                       </div>
+                    </TableCell>
+                    <TableCell
+                      className="text-right text-xs text-muted-foreground"
+                      dir="ltr"
+                    >
+                      {msg.email || "—"}
                     </TableCell>
                     <TableCell className="max-w-50">
                       <p className="truncate">{msg.subject}</p>
@@ -181,9 +269,8 @@ export default function ContactMessagesPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 text-muted-foreground hover:text-destructive"
+                              variant="destructive"
+                              size="icon-sm"
                               onClick={() => setDeleteTarget(msg)}
                             >
                               <Trash2 className="size-4" />
@@ -200,32 +287,11 @@ export default function ContactMessagesPage() {
               </TableBody>
             </Table>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronRight className="ml-1 size-4" />
-                  قبلی
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={messages.length < limit}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  بعدی
-                  <ChevronLeft className="mr-1 size-4" />
-                </Button>
-              </div>
-            </div>
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </>
       )}
@@ -274,7 +340,7 @@ export default function ContactMessagesPage() {
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel>بستن</AlertDialogCancel>
             <AlertDialogAction
-              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              variant="destructive"
               onClick={() =>
                 selectedMessage && setDeleteTarget(selectedMessage)
               }
@@ -301,7 +367,7 @@ export default function ContactMessagesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>انصراف</AlertDialogCancel>
             <AlertDialogAction
-              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              variant="destructive"
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
             >
               حذف

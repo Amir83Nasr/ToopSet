@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -26,14 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  RefreshCw,
-  Search,
-} from "lucide-react"
+import { TablePagination } from "@/components/ui/pagination"
+import { CreditCard, AlertCircle, RefreshCw } from "lucide-react"
 
 // --- Types ---
 
@@ -283,33 +280,11 @@ export default function PaymentsPage() {
           </TableBody>
         </Table>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-sm text-muted-foreground">
-              صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronRight className="ml-1 size-4" />
-                قبلی
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                بعدی
-                <ChevronLeft className="mr-1 size-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       </div>
     )
   }
@@ -330,41 +305,35 @@ export default function PaymentsPage() {
       </div>
 
       {/* Search & filter bar */}
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="جستجوی مجموعه..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-10"
-            />
-          </div>
-          <div>
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                setStatusFilter(val)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="همه وضعیت‌ها" />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectGroup>
-                  <SelectLabel>وضعیت پرداخت</SelectLabel>
-                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                  <SelectItem value="success">موفق</SelectItem>
-                  <SelectItem value="pending">در انتظار</SelectItem>
-                  <SelectItem value="failed">ناموفق</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی مجموعه..."
+        />
+        <div>
+          <Select
+            value={statusFilter}
+            onValueChange={(val) => {
+              setStatusFilter(val)
+              setPage(0)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="همه وضعیت‌ها" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>وضعیت پرداخت</SelectLabel>
+                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                <SelectItem value="success">موفق</SelectItem>
+                <SelectItem value="pending">در انتظار</SelectItem>
+                <SelectItem value="failed">ناموفق</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      </DataTableToolbar>
 
       {loading
         ? renderLoading()

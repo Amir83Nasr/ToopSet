@@ -289,10 +289,7 @@ export function NavMain() {
           <SidebarMenuItem>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <SidebarMenuButton
-                  tooltip="خروج"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
+                <SidebarMenuButton tooltip="خروج" variant="destructive">
                   <LogOut />
                   <span>خروج</span>
                 </SidebarMenuButton>

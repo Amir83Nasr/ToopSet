@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn, toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -74,7 +74,7 @@ function PaginationPrevious({
   return (
     <PaginationLink
       aria-label="Go to previous page"
-      size="default"
+      size="md"
       className={cn("ps-1.5!", className)}
       {...props}
     >
@@ -97,7 +97,7 @@ function PaginationNext({
   return (
     <PaginationLink
       aria-label="Go to next page"
-      size="default"
+      size="md"
       className={cn("pe-1.5!", className)}
       {...props}
     >
@@ -132,6 +132,54 @@ function PaginationEllipsis({
   )
 }
 
+function TablePagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}) {
+  if (totalPages <= 1) return null
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <p className="text-sm text-muted-foreground">
+        صفحه {toPersianDigits(page + 1)} از {toPersianDigits(totalPages)}
+      </p>
+      <Pagination className="mx-0 w-auto">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              text="قبلی"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                onPageChange(page - 1)
+              }}
+              className={page === 0 ? "pointer-events-none opacity-50" : ""}
+            />
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext
+              text="بعدی"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                onPageChange(page + 1)
+              }}
+              className={
+                page >= totalPages - 1 ? "pointer-events-none opacity-50" : ""
+              }
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    </div>
+  )
+}
+
 export {
   Pagination,
   PaginationContent,
@@ -140,4 +188,5 @@ export {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+  TablePagination,
 }

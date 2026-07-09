@@ -5,7 +5,6 @@ import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -25,16 +24,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import { CreditCard, ShieldX, RefreshCw, Search } from "lucide-react"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
+import { CreditCard, ShieldX, RefreshCw } from "lucide-react"
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from "@/lib/constants"
 
 interface AdminPayment {
@@ -139,45 +136,39 @@ export default function AdminPaymentsPage() {
       </div>
 
       {/* Search & filter bar */}
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="جستجوی کاربر یا مجموعه..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-10"
-            />
-          </div>
-          <div>
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                setStatusFilter(val)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="همه وضعیت‌ها" />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectGroup>
-                  <SelectLabel>وضعیت پرداخت</SelectLabel>
-                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                  <SelectItem value="success">موفق</SelectItem>
-                  <SelectItem value="pending">در انتظار</SelectItem>
-                  <SelectItem value="failed">ناموفق</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی کاربر یا مجموعه..."
+        />
+        <div>
+          <Select
+            value={statusFilter}
+            onValueChange={(val) => {
+              setStatusFilter(val)
+              setPage(0)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="همه وضعیت‌ها" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>وضعیت پرداخت</SelectLabel>
+                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                <SelectItem value="success">موفق</SelectItem>
+                <SelectItem value="pending">در انتظار</SelectItem>
+                <SelectItem value="failed">ناموفق</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      </DataTableToolbar>
 
       {loading ? (
-        <div className="min-h-0 flex-1 overflow-auto rounded-xl border *:data-[slot=table-container]:overflow-visible *:data-[slot=table-container]:rounded-none *:data-[slot=table-container]:border-0">
-          <Table>
+        <div className="max-h-full min-h-0 overflow-auto">
+          <Table tableWrapperClassName="overflow-visible rounded-none border-0">
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead>تاریخ</TableHead>
@@ -256,47 +247,11 @@ export default function AdminPaymentsPage() {
             </TableBody>
           </Table>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از{" "}
-                {toPersianDigits(totalPages)}
-              </p>
-              <Pagination className="mx-0 w-auto">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      text="قبلی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p - 1)
-                      }}
-                      className={
-                        page === 0 ? "pointer-events-none opacity-50" : ""
-                      }
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      text="بعدی"
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setPage((p) => p + 1)
-                      }}
-                      className={
-                        page >= totalPages - 1
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

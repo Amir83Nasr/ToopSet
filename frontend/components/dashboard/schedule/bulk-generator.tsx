@@ -353,12 +353,12 @@ export function BulkGenerator({
                     {templates.length > 1 && (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="destructive"
                         size="icon"
                         className="shrink-0"
                         onClick={() => removeTemplate(index)}
                       >
-                        <X className="size-4 text-destructive" />
+                        <X className="size-4" />
                       </Button>
                     )}
                   </div>
@@ -398,11 +398,11 @@ export function BulkGenerator({
                             اعمال
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="destructive"
                             size="icon"
                             onClick={() => handleDeleteTemplate(tpl.id)}
                           >
-                            <Trash2 className="size-3.5 text-destructive" />
+                            <Trash2 className="size-3.5" />
                           </Button>
                         </div>
                       </div>

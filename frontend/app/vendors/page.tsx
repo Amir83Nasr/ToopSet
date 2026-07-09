@@ -32,13 +32,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
@@ -268,7 +262,7 @@ function VendorsPageContent() {
                     <SelectTrigger className="w-35">
                       <SelectValue placeholder="مرتب‌سازی" />
                     </SelectTrigger>
-                    <SelectContent position="popper">
+                    <SelectContent>
                       <SelectGroup>
                         <SelectLabel>مرتب‌سازی</SelectLabel>
                         <SelectItem value="default">پیش‌فرض</SelectItem>
@@ -594,49 +588,11 @@ function VendorsPageContent() {
                     ))}
                   </motion.div>
 
-                  {/* Pagination — admin dashboard style */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-2 py-3">
-                      <p className="text-sm text-muted-foreground">
-                        صفحه {toPersianDigits(page + 1)} از{" "}
-                        {toPersianDigits(totalPages)}
-                      </p>
-                      <Pagination className="mx-0 w-auto">
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              text="قبلی"
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                setPage((p) => p - 1)
-                              }}
-                              className={
-                                page === 0
-                                  ? "pointer-events-none opacity-50"
-                                  : ""
-                              }
-                            />
-                          </PaginationItem>
-                          <PaginationItem>
-                            <PaginationNext
-                              text="بعدی"
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                setPage((p) => p + 1)
-                              }}
-                              className={
-                                page >= totalPages - 1
-                                  ? "pointer-events-none opacity-50"
-                                  : ""
-                              }
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  )}
+                  <TablePagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                  />
                 </>
               )}
             </div>

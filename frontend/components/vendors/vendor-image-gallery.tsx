@@ -186,17 +186,17 @@ export function VendorHeroGallery({
             <>
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-lg"
                 onClick={() => api?.scrollPrev()}
-                className="absolute top-1/2 right-4 z-20 size-10 -translate-y-1/2 rounded-full border border-white/20 bg-white/10 text-white opacity-0 shadow-lg backdrop-blur-md group-hover:opacity-100 hover:bg-white/20"
+                className="absolute top-1/2 right-4 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-white/10 text-white opacity-0 shadow-lg backdrop-blur-md group-hover:opacity-100 hover:bg-white/20"
               >
                 <ChevronRight className="size-5" />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-lg"
                 onClick={() => api?.scrollNext()}
-                className="absolute top-1/2 left-4 z-20 size-10 -translate-y-1/2 rounded-full border border-white/20 bg-white/10 text-white opacity-0 shadow-lg backdrop-blur-md group-hover:opacity-100 hover:bg-white/20"
+                className="absolute top-1/2 left-4 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-white/10 text-white opacity-0 shadow-lg backdrop-blur-md group-hover:opacity-100 hover:bg-white/20"
               >
                 <ChevronLeft className="size-5" />
               </Button>
@@ -258,9 +258,9 @@ export function VendorHeroGallery({
             {lightboxIndex > 0 && (
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-lg"
                 onClick={() => setLightboxIndex(lightboxIndex - 1)}
-                className="absolute right-3 size-10 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                className="absolute right-3 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
               >
                 <ChevronRight className="size-5" />
               </Button>
@@ -268,9 +268,9 @@ export function VendorHeroGallery({
             {lightboxIndex < images.length - 1 && (
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-lg"
                 onClick={() => setLightboxIndex(lightboxIndex + 1)}
-                className="absolute left-3 size-10 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                className="absolute left-3 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
               >
                 <ChevronLeft className="size-5" />
               </Button>

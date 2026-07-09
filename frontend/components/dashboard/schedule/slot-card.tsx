@@ -84,15 +84,15 @@ export function SlotCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
+                variant="destructive"
+                size="icon-xs"
+                className="opacity-0 transition-opacity group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation()
                   onDelete(slot)
                 }}
               >
-                <Trash2 className="size-3 text-destructive" />
+                <Trash2 className="size-3" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

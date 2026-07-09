@@ -1,10 +1,25 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
+import { toPersianDigits } from "@/lib/utils"
+import {
+  translateSmsStatus,
+  translateNotificationStatus,
+  formatMoney,
+} from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -13,7 +28,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, X } from "lucide-react"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { toLocalDateStr, todayStr } from "@/lib/utils"
 
 interface ManagerCancellation {
   id: number
@@ -31,13 +52,62 @@ interface ManagerCancellation {
 }
 
 function money(value: number | null) {
-  if (value === null) return "-"
-  return `${new Intl.NumberFormat("fa-IR").format(value)} تومان`
+  return formatMoney(value)
 }
 
 export default function AdminManagerCancellationsPage() {
   const [rows, setRows] = useState<ManagerCancellation[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [releaseSlotFilter, setReleaseSlotFilter] = useState("all")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState(todayStr())
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const filteredRows = useMemo(() => {
+    let result = rows
+    if (releaseSlotFilter !== "all") {
+      result = result.filter(
+        (r) => String(r.release_slot) === releaseSlotFilter
+      )
+    }
+    if (debouncedSearch) {
+      const q = debouncedSearch.trim().toLowerCase()
+      result = result.filter(
+        (r) =>
+          r.vendor_name?.toLowerCase().includes(q) ||
+          r.manager_name?.toLowerCase().includes(q) ||
+          r.affected_full_name?.toLowerCase().includes(q) ||
+          r.affected_phone?.toLowerCase().includes(q)
+      )
+    }
+    if (dateFrom) {
+      const from = new Date(dateFrom + "T00:00:00")
+      result = result.filter((r) => new Date(r.created_at) >= from)
+    }
+    if (dateTo) {
+      const to = new Date(dateTo + "T23:59:59")
+      result = result.filter((r) => new Date(r.created_at) <= to)
+    }
+    return result
+  }, [rows, debouncedSearch, releaseSlotFilter, dateFrom, dateTo])
+
+  const hasActiveFilter =
+    releaseSlotFilter !== "all" || dateFrom !== "" || debouncedSearch !== ""
+
+  function clearFilters() {
+    setReleaseSlotFilter("all")
+    setDateFrom("")
+    setDateTo(todayStr())
+    setSearch("")
+  }
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -74,51 +144,97 @@ export default function AdminManagerCancellationsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <p className="p-4 text-sm text-muted-foreground">
-              در حال بارگذاری...
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>مجموعه</TableHead>
-                  <TableHead>سالندار</TableHead>
-                  <TableHead>کاربر/تماس</TableHead>
-                  <TableHead>مبلغ آنلاین</TableHead>
-                  <TableHead>هزینه سایت</TableHead>
-                  <TableHead>پیامک</TableHead>
-                  <TableHead>اعلان</TableHead>
-                  <TableHead>وضعیت سانس</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.vendor_name}</TableCell>
-                    <TableCell>{r.manager_name}</TableCell>
-                    <TableCell>
-                      <div>{r.affected_full_name || "-"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {r.affected_phone || "-"}
-                      </div>
-                    </TableCell>
-                    <TableCell>{money(r.online_paid_amount)}</TableCell>
-                    <TableCell>{money(r.site_cost_amount)}</TableCell>
-                    <TableCell>{r.sms_status || "-"}</TableCell>
-                    <TableCell>{r.notification_status || "-"}</TableCell>
-                    <TableCell>
-                      {r.release_slot ? "آزاد شده" : "بلاک شده"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      {/* Search & filter bar */}
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی مجموعه، سالندار یا کاربر..."
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={releaseSlotFilter}
+            onValueChange={(val) => setReleaseSlotFilter(val)}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="وضعیت سانس" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>وضعیت سانس</SelectLabel>
+                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value="true">آزاد شده</SelectItem>
+                <SelectItem value="false">بلاک شده</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <DateRangePicker
+            value={{
+              from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
+              to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+            }}
+            onChange={(range) => {
+              setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
+              setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
+            }}
+            className="w-fit"
+          />
+          {hasActiveFilter && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <X className="ml-1.5 size-4" />
+              حذف فیلتر
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </DataTableToolbar>
+
+      {loading ? (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">در حال بارگذاری...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>مجموعه</TableHead>
+                <TableHead>سالندار</TableHead>
+                <TableHead>کاربر/تماس</TableHead>
+                <TableHead>مبلغ آنلاین</TableHead>
+                <TableHead>هزینه سایت</TableHead>
+                <TableHead>پیامک</TableHead>
+                <TableHead>اعلان</TableHead>
+                <TableHead>وضعیت سانس</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.vendor_name}</TableCell>
+                  <TableCell>{r.manager_name}</TableCell>
+                  <TableCell>
+                    <div>{r.affected_full_name || "-"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {toPersianDigits(r.affected_phone || "-")}
+                    </div>
+                  </TableCell>
+                  <TableCell>{money(r.online_paid_amount)}</TableCell>
+                  <TableCell>{money(r.site_cost_amount)}</TableCell>
+                  <TableCell>{translateSmsStatus(r.sms_status)}</TableCell>
+                  <TableCell>
+                    {translateNotificationStatus(r.notification_status)}
+                  </TableCell>
+                  <TableCell>
+                    {r.release_slot ? "آزاد شده" : "بلاک شده"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   )
 }

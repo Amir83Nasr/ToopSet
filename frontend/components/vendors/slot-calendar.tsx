@@ -230,17 +230,15 @@ export function SlotCalendar({
           <div className="flex items-center gap-0.5">
             <Button
               variant="outline"
-              size="icon-sm"
+              size="icon-xs"
               onClick={() => setWeekOffset((o) => o - 1)}
-              className="size-7"
             >
               <ChevronRight className="size-3.5" />
             </Button>
             <Button
               variant="outline"
-              size="icon-sm"
+              size="icon-xs"
               onClick={() => setWeekOffset((o) => o + 1)}
-              className="size-7"
             >
               <ChevronLeft className="size-3.5" />
             </Button>
@@ -399,9 +397,8 @@ export function SlotCalendar({
                   {canManage && onSlotDelete && !disabled && (
                     <div className="w-12 text-center">
                       <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="size-7 text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive"
+                        variant="destructive"
+                        size="icon-xs"
                         onClick={(e) => {
                           e.stopPropagation()
                           onSlotDelete(slot)

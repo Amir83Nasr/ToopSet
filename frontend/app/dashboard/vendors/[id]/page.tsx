@@ -1083,13 +1083,13 @@ export default function DashboardVendorEditPage() {
           {/* Week navigation */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={goPrevWeek}>
+              <Button variant="outline" size="icon-sm" onClick={goPrevWeek}>
                 <ChevronRight className="size-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={goThisWeek}>
                 امروز
               </Button>
-              <Button variant="outline" size="sm" onClick={goNextWeek}>
+              <Button variant="outline" size="icon-sm" onClick={goNextWeek}>
                 <ChevronLeft className="size-4" />
               </Button>
             </div>
@@ -1106,11 +1106,11 @@ export default function DashboardVendorEditPage() {
                     ایجاد گروهی
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
                     onClick={handleDeletePastSlots}
                   >
-                    <Trash2 className="ml-1 size-3.5 text-destructive" />
+                    <Trash2 className="ml-1 size-3.5" />
                     پاکسازی گذشته
                   </Button>
                 </>
@@ -1180,7 +1180,10 @@ export default function DashboardVendorEditPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDeleteSlot}>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={confirmDeleteSlot}
+                >
                   حذف
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -1281,13 +1284,13 @@ export default function DashboardVendorEditPage() {
         <TabsContent value="bookings" className="mt-8 min-h-125 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={goPrevWeek}>
+              <Button variant="outline" size="icon-sm" onClick={goPrevWeek}>
                 <ChevronRight className="size-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={goThisWeek}>
                 این هفته
               </Button>
-              <Button variant="outline" size="sm" onClick={goNextWeek}>
+              <Button variant="outline" size="icon-sm" onClick={goNextWeek}>
                 <ChevronLeft className="size-4" />
               </Button>
             </div>

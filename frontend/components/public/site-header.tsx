@@ -415,7 +415,7 @@ export function SiteHeader() {
           <ModeToggle />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-11">
+              <Button variant="ghost" size="icon" className="max-sm:size-11">
                 <Menu className="size-5" />
                 <span className="sr-only">منو</span>
               </Button>
@@ -508,12 +508,12 @@ export function SiteHeader() {
                       تنظیمات
                     </Link>
                     <Button
-                      variant="ghost"
+                      variant="destructive"
                       onClick={() => {
                         setMobileOpen(false)
                         setLogoutDialogOpen(true)
                       }}
-                      className="flex w-full items-center gap-2 text-destructive hover:bg-destructive/10"
+                      className="w-full"
                     >
                       <LogOut className="me-2 size-4" />
                       خروج

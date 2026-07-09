@@ -13,7 +13,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <ErrorBoundary>
         <PublicSiteHeader />
-        <div className="min-h-[calc(100svh-4rem)] pt-16">
+        <div className="flex min-h-svh flex-col pt-16">
           <SidebarProvider
             style={
               {
@@ -21,19 +21,14 @@ export default function DashboardLayout({
                 "--header-height": "calc(var(--spacing) * 12)",
               } as React.CSSProperties
             }
+            className="min-h-0 flex-1"
           >
             <AppSidebar
               variant="inset"
               className="top-16 h-[calc(100svh-4rem)]"
             />
-            <SidebarInset className="overflow-y-auto">
-              <div
-                className="flex flex-col gap-4 p-4"
-                style={{ minHeight: "calc(100dvh - 5rem)" }}
-                id="dash-content"
-              >
-                {children}
-              </div>
+            <SidebarInset>
+              <div className="flex flex-col gap-4 p-4">{children}</div>
             </SidebarInset>
           </SidebarProvider>
         </div>

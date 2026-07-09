@@ -182,8 +182,7 @@ export function ListSettingEditor({
             <div className="flex shrink-0 flex-col gap-0.5">
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-7"
+                size="icon-xs"
                 disabled={idx === 0}
                 onClick={() => moveItem(idx, "up")}
               >
@@ -191,17 +190,15 @@ export function ListSettingEditor({
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-7"
+                size="icon-xs"
                 disabled={idx === items.length - 1}
                 onClick={() => moveItem(idx, "down")}
               >
                 <ChevronDown className="size-3.5" />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-destructive hover:text-destructive"
+                variant="destructive"
+                size="icon-xs"
                 onClick={() => removeItem(idx)}
               >
                 <X className="size-3.5" />

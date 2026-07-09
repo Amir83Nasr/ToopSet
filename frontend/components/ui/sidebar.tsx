@@ -311,7 +311,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "relative flex w-full flex-1 flex-col bg-background md:peer-data-[side=right]:me-0 md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ms-2 md:peer-data-[variant=inset]:peer-data-[side=right]:peer-data-[state=collapsed]:me-2",
+        "relative flex w-full flex-1 flex-col md:peer-data-[side=right]:me-0 md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ms-2 md:peer-data-[variant=inset]:peer-data-[side=right]:peer-data-[state=collapsed]:me-2",
         className
       )}
       {...props}
@@ -478,6 +478,8 @@ const sidebarMenuButtonVariants = cva(
         default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         outline:
           "bg-background shadow-[0_0_0_1px_var(--sidebar-border)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_var(--sidebar-accent)]",
+        destructive:
+          "text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive active:bg-destructive/15 active:text-destructive dark:hover:bg-destructive/20 dark:active:bg-destructive/25 data-open:bg-destructive/10 data-open:text-destructive data-open:hover:bg-destructive/15 data-open:hover:text-destructive dark:data-open:bg-destructive/20 data-active:bg-destructive/10 data-active:text-destructive dark:data-active:bg-destructive/20",
       },
       size: {
         default: "h-8 text-sm",

@@ -6,10 +6,14 @@ import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  SearchInput,
+  DataTableToolbar,
+} from "@/components/ui/data-table-toolbar"
 import {
   Table,
   TableBody,
@@ -18,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { TablePagination } from "@/components/ui/pagination"
 import {
   Select,
   SelectContent,
@@ -42,9 +47,6 @@ import {
   Plus,
   Building2,
   MapPin,
-  Search,
-  ChevronLeft,
-  ChevronRight,
   Star,
   RefreshCw,
   Loader2,
@@ -80,7 +82,7 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true)
   const [deleteVendor, setDeleteVendor] = useState<Vendor | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const limit = 20
+  const limit = usePaginationLimit()
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -110,7 +112,7 @@ export default function VendorsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, debouncedSearch, sportType, isActive])
+  }, [page, limit, debouncedSearch, sportType, isActive])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchVendors(), 0)
@@ -169,65 +171,59 @@ export default function VendorsPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="جستجوی مجموعه..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-10"
-            />
+      <DataTableToolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="جستجوی مجموعه..."
+        />
+        <div className="flex gap-2">
+          <div>
+            <Select
+              value={sportType}
+              onValueChange={(val) => {
+                setSportType(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="همه ورزش‌ها" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>نوع ورزش</SelectLabel>
+                  <SelectItem value="all">همه ورزش‌ها</SelectItem>
+                  <SelectItem value="volleyball">والیبال</SelectItem>
+                  <SelectItem value="basketball">بسکتبال</SelectItem>
+                  <SelectItem value="futsal">فوتسال</SelectItem>
+                  <SelectItem value="handball">هندبال</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex gap-2">
-            <div>
-              <Select
-                value={sportType}
-                onValueChange={(val) => {
-                  setSportType(val)
-                  setPage(0)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="همه ورزش‌ها" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectGroup>
-                    <SelectLabel>نوع ورزش</SelectLabel>
-                    <SelectItem value="all">همه ورزش‌ها</SelectItem>
-                    <SelectItem value="volleyball">والیبال</SelectItem>
-                    <SelectItem value="basketball">بسکتبال</SelectItem>
-                    <SelectItem value="futsal">فوتسال</SelectItem>
-                    <SelectItem value="handball">هندبال</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Select
-                value={isActive}
-                onValueChange={(val) => {
-                  setIsActive(val)
-                  setPage(0)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-36">
-                  <SelectValue placeholder="همه وضعیت‌ها" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectGroup>
-                    <SelectLabel>وضعیت</SelectLabel>
-                    <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-                    <SelectItem value="true">فعال</SelectItem>
-                    <SelectItem value="false">غیرفعال</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Select
+              value={isActive}
+              onValueChange={(val) => {
+                setIsActive(val)
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue placeholder="همه وضعیت‌ها" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>وضعیت</SelectLabel>
+                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value="true">فعال</SelectItem>
+                  <SelectItem value="false">غیرفعال</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
+      </DataTableToolbar>
 
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -251,8 +247,8 @@ export default function VendorsPage() {
         </Card>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-auto rounded-xl border *:data-[slot=table-container]:overflow-visible *:data-[slot=table-container]:rounded-none *:data-[slot=table-container]:border-0">
-            <Table>
+          <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
+            <Table tableWrapperClassName="overflow-visible rounded-none border-0">
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
                   <TableHead className="text-right">نام</TableHead>
@@ -350,7 +346,7 @@ export default function VendorsPage() {
                             </Button>
                             <Button
                               variant="destructive"
-                              size="sm"
+                              size="icon-sm"
                               onClick={() => setDeleteVendor(vendor)}
                             >
                               <Trash2 size={4} />
@@ -365,34 +361,11 @@ export default function VendorsPage() {
             </Table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                صفحه {toPersianDigits(page + 1)} از{" "}
-                {toPersianDigits(totalPages)}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronRight className="ml-1 size-4" />
-                  قبلی
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  بعدی
-                  <ChevronLeft className="mr-1 size-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
 
