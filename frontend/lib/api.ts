@@ -6,6 +6,28 @@ export function buildAvatarUrl(path: string | null | undefined): string | null {
   return `${API_BASE}${path}`
 }
 
+/**
+ * Normalize an image URL for use with next/image.
+ *
+ * Absolute backend URLs (http://localhost:8000/uploads/…) are converted to
+ * relative paths so Next.js serves them via its own rewrite proxy, avoiding
+ * the private-IP security block in Next.js 15+.
+ *
+ * Relative paths (/uploads/…) are used as-is — the rewrite handles them.
+ */
+export function buildVendorImageUrl(url: string | null | undefined): string {
+  if (!url) return ""
+  // Already a relative path — let the rewrite handle it
+  if (url.startsWith("/")) return url
+  // Absolute URL — convert to relative for same-origin serving
+  try {
+    const parsed = new URL(url)
+    return parsed.pathname + parsed.search
+  } catch {
+    return url
+  }
+}
+
 import * as Sentry from "@sentry/nextjs"
 import { setCookie, getCookie, removeCookie } from "./cookies"
 

@@ -107,7 +107,9 @@ export const amenityLabels: Record<string, string> = {
   wifi: "اینترنت وای‌فای",
   shower: "حمام",
   canteen: "بوفه",
+  snack_bar: "بوفه",
   lighting: "نورافکن",
+  cctv: "دوربین مداربسته",
 }
 
 export const amenityIcons: Record<string, LucideIcon> = {

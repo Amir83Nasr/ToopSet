@@ -3,7 +3,13 @@
 import { useCallback, useState } from "react"
 import Image from "next/image"
 import { toast } from "@/lib/toast"
-import { uploadFile, type UploadResult, ApiError } from "@/lib/api"
+import {
+  buildAvatarUrl,
+  uploadFile,
+  type UploadResult,
+  ApiError,
+} from "@/lib/api"
+import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ImagePlus, Loader2, Trash2 } from "lucide-react"
 
@@ -21,10 +27,11 @@ export function ImageUpload({
   onChange,
   tempIds,
   onTempIdsChange,
-  maxImages = 5,
+  maxImages = 10,
   minImages = 3,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,29 +77,43 @@ export function ImageUpload({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
-        {images.map((url, index) => (
-          <div
-            key={url}
-            className="group relative size-24 overflow-hidden rounded-lg border"
-          >
-            <Image
-              src={url}
-              alt={`تصویر ${index + 1}`}
-              fill
-              className="object-cover"
-              sizes="96px"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => removeImage(index)}
-              className="absolute inset-0 flex size-full items-center justify-center rounded-none bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+        {images.map((url, index) => {
+          const normalizedUrl = buildAvatarUrl(url) || url
+          const hasFailed = failedImages.has(url)
+          return (
+            <div
+              key={url}
+              className="group relative size-24 overflow-hidden rounded-lg border"
             >
-              <Trash2 className="size-5 text-white" />
-            </Button>
-          </div>
-        ))}
+              {hasFailed ? (
+                <div className="flex size-full items-center justify-center bg-muted">
+                  <span className="text-xs text-muted-foreground/50">خطا</span>
+                </div>
+              ) : (
+                <Image
+                  src={normalizedUrl}
+                  alt={`تصویر ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="96px"
+                  unoptimized
+                  onError={() => {
+                    setFailedImages((prev) => new Set(prev).add(url))
+                  }}
+                />
+              )}
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                onClick={() => removeImage(index)}
+                className="absolute inset-0 flex size-full items-center justify-center rounded-none bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <Trash2 className="size-5 text-white" />
+              </Button>
+            </div>
+          )
+        })}
 
         {/* Upload placeholder */}
         {canUpload && (
@@ -113,14 +134,22 @@ export function ImageUpload({
         )}
       </div>
       {images.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {images.length} از {maxImages} تصویر
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {toPersianDigits(images.length)} از {toPersianDigits(maxImages)}{" "}
+            تصویر
+          </p>
+          {canUpload && (
+            <p className="text-xs text-muted-foreground">
+              {toPersianDigits(maxImages - images.length)} تصویر قابل آپلود
+            </p>
+          )}
+        </div>
       )}
       {minImages && images.length < minImages && (
         <p className="text-xs text-destructive">
-          حداقل {minImages} تصویر الزامی است ({minImages - images.length} تصویر
-          دیگر)
+          حداقل {toPersianDigits(minImages)} تصویر الزامی است (
+          {toPersianDigits(minImages - images.length)} تصویر دیگر)
         </p>
       )}
     </div>

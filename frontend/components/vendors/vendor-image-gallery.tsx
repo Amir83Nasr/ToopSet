@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import Image from "next/image"
+import { buildVendorImageUrl } from "@/lib/api"
 import {
   Carousel,
   CarouselContent,
@@ -119,7 +120,7 @@ export function VendorHeroGallery({
                   onClick={() => openLightbox(i)}
                 >
                   <Image
-                    src={img}
+                    src={buildVendorImageUrl(img)}
                     alt={`${vendorName} - ${i + 1}`}
                     fill
                     className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
@@ -218,7 +219,12 @@ export function VendorHeroGallery({
                       : "border-transparent opacity-60 hover:opacity-90"
                   }`}
                 >
-                  <Image src={img} alt="" fill className="object-cover" />
+                  <Image
+                    src={buildVendorImageUrl(img)}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
                 </button>
               ))}
               <span className="mr-1 text-[11px] font-medium text-white/80">
@@ -240,7 +246,7 @@ export function VendorHeroGallery({
           <div className="relative flex aspect-video items-center justify-center">
             {images[lightboxIndex] && (
               <Image
-                src={images[lightboxIndex]}
+                src={buildVendorImageUrl(images[lightboxIndex])}
                 alt={`${vendorName} - ${lightboxIndex + 1}`}
                 fill
                 className="object-contain"

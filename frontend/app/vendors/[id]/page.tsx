@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { api, ApiError } from "@/lib/api"
+import { api, ApiError, buildVendorImageUrl } from "@/lib/api"
 import { toast } from "@/lib/toast"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
@@ -39,7 +39,6 @@ import {
   formatPrice,
   formatTime,
   isSlotBookable,
-  isSlotPendingCancellation,
   type VendorData,
   type TimeSlot,
   type Review,
@@ -769,7 +768,7 @@ export default function PublicVendorDetailPage() {
                         className="group relative aspect-4/3 cursor-pointer overflow-hidden rounded-lg bg-muted"
                       >
                         <Image
-                          src={img}
+                          src={buildVendorImageUrl(img)}
                           alt={`${vendor.name} - ${i + 1}`}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -791,20 +790,18 @@ export default function PublicVendorDetailPage() {
                   امکانات مجموعه
                 </h3>
                 {vendor.amenities &&
-                Object.keys(vendor.amenities).length > 0 ? (
+                Object.values(vendor.amenities).some((v) => v === true) ? (
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(vendor.amenities).map(([key, val]) => (
-                      <span
-                        key={key}
-                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs transition-colors ${
-                          val
-                            ? "bg-primary/10 font-medium text-primary"
-                            : "bg-muted text-muted-foreground/50"
-                        }`}
-                      >
-                        {amenityLabels[key] || key}
-                      </span>
-                    ))}
+                    {Object.entries(vendor.amenities)
+                      .filter(([, val]) => val === true)
+                      .map(([key]) => (
+                        <span
+                          key={key}
+                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition-colors"
+                        >
+                          {amenityLabels[key] || key}
+                        </span>
+                      ))}
                   </div>
                 ) : (
                   <p className="py-1 text-xs text-muted-foreground/60">
@@ -920,7 +917,7 @@ export default function PublicVendorDetailPage() {
                 <div className="relative h-full w-full p-8">
                   {vendor.images?.[lightboxIndex] && (
                     <Image
-                      src={vendor.images[lightboxIndex]}
+                      src={buildVendorImageUrl(vendor.images[lightboxIndex])}
                       alt={`${vendor.name} - ${lightboxIndex + 1}`}
                       fill
                       className="object-contain"

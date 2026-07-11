@@ -5,6 +5,8 @@ const analyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -23,7 +25,22 @@ const nextConfig = {
         port: "8000",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "8000",
+        pathname: "/uploads/**",
+      },
     ],
+  },
+  // ── Proxy uploads through Next.js to avoid private-IP block ──
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: `${API_BASE}/uploads/:path*`,
+      },
+    ]
   },
 }
 

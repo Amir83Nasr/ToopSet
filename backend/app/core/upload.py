@@ -6,14 +6,18 @@ from pathlib import Path
 BASE_UPLOAD_DIR = Path("uploads")
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".svg"}
 
 # Magic bytes signatures for MIME validation
 _MIME_SIGNATURES: dict[tuple[int, ...], str] = {
     (0xFF, 0xD8, 0xFF): "image/jpeg",
     (0x89, 0x50, 0x4E, 0x47): "image/png",
     (0x52, 0x49, 0x46, 0x46): "image/webp",  # RIFF header, verified below
+    # SVG: no fixed magic bytes — detected via text content in _detect_mime
 }
+
+_SVG_XML_HEAD = b"<?xml"
+_SVG_HEAD = b"<svg"
 
 
 def _detect_mime(content: bytes) -> str | None:
@@ -29,6 +33,12 @@ def _detect_mime(content: bytes) -> str | None:
                     return mime
                 return None
             return mime
+    # SVG detection: check for XML/SVG text header
+    stripped = content.lstrip()
+    if stripped.startswith(_SVG_XML_HEAD) or stripped.startswith(_SVG_HEAD):
+        # Rough check: look for <svg tag somewhere in first 8KB
+        if b"<svg" in content[:8192]:
+            return "image/svg+xml"
     return None
 
 
@@ -37,6 +47,7 @@ _ALLOWED_MIMES_BY_EXT = {
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".webp": "image/webp",
+    ".svg": "image/svg+xml",
 }
 
 

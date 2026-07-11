@@ -104,18 +104,13 @@ export function LocationPicker({
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any | null>(null)
   const markerRef = useRef<any | null>(null)
-  const [mounted, setMounted] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [ready, setReady] = useState(false)
   const lastGeocodeRef = useRef("")
+  const initializedRef = useRef(false)
 
   const hasLocation = latitude != null && longitude != null
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     function onChange() {
@@ -134,23 +129,36 @@ export function LocationPicker({
     }
   }
 
-  // Create map once (deferred with rAF to avoid Strict Mode double-invoke races)
+  // Create map once
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return
+    if (!mapContainerRef.current || initializedRef.current) return
     let destroyed = false
 
     const raf = requestAnimationFrame(() => {
       if (destroyed || !mapContainerRef.current) return
 
-      const map = createNeshanMap(mapContainerRef.current, {
-        center: QOM_CENTER,
-        zoom: DEFAULT_ZOOM,
-        zoomControl: false,
-      })
+      try {
+        const map = createNeshanMap(mapContainerRef.current, {
+          center: QOM_CENTER,
+          zoom: DEFAULT_ZOOM,
+          zoomControl: false,
+        })
 
-      mapRef.current = map
-      addZoomControls(map)
-      setReady(true)
+        mapRef.current = map
+        initializedRef.current = true
+        addZoomControls(map)
+        setReady(true)
+
+        // Invalidate size after a short delay to ensure container has settled
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize()
+          }
+        }, 300)
+      } catch (err) {
+        console.error("Failed to create Neshan map:", err)
+        setReady(true) // Still mark ready so empty state shows instead of infinite spinner
+      }
     })
 
     return () => {
@@ -160,9 +168,51 @@ export function LocationPicker({
         mapRef.current.remove()
         mapRef.current = null
         markerRef.current = null
+        initializedRef.current = false
       }
     }
   }, [])
+
+  // Watch for container visibility changes (tab switching, fullscreen, resize)
+  // and invalidate the map so tiles re-render correctly.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    function doInvalidate() {
+      if (mapRef.current) {
+        setTimeout(() => mapRef.current.invalidateSize(), 50)
+      }
+    }
+
+    // ResizeObserver: detects container size changes (responsive layout, fullscreen)
+    let resizeObserver: ResizeObserver | null = null
+    if (mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => doInvalidate())
+      resizeObserver.observe(mapContainerRef.current)
+    }
+
+    // IntersectionObserver: detects when container becomes visible (tab switch)
+    let intersectionObserver: IntersectionObserver | null = null
+    if (mapContainerRef.current) {
+      intersectionObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              doInvalidate()
+            }
+          }
+        },
+        { threshold: 0.1 }
+      )
+      intersectionObserver.observe(mapContainerRef.current)
+    }
+
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect()
+      if (intersectionObserver) intersectionObserver.disconnect()
+    }
+  }, [ready])
 
   // Handle map clicks
   const handlePlace = useCallback(
@@ -222,19 +272,8 @@ export function LocationPicker({
   // Invalidate size on fullscreen change
   useEffect(() => {
     if (!mapRef.current || !ready) return
-    setTimeout(() => mapRef.current!.invalidateSize(), 200)
+    setTimeout(() => mapRef.current!.invalidateSize(), 300)
   }, [fullscreen, ready])
-
-  if (!mounted) {
-    return (
-      <div
-        style={{ height: 450 }}
-        className="flex items-center justify-center rounded-xl border bg-muted"
-      >
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
 
   return (
     <div
@@ -250,29 +289,49 @@ export function LocationPicker({
 
       <div
         style={{ height: fullscreen ? "100dvh" : 450 }}
-        className="overflow-hidden rounded-xl border shadow-sm"
+        className="relative overflow-hidden rounded-xl border shadow-sm"
       >
+        {/* Map container — always rendered so ref is populated on mount */}
         <div ref={mapContainerRef} style={{ height: "100%", width: "100%" }} />
+
+        {/* Loading overlay — shown while map initializes */}
+        {!ready && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Empty state overlay — shown when map is ready but no coordinates set */}
+        {ready && !hasLocation && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-muted/30">
+            <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
+              <MapPin className="size-8 text-muted-foreground/40" />
+              <span>روی نقشه کلیک کنید تا موقعیت را مشخص کنید</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          toggleFullscreen()
-        }}
-        className="absolute right-3 bottom-3 z-1000 bg-card text-muted-foreground shadow-sm hover:bg-accent"
-      >
-        {fullscreen ? (
-          <Minimize2 className="size-4" />
-        ) : (
-          <Maximize2 className="size-4" />
-        )}
-      </Button>
+      {hasLocation && ready && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            toggleFullscreen()
+          }}
+          className="absolute right-3 bottom-3 z-1000 bg-card text-muted-foreground shadow-sm hover:bg-accent"
+        >
+          {fullscreen ? (
+            <Minimize2 className="size-4" />
+          ) : (
+            <Maximize2 className="size-4" />
+          )}
+        </Button>
+      )}
 
-      {!hasLocation && (
+      {!hasLocation && ready && (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-1000 flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
           <MapPin className="size-3.5" />
           روی نقشه کلیک کنید تا موقعیت را مشخص کنید

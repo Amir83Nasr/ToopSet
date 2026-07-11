@@ -69,10 +69,18 @@ class AvatarUploadResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     full_name: str | None = Field(None, min_length=1, max_length=128)
+    phone: str | None = Field(None, min_length=11, max_length=11, examples=["09120000000"])
     new_password: str | None = Field(
         None, min_length=8, max_length=128, description="Min 8 characters"
     )
     current_password: str | None = Field(None, min_length=1, max_length=128)
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return normalize_phone(value)
 
 
 class TokenResponse(BaseModel):

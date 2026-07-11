@@ -262,9 +262,9 @@ function PaymentPageContent() {
 
           {/* Actions */}
           <div className="mt-6 flex flex-col gap-3">
-            <Button className="w-full" size="lg" asChild>
+            <Button className="w-full" asChild>
               <Link href="/dashboard/bookings">
-                <LayoutDashboard className="ml-2 size-5" />
+                <LayoutDashboard className="ml-2" />
                 مشاهده رزروهای من
               </Link>
             </Button>

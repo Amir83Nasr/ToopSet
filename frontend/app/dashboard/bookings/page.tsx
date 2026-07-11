@@ -232,7 +232,7 @@ export default function BookingsPage() {
       <BookingFilters search={search} onSearchChange={setSearch} />
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="w-fit">
+        <TabsList className="w-fit gap-x-2">
           <TabsTrigger value="current">
             سانس‌های جاری ({tabCounts.current.toLocaleString("fa-IR")})
           </TabsTrigger>

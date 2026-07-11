@@ -17,14 +17,10 @@ interface Props {
       ErrorPageProps,
       | "title"
       | "description"
-      | "showBack"
       | "showHome"
       | "homeHref"
       | "retryLabel"
-      | "backLabel"
       | "homeLabel"
-      | "actions"
-      | "illustration"
     >
   >
 }
@@ -82,8 +78,6 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <ErrorPage
           compact
-          error={this.state.error}
-          componentStack={this.state.componentStack ?? undefined}
           onRetry={this.handleReset}
           {...this.props.errorPageProps}
         />

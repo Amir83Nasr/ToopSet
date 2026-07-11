@@ -340,6 +340,10 @@ class AuthService:
             update_data["full_name"] = data.full_name
             changed_fields.append("نام")
 
+        if data.phone is not None:
+            update_data["phone"] = data.phone
+            changed_fields.append("شماره تماس")
+
         if data.new_password is not None:
             if current_user.password_hash != OTP_PLACEHOLDER_HASH and not password_change_verified:
                 if not data.current_password or not verify_password(
