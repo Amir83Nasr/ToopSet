@@ -45,7 +45,7 @@ export function SiteFooter() {
 
   return (
     <footer className="relative overflow-hidden border-t bg-background">
-      <div className="relative mx-auto max-w-7xl">
+      <div className="px-safe relative mx-auto max-w-7xl px-4">
         {/* Main footer content */}
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
@@ -149,7 +149,7 @@ export function SiteFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
+        <div className="pb-safe flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
             تمامی حقوق مادی و معنوی این وبسایت متعلق به توپ‌سِت می‌باشد.
           </p>

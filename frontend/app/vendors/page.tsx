@@ -236,7 +236,7 @@ function VendorsPageContent() {
             >
               {/* Row 1: Search + Sort + Near Me */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
                   <div className="relative">
                     <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input

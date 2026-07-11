@@ -5,7 +5,7 @@ import Link from "next/link"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, Home } from "lucide-react"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import {
   Breadcrumb,
@@ -65,7 +65,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-16 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-sm">
-      <div className="flex items-center gap-2 px-4">
+      <div className="flex min-w-0 items-center gap-2 px-3 sm:px-4">
         <Tooltip>
           <TooltipTrigger asChild>
             <SidebarTrigger className="-ms-1" />
@@ -77,8 +77,8 @@ export function SiteHeader() {
         <span className="me-2 flex items-center">
           <Separator orientation="vertical" className="h-4" />
         </span>
-        <Breadcrumb>
-          <BreadcrumbList>
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList className="flex-nowrap [&_a]:truncate [&_span]:truncate [&>li]:min-w-0">
             {breadcrumbs.map((crumb, i) => (
               <Fragment key={crumb.href}>
                 <BreadcrumbItem>
@@ -97,22 +97,38 @@ export function SiteHeader() {
         </Breadcrumb>
       </div>
       <div className="flex-1" />
-      <div className="flex items-center gap-2 px-4">
+      <div className="flex shrink-0 items-center gap-1.5 px-3 sm:gap-2 sm:px-4">
         <div className="max-sm:hidden">
           <ModeToggle />
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/vendors">
-            <ExternalLink className="me-1.5 size-4" />
-            جستجوی سالن
-          </Link>
-        </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/">
-            <ExternalLink className="me-1.5 size-4" />
-            بازگشت به صفحه اصلی
-          </Link>
-        </Button>
+        {/* Labels collapse to icon-only below sm to avoid crowding the
+            breadcrumb on narrow screens. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/vendors">
+                <ExternalLink className="size-4 sm:me-1.5" />
+                <span className="max-sm:sr-only">جستجوی سالن</span>
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="sm:hidden">
+            <p>جستجوی سالن</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/">
+                <Home className="size-4 sm:me-1.5" />
+                <span className="max-sm:sr-only">بازگشت به صفحه اصلی</span>
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="sm:hidden">
+            <p>بازگشت به صفحه اصلی</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </header>
   )

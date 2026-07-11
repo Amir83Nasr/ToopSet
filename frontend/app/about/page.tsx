@@ -330,7 +330,7 @@ export default function AboutPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.2 }}
-                className="grid grid-cols-2 gap-4"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2"
               >
                 {managerBenefits.map((benefit) => {
                   const Icon = benefit.icon

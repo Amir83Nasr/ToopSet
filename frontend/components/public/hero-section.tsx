@@ -33,7 +33,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="text-xl leading-tight font-extrabold text-foreground sm:text-3xl sm:leading-snug lg:text-4xl lg:leading-normal"
+              className="text-2xl leading-tight font-extrabold text-foreground sm:text-3xl sm:leading-snug lg:text-4xl lg:leading-normal"
             >
               پلتفرم هوشمند رزرو
               <br />
@@ -46,7 +46,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15 }}
-              className="max-w-2xl text-xs leading-relaxed font-extrabold text-muted-foreground sm:text-base sm:leading-8"
+              className="max-w-2xl text-sm leading-relaxed font-extrabold text-muted-foreground sm:text-base sm:leading-8"
             >
               سامانه هوشمند{" "}
               <strong className="font-extrabold text-primary">توپ‌سِت</strong>{" "}

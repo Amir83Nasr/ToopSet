@@ -359,6 +359,39 @@ html body[data-scroll-locked] {
   }
 }
 
+/* Tablets (768–1023px) are touch devices too, but the max-width rule above
+   stops at 767px. Cover the gap for coarse pointers so tap targets stay ≥44px
+   on tablets without forcing larger controls on desktop (fine) pointers. */
+@media (min-width: 768px) and (max-width: 1023px) and (pointer: coarse) {
+  button:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10),
+  [role="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(
+      .h-10
+    ) {
+    min-height: 44px;
+  }
+}
+
+/* ── Safe-area (notch / home-bar) support ── */
+/* Requires viewport-fit=cover (set in app/layout.tsx). env() resolves to 0 on
+   devices without insets, so these are no-ops on desktop. */
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.ps-safe {
+  padding-inline-start: env(safe-area-inset-left);
+}
+.pe-safe {
+  padding-inline-end: env(safe-area-inset-right);
+}
+.px-safe {
+  padding-left: max(env(safe-area-inset-left), 0px);
+  padding-right: max(env(safe-area-inset-right), 0px);
+}
+
 /* ── Text selection ── */
 
 ::selection {

@@ -123,6 +123,7 @@ export function VendorHeroGallery({
                     src={buildVendorImageUrl(img)}
                     alt={`${vendorName} - ${i + 1}`}
                     fill
+                    sizes="(max-width: 1280px) 100vw, 1280px"
                     className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
                     priority={i === 0}
                   />

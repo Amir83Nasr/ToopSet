@@ -559,8 +559,8 @@ export default function PublicVendorDetailPage() {
                   <>
                     {/* Table */}
                     <div>
-                      {/* Header row */}
-                      <div className="flex items-center border-b bg-muted/30 px-4 py-2.5">
+                      {/* Header row — hidden on mobile (card layout is self-describing) */}
+                      <div className="hidden items-center border-b bg-muted/30 px-4 py-2.5 sm:flex">
                         <span className="w-20 text-xs font-medium text-muted-foreground">
                           روز
                         </span>
@@ -592,7 +592,7 @@ export default function PublicVendorDetailPage() {
                               key={slot.id}
                               onClick={() => !disabled && setSelectedSlot(slot)}
                               disabled={disabled}
-                              className={`flex w-full items-center border-b px-4 py-3.5 text-right transition-colors ${
+                              className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 border-b px-4 py-3.5 text-right transition-colors sm:flex ${
                                 disabled
                                   ? "cursor-not-allowed opacity-35"
                                   : isSelected
@@ -600,10 +600,10 @@ export default function PublicVendorDetailPage() {
                                     : "cursor-pointer hover:bg-muted/20"
                               }`}
                             >
-                              <div className="w-20 text-xs font-medium text-muted-foreground">
+                              <div className="order-3 text-xs font-medium text-muted-foreground sm:order-none sm:w-20">
                                 {slotDay}
                               </div>
-                              <div className="flex flex-1 items-center gap-3">
+                              <div className="order-1 col-span-2 flex flex-1 items-center gap-3 sm:order-none sm:col-span-1">
                                 <div
                                   className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
                                     disabled
@@ -623,7 +623,7 @@ export default function PublicVendorDetailPage() {
                                   {formatTime(slot.end_time)}
                                 </p>
                               </div>
-                              <div className="w-28 text-center">
+                              <div className="order-4 text-left sm:order-none sm:w-28 sm:text-center">
                                 <span
                                   className={`text-sm font-bold ${
                                     disabled
@@ -634,7 +634,7 @@ export default function PublicVendorDetailPage() {
                                   {formatPrice(slot.base_price)}
                                 </span>
                               </div>
-                              <div className="w-24 text-center">
+                              <div className="order-2 flex justify-end sm:order-none sm:w-24 sm:justify-center">
                                 {isPast ? (
                                   <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
                                     گذشته
@@ -665,7 +665,7 @@ export default function PublicVendorDetailPage() {
                       (currentTime === 0 ||
                         new Date(selectedSlot.start_time).getTime() >
                           currentTime) && (
-                        <div className="border-t">
+                        <div className="pb-safe sticky bottom-0 z-20 border-t bg-card/95 backdrop-blur-sm lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none">
                           <div className="px-5 py-4">
                             {/* Slot info + pricing combined */}
                             <div className="rounded-lg bg-primary/5 px-4 py-3.5">
@@ -771,6 +771,7 @@ export default function PublicVendorDetailPage() {
                           src={buildVendorImageUrl(img)}
                           alt={`${vendor.name} - ${i + 1}`}
                           fill
+                          sizes="(max-width: 1024px) 50vw, 220px"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </button>
@@ -920,6 +921,7 @@ export default function PublicVendorDetailPage() {
                       src={buildVendorImageUrl(vendor.images[lightboxIndex])}
                       alt={`${vendor.name} - ${lightboxIndex + 1}`}
                       fill
+                      sizes="100vw"
                       className="object-contain"
                     />
                   )}

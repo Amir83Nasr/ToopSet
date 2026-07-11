@@ -73,7 +73,7 @@ export function SiteHeader() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+      <div className="px-safe mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
