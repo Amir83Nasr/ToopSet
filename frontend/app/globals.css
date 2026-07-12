@@ -350,11 +350,29 @@ html body[data-scroll-locked] {
 
 /* ── Mobile touch target minimum ── */
 
+/* Native <button>/[role=button] already inflate to 44px via the rules below.
+   But two categories silently ship undersized on touch screens and must be
+   covered explicitly:
+     1. Link-buttons — <Button asChild> renders <a data-slot="button"> with no
+        role="button", so the button selectors never match it.
+     2. Form controls — <input>/<select> tap+edit targets (checkbox/radio/range
+        are excluded; they own their sizing).
+   The .h-10/.h-11/.min-h-11/.size-10/.size-11 exclusions skip elements that are
+   already ≥40px so we never shrink an intentionally larger control. */
 @media (max-width: 767px) {
   button:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10),
+  a[data-slot="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(
+      .size-10
+    ):not(.h-10),
   [role="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(
       .h-10
     ) {
+    min-height: 44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+      [type="hidden"]
+    ):not(.h-11):not(.min-h-11),
+  select:not(.h-11):not(.min-h-11) {
     min-height: 44px;
   }
 }
@@ -364,9 +382,18 @@ html body[data-scroll-locked] {
    on tablets without forcing larger controls on desktop (fine) pointers. */
 @media (min-width: 768px) and (max-width: 1023px) and (pointer: coarse) {
   button:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10),
+  a[data-slot="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(
+      .size-10
+    ):not(.h-10),
   [role="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(
       .h-10
     ) {
+    min-height: 44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+      [type="hidden"]
+    ):not(.h-11):not(.min-h-11),
+  select:not(.h-11):not(.min-h-11) {
     min-height: 44px;
   }
 }
