@@ -10,7 +10,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  allowedDevOrigins: ["192.168.1.20"],
+  // Comma-separated origins allowed for dev HMR from LAN devices.
+  // Set ALLOWED_DEV_ORIGINS in .env.local or env before starting dev server.
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS
+    ? process.env.ALLOWED_DEV_ORIGINS.split(",").map((s) => s.trim())
+    : [],
   images: {
     remotePatterns: [
       {
@@ -21,13 +25,13 @@ const nextConfig = {
       },
       {
         protocol: "http",
-        hostname: "192.168.1.20",
+        hostname: "127.0.0.1",
         port: "8000",
         pathname: "/uploads/**",
       },
       {
         protocol: "http",
-        hostname: "127.0.0.1",
+        hostname: "**",
         port: "8000",
         pathname: "/uploads/**",
       },

@@ -11,6 +11,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useGeolocation } from "@/hooks/use-geolocation"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -108,8 +109,9 @@ function VendorsPageContent() {
   )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
 
-  // Map panel visibility toggle
-  const [showMap, setShowMap] = useState(true)
+  // Map panel visibility toggle — hidden by default on mobile
+  const isMobile = useIsMobile()
+  const [showMap, setShowMap] = useState(!isMobile)
 
   // User geolocation for nearby vendors
   const geo = useGeolocation()

@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE = getApiBase()
 
 /* ── Props ── */
 
@@ -22,11 +23,14 @@ export function TextListDisplay({
   onUpdatedAt,
 }: TextListDisplayProps) {
   const [items, setItems] = useState<string[] | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let active = true
     fetch(`${API_BASE}/api/v1/settings/public/text/${settingKey}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (!active) return
         if (data?.value) {
           try {
             const parsed = JSON.parse(data.value)
@@ -40,9 +44,18 @@ export function TextListDisplay({
           onUpdatedAt(data.updated_at)
         }
       })
+      .catch(() => {
+        /* network/backend error — fall through to the empty state below */
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [settingKey, onUpdatedAt])
 
-  if (!items) {
+  if (loading) {
     return (
       <div className="space-y-6">
         {[1, 2, 3].map((i) => (
@@ -56,7 +69,7 @@ export function TextListDisplay({
     )
   }
 
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">{"محتوایی ثبت نشده است."}</p>
     )

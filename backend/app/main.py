@@ -20,6 +20,7 @@ from app.api.v1.contact import router as contact_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.favorites import router as favorites_router
 from app.api.v1.manager import router as manager_router
+from app.api.v1.manager_requests import router as manager_requests_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.penalties import router as penalties_router
@@ -180,8 +181,7 @@ app = FastAPI(
     swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "none"},
     contact={"name": "Amirhossein Nasrollahi", "email": "amirhossein.nasrollahi.main@gmail.com"},
     servers=[
-        {"url": "http://localhost:8000", "description": "Local network server"},
-        {"url": "http://192.168.1.20:8000", "description": "Mac network server"},
+        {"url": "http://localhost:8000", "description": "Local development server"},
     ],
     openapi_tags=[
         {"name": "auth", "description": "Register, login, profile & avatar management"},
@@ -252,6 +252,7 @@ app.include_router(penalties_router, prefix="/api/v1")
 app.include_router(contact_router, prefix="/api/v1")
 app.include_router(favorites_router, prefix="/api/v1")
 app.include_router(manager_router, prefix="/api/v1")
+app.include_router(manager_requests_router)
 app.include_router(admin_router, prefix="/api/v1")
 
 

@@ -30,7 +30,7 @@ import {
   Share2,
 } from "lucide-react"
 import dynamic from "next/dynamic"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
   Stars,
   sportLabels,
@@ -866,6 +866,9 @@ export default function PublicVendorDetailPage() {
               showCloseButton={false}
               className="max-w-[95vw] border-none bg-black/95 p-0 md:max-w-[85vw]"
             >
+              <DialogTitle className="sr-only">
+                تصاویر {vendor?.name}
+              </DialogTitle>
               <div className="relative flex h-[80vh] items-center justify-center">
                 {/* Close button */}
                 <button

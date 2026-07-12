@@ -12,7 +12,6 @@ import logging
 import socket
 
 from slowapi import Limiter
-from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -55,7 +54,7 @@ limiter = Limiter(
 )
 
 
-def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+def rate_limit_exceeded_handler(_request: Request, _exc: Exception) -> JSONResponse:
     """Persian 429 response for rate-limited requests."""
     detail = "تعداد درخواست‌های مجاز شما به پایان رسیده است. لطفاً کمی بعد تلاش کنید."
     return JSONResponse(

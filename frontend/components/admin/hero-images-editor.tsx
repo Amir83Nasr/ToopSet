@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api, ApiError } from "@/lib/api"
+import { api, ApiError, getApiBase } from "@/lib/api"
 import { getCookie } from "@/lib/cookies"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import { toast } from "@/lib/toast"
 import { ImagePlus, Loader2, Trash2, Image } from "lucide-react"
 import { Card } from "../ui/card"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE = getApiBase()
 
 interface Props {
   settingId: number

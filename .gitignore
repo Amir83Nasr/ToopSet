@@ -46,6 +46,7 @@ Desktop.ini
 .env.production
 .env.staging
 .env.*
+!.env.example
 *.pem
 *.key
 

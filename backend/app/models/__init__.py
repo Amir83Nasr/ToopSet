@@ -3,6 +3,7 @@ from app.models.booking import Booking
 from app.models.contact import ContactMessage
 from app.models.favorite import Favorite
 from app.models.log import Log
+from app.models.manager_request import ManagerRequest
 from app.models.notification import Notification, NotificationDelivery
 from app.models.payment import Payment
 from app.models.penalty import Penalty
@@ -42,4 +43,5 @@ __all__ = [
     "ContactMessage",
     "Favorite",
     "RefreshToken",
+    "ManagerRequest",
 ]

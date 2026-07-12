@@ -1,13 +1,34 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Map } from "lucide-react"
+import { Building2, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HeroAnimatedIllustration } from "@/components/public/hero-illustration-v2"
+import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
+import { useAuth } from "@/hooks/use-auth"
 
 export function HeroSection() {
   const router = useRouter()
+  const { user, isAuthenticated, loading } = useAuth()
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  function handleRegisterClick() {
+    if (loading) return
+
+    if (!isAuthenticated) {
+      router.push("/login?reason=login_required&redirect=/")
+      return
+    }
+
+    if (user?.role === "manager" || user?.role === "admin") {
+      router.push("/dashboard/vendors/create")
+      return
+    }
+
+    setDialogOpen(true)
+  }
 
   return (
     <section className="relative overflow-hidden py-12 md:py-24">
@@ -63,11 +84,11 @@ export function HeroSection() {
               className="flex flex-col gap-3 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5"
             >
               <Button
-                onClick={() => router.push("/vendors")}
+                onClick={handleRegisterClick}
                 className="w-full px-3 font-semibold sm:w-auto"
               >
-                <span>شروع رزرو آنلاین</span>
-                <ArrowLeft className="size-4 shrink-0" />
+                <Building2 className="size-4 shrink-0" />
+                <span>ثبت مجموعه جدید</span>
               </Button>
 
               <Button
@@ -87,6 +108,8 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      <RegisterComplexDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </section>
   )
 }

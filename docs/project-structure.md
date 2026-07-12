@@ -27,7 +27,7 @@ api/v1 route -> service -> repository -> SQLAlchemy model -> PostgreSQL
 | `Makefile` | دستورهای توسعه، تست، migration و اجرا |
 | `compose.yml` | سرویس‌های توسعه مثل PostgreSQL و Redis |
 | `compose.prod.yml` | compose تولیدی با backend و healthcheck/monitoring |
-| `.env.example` | نمونه env مشترک |
+| `.env.example` | مرجع واحد env (docker + backend + frontend) |
 | `VERSION` | نسخه پروژه |
 | `LICENSE` | مجوز پروژه |
 | `TODO.md` | کارهای باقی‌مانده |
@@ -43,7 +43,6 @@ api/v1 route -> service -> repository -> SQLAlchemy model -> PostgreSQL
 | `backend/pyproject.toml` | تنظیمات tooling Python |
 | `backend/Dockerfile` | image تولیدی backend |
 | `backend/alembic.ini` | تنظیم Alembic |
-| `backend/.env.example` | نمونه env backend |
 | `backend/coverage.xml` | خروجی coverage تست‌ها |
 
 ### `backend/app/main.py`
@@ -229,7 +228,6 @@ Pydantic schemaها قرارداد request/response هستند.
 | `frontend/components.json` | تنظیم shadcn/ui |
 | `frontend/sentry.client.config.ts` | Sentry سمت کلاینت |
 | `frontend/sentry.server.config.ts` | Sentry سمت سرور |
-| `frontend/.env.example` | نمونه env frontend |
 
 ### `frontend/app`
 

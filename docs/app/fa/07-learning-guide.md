@@ -22,8 +22,7 @@
 **فایل‌ها:**
 
 - `compose.yml` (PostgreSQL + Redis)
-- `backend/.env.example` → کپی به `backend/.env`
-- `frontend/.env.example` → کپی به `frontend/.env.local`
+- `.env.example` → بخش backend را به `backend/.env` و بخش frontend را به `frontend/.env.local` کپی کنید
 - `Makefile` (اهداف: `make dev`، `make migrate`، `make seed`)
 
 **مراحل:**

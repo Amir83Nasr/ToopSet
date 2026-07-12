@@ -1,4 +1,34 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+/**
+ * Get the backend API base URL.
+ *
+ * On the **server** (SSR): uses NEXT_PUBLIC_API_URL env var — `localhost` is fine
+ * since both run on the same machine.
+ *
+ * On the **client** (browser): if the configured URL points to a loopback address
+ * (localhost/127.0.0.1/0.0.0.0), replace the hostname with the browser's current
+ * hostname so LAN devices (phone on same WiFi) reach the backend at the same IP
+ * they used to reach the frontend.  This avoids hardcoding any specific LAN IP.
+ */
+export function getApiBase(): string {
+  if (typeof window === "undefined") {
+    // SSR / build-time — use the env var as-is
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  }
+
+  const configured = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  // On the browser: replace loopback hostnames with the page's own hostname
+  try {
+    const url = new URL(configured)
+    if (["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname)) {
+      url.hostname = window.location.hostname
+    }
+    return url.origin
+  } catch {
+    return configured
+  }
+}
+
+const API_BASE = getApiBase()
 
 export function buildAvatarUrl(path: string | null | undefined): string | null {
   if (!path) return null

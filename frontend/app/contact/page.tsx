@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { api } from "@/lib/api"
+import { api, getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { contactSchema } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ import {
   Clock,
 } from "lucide-react"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE = getApiBase()
 
 interface ContactInfo {
   support_phone?: string

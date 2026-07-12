@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { Mail, Phone, MessageCircle, ArrowUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE = getApiBase()
 
 interface ContactInfo {
   support_phone?: string
@@ -44,7 +45,7 @@ export function SiteFooter() {
   }, [fetchContact])
 
   return (
-    <footer className="relative overflow-hidden border-t bg-background">
+    <footer className="pb-safe relative overflow-hidden border-t bg-background max-md:pb-4">
       <div className="px-safe relative mx-auto max-w-7xl px-4">
         {/* Main footer content */}
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -149,7 +150,7 @@ export function SiteFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pb-safe flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
+        <div className="pb-safe mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-muted-foreground">
             تمامی حقوق مادی و معنوی این وبسایت متعلق به توپ‌سِت می‌باشد.
           </p>

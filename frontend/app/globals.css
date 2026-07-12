@@ -414,9 +414,16 @@ html body[data-scroll-locked] {
 .pe-safe {
   padding-inline-end: env(safe-area-inset-right);
 }
+/* Used alongside a base `px-*` gutter (header/footer use `px-4` + `px-safe`).
+   Because this unlayered rule outranks Tailwind's utilities, it must carry the
+   gutter itself as a floor — otherwise on notch-less phones env() resolves to 0
+   and horizontal padding collapses. 1rem matches the `px-4` gutter.
+   Conversely, the paired `px-*` acts as a fallback: when env() is unsupported,
+   `px-safe`'s entire declaration is invalid, leaving `px-4` to provide baseline
+   spacing. */
 .px-safe {
-  padding-left: max(env(safe-area-inset-left), 0px);
-  padding-right: max(env(safe-area-inset-right), 0px);
+  padding-left: max(env(safe-area-inset-left), 1rem);
+  padding-right: max(env(safe-area-inset-right), 1rem);
 }
 
 /* ── Text selection ── */

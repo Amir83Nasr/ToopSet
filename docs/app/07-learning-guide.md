@@ -20,8 +20,7 @@ A recommended path for a new developer to become productive in this codebase.
 
 **Files:**
 - `compose.yml` (PostgreSQL + Redis)
-- `backend/.env.example` → copy to `backend/.env`
-- `frontend/.env.example` → copy to `frontend/.env.local`
+- `.env.example` → copy the backend section to `backend/.env` and the frontend section to `frontend/.env.local`
 - `Makefile` (see targets: `make dev`, `make migrate`, `make seed`)
 
 **Steps:**

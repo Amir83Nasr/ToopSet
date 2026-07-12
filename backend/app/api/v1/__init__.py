@@ -7,6 +7,7 @@ __all__ = [
     "vendors",
     "dashboard",
     "favorites",
+    "manager_requests",
     "notifications",
     "payments",
     "penalties",
