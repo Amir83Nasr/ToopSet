@@ -228,7 +228,68 @@ export default function PaymentsPage() {
   function renderTable() {
     return (
       <div>
-        <Table>
+        {/* Mobile: stacked cards */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {payments.map((p) => {
+            const status = statusConfig[p.status] || {
+              label: p.status,
+              variant: "secondary" as const,
+            }
+            return (
+              <div
+                key={p.id}
+                className="flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium">{p.vendor_name}</span>
+                  <Badge variant={status.variant}>{status.label}</Badge>
+                </div>
+
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-base font-semibold">
+                    {formatAmount(p.amount)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(p.created_at)}
+                  </span>
+                </div>
+
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm">
+                  <div className="flex flex-col gap-0.5">
+                    <dt className="text-xs text-muted-foreground">درگاه</dt>
+                    <dd className="text-muted-foreground">
+                      {p.gateway_name ? (
+                        <span className="flex flex-col">
+                          <span className="text-foreground">
+                            {p.gateway_name}
+                          </span>
+                          {p.card_number && (
+                            <span className="font-mono text-xs" dir="ltr">
+                              {p.card_number}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <dt className="text-xs text-muted-foreground">کد پیگیری</dt>
+                    <dd className="font-mono text-xs text-muted-foreground">
+                      {p.gateway_transaction_id
+                        ? toPersianDigits(p.gateway_transaction_id)
+                        : "-"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Desktop / tablet: full table */}
+        <Table tableWrapperClassName="hidden md:block">
           <TableHeader>
             <TableRow>
               <TableHead>تاریخ</TableHead>
