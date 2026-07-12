@@ -83,7 +83,124 @@ export function BookingTable({
 }: BookingTableProps) {
   return (
     <div>
-      <Table>
+      {/* Mobile: stacked cards (avoids horizontal table scroll on phones) */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {bookings.map((b) => {
+          const st = BOOKING_STATUS_LABELS[b.status] || {
+            label: b.status,
+            variant: "outline" as const,
+          }
+          const canCancel =
+            b.status === "pending_payment" ||
+            (b.status === "confirmed" &&
+              !!b.slot_start_time &&
+              new Date(b.slot_start_time) > new Date())
+          const refund = refundBadge(b)
+          return (
+            <div
+              key={b.id}
+              className="flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium">{b.vendor_name}</span>
+                <Badge variant={st.variant}>{st.label}</Badge>
+              </div>
+
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs text-muted-foreground">تاریخ</dt>
+                  <dd>
+                    {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
+                    {b.slot_start_time && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {formatWeekday(b.slot_start_time)}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs text-muted-foreground">ساعت</dt>
+                  <dd dir="ltr" className="text-right">
+                    {b.slot_start_time && b.slot_end_time
+                      ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
+                      : "-"}
+                  </dd>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs text-muted-foreground">مبلغ</dt>
+                  <dd>{formatMoney(b.price_paid)}</dd>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs text-muted-foreground">تعداد نفرات</dt>
+                  <dd>{toPersianDigits(b.participants_count)}</dd>
+                </div>
+                {showRefundStatus && (
+                  <div className="col-span-2 flex flex-col gap-1">
+                    <dt className="text-xs text-muted-foreground">
+                      وضعیت عودت
+                    </dt>
+                    <dd className="flex flex-wrap items-center gap-2">
+                      <Badge variant={refund.variant}>{refund.label}</Badge>
+                      {b.refund_amount !== null && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatMoney(b.refund_amount)}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+
+              {(b.status === "pending_payment" ||
+                (canCancel && b.status === "confirmed")) && (
+                <div className="flex gap-2 border-t pt-3">
+                  {b.status === "pending_payment" && (
+                    <>
+                      <Button
+                        size="lg"
+                        className="flex-1"
+                        disabled={payingId === b.id}
+                        onClick={() => onPay(b.id)}
+                      >
+                        {payingId === b.id ? (
+                          <Loader2 className="ml-1 size-4 animate-spin" />
+                        ) : (
+                          <CreditCard className="ml-1 size-4" />
+                        )}
+                        پرداخت
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="flex-1"
+                        onClick={() => onCancelClick(b)}
+                      >
+                        <XCircle className="ml-1 size-4" />
+                        لغو
+                      </Button>
+                    </>
+                  )}
+                  {canCancel && b.status === "confirmed" && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex-1"
+                      onClick={() => onCancelClick(b)}
+                    >
+                      <XCircle className="ml-1 size-4" />
+                      لغو سانس
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop / tablet: full data table */}
+      <Table tableWrapperClassName="hidden md:block">
         <TableHeader>
           <TableRow>
             <TableHead>مجموعه</TableHead>

@@ -1,5 +1,6 @@
 "use client"
 
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,7 +72,51 @@ export function NotificationTable({
 }: NotificationTableProps) {
   return (
     <div>
-      <Table>
+      {/* Mobile: stacked cards */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {notifications.map((n) => (
+          <div
+            key={n.id}
+            className={cn(
+              "flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10",
+              !n.is_read && "bg-muted/30"
+            )}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <Badge
+                className={notificationColors[n.type] || ""}
+                variant="secondary"
+              >
+                {notificationLabels[n.type] || n.type}
+              </Badge>
+              <Badge variant={n.is_read ? "outline" : "default"}>
+                {n.is_read ? "خوانده شده" : "جدید"}
+              </Badge>
+            </div>
+
+            <p className="text-sm leading-relaxed">{n.message}</p>
+
+            <div className="flex items-center justify-between gap-2 border-t pt-3">
+              <span className="text-xs text-muted-foreground">
+                {formatDate(n.created_at)} · {formatTime(n.created_at)}
+              </span>
+              {!n.is_read && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onMarkRead(n.id)}
+                >
+                  <CheckCheck className="ml-1 size-4" />
+                  خواندم
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop / tablet: full data table */}
+      <Table tableWrapperClassName="hidden md:block">
         <TableHeader>
           <TableRow>
             <TableHead>نوع</TableHead>
