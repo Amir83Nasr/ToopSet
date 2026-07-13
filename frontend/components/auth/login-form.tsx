@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, Controller } from "react-hook-form"
@@ -19,7 +18,6 @@ import {
   FieldLabel,
   FieldError,
   FieldGroup,
-  FieldDescription,
 } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -33,7 +31,6 @@ interface Props {
   checkLoginOptions: UseAuthReturn["checkLoginOptions"]
   redirect?: string
   initialPhone?: string
-  onRegisterClick?: () => void
   onSuccess?: () => void
 }
 
@@ -42,7 +39,6 @@ export function LoginForm({
   checkLoginOptions,
   redirect,
   initialPhone = "",
-  onRegisterClick,
   onSuccess,
 }: Props) {
   const router = useRouter()
@@ -269,26 +265,6 @@ export function LoginForm({
             </div>
           </form>
         )}
-
-        <FieldDescription className="text-center">
-          حساب کاربری ندارید؟{" "}
-          {onRegisterClick ? (
-            <Button type="button" variant="link" onClick={onRegisterClick}>
-              ثبت‌نام
-            </Button>
-          ) : (
-            <Link
-              href={
-                redirect
-                  ? `/register?redirect=${encodeURIComponent(redirect)}`
-                  : "/register"
-              }
-              className="underline underline-offset-4"
-            >
-              ثبت‌نام
-            </Link>
-          )}
-        </FieldDescription>
       </FieldGroup>
     </div>
   )

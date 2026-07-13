@@ -26,11 +26,10 @@ import {
   MessageSquareText,
   Info,
   ImagePlus,
-  X,
   Share2,
 } from "lucide-react"
 import dynamic from "next/dynamic"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 import {
   Stars,
   sportLabels,
@@ -861,77 +860,14 @@ export default function PublicVendorDetailPage() {
           {/* ═══════════════════════════════════
                Image Lightbox Dialog
                ═══════════════════════════════════ */}
-          <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-            <DialogContent
-              showCloseButton={false}
-              className="max-w-[95vw] border-none bg-black/95 p-0 md:max-w-[85vw]"
-            >
-              <DialogTitle className="sr-only">
-                تصاویر {vendor?.name}
-              </DialogTitle>
-              <div className="relative flex h-[80vh] items-center justify-center">
-                {/* Close button */}
-                <button
-                  onClick={() => setLightboxOpen(false)}
-                  className="absolute top-3 right-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
-                  aria-label="بستن"
-                >
-                  <X className="size-4" />
-                </button>
-
-                {/* Counter */}
-                <span className="absolute top-3 left-3 z-20 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white/70">
-                  {toPersianDigits(lightboxIndex + 1)} /{" "}
-                  {toPersianDigits(vendor.images?.length ?? 0)}
-                </span>
-
-                {/* Previous */}
-                {(vendor.images?.length ?? 0) > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setLightboxIndex((i) =>
-                        i > 0 ? i - 1 : (vendor.images?.length ?? 1) - 1
-                      )
-                    }}
-                    className="absolute left-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
-                    aria-label="قبلی"
-                  >
-                    <ChevronRight className="size-5" />
-                  </button>
-                )}
-
-                {/* Next */}
-                {(vendor.images?.length ?? 0) > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setLightboxIndex((i) =>
-                        i < (vendor.images?.length ?? 1) - 1 ? i + 1 : 0
-                      )
-                    }}
-                    className="absolute right-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
-                    aria-label="بعدی"
-                  >
-                    <ChevronLeft className="size-5" />
-                  </button>
-                )}
-
-                {/* Image */}
-                <div className="relative h-full w-full p-8">
-                  {vendor.images?.[lightboxIndex] && (
-                    <Image
-                      src={buildVendorImageUrl(vendor.images[lightboxIndex])}
-                      alt={`${vendor.name} - ${lightboxIndex + 1}`}
-                      fill
-                      sizes="100vw"
-                      className="object-contain"
-                    />
-                  )}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <ImageLightbox
+            open={lightboxOpen}
+            onClose={() => setLightboxOpen(false)}
+            images={vendor.images ?? []}
+            vendorName={vendor?.name ?? ""}
+            lightboxIndex={lightboxIndex}
+            setLightboxIndex={setLightboxIndex}
+          />
         </div>
       </main>
       <SiteFooter />

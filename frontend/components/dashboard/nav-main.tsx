@@ -296,7 +296,7 @@ export function NavMain() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogMedia>
+                  <AlertDialogMedia className="bg-destructive/10 dark:bg-destructive/20">
                     <LogOut className="text-destructive" />
                   </AlertDialogMedia>
                   <AlertDialogTitle>خروج از حساب</AlertDialogTitle>

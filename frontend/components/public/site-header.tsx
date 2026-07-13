@@ -1,20 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ComponentType } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import { motion, useReducedMotion, type Variants } from "framer-motion"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import {
-  Menu,
   ChevronDown,
   LayoutDashboard,
   Settings,
@@ -28,6 +29,9 @@ import {
   MessageSquare,
   UserCircle,
   Calendar,
+  Home,
+  Search,
+  MessageCircle,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -49,12 +53,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import { buildAvatarUrl } from "@/lib/api"
-import { getInitials, toPersianDigits } from "@/lib/utils"
+import { cn, getInitials, toPersianDigits } from "@/lib/utils"
 
-const navLinks = [
-  { href: "/", label: "صفحه اصلی" },
-  { href: "/vendors", label: "جستجوی مجموعه‌ها" },
-  { href: "/contact", label: "ارتباط با ما" },
+type NavIcon = ComponentType<{ className?: string }>
+
+const navLinks: { href: string; label: string; icon: NavIcon }[] = [
+  { href: "/", label: "صفحه اصلی", icon: Home },
+  { href: "/vendors", label: "جستجوی مجموعه‌ها", icon: Search },
+  { href: "/contact", label: "ارتباط با ما", icon: MessageCircle },
 ]
 
 const roleLabels: Record<string, string> = {
@@ -63,13 +69,126 @@ const roleLabels: Record<string, string> = {
   user: "کاربر",
 }
 
+/**
+ * Animated hamburger → X icon. The three bars morph based on `open`,
+ * respecting reduced-motion preferences.
+ */
+function MenuToggleIcon({ open }: { open: boolean }) {
+  const reduce = useReducedMotion()
+  const transition = reduce
+    ? { duration: 0 }
+    : { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }
+  const bar =
+    "absolute inset-x-0 mx-auto block h-[2px] w-5 rounded-full bg-current"
+
+  return (
+    <span className="relative block size-5" aria-hidden="true">
+      <motion.span
+        className={cn(bar, "top-1")}
+        animate={open ? { rotate: 45, top: 9 } : { rotate: 0, top: 4 }}
+        transition={transition}
+      />
+      <motion.span
+        className={cn(bar, "top-[9px]")}
+        animate={open ? { opacity: 0, scaleX: 0.4 } : { opacity: 1, scaleX: 1 }}
+        transition={transition}
+      />
+      <motion.span
+        className={cn(bar, "top-[15px]")}
+        animate={open ? { rotate: -45, top: 9 } : { rotate: 0, top: 14 }}
+        transition={transition}
+      />
+    </span>
+  )
+}
+
+/** A single row in the mobile nav: icon chip + label + active indicator. */
+function MobileNavItem({
+  href,
+  label,
+  icon: Icon,
+  active,
+  onNavigate,
+  variants,
+}: {
+  href: string
+  label: string
+  icon: NavIcon
+  active: boolean
+  onNavigate: () => void
+  variants: Variants
+}) {
+  return (
+    <motion.div variants={variants}>
+      <Link
+        href={href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "group flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-sm font-medium transition-colors",
+          active
+            ? "bg-accent text-accent-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/70"
+        )}
+      >
+        <span
+          className={cn(
+            "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+            active
+              ? "bg-primary/12 text-primary"
+              : "bg-muted/60 text-muted-foreground group-hover:text-foreground"
+          )}
+        >
+          <Icon className="size-[18px]" />
+        </span>
+        <span className="flex-1 truncate">{label}</span>
+        {active && (
+          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+        )}
+      </Link>
+    </motion.div>
+  )
+}
+
 export function SiteHeader() {
   const router = useRouter()
+  const pathname = usePathname()
+  const reduce = useReducedMotion()
   const { user, loading, isAuthenticated, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   const [isRtl] = useState(true)
+
+  const closeMobile = () => setMobileOpen(false)
+
+  // Exact match for the home route, prefix match for the rest, so a nested
+  // page (e.g. /vendors/12) still highlights its parent nav entry.
+  const isActivePath = (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(href + "/")
+
+  // Stagger the nav rows in when the sheet opens; collapse to instant when the
+  // user prefers reduced motion.
+  const listVariants: Variants = {
+    hidden: {},
+    show: {
+      transition: reduce
+        ? { duration: 0 }
+        : { staggerChildren: 0.05, delayChildren: 0.08 },
+    },
+  }
+  const itemVariants: Variants = reduce
+    ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, x: 12 },
+        show: {
+          opacity: 1,
+          x: 0,
+          transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+        },
+      }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
@@ -416,60 +535,52 @@ export function SiteHeader() {
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="max-sm:size-11">
-                <Menu className="size-5" />
+                <MenuToggleIcon open={mobileOpen} />
                 <span className="sr-only">منو</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side={isRtl ? "right" : "left"} className="w-70">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <Image
-                    src="/icons/profile.svg"
-                    alt="توپ‌سِت"
-                    width={24}
-                    height={24}
-                    className="size-6"
-                  />
+            <SheetContent
+              side={isRtl ? "right" : "left"}
+              className="flex w-[19rem] flex-col gap-0 p-0"
+            >
+              {/* ── Brand header ── */}
+              <SheetHeader className="border-b p-4">
+                <SheetTitle className="flex items-center gap-2 text-lg font-bold">
+                  <span className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
+                    <Image
+                      src="/icons/profile.svg"
+                      alt="توپ‌سِت"
+                      width={36}
+                      height={36}
+                      className="size-9"
+                    />
+                  </span>
                   توپ‌سِت
                 </SheetTitle>
               </SheetHeader>
-              <nav className="mt-8 flex flex-col gap-2">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                {isAuthenticated && (
-                  <Link
-                    href="/dashboard/bookings"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    رزروهای من
-                  </Link>
-                )}
-              </nav>
-              <div className="mt-6 border-t pt-6">
-                {isAuthenticated && user ? (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 px-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+
+              {/* ── Scrollable nav ── */}
+              <motion.div
+                variants={listVariants}
+                initial="hidden"
+                animate="show"
+                className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4"
+              >
+                {isAuthenticated && user && (
+                  <motion.div variants={itemVariants} className="mb-3">
+                    <div className="flex items-center gap-3 rounded-2xl bg-muted/40 p-3">
+                      <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
                         {buildAvatarUrl(user.avatar_url) ? (
                           <Image
                             src={buildAvatarUrl(user.avatar_url)!}
                             alt={user.full_name}
-                            width={40}
-                            height={40}
+                            width={44}
+                            height={44}
                             className="size-full object-cover"
                             unoptimized
                           />
                         ) : (
-                          <span className="text-xs font-semibold text-primary">
+                          <span className="text-sm font-semibold text-primary">
                             {getInitials(user.full_name)}
                           </span>
                         )}
@@ -491,42 +602,79 @@ export function SiteHeader() {
                         </p>
                       </div>
                     </div>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
-                    >
-                      <LayoutDashboard className="size-4" />
-                      داشبورد
-                    </Link>
-                    <Link
-                      href="/dashboard/settings"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
-                    >
-                      <Settings className="size-4" />
-                      تنظیمات
-                    </Link>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        setMobileOpen(false)
-                        setLogoutDialogOpen(true)
-                      }}
-                      className="w-full"
-                    >
-                      <LogOut className="me-2 size-4" />
-                      خروج
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2 px-3">
-                    <Link href="/login" onClick={() => setMobileOpen(false)}>
-                      <Button className="w-full">ورود / ثبت‌نام</Button>
-                    </Link>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
+
+                {navLinks.map((link) => (
+                  <MobileNavItem
+                    key={link.href}
+                    href={link.href}
+                    label={link.label}
+                    icon={link.icon}
+                    active={isActivePath(link.href)}
+                    onNavigate={closeMobile}
+                    variants={itemVariants}
+                  />
+                ))}
+                {isAuthenticated && (
+                  <MobileNavItem
+                    href="/dashboard/bookings"
+                    label="رزروهای من"
+                    icon={Calendar}
+                    active={isActivePath("/dashboard/bookings")}
+                    onNavigate={closeMobile}
+                    variants={itemVariants}
+                  />
+                )}
+
+                {isAuthenticated && user && (
+                  <>
+                    <motion.p
+                      variants={itemVariants}
+                      className="px-2.5 pt-5 pb-1.5 text-xs font-medium text-muted-foreground/70"
+                    >
+                      حساب کاربری
+                    </motion.p>
+                    <MobileNavItem
+                      href="/dashboard"
+                      label="داشبورد"
+                      icon={LayoutDashboard}
+                      active={pathname === "/dashboard"}
+                      onNavigate={closeMobile}
+                      variants={itemVariants}
+                    />
+                    <MobileNavItem
+                      href="/dashboard/settings"
+                      label="تنظیمات"
+                      icon={Settings}
+                      active={isActivePath("/dashboard/settings")}
+                      onNavigate={closeMobile}
+                      variants={itemVariants}
+                    />
+                  </>
+                )}
+              </motion.div>
+
+              {/* ── Pinned auth footer ── */}
+              <SheetFooter className="border-t p-4">
+                {isAuthenticated && user ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setMobileOpen(false)
+                      setLogoutDialogOpen(true)
+                    }}
+                    className="w-full"
+                  >
+                    <LogOut className="me-2 size-4" />
+                    خروج
+                  </Button>
+                ) : (
+                  <Link href="/login" onClick={closeMobile} className="block">
+                    <Button className="w-full">ورود / ثبت‌نام</Button>
+                  </Link>
+                )}
+              </SheetFooter>
             </SheetContent>
           </Sheet>
         </div>

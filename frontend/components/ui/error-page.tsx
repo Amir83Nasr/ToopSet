@@ -102,46 +102,53 @@ export function ErrorPage({
   if (compact) {
     return (
       <div
-        role="alert"
-        aria-live="assertive"
         className={cn(
-          "flex flex-col items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-center shadow-xs",
+          "flex min-h-[60vh] w-full flex-1 items-center justify-center p-4",
           className
         )}
       >
-        <div className="flex justify-center" aria-hidden="true">
-          <AlertTriangle className="size-12 text-destructive sm:size-16" />
-        </div>
-
-        <h2
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-base font-semibold text-foreground outline-none"
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex w-full max-w-sm flex-col items-center gap-3 text-center"
         >
-          {title}
-        </h2>
+          <div
+            className="mb-3 flex size-16 items-center justify-center rounded-full bg-muted"
+            aria-hidden="true"
+          >
+            <AlertTriangle className="size-8 text-muted-foreground" />
+          </div>
 
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {description}
-        </p>
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-xl font-semibold text-foreground outline-none"
+          >
+            {title}
+          </h2>
 
-        {children}
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </p>
 
-        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-          {onRetry && (
-            <Button variant="destructive" size="sm" onClick={onRetry}>
-              <RefreshCw className="ml-1.5 size-4" />
-              {retryLabel}
-            </Button>
-          )}
-          {showHome && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={homeHref}>
-                <Home className="ml-1.5 size-4" />
-                {homeLabel}
-              </Link>
-            </Button>
-          )}
+          {children}
+
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+            {onRetry && (
+              <Button variant="default" size="sm" onClick={onRetry}>
+                <RefreshCw className="ml-1.5 size-4" />
+                {retryLabel}
+              </Button>
+            )}
+            {showHome && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={homeHref}>
+                  <Home className="ml-1.5 size-4" />
+                  {homeLabel}
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     )

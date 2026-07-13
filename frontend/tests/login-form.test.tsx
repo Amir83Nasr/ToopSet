@@ -37,12 +37,6 @@ describe("LoginForm", () => {
     expect(screen.getByRole("button", { name: "ادامه" })).toBeInTheDocument()
   })
 
-  it("renders the register link", () => {
-    render(<LoginForm {...defaultProps} />)
-    expect(screen.getByText("ثبت‌نام")).toBeInTheDocument()
-    expect(screen.getByText("حساب کاربری ندارید؟")).toBeInTheDocument()
-  })
-
   it("does not continue with an empty phone", async () => {
     const user = userEvent.setup()
     render(<LoginForm {...defaultProps} />)
@@ -125,15 +119,5 @@ describe("LoginForm", () => {
     await waitFor(() => {
       expect(onSuccess).toHaveBeenCalledTimes(1)
     })
-  })
-
-  it("calls onRegisterClick when register button is clicked", async () => {
-    const onRegisterClick = vi.fn()
-    const user = userEvent.setup()
-    render(<LoginForm {...defaultProps} onRegisterClick={onRegisterClick} />)
-
-    await user.click(screen.getByText("ثبت‌نام"))
-
-    expect(onRegisterClick).toHaveBeenCalledTimes(1)
   })
 })

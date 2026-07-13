@@ -111,7 +111,13 @@ function VendorsPageContent() {
 
   // Map panel visibility toggle — hidden by default on mobile
   const isMobile = useIsMobile()
-  const [showMap, setShowMap] = useState(!isMobile)
+  const [showMap, setShowMap] = useState(false)
+
+  // After hydration: show map on desktop by default, keep hidden on mobile
+  useEffect(() => {
+    const id = setTimeout(() => setShowMap(!isMobile), 0)
+    return () => clearTimeout(id)
+  }, [isMobile])
 
   // User geolocation for nearby vendors
   const geo = useGeolocation()

@@ -463,16 +463,23 @@ html body[data-scroll-locked] {
 
 /* hide leaflet attribution */
 
-.leaflet-control-attribution {
-  display: none !important;
-}
+.leaflet-control-attribution,
 .leaflet-attribution-flag {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 /* Hide any copyright/attribution link at the bottom of Neshan maps */
+.leaflet-bottom,
 .leaflet-bottom a,
-.leaflet-bottom .leaflet-control-attribution {
+.leaflet-bottom .leaflet-control-attribution,
+.leaflet-control-attribution a,
+.leaflet-control-attribution span {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* scrollbar hide utility */

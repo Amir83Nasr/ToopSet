@@ -43,15 +43,27 @@ function removeNeshanWatermark(el: HTMLElement, _map: any) {
     el.querySelectorAll(".leaflet-attribution-flag").forEach((flag) =>
       flag.remove()
     )
-    // Remove any node containing Neshan text (watermark, attribution)
+    // Remove any attribution or watermark node
     el.querySelectorAll(
-      ".leaflet-control-attribution, .leaflet-bottom a"
+      ".leaflet-control-attribution, .leaflet-bottom a, .leaflet-bottom"
     ).forEach((node) => {
-      if (
-        node instanceof HTMLElement &&
-        (node.innerHTML.toLowerCase().includes("neshan") ||
-          node.innerHTML.includes("نشان"))
-      ) {
+      if (node instanceof HTMLElement) {
+        node.remove()
+      }
+    })
+    // Text-based sweep: the Neshan SDK injects the credit as a plain DOM
+    // string ("&copy; OpenStreetMap contributors") that the class-based rules
+    // above can miss. Scan every small text node inside the map container and
+    // remove any that mention OSM / OpenStreetMap / CARTO / contributors.
+    // Nodes that contain map imagery or panes are skipped so we never nuke the
+    // map itself.
+    const CREDIT_RE = /openstreetmap|contributors|carto|\bosm\b/i
+    el.querySelectorAll("a, span, div").forEach((node) => {
+      if (!(node instanceof HTMLElement)) return
+      if (node.querySelector("img, canvas, .leaflet-tile, .leaflet-pane"))
+        return
+      const text = node.textContent || ""
+      if (text.length <= 80 && CREDIT_RE.test(text)) {
         node.remove()
       }
     })
@@ -120,8 +132,7 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
           {
             maxZoom: 20,
             minZoom: 10,
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            attribution: "",
           }
         ).addTo(map)
       }

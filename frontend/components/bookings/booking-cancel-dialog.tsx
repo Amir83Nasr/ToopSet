@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { toEnglishDigits, toPersianDigits } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -139,12 +140,19 @@ export function BookingCancelDialog({
                       شماره کارت برای بازگشت وجه
                     </div>
                     <Input
-                      value={cardNumber}
-                      onChange={(e) => onCardNumberChange(e.target.value)}
+                      value={toPersianDigits(cardNumber)}
+                      onChange={(e) => {
+                        const digits = toEnglishDigits(e.target.value).replace(
+                          /\D/g,
+                          ""
+                        )
+                        onCardNumberChange(digits.slice(0, 16))
+                      }}
                       inputMode="numeric"
                       dir="ltr"
+                      maxLength={16}
                       className="text-end"
-                      placeholder="6037 0000 0000 0000"
+                      placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
                     />
                     <p className="text-xs text-muted-foreground">
                       این کارت همان لحظه استعلام و برای عودت وجه ثبت می‌شود.

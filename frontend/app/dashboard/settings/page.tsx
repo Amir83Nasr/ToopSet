@@ -9,7 +9,7 @@ import {
   uploadAvatar,
   deleteAvatar,
 } from "@/lib/api"
-import { getInitials, toPersianDigits } from "@/lib/utils"
+import { getInitials, toEnglishDigits, toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -472,15 +472,20 @@ export default function SettingsPage() {
                   </p>
                 )}
                 <Input
-                  value={cardNumber}
+                  value={toPersianDigits(cardNumber)}
                   onChange={(e) => {
-                    setCardNumber(e.target.value)
+                    setCardNumber(
+                      toEnglishDigits(e.target.value)
+                        .replace(/\D/g, "")
+                        .slice(0, 16)
+                    )
                     setPendingCard(null)
                   }}
                   inputMode="numeric"
                   dir="ltr"
+                  maxLength={16}
                   className="h-9 bg-background text-end"
-                  placeholder="6037 0000 0000 0000"
+                  placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
                 />
                 {pendingCard && (
                   <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">

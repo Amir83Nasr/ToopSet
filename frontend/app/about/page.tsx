@@ -124,7 +124,7 @@ export default function AboutPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="flex-1 pt-16">
+      <main className="flex-1 overflow-x-hidden pt-16">
         {/* ═══ Hero ═══ */}
         <section className="px-4 py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">

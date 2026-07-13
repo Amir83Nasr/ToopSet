@@ -11,16 +11,11 @@ import {
   CarouselNext,
   type CarouselApi,
 } from "@/components/ui/carousel"
-import {
-  Dialog,
-  DialogContent,
-  DialogClose,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { X, ChevronRight, ChevronLeft } from "lucide-react"
+import { ChevronRight, ChevronLeft } from "lucide-react"
 import { toPersianDigits } from "@/lib/utils"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 import {
   Stars,
   formatPrice,
@@ -189,7 +184,7 @@ export function VendorHeroGallery({
               <Button
                 variant="ghost"
                 size="icon-lg"
-                onClick={() => api?.scrollPrev()}
+                onClick={() => api?.scrollNext()}
                 className="absolute top-1/2 right-4 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-white/10 text-white opacity-0 shadow-lg backdrop-blur-md group-hover:opacity-100 hover:bg-white/20"
               >
                 <ChevronRight className="size-5" />
@@ -197,7 +192,7 @@ export function VendorHeroGallery({
               <Button
                 variant="ghost"
                 size="icon-lg"
-                onClick={() => api?.scrollNext()}
+                onClick={() => api?.scrollPrev()}
                 className="absolute top-1/2 left-4 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-white/10 text-white opacity-0 shadow-lg backdrop-blur-md group-hover:opacity-100 hover:bg-white/20"
               >
                 <ChevronLeft className="size-5" />
@@ -238,57 +233,14 @@ export function VendorHeroGallery({
       </div>
 
       {/* ── Lightbox ── */}
-      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent
-          className="max-w-[90vw] border-0 bg-black/95 p-0 sm:max-w-4xl"
-          showCloseButton={false}
-        >
-          <DialogTitle className="sr-only">تصاویر {vendorName}</DialogTitle>
-          <div className="relative flex aspect-video items-center justify-center">
-            {images[lightboxIndex] && (
-              <Image
-                src={buildVendorImageUrl(images[lightboxIndex])}
-                alt={`${vendorName} - ${lightboxIndex + 1}`}
-                fill
-                className="object-contain"
-              />
-            )}
-            <DialogClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-3 left-3 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              >
-                <X className="size-4" />
-              </Button>
-            </DialogClose>
-            {lightboxIndex > 0 && (
-              <Button
-                variant="ghost"
-                size="icon-lg"
-                onClick={() => setLightboxIndex(lightboxIndex - 1)}
-                className="absolute right-3 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              >
-                <ChevronRight className="size-5" />
-              </Button>
-            )}
-            {lightboxIndex < images.length - 1 && (
-              <Button
-                variant="ghost"
-                size="icon-lg"
-                onClick={() => setLightboxIndex(lightboxIndex + 1)}
-                className="absolute left-3 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            )}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1.5 text-xs text-white/80 backdrop-blur-xs">
-              {toPersianDigits(lightboxIndex + 1)} /{" "}
-              {toPersianDigits(images.length)}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ImageLightbox
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={images}
+        vendorName={vendorName}
+        lightboxIndex={lightboxIndex}
+        setLightboxIndex={setLightboxIndex}
+      />
     </>
   )
 }
