@@ -119,6 +119,71 @@ function LoadingSkeleton() {
   )
 }
 
+// ── Gallery image with error fallback ──
+
+function GalleryImage({
+  img,
+  name,
+  index,
+  onClick,
+}: {
+  img: string
+  name: string
+  index: number
+  onClick: () => void
+}) {
+  const [error, setError] = useState(false)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative aspect-4/3 cursor-pointer overflow-hidden rounded-lg bg-muted"
+    >
+      {error ? (
+        <div className="flex h-full items-center justify-center">
+          <ImagePlus className="size-8 text-muted-foreground/30" />
+        </div>
+      ) : (
+        <Image
+          src={buildVendorImageUrl(img)}
+          alt={`${name} - ${index + 1}`}
+          fill
+          sizes="(max-width: 1024px) 50vw, 220px"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={() => setError(true)}
+        />
+      )}
+    </button>
+  )
+}
+
+// ── Share location via Web Share API with fallback ──
+
+async function shareLocation(
+  name: string,
+  address: string,
+  lat: number,
+  lng: number
+) {
+  const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share({
+        title: name,
+        text: `${name}\n${address}`,
+        url: mapsUrl,
+      })
+      return
+    } catch {
+      // User dismissed or error — fall through to URL open
+    }
+  }
+
+  window.open(mapsUrl, "_blank", "noopener,noreferrer")
+}
+
 export default function PublicVendorDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -399,13 +464,21 @@ export default function PublicVendorDetailPage() {
                         {vendor.address}
                       </p>
                     </div>
-                    <Button size={"sm"} variant={"outline"} asChild>
-                      <Link
-                        href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
-                      >
-                        <Share2 className="size-3.5" />
-                        اشتراک گذاری موقعیت
-                      </Link>
+                    <Button
+                      size={"sm"}
+                      variant={"outline"}
+                      className="shrink-0 whitespace-nowrap"
+                      onClick={() =>
+                        shareLocation(
+                          vendor.name,
+                          vendor.address,
+                          vendor.latitude,
+                          vendor.longitude
+                        )
+                      }
+                    >
+                      <Share2 className="size-3.5" />
+                      اشتراک گذاری موقعیت
                     </Button>
                   </div>
                 </div>
@@ -757,23 +830,16 @@ export default function PublicVendorDetailPage() {
                 {vendor.images && vendor.images.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2">
                     {vendor.images.map((img, i) => (
-                      <button
+                      <GalleryImage
                         key={i}
-                        type="button"
+                        img={img}
+                        name={vendor.name}
+                        index={i}
                         onClick={() => {
                           setLightboxIndex(i)
                           setLightboxOpen(true)
                         }}
-                        className="group relative aspect-4/3 cursor-pointer overflow-hidden rounded-lg bg-muted"
-                      >
-                        <Image
-                          src={buildVendorImageUrl(img)}
-                          alt={`${vendor.name} - ${i + 1}`}
-                          fill
-                          sizes="(max-width: 1024px) 50vw, 220px"
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      </button>
+                      />
                     ))}
                   </div>
                 ) : (

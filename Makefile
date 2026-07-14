@@ -1,8 +1,8 @@
-# ─── ToopSet Makefile ──────────────────────────────────────────────────────────
+# ─── ToopSet Makefile ─────────────────────────────────────────────────────────
 SHELL := /bin/bash
 .ONESHELL:
 
-# ── ANSI colors ──────────────────────────────────────────────────────────────
+# ── ANSI colors ───────────────────────────────────────────────────────────────
 ESC    := $(shell printf '\033')
 BOLD   := $(ESC)[1m
 RESET  := $(ESC)[0m
@@ -12,7 +12,7 @@ YELLOW := $(ESC)[33m
 RED    := $(ESC)[31m
 GREY   := $(ESC)[90m
 
-# ── Project config ───────────────────────────────────────────────────────────
+# ── Project config ────────────────────────────────────────────────────────────
 COMPOSE_FILE    := compose.yml
 COMPOSE_PROJECT := toopset
 IMAGE_TAG       ?= $(shell cat VERSION 2>/dev/null || echo "latest")
@@ -34,8 +34,8 @@ CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
         lint lint-backend lint-frontend \
         format format-backend format-frontend \
         typecheck typecheck-backend typecheck-frontend \
-        check \
-        test test-backend test-frontend test-db-setup \
+        check check-be check-fe \
+        test test-backend test-frontend test-db-setup test-db \
         db-start db-stop db-status db-migrate db-reset db-seed \
         up down logs ps up-build up-backend up-frontend compose-up-dev \
         back-build-docker front-build-docker docker-buildx \
@@ -43,7 +43,7 @@ CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
         version version-sync version-bump version-tag version-check \
         clean clean-backend clean-frontend clean-db \
         prune doctor generate-logo \
-        precommit-install precommit-run \
+        lefthook-install lefthook-uninstall \
         help
 
 # ─── Install ──────────────────────────────────────────────────────────────────
@@ -53,24 +53,20 @@ install-backend: ## Install backend Python dependencies
 	@cd $(BACKEND_DIR) && pip3 install -r requirements.txt
 	@echo "  $(GREEN)✓$(RESET) Backend dependencies installed"
 
-install-frontend: ## Install frontend npm dependencies
-	@cd $(FRONTEND_DIR) && npm install
+install-frontend: ## Install frontend dependencies (pnpm)
+	@cd $(FRONTEND_DIR) && pnpm install
 	@echo "  $(GREEN)✓$(RESET) Frontend dependencies installed"
-
-install-precommit: ## Install pre-commit hooks
-	@pip3 install pre-commit -q 2>/dev/null && pre-commit install
-	@echo "  $(GREEN)✓$(RESET) Pre-commit hooks installed"
 
 # ─── Development ──────────────────────────────────────────────────────────────
 dev-backend: ## Start backend server with auto-reload
 	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
 dev-frontend: ## Start frontend dev server with HMR
-	@cd $(FRONTEND_DIR) && npm run dev
+	@cd $(FRONTEND_DIR) && pnpm dev
 
 # ─── Build ────────────────────────────────────────────────────────────────────
 build: ## Build frontend for production
-	@cd $(FRONTEND_DIR) && npm run build
+	@cd $(FRONTEND_DIR) && pnpm build
 	@echo "  $(GREEN)✓$(RESET) Frontend built"
 
 # ─── Lint ─────────────────────────────────────────────────────────────────────
@@ -81,7 +77,7 @@ lint-backend: ## Lint backend with Ruff
 	@echo "  $(GREEN)✓$(RESET) Backend linted"
 
 lint-frontend: ## Lint frontend with ESLint
-	@cd $(FRONTEND_DIR) && npm run lint
+	@cd $(FRONTEND_DIR) && pnpm lint
 	@echo "  $(GREEN)✓$(RESET) Frontend linted"
 
 # ─── Format ───────────────────────────────────────────────────────────────────
@@ -92,7 +88,7 @@ format-backend: ## Format backend with Ruff
 	@echo "  $(GREEN)✓$(RESET) Backend formatted"
 
 format-frontend: ## Format frontend with Prettier
-	@cd $(FRONTEND_DIR) && npm run format
+	@cd $(FRONTEND_DIR) && pnpm format
 	@echo "  $(GREEN)✓$(RESET) Frontend formatted"
 
 # ─── Typecheck ────────────────────────────────────────────────────────────────
@@ -103,7 +99,7 @@ typecheck-backend: ## Type-check backend with mypy
 	@echo "  $(GREEN)✓$(RESET) Backend type check passed"
 
 typecheck-frontend: ## Type-check frontend with TypeScript
-	@cd $(FRONTEND_DIR) && npm run typecheck
+	@cd $(FRONTEND_DIR) && pnpm typecheck
 	@echo "  $(GREEN)✓$(RESET) Frontend type check passed"
 
 # ─── Test ─────────────────────────────────────────────────────────────────────
@@ -121,7 +117,7 @@ test-backend: test-db-setup ## Run backend tests with pytest
 	@cd $(BACKEND_DIR) && python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
 
 test-frontend: ## Run frontend tests with Vitest
-	@cd $(FRONTEND_DIR) && npx vitest run
+	@cd $(FRONTEND_DIR) && pnpm test
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 db-start: ## Start Postgres and Redis
@@ -226,7 +222,7 @@ version-tag: ## Create git tag CUR_VERSION and push
 	@git push origin "v$(CUR_VERSION)"
 	@echo "  $(GREEN)✓$(RESET) Tagged v$(CUR_VERSION) and pushed"
 
-# ─── Clean ──────────────────────────────────────────────────────────────────────
+# ─── Clean ────────────────────────────────────────────────────────────────────
 clean: clean-backend clean-frontend ## Remove all build artifacts
 
 clean-backend: ## Remove backend cache and artifacts
@@ -250,7 +246,7 @@ clean-db: ## Delete all Docker volumes (data loss)
 		echo "  $(GREY)Operation cancelled$(RESET)"; \
 	fi
 
-# ─── Maintenance ────────────────────────────────────────────────────────────────
+# ─── Maintenance ──────────────────────────────────────────────────────────────
 doctor: ## Check system requirements
 	@echo ""
 	@printf "$(BOLD)System Check - ToopSet$(RESET)\n"
@@ -286,11 +282,24 @@ doctor: ## Check system requirements
 	fi
 	@printf -- "$(GREY)─────────────────────────$(RESET)\n\n"
 
-# ─── Pre-commit ──────────────────────────────────────────────────
-precommit: ## Run pre-commit on all files
-	@pre-commit run --all-files
+# ─── Lefthook ─────────────────────────────────────────────────────────────────
+lefthook-install: ## Install lefthook git hooks
+	@cd $(FRONTEND_DIR) && npx lefthook install
+	@echo "  $(GREEN)✓$(RESET) Lefthook hooks installed"
 
-# ─── Help ───────────────────────────────────────────────────────────────────────
+lefthook-uninstall: ## Remove lefthook git hooks
+	@cd $(FRONTEND_DIR) && npx lefthook uninstall
+	@echo "  $(GREEN)✓$(RESET) Lefthook hooks removed"
+
+# ─── Check: aggregate validation ──────────────────────────────────────────────
+check: lint typecheck build ## Run all (lint + typecheck + build)
+	@echo "  $(GREEN)✓$(RESET) All checks passed"
+
+check-frontend: lint-frontend typecheck-frontend build ## Run all frontend checks
+
+check-backend: lint-backend typecheck-backend ## Run all backend checks
+
+# ─── Help ─────────────────────────────────────────────────────────────────────
 help: ## Show this help message
 	@printf "\n\n\n\n"
 	@printf "\033[1;36m"

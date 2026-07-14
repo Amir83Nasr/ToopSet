@@ -67,7 +67,8 @@ export function ImageLightbox({
     >
       <DialogContent
         showCloseButton={false}
-        className="fixed inset-0 z-9999 max-w-none translate-x-0! translate-y-0! gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:inset-auto md:inset-s-1/2 md:top-1/2 md:max-w-[85vw] md:-translate-x-1/2! md:-translate-y-1/2! md:rounded-xl"
+        mobileAsSheet={false}
+        className="fixed inset-0 z-9999 max-w-none translate-x-0! translate-y-0! gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:inset-auto md:start-1/2 md:top-1/2 md:w-auto md:max-w-[85vw] md:-translate-x-1/2! md:-translate-y-1/2! md:rounded-xl md:rtl:translate-x-0!"
       >
         <DialogTitle className="sr-only">تصاویر {vendorName}</DialogTitle>
         <div className="relative flex h-full w-full items-center justify-center overflow-hidden md:h-[80vh]">

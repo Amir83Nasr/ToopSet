@@ -21,7 +21,7 @@ class SmsProvider(ABC):
     """Abstract SMS provider — implement this for real providers."""
 
     @abstractmethod
-    async def send_otp(self, phone: str, code: str) -> None:
+    async def send_otp(self, phone: str, code: str, ttl: int = 300) -> None:
         """Send an OTP code to the given phone number."""
         ...
 
@@ -33,12 +33,16 @@ class SmsProvider(ABC):
 class MockSmsProvider(SmsProvider):
     """Mock provider that prints OTP to console (for development)."""
 
-    async def send_otp(self, phone: str, code: str) -> None:
+    async def send_otp(self, phone: str, code: str, ttl: int = 300) -> None:
         # In dev, log in a visible way that's easy to find in docker logs
-        print("=" * 60)
-        print(f"  [SMS Mock] OTP for {phone}: {code}")
-        print("  [SMS Mock] Using mock provider — set SMS_PROVIDER=real to swap")
-        print("=" * 60, flush=True)
+        width = 60
+        header_label = "── OTP ──"
+        dash_count = width - len(header_label)
+        print(f"{header_label}{'─' * dash_count}")
+        print(f"  Phone: {phone}")
+        print(f"  Code:  {code}")
+        print(f"  TTL:   {ttl}s")
+        print("─" * width, flush=True)
 
     async def send_message(self, phone: str, message: str) -> None:
         print("=" * 60)

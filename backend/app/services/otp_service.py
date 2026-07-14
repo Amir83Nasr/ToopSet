@@ -84,7 +84,7 @@ class OtpService:
 
         code = self._generate_code()
         await self._store_code(phone, code)
-        await self.sms.send_otp(phone, code)
+        await self.sms.send_otp(phone, code, ttl=OTP_TTL)
 
         await self.redis.set(send_key, "1", ex=OTP_SEND_COOLDOWN)
 

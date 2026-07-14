@@ -33,7 +33,7 @@ cd backend && pip install -r requirements.txt
 alembic upgrade head              # اجرای مایگریشن‌ها
 python scripts/seed.py            # دادة نمونه
 uvicorn app.main:app --reload     # شروع بک‌اند روی :8000
-cd ../frontend && npm install && npm run dev  # شروع فرانت‌اند روی :3000
+cd ../frontend && pnpm install && pnpm dev  # شروع فرانت‌اند روی :3000
 ```
 
 **چرا دوم:** اجرای سیستم به شما اجازه می‌دهد endpointهای API را از طریق Swagger (`/docs`) ببینید، فرانت‌اند را مشاهده کنید و قبل از خواندن کد، نحوه اتصال قطعات را درک کنید.
@@ -155,12 +155,12 @@ cd frontend && npx vitest run # اجرای تمام تست‌های فرانت�
 **مطالعه:**
 
 - `Makefile` — تمام دستورات توسعه موجود
-- `.pre-commit-config.yaml` — هوک‌های کیفیت کد
+- `lefthook.yml` — هوک‌های کیفیت کد (pre-commit/pre-push)
 - `backend/Dockerfile` — بیلد تولید
 - `backend/app/core/metrics.py` — ابزار دقیق Prometheus
 - `backend/app/core/profiler.py` — پروفایلر درخواست
 
-**مفاهیم:** گردش کار توسعه (make precommit، make test، make lint)، بیلد چند مرحله‌ای Docker، تنظیمات مانیتورینگ.
+**مفاهیم:** گردش کار توسعه (lefthook، make lint، make test، make check)، بیلد چند مرحله‌ای Docker، تنظیمات مانیتورینگ.
 
 **چرا آخر:** دانش زیرساخت برای توسعه ویژگی ضروری نیست، اما برای استقرار و اشکال‌زدایی مسائل تولید حیاتی است.
 

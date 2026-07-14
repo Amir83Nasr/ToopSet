@@ -59,6 +59,11 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 backend/.pytest_cache/
 
+# ── Lefthook generated hooks ─────────────────────────────
+.git/hooks/pre-commit
+.git/hooks/pre-push
+.git/hooks/_lefthook*
+
 # ── Uploads (runtime data) ────────────────────────────────
 backend/uploads/*
 !backend/uploads/avatars/.gitkeep

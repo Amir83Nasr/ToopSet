@@ -176,7 +176,7 @@ RESTful، خوب مستند شده، با الگوهای مداوم.
 **نقاط قوت:**
 - ساختار پوشه واضح با نامگذاری مداوم
 - مایگریشن‌های Alembic به درستی زنجیره شده (بدون یتیم)
-- هوک‌های pre-commit قالب‌بندی را اعمال می‌کنند (Ruff، Prettier، ESLint)
+- هوک‌های Lefthook قالب‌بندی را قبل از commit اعمال می‌کنند (Ruff، Prettier، ESLint)
 - Makefile با اهداف جامع
 - type hint در سراسر کد Python
 - Conventional Commits اعمال می‌شود

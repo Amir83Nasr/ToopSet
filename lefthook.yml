@@ -1,0 +1,117 @@
+# ── ToopSet — Lefthook Hooks ──────────────────────────────────────────────────
+# Pre-commit: fast, staged-only. Pre-push: deeper, main-branch strict.
+# Install:  cd frontend && npx lefthook install
+# Run all:  npx lefthook run pre-commit / npx lefthook run pre-push
+# Docs:     https://github.com/evilmartians/lefthook
+# ──────────────────────────────────────────────────────────────────────────────
+
+pre-commit:
+  parallel: true
+  commands:
+    # ── General hygiene ──────────────────────────────────────────────────────────
+    trailing-whitespace:
+      glob: "*"
+      run: sed -i '' 's/[[:space:]]*$//' {staged_files}
+      stage_fixed: true
+
+    eof-newline:
+      glob: "*"
+      run: |
+        for f in {staged_files}; do
+          [ -s "$f" ] && tail -c1 "$f" | read -r _ || printf '\n' >> "$f"
+        done
+      stage_fixed: true
+
+    merge-conflict:
+      glob: "*"
+      run: |
+        conflicts=$(grep -lP '^<<<<<<< |^=======$|^>>>>>>> ' {staged_files} 2>/dev/null || true)
+        if [ -n "$conflicts" ]; then
+          echo "⚠ Merge conflict markers in: $conflicts"
+          exit 1
+        fi
+
+    detect-private-key:
+      glob: "*"
+      run: |
+        keys=$(grep -lP 'BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY' {staged_files} 2>/dev/null || true)
+        if [ -n "$keys" ]; then
+          echo "⚠ Private key detected in: $keys"
+          exit 1
+        fi
+
+    lf-line-endings:
+      glob: "*"
+      run: |
+        for f in {staged_files}; do
+          grep -lP '\r\n' "$f" 2>/dev/null && sed -i '' 's/\r$//' "$f" || true
+        done
+      stage_fixed: true
+
+    # ── Backend: Ruff format + lint ──────────────────────────────────────────────
+    ruff-format:
+      glob: "backend/**/*.py"
+      run: ruff format {staged_files}
+      stage_fixed: true
+
+    ruff-check:
+      glob: "backend/**/*.py"
+      run: ruff check --fix {staged_files}
+      stage_fixed: true
+
+    # ── Frontend: Prettier + ESLint ──────────────────────────────────────────────
+    prettier:
+      glob: "frontend/**/*.{js,ts,jsx,tsx,css,json,md,mjs,mts}"
+      run: cd frontend && npx prettier --write --ignore-unknown $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
+      stage_fixed: true
+
+    eslint:
+      glob: "frontend/**/*.{ts,tsx,js,jsx}"
+      run: cd frontend && npx eslint --fix $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
+      stage_fixed: true
+
+# ── Pre-push (slower, deeper) ─────────────────────────────────────────────────
+pre-push:
+  parallel: false
+  commands:
+    typecheck:
+      run: cd frontend && npx tsc --noEmit
+
+    eslint-full:
+      run: cd frontend && npx eslint .
+
+    build:
+      run: cd frontend && npx next build
+
+    ruff-check-full:
+      glob: "backend/**/*.py"
+      run: cd backend && ruff check .
+
+    mypy:
+      glob: "backend/**/*.py"
+      run: cd backend && mypy app
+
+    ruff-format-check:
+      run: |
+        if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
+          cd backend && ruff format --check .
+        else
+          echo "  ─ Skipping full format check on feature branch"
+        fi
+
+    dep-audit:
+      run: |
+        if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
+          npx --prefix frontend pnpm audit --audit-level=high || true
+        else
+          echo "  ─ Skipping dep audit on feature branch"
+        fi
+
+    env-validate:
+      run: |
+        if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
+          [ -f .env ] && echo "  ✓ .env found" || echo "  ⚠ .env missing"
+          [ -f backend/.env ] && echo "  ✓ backend/.env found" || echo "  ⚠ backend/.env missing"
+        else
+          echo "  ─ Skipping env check on feature branch"
+        fi

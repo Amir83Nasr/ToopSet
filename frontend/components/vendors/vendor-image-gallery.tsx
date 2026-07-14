@@ -121,6 +121,20 @@ export function VendorHeroGallery({
                     sizes="(max-width: 1280px) 100vw, 1280px"
                     className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
                     priority={i === 0}
+                    onError={(e) => {
+                      const target = e.currentTarget
+                      target.style.display = "none"
+                      const parent = target.parentElement
+                      if (parent) {
+                        parent.classList.add("bg-muted")
+                        const fallback = document.createElement("div")
+                        fallback.className =
+                          "flex h-full items-center justify-center"
+                        fallback.innerHTML =
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
+                        parent.prepend(fallback)
+                      }
+                    }}
                   />
                   {/* Multi-layer gradient overlay */}
                   <div className="absolute inset-0 bg-linear-to-t from-background via-background/10 to-transparent" />
@@ -220,6 +234,9 @@ export function VendorHeroGallery({
                     alt=""
                     fill
                     className="object-cover"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLElement).style.display = "none"
+                    }}
                   />
                 </button>
               ))}
@@ -267,6 +284,20 @@ export function VendorImageGallery({
                   fill
                   className="object-cover"
                   priority={i === 0}
+                  onError={(e) => {
+                    const target = e.currentTarget
+                    target.style.display = "none"
+                    const parent = target.parentElement
+                    if (parent) {
+                      parent.classList.add("bg-muted")
+                      const fallback = document.createElement("div")
+                      fallback.className =
+                        "flex h-full items-center justify-center"
+                      fallback.innerHTML =
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
+                      parent.prepend(fallback)
+                    }
+                  }}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
               </div>

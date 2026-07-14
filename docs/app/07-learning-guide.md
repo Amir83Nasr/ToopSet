@@ -30,7 +30,7 @@ cd backend && pip install -r requirements.txt
 alembic upgrade head          # Run migrations
 python scripts/seed.py        # Seed sample data
 uvicorn app.main:app --reload # Start backend on :8000
-cd ../frontend && npm install && npm run dev  # Start frontend on :3000
+cd ../frontend && pnpm install && pnpm dev  # Start frontend on :3000
 ```
 
 **Why second:** Having the system running lets you explore API endpoints via Swagger (`/docs`), see the frontend, and understand how the pieces connect before reading code.
@@ -146,12 +146,12 @@ cd frontend && npx vitest run # Run all frontend tests
 
 **Read:**
 - `Makefile` — All development commands available
-- `.pre-commit-config.yaml` — Code quality hooks
+- `lefthook.yml` — Git hooks (pre-commit/pre-push)
 - `backend/Dockerfile` — Production build
 - `backend/app/core/metrics.py` — Prometheus instrumentation
 - `backend/app/core/profiler.py` — Request profiling
 
-**Concepts:** Development workflow (make precommit, make test, make lint), Docker multi-stage builds, monitoring setup.
+**Concepts:** Development workflow (lefthook, make lint, make test, make check), Docker multi-stage builds, monitoring setup.
 
 **Why last:** Infrastructure knowledge isn't needed for feature development, but is essential for deployment and debugging production issues.
 
