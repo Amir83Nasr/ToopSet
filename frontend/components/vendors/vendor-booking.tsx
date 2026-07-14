@@ -10,7 +10,6 @@ import {
   formatTime,
   formatPrice,
   isSlotBookable,
-  isSlotPendingCancellation,
   type TimeSlot,
 } from "@/components/vendors/vendor-shared"
 
@@ -152,7 +151,6 @@ export function VendorBooking({
             <div className="space-y-3">
               {slots.map((slot) => {
                 const isSelected = selectedSlot?.id === slot.id
-                const pendingCancellation = isSlotPendingCancellation(slot)
                 const bookable = isSlotBookable(slot)
                 return (
                   <button

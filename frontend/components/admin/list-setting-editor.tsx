@@ -15,7 +15,6 @@ import {
   ChevronDown,
   Loader2,
   Save,
-  List,
 } from "lucide-react"
 
 /* ── Props ── */
@@ -45,7 +44,6 @@ function parseItems(value: string): string[] {
 export function ListSettingEditor({
   settingKey,
   label,
-  icon,
   className,
 }: ListSettingEditorProps) {
   const [items, setItems] = useState<string[]>([""])
@@ -139,8 +137,6 @@ export function ListSettingEditor({
   if (!settingId) {
     return null
   }
-
-  const activeCount = items.filter((s) => s.trim().length > 0).length
 
   return (
     <div className={className}>

@@ -290,7 +290,7 @@ doctor: ## Check system requirements
 
 prepush: ## Run lefthook hook (HOOK=pre-push)
 	@cd $(FRONTEND_DIR) && npx lefthook run pre-push
-	@echo "  $(GREEN)✓$(RESET) Rre-push checks passed"
+	@echo "  $(GREEN)✓$(RESET) Pre-push checks passed"
 
 precommit: ## Run lefthook hook (HOOK=pre-commit)
 	@cd $(FRONTEND_DIR) && npx lefthook run pre-commit

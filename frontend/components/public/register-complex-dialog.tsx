@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { Building2, CheckCircle2, Loader2, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,7 +48,6 @@ export function RegisterComplexDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const { user } = useAuth()
-  const router = useRouter()
 
   const [step, setStep] = useState<Step>("loading")
   const [vendorName, setVendorName] = useState("")

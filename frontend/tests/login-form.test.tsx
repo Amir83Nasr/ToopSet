@@ -38,7 +38,6 @@ describe("LoginForm", () => {
   })
 
   it("does not continue with an empty phone", async () => {
-    const user = userEvent.setup()
     render(<LoginForm {...defaultProps} />)
 
     expect(screen.getByRole("button", { name: "ادامه" })).toBeDisabled()

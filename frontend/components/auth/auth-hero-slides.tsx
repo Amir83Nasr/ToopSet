@@ -9,8 +9,6 @@ interface AuthHeroSlidesProps {
   fallback?: React.ReactNode
 }
 
-const DEFAULT_IMAGES = ["/placeholder-hero.svg"]
-
 export function AuthHeroSlides({ fallback }: AuthHeroSlidesProps) {
   const [images, setImages] = useState<string[]>([])
   const [current, setCurrent] = useState(0)

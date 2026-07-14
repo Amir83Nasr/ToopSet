@@ -123,6 +123,7 @@ export function HeroImagesEditor({ settingId, className }: Props) {
     <div className={`space-y-4 ${className ?? ""}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- lucide icon, not <img> */}
           <Image className="size-4 text-primary" />
           <h3 className="font-medium">تصاویر صفحات ورود و ثبت‌نام</h3>
         </div>
@@ -161,6 +162,7 @@ export function HeroImagesEditor({ settingId, className }: Props) {
         </div>
       ) : (
         <Card className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-10 text-center">
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- lucide icon, not <img> */}
           <Image className="size-10 text-muted-foreground/50" />
           <div>
             <p className="text-sm font-medium text-muted-foreground">

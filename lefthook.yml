@@ -1,18 +1,23 @@
 # ── ToopSet — Lefthook Hooks ──────────────────────────────────────────────────
-# Pre-commit: fast, staged-only. Pre-push: deeper, main-branch strict.
-# Install:  cd frontend && npx lefthook install
-# Run all:  npx lefthook run pre-commit / npx lefthook run pre-push
-# Docs:     https://github.com/evilmartians/lefthook
+# Pre-commit: fast, staged-only checks (formatting, security, quick lint).
+# Pre-push:   heavier validation (typecheck, full lint, build, backend checks).
+# Tests are excluded from both — they require a running PostgreSQL database.
+# CI is the final safety layer.
 # ──────────────────────────────────────────────────────────────────────────────
+# Docs: https://github.com/evilmartians/lefthook
 
 pre-commit:
   parallel: true
   commands:
-    # ── General hygiene ──────────────────────────────────────────────────────────
+    # ── General hygiene ────────────────────────────────────────────────────────
     trailing-whitespace:
       glob: "*"
       run: sed -i '' 's/[[:space:]]*$//' {staged_files}
       stage_fixed: true
+      skip_output:
+        - meta
+        - success
+        - execution
 
     eof-newline:
       glob: "*"
@@ -21,13 +26,17 @@ pre-commit:
           [ -s "$f" ] && tail -c1 "$f" | read -r _ || printf '\n' >> "$f"
         done
       stage_fixed: true
+      skip_output:
+        - meta
+        - success
+        - execution
 
     merge-conflict:
       glob: "*"
       run: |
         conflicts=$(grep -lP '^<<<<<<< |^=======$|^>>>>>>> ' {staged_files} 2>/dev/null || true)
         if [ -n "$conflicts" ]; then
-          echo "⚠ Merge conflict markers in: $conflicts"
+          echo "✗ Merge conflict markers in: $conflicts"
           exit 1
         fi
 
@@ -36,7 +45,7 @@ pre-commit:
       run: |
         keys=$(grep -lP 'BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY' {staged_files} 2>/dev/null || true)
         if [ -n "$keys" ]; then
-          echo "⚠ Private key detected in: $keys"
+          echo "✗ Private key detected in: $keys"
           exit 1
         fi
 
@@ -47,8 +56,12 @@ pre-commit:
           grep -lP '\r\n' "$f" 2>/dev/null && sed -i '' 's/\r$//' "$f" || true
         done
       stage_fixed: true
+      skip_output:
+        - meta
+        - success
+        - execution
 
-    # ── Backend: Ruff format + lint ──────────────────────────────────────────────
+    # ── Backend: Ruff format + lint (staged only) ─────────────────────────────
     ruff-format:
       glob: "backend/**/*.py"
       run: ruff format {staged_files}
@@ -59,7 +72,7 @@ pre-commit:
       run: ruff check --fix {staged_files}
       stage_fixed: true
 
-    # ── Frontend: Prettier + ESLint ──────────────────────────────────────────────
+    # ── Frontend: Prettier + ESLint (staged only) ─────────────────────────────
     prettier:
       glob: "frontend/**/*.{js,ts,jsx,tsx,css,json,md,mjs,mts}"
       run: cd frontend && npx prettier --write --ignore-unknown $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
@@ -70,35 +83,64 @@ pre-commit:
       run: cd frontend && npx eslint --fix $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
       stage_fixed: true
 
-# ── Pre-push (slower, deeper) ─────────────────────────────────────────────────
+
+# ── Pre-push (heavier — run before pushing) ──────────────────────────────────
+# These catch issues that wouldn't be spotted by staged-only checks.
+# If any fails, fix it locally before pushing.
 pre-push:
   parallel: false
   commands:
+    # ── Frontend ────────────────────────────────────────────────────────────────
     typecheck:
       run: cd frontend && npx tsc --noEmit
+      skip_output:
+        - meta
+        - execution
 
     eslint-full:
       run: cd frontend && npx eslint .
+      skip_output:
+        - meta
+        - execution
 
     build:
       run: cd frontend && npx next build
+      skip_output:
+        - meta
+        - execution
 
+    # ── Backend ─────────────────────────────────────────────────────────────────
     ruff-check-full:
       glob: "backend/**/*.py"
       run: cd backend && ruff check .
+      skip_output:
+        - meta
+        - execution
+
+    ruff-format-check:
+      glob: "backend/**/*.py"
+      run: cd backend && ruff format --check .
+      skip_output:
+        - meta
+        - execution
 
     mypy:
       glob: "backend/**/*.py"
       run: cd backend && mypy app
+      skip_output:
+        - meta
+        - execution
 
-    ruff-format-check:
-      run: |
-        if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
-          cd backend && ruff format --check .
-        else
-          echo "  ─ Skipping full format check on feature branch"
-        fi
+    # ── CI config validation ───────────────────────────────────────────────────
+    yaml-validate:
+      glob: ".github/**/*.yml"
+      run: python3 -c "import yaml; yaml.safe_load(open('{staged_files}')); print('  ✓ YAML valid')"
+      skip_output:
+        - meta
+        - execution
+        - success
 
+    # ── Main-branch-only checks ─────────────────────────────────────────────────
     dep-audit:
       run: |
         if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
@@ -106,6 +148,10 @@ pre-push:
         else
           echo "  ─ Skipping dep audit on feature branch"
         fi
+      skip_output:
+        - meta
+        - execution
+        - success
 
     env-validate:
       run: |
@@ -115,3 +161,7 @@ pre-push:
         else
           echo "  ─ Skipping env check on feature branch"
         fi
+      skip_output:
+        - meta
+        - execution
+        - success
