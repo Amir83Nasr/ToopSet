@@ -13,7 +13,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <ErrorBoundary>
         <PublicSiteHeader />
-        <div className="flex min-h-svh flex-col pt-16">
+        <div className="flex min-h-svh flex-col overflow-hidden pt-16">
           <SidebarProvider
             style={
               {

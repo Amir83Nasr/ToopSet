@@ -313,8 +313,7 @@
   }
   html {
     @apply font-sans;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
+    overflow: hidden;
   }
   ::-webkit-scrollbar {
     width: 6px;
@@ -557,7 +556,17 @@ body,
 }
 
 body {
-  min-height: 100svh;
+  overflow: hidden;
+  height: 100dvh;
+}
+
+/* ── App shell scroll container ── */
+/* Makes roots the scroll container so html/body stay fixed and only content
+   scrolls.  Dashboard layouts opt out with .overflow-hidden on their wrapper. */
+#toopset-root {
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ── Shimmer text animation ── */
