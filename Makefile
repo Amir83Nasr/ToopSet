@@ -43,11 +43,11 @@ CUR_VERSION        := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
         version version-sync version-bump version-tag version-check \
         clean clean-backend clean-frontend clean-db \
         prune doctor generate-logo \
-        lefthook-install lefthook-uninstall \
+        lefthook-install lefthook-uninstall lefthook-run precommit \
         help
 
 # ─── Install ──────────────────────────────────────────────────────────────────
-install: install-backend install-frontend ## Install all dependencies
+install: install-backend install-frontend install-lefthook ## Install all dependencies
 
 install-backend: ## Install backend Python dependencies
 	@cd $(BACKEND_DIR) && pip3 install -r requirements.txt
@@ -56,6 +56,10 @@ install-backend: ## Install backend Python dependencies
 install-frontend: ## Install frontend dependencies (pnpm)
 	@cd $(FRONTEND_DIR) && pnpm install
 	@echo "  $(GREEN)✓$(RESET) Frontend dependencies installed"
+
+install-lefthook: ## Install lefthook git hooks
+	@cd $(FRONTEND_DIR) && npx lefthook install
+	@echo "  $(GREEN)✓$(RESET) Lefthook hooks installed"
 
 # ─── Development ──────────────────────────────────────────────────────────────
 dev-backend: ## Start backend server with auto-reload
@@ -112,7 +116,7 @@ test-db: ## Create test database
 		-c "CREATE DATABASE toopset_test" 2>/dev/null || true
 	@echo "  $(GREEN)✓$(RESET) Test database ready"
 
-test-backend: test-db-setup ## Run backend tests with pytest
+test-backend: test-db ## Run backend tests with pytest
 	@cd $(BACKEND_DIR) && pip install pytest pytest-asyncio httpx -q 2>/dev/null
 	@cd $(BACKEND_DIR) && python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
 
@@ -194,7 +198,7 @@ version: ## Show current project version
 version-check: ## Verify versions across all files
 	@python3 scripts/check_version.py --all
 
-version-sync: ## Sync VERSION → __init__ + package.json
+version-sync: ## Sync VERSIONS __init__ & package.json
 	$(eval V := $(shell cat VERSION))
 	@sed -i '' 's/^__version__ = ".*"/__version__ = "$(V)"/' $(BACKEND_DIR)/app/__init__.py
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' $(FRONTEND_DIR)/package.json
@@ -215,7 +219,7 @@ version-bump: ## Bump version (BUMP=patch|minor|major)
 	fi
 	@printf '%s' "$(NEW_V)" > VERSION
 	@$(MAKE) version-sync V=$(NEW_V)
-	@echo "  $(GREEN)✓$(RESET) Bumped $(CUR_VERSION) → $(NEW_V)"
+	@echo "  $(GREEN)✓$(RESET) Bumped $(CUR_VERSION) -> $(NEW_V)"
 
 version-tag: ## Create git tag CUR_VERSION and push
 	@git tag -a "v$(CUR_VERSION)" -m "Release v$(CUR_VERSION)"
@@ -250,7 +254,7 @@ clean-db: ## Delete all Docker volumes (data loss)
 doctor: ## Check system requirements
 	@echo ""
 	@printf "$(BOLD)System Check - ToopSet$(RESET)\n"
-	@printf -- "$(GREY)─────────────────────────$(RESET)\n"
+	@printf -- "$(GREY)--------------------------$(RESET)\n"
 	@for cmd in docker python3 node; do \
 		if command -v $$cmd &>/dev/null; then \
 			printf "  $(GREEN)✓$(RESET) $$cmd found\n"; \
@@ -267,29 +271,30 @@ doctor: ## Check system requirements
 		if lsof -i :$$port &>/dev/null; then \
 			printf "  $(GREEN)✓$(RESET) Port $$port in use\n"; \
 		else \
-			printf "  $(YELLOW)⚠$(RESET) Port $$port free - run 'make db-start'\n"; \
+			printf "  $(YELLOW)WARN$(RESET) Port $$port free - run 'make db-start'\n"; \
 		fi; \
 	done
 	@if python3 -c "import fastapi" 2>/dev/null; then \
 		printf "  $(GREEN)✓$(RESET) Python deps installed\n"; \
 	else \
-		printf "  $(YELLOW)⚠$(RESET) Python deps missing - run 'make install-backend'\n"; \
+		printf "  $(YELLOW)WARN$(RESET) Python deps missing - run 'make install-backend'\n"; \
 	fi
 	@if [ -d "$(FRONTEND_DIR)/node_modules" ]; then \
 		printf "  $(GREEN)✓$(RESET) Node deps installed\n"; \
 	else \
-		printf "  $(YELLOW)⚠$(RESET) Node deps missing - run 'make install-frontend'\n"; \
+		printf "  $(YELLOW)WARN$(RESET) Node deps missing - run 'make install-frontend'\n"; \
 	fi
-	@printf -- "$(GREY)─────────────────────────$(RESET)\n\n"
+	@printf -- "$(GREY)--------------------------$(RESET)\n\n"
 
 # ─── Lefthook ─────────────────────────────────────────────────────────────────
-lefthook-install: ## Install lefthook git hooks
-	@cd $(FRONTEND_DIR) && npx lefthook install
-	@echo "  $(GREEN)✓$(RESET) Lefthook hooks installed"
 
-lefthook-uninstall: ## Remove lefthook git hooks
-	@cd $(FRONTEND_DIR) && npx lefthook uninstall
-	@echo "  $(GREEN)✓$(RESET) Lefthook hooks removed"
+prepush: ## Run lefthook hook (HOOK=pre-push)
+	@cd $(FRONTEND_DIR) && npx lefthook run pre-push
+	@echo "  $(GREEN)✓$(RESET) Rre-push checks passed"
+
+precommit: ## Run lefthook hook (HOOK=pre-commit)
+	@cd $(FRONTEND_DIR) && npx lefthook run pre-commit
+	@echo "  $(GREEN)✓$(RESET) Pre-commit checks passed"
 
 # ─── Check: aggregate validation ──────────────────────────────────────────────
 check: lint typecheck build ## Run all (lint + typecheck + build)
@@ -301,7 +306,7 @@ check-backend: lint-backend typecheck-backend ## Run all backend checks
 
 # ─── Help ─────────────────────────────────────────────────────────────────────
 help: ## Show this help message
-	@printf "\n\n\n\n"
+	@printf "\n"
 	@printf "\033[1;36m"
 	@printf "%s\n" "$$(python3 scripts/ascii_logo.py $(PROJECT_NAME))"
 	@printf "\033[0m\n"
