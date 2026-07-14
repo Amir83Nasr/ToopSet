@@ -110,7 +110,13 @@ class ProfilerMiddleware(BaseHTTPMiddleware):
 
         # Export to Prometheus metrics
         _export_metrics(
-            total_duration, db_count, db_duration, redis_count, redis_duration, req_size, resp_size
+            total_duration,
+            int(db_count),
+            db_duration,
+            int(redis_count),
+            redis_duration,
+            req_size,
+            resp_size,
         )
 
         # Log slow requests

@@ -239,7 +239,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 def refresh_pool_metrics() -> None:
     """Export SQLAlchemy connection pool status as Prometheus gauges."""
     try:
-        pool_status = engine.pool.status()
+        pool_status: dict = engine.pool.status()  # type: ignore[assignment]
         toopset_db_pool_size.labels(state="checked_in").set(pool_status.get("checkedin", 0))
         toopset_db_pool_size.labels(state="checked_out").set(pool_status.get("checkedout", 0))
         toopset_db_pool_size.labels(state="overflow").set(pool_status.get("overflow", 0))

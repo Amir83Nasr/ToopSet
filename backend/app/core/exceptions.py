@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, Request, status
@@ -85,7 +86,7 @@ def _make_response(
     request: Request | None = None,
     error_code: str | None = None,
     fields: list[FieldError] | None = None,
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
     body = ErrorResponse(
         detail=detail,

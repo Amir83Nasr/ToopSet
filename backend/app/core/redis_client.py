@@ -56,7 +56,7 @@ async def get_redis() -> aioredis.Redis:
             retry_on_timeout=True,
             health_check_interval=30,
         )
-        _redis = aioredis.Redis.from_pool(_pool)
+        _redis = aioredis.Redis.from_pool(_pool)  # type: ignore[attr-defined]
         _redis_loop_id = current_loop_id
     return _redis
 
@@ -66,7 +66,8 @@ async def _teardown() -> None:
     global _redis, _pool, _redis_loop_id
     try:
         if _redis is not None:
-            await _redis.aclose()  # type: ignore[attr-defined] — redis 8.x stubs lag behind
+            # redis 8.x stubs lag behind
+            await _redis.aclose()  # type: ignore[attr-defined]
     except Exception:
         pass
     try:

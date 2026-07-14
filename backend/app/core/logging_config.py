@@ -14,7 +14,9 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.jsonlogger import (  # type: ignore[attr-defined]
+    JsonFormatter as _JsonFormatter,
+)
 
 from app.core.correlation_id import get_request_id
 
@@ -46,7 +48,7 @@ class _ExcludeHealthFilter(logging.Filter):
 
 def _build_json_handler() -> logging.Handler:
     handler = logging.StreamHandler(sys.stdout)
-    fmt: logging.Formatter = jsonlogger.JsonFormatter(
+    fmt: logging.Formatter = _JsonFormatter(
         fmt=_LOG_FMT,
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
@@ -63,7 +65,7 @@ def _build_file_handler() -> logging.Handler | None:
         handler = RotatingFileHandler(
             _LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
         )
-        fmt: logging.Formatter = jsonlogger.JsonFormatter(
+        fmt: logging.Formatter = _JsonFormatter(
             fmt=_LOG_FMT,
             datefmt="%Y-%m-%dT%H:%M:%S%z",
         )
