@@ -6,6 +6,12 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Docs: https://github.com/evilmartians/lefthook
 
+# Hide meta (hook header) and execution (command itself) from per-command output.
+# Success/failure/summary still shown.
+output:
+  - meta
+  - execution
+
 pre-commit:
   parallel: true
   commands:
@@ -14,10 +20,6 @@ pre-commit:
       glob: "*"
       run: sed -i '' 's/[[:space:]]*$//' {staged_files}
       stage_fixed: true
-      skip_output:
-        - meta
-        - success
-        - execution
 
     eof-newline:
       glob: "*"
@@ -26,10 +28,6 @@ pre-commit:
           [ -s "$f" ] && tail -c1 "$f" | read -r _ || printf '\n' >> "$f"
         done
       stage_fixed: true
-      skip_output:
-        - meta
-        - success
-        - execution
 
     merge-conflict:
       glob: "*"
@@ -56,10 +54,6 @@ pre-commit:
           grep -lP '\r\n' "$f" 2>/dev/null && sed -i '' 's/\r$//' "$f" || true
         done
       stage_fixed: true
-      skip_output:
-        - meta
-        - success
-        - execution
 
     # ── Backend: Ruff format + lint (staged only) ─────────────────────────────
     ruff-format:
@@ -93,52 +87,30 @@ pre-push:
     # ── Frontend ────────────────────────────────────────────────────────────────
     typecheck:
       run: cd frontend && npx tsc --noEmit
-      skip_output:
-        - meta
-        - execution
 
     eslint-full:
       run: cd frontend && npx eslint .
-      skip_output:
-        - meta
-        - execution
 
     build:
       run: cd frontend && npx next build
-      skip_output:
-        - meta
-        - execution
 
     # ── Backend ─────────────────────────────────────────────────────────────────
     ruff-check-full:
       glob: "backend/**/*.py"
       run: cd backend && ruff check .
-      skip_output:
-        - meta
-        - execution
 
     ruff-format-check:
       glob: "backend/**/*.py"
       run: cd backend && ruff format --check .
-      skip_output:
-        - meta
-        - execution
 
     mypy:
       glob: "backend/**/*.py"
       run: cd backend && mypy app
-      skip_output:
-        - meta
-        - execution
 
     # ── CI config validation ───────────────────────────────────────────────────
     yaml-validate:
       glob: ".github/**/*.yml"
       run: python3 -c "import yaml; yaml.safe_load(open('{staged_files}')); print('  ✓ YAML valid')"
-      skip_output:
-        - meta
-        - execution
-        - success
 
     # ── Main-branch-only checks ─────────────────────────────────────────────────
     dep-audit:
@@ -148,10 +120,6 @@ pre-push:
         else
           echo "  ─ Skipping dep audit on feature branch"
         fi
-      skip_output:
-        - meta
-        - execution
-        - success
 
     env-validate:
       run: |
@@ -161,7 +129,3 @@ pre-push:
         else
           echo "  ─ Skipping env check on feature branch"
         fi
-      skip_output:
-        - meta
-        - execution
-        - success
