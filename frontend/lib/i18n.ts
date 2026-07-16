@@ -21,76 +21,6 @@ export function formatMoney(amount: number | null | undefined): string {
   return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومان`
 }
 
-// ── Date / Time ───────────────────────────────────────────────
-
-const FA_LOCALE = "fa-IR"
-const TEHRAN_TZ = "Asia/Tehran"
-
-/** e.g. "۱۴۰۴/۴/۱۸" */
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(FA_LOCALE)
-}
-
-/** e.g. "پنجشنبه, ۱۸ تیر ۱۴۰۴" */
-export function formatDateFull(iso: string): string {
-  return new Date(iso).toLocaleDateString(FA_LOCALE, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
-}
-
-/** e.g. "پنجشنبه" */
-export function formatWeekday(iso: string): string {
-  return new Date(iso).toLocaleDateString(FA_LOCALE, { weekday: "long" })
-}
-
-/** e.g. "۱۴:۳۰" */
-export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(FA_LOCALE, {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
-/** e.g. "۱۸ تیر" */
-export function formatShortDate(iso: string): {
-  dayNum: string
-  month: string
-} {
-  const d = new Date(iso)
-  return {
-    dayNum: d.toLocaleDateString(FA_LOCALE, { day: "numeric" }),
-    month: d.toLocaleDateString(FA_LOCALE, { month: "short" }),
-  }
-}
-
-/** e.g. "۱۴۰۴/۴/۱۸, ۱۴:۳۰" */
-export function formatDateTime(iso: string): string {
-  return `${formatDate(iso)}, ${formatTime(iso)}`
-}
-
-/**
- * Like formatDate but explicitly in Tehran timezone.
- * Use when the API date string may lack timezone info.
- */
-export function formatDateTehran(iso: string): string {
-  const normalized = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z"
-  return new Date(normalized).toLocaleDateString(FA_LOCALE, {
-    timeZone: TEHRAN_TZ,
-  })
-}
-
-export function formatTimeTehran(iso: string): string {
-  const normalized = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z"
-  return new Date(normalized).toLocaleTimeString(FA_LOCALE, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: TEHRAN_TZ,
-  })
-}
-
 // ── Enum / Status translation ─────────────────────────────────
 
 /** SMS delivery statuses from the backend */
@@ -124,12 +54,3 @@ export function translateNotificationStatus(
   if (!status) return "—"
   return NOTIFICATION_STATUS_LABELS[status] ?? status
 }
-
-// ── Booking status helpers (re-exports from constants for convenience) ──
-
-export {
-  BOOKING_STATUS_LABELS,
-  BOOKING_STATUS_STYLES,
-  PAYMENT_STATUS_LABELS,
-  PAYMENT_STATUS_STYLES,
-} from "@/lib/constants"

@@ -1,8 +1,3 @@
-export interface Vendor {
-  id: number
-  name: string
-}
-
 export interface TimeSlot {
   id: number
   vendor_id: number
@@ -43,5 +38,3 @@ export interface BulkGeneratePayload {
     ball_available: boolean
   }[]
 }
-
-export type SlotStatus = "available" | "reserved" | "past"

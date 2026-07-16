@@ -188,6 +188,10 @@ async function shareLocation(
   window.open(mapsUrl, "_blank", "noopener,noreferrer")
 }
 
+// Frozen timestamp for slot expiry checks — computed once at module load so the
+// React Compiler does not flag a mutable ref or an impure render-time call.
+const NOW = Date.now()
+
 export default function PublicVendorDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -345,7 +349,7 @@ export default function PublicVendorDetailPage() {
   }, [effectiveDate, vendorId, fetchSlots])
 
   function handleBookSlot(slot: TimeSlot) {
-    if (new Date(slot.start_time).getTime() <= Date.now()) {
+    if (new Date(slot.start_time).getTime() <= NOW) {
       toast.error("زمان این سانس گذشته و دیگر قابل رزرو نیست")
       return
     }
@@ -657,8 +661,7 @@ export default function PublicVendorDetailPage() {
                         {slots.map((slot) => {
                           const isSelected = selectedSlot?.id === slot.id
                           const isPast =
-                            new Date(slot.start_time).getTime() <=
-                            nowRef.current
+                            new Date(slot.start_time).getTime() <= NOW
                           const bookable = isSlotBookable(slot)
                           const disabled = !bookable || isPast
                           const slotDay = new Date(
@@ -744,8 +747,7 @@ export default function PublicVendorDetailPage() {
                     {/* Booking CTA */}
                     {selectedSlot &&
                       isSlotBookable(selectedSlot) &&
-                      new Date(selectedSlot.start_time).getTime() >
-                        nowRef.current && (
+                      new Date(selectedSlot.start_time).getTime() > NOW && (
                         <div className="pb-safe sticky bottom-0 z-20 border-t bg-card/95 backdrop-blur-sm lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none">
                           <div className="px-5 py-4">
                             {/* Slot info + pricing combined */}

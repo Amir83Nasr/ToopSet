@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest"
 import {
   formatTime,
   formatPrice,
-  formatDate,
   Stars,
 } from "@/components/vendors/vendor-shared"
 import { render } from "@testing-library/react"
@@ -26,18 +25,6 @@ describe("formatPrice", () => {
   it("handles zero", () => {
     const result = formatPrice(0)
     expect(result).toMatch(/تومان$/)
-  })
-})
-
-describe("formatDate", () => {
-  it("returns dayName, dayNum, month, and full", () => {
-    const result = formatDate("2026-06-20")
-    expect(result).toHaveProperty("dayName")
-    expect(result).toHaveProperty("dayNum")
-    expect(result).toHaveProperty("month")
-    expect(result).toHaveProperty("full")
-    expect(typeof result.dayName).toBe("string")
-    expect(typeof result.dayNum).toBe("string")
   })
 })
 

@@ -1,19 +1,4 @@
-import {
-  Star,
-  Bath,
-  GlassWater,
-  LayoutGrid,
-  ArmchairIcon,
-  Fan,
-  Car,
-  DoorOpen,
-  Volleyball,
-  Swords,
-  Footprints,
-  Hand,
-  type LucideIcon,
-} from "lucide-react"
-import type { ReactNode } from "react"
+import { Star } from "lucide-react"
 
 export interface VendorData {
   id: number
@@ -44,12 +29,8 @@ export interface TimeSlot {
   version: number
 }
 
-export function isSlotPendingCancellation(slot: Pick<TimeSlot, "status">) {
-  return slot.status === "pending_cancellation"
-}
-
 export function isSlotBookable(slot: Pick<TimeSlot, "is_reserved" | "status">) {
-  return !slot.is_reserved || isSlotPendingCancellation(slot)
+  return !slot.is_reserved || slot.status === "pending_cancellation"
 }
 
 export interface Review {
@@ -88,14 +69,6 @@ export const sportColors: Record<string, string> = {
     "bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground",
 }
 
-export const sportIcons: Record<string, LucideIcon> = {
-  volleyball: Volleyball,
-  basketball: Swords,
-  futsal: Footprints,
-  handball: Hand,
-  football: Footprints,
-}
-
 export const amenityLabels: Record<string, string> = {
   toilet: "سرویس بهداشتی",
   water_cooler: "آبسردکن",
@@ -112,16 +85,6 @@ export const amenityLabels: Record<string, string> = {
   cctv: "دوربین مداربسته",
 }
 
-export const amenityIcons: Record<string, LucideIcon> = {
-  toilet: Bath,
-  water_cooler: GlassWater,
-  standard_flooring: LayoutGrid,
-  spectator_seating: ArmchairIcon,
-  air_conditioning: Fan,
-  parking: Car,
-  locker_room: DoorOpen,
-}
-
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fa-IR", {
     hour: "2-digit",
@@ -133,30 +96,8 @@ export function formatPrice(price: number): string {
   return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
 }
 
-export function formatDate(dateStr: string): {
-  dayName: string
-  dayNum: string
-  month: string
-  full: string
-} {
-  const d = new Date(dateStr + "T12:00:00")
-  return {
-    dayName: d.toLocaleDateString("fa-IR", { weekday: "short" }),
-    dayNum: d.toLocaleDateString("fa-IR", { day: "numeric" }),
-    month: d.toLocaleDateString("fa-IR", { month: "short" }),
-    full: d.toLocaleDateString("fa-IR"),
-  }
-}
-
 export function formatPersianDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fa-IR")
-}
-
-export function toLocalDateStr(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
 }
 
 export function Stars({
@@ -179,25 +120,6 @@ export function Stars({
           }
         />
       ))}
-    </div>
-  )
-}
-
-export function SectionHeading({
-  icon,
-  title,
-  action,
-}: {
-  icon?: ReactNode
-  title: string
-  action?: ReactNode
-}) {
-  return (
-    <div className="mb-5 flex items-center gap-2.5">
-      {icon && <span className="text-primary">{icon}</span>}
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="mr-auto h-px flex-1 bg-linear-to-l from-border/60 to-transparent" />
-      {action}
     </div>
   )
 }
