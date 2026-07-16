@@ -11,17 +11,17 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogMedia,
+  ResponsiveAlertDialogTitle,
+  ResponsiveAlertDialogTrigger,
+} from "@/components/ui/responsive-alert-dialog"
 import {
   Building2,
   CreditCard,
@@ -287,34 +287,38 @@ export function NavMain() {
       <SidebarGroup>
         <SidebarMenu>
           <SidebarMenuItem>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ResponsiveAlertDialog>
+              <ResponsiveAlertDialogTrigger asChild>
                 <SidebarMenuButton tooltip="خروج" variant="destructive">
                   <LogOut />
                   <span>خروج</span>
                 </SidebarMenuButton>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogMedia className="bg-destructive/10 dark:bg-destructive/20">
+              </ResponsiveAlertDialogTrigger>
+              <ResponsiveAlertDialogContent>
+                <ResponsiveAlertDialogHeader>
+                  <ResponsiveAlertDialogMedia className="bg-destructive/10 dark:bg-destructive/20">
                     <LogOut className="text-destructive" />
-                  </AlertDialogMedia>
-                  <AlertDialogTitle>خروج از حساب</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  </ResponsiveAlertDialogMedia>
+                  <ResponsiveAlertDialogTitle>
+                    خروج از حساب
+                  </ResponsiveAlertDialogTitle>
+                  <ResponsiveAlertDialogDescription>
                     آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>انصراف</AlertDialogCancel>
-                  <AlertDialogAction
+                  </ResponsiveAlertDialogDescription>
+                </ResponsiveAlertDialogHeader>
+                <ResponsiveAlertDialogFooter>
+                  <ResponsiveAlertDialogCancel>
+                    انصراف
+                  </ResponsiveAlertDialogCancel>
+                  <ResponsiveAlertDialogAction
                     variant="destructive"
                     onClick={() => logout()}
                   >
                     خروج
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </ResponsiveAlertDialogAction>
+                </ResponsiveAlertDialogFooter>
+              </ResponsiveAlertDialogContent>
+            </ResponsiveAlertDialog>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>

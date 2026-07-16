@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -121,7 +121,7 @@ function LoadingSkeleton() {
 
 // ── Gallery image with error fallback ──
 
-function GalleryImage({
+const GalleryImage = memo(function GalleryImage({
   img,
   name,
   index,
@@ -151,12 +151,13 @@ function GalleryImage({
           fill
           sizes="(max-width: 1024px) 50vw, 220px"
           className="object-cover transition-transform duration-300 group-hover:scale-105"
+          priority={index === 0}
           onError={() => setError(true)}
         />
       )}
     </button>
   )
-}
+})
 
 // ── Share location via Web Share API with fallback ──
 
@@ -166,6 +167,9 @@ async function shareLocation(
   lat: number,
   lng: number
 ) {
+  // geo: URI opens system map-app chooser on Android (Balad, Neshan, Google Maps, etc.)
+  const geoUri = `geo:${lat},${lng}`
+  // Google Maps URL as desktop fallback
   const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
 
   if (typeof navigator !== "undefined" && navigator.share) {
@@ -173,7 +177,7 @@ async function shareLocation(
       await navigator.share({
         title: name,
         text: `${name}\n${address}`,
-        url: mapsUrl,
+        url: geoUri,
       })
       return
     } catch {
@@ -209,7 +213,8 @@ export default function PublicVendorDetailPage() {
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [currentTime, setCurrentTime] = useState(0)
+  const [showMap, setShowMap] = useState(false)
+  const mapSectionRef = useRef<HTMLDivElement>(null)
 
   const canManage = user?.role === "manager" || user?.role === "admin"
 
@@ -261,17 +266,23 @@ export default function PublicVendorDetailPage() {
   }, [publicMaxDate, publicMinDate, weekOffset])
 
   // Effective selected date — falls back to first day when selection is invalid
-  const effectiveDate =
-    selectedDate &&
-    weekDays.find(
-      (d) =>
-        d.date === selectedDate &&
-        d.date >= publicMinDate &&
-        d.date <= publicMaxDate
+  const effectiveDate = useMemo(() => {
+    if (
+      selectedDate &&
+      weekDays.find(
+        (d) =>
+          d.date === selectedDate &&
+          d.date >= publicMinDate &&
+          d.date <= publicMaxDate
+      )
+    ) {
+      return selectedDate
+    }
+    return (
+      weekDays.find((d) => d.date >= publicMinDate && d.date <= publicMaxDate)
+        ?.date || ""
     )
-      ? selectedDate
-      : weekDays.find((d) => d.date >= publicMinDate && d.date <= publicMaxDate)
-          ?.date || ""
+  }, [selectedDate, weekDays, publicMinDate, publicMaxDate])
 
   // ── Fetch vendor + reviews ──
 
@@ -330,16 +341,8 @@ export default function PublicVendorDetailPage() {
   useEffect(() => {
     if (!effectiveDate || !vendorId) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSlotsLoading(true)
-
-    setSelectedSlot(null)
     fetchSlots(effectiveDate)
   }, [effectiveDate, vendorId, fetchSlots])
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setCurrentTime(Date.now()), 0)
-    return () => window.clearTimeout(timer)
-  }, [slots])
 
   function handleBookSlot(slot: TimeSlot) {
     if (new Date(slot.start_time).getTime() <= Date.now()) {
@@ -452,34 +455,36 @@ export default function PublicVendorDetailPage() {
             <div className="border-t bg-muted/30 px-5 py-4 md:px-6">
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <div className="flex items-start gap-3 max-sm:flex-col">
+                    <div className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 md:flex">
                       <MapPin className="size-4 text-primary" />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 self-stretch">
                       <p className="text-[10px] font-medium text-muted-foreground">
                         آدرس
                       </p>
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="text-sm font-medium break-words text-foreground">
                         {vendor.address}
                       </p>
                     </div>
-                    <Button
-                      size={"sm"}
-                      variant={"outline"}
-                      className="shrink-0 whitespace-nowrap"
-                      onClick={() =>
-                        shareLocation(
-                          vendor.name,
-                          vendor.address,
-                          vendor.latitude,
-                          vendor.longitude
-                        )
-                      }
-                    >
-                      <Share2 className="size-3.5" />
-                      اشتراک گذاری موقعیت
-                    </Button>
+                    <div className="flex shrink-0 gap-2 max-sm:w-full max-sm:flex-col">
+                      <Button
+                        size={"sm"}
+                        variant={"outline"}
+                        className="whitespace-nowrap max-sm:w-full max-sm:justify-center"
+                        onClick={() =>
+                          shareLocation(
+                            vendor.name,
+                            vendor.address,
+                            vendor.latitude,
+                            vendor.longitude
+                          )
+                        }
+                      >
+                        <Share2 className="size-3.5" />
+                        اشتراک گذاری موقعیت
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -652,8 +657,8 @@ export default function PublicVendorDetailPage() {
                         {slots.map((slot) => {
                           const isSelected = selectedSlot?.id === slot.id
                           const isPast =
-                            currentTime > 0 &&
-                            new Date(slot.start_time).getTime() <= currentTime
+                            new Date(slot.start_time).getTime() <=
+                            nowRef.current
                           const bookable = isSlotBookable(slot)
                           const disabled = !bookable || isPast
                           const slotDay = new Date(
@@ -662,7 +667,12 @@ export default function PublicVendorDetailPage() {
                           return (
                             <button
                               key={slot.id}
-                              onClick={() => !disabled && setSelectedSlot(slot)}
+                              onClick={() =>
+                                !disabled &&
+                                setSelectedSlot((prev) =>
+                                  prev?.id === slot.id ? null : slot
+                                )
+                              }
                               disabled={disabled}
                               className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 border-b px-4 py-3.5 text-right transition-colors sm:flex ${
                                 disabled
@@ -734,9 +744,8 @@ export default function PublicVendorDetailPage() {
                     {/* Booking CTA */}
                     {selectedSlot &&
                       isSlotBookable(selectedSlot) &&
-                      (currentTime === 0 ||
-                        new Date(selectedSlot.start_time).getTime() >
-                          currentTime) && (
+                      new Date(selectedSlot.start_time).getTime() >
+                        nowRef.current && (
                         <div className="pb-safe sticky bottom-0 z-20 border-t bg-card/95 backdrop-blur-sm lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none">
                           <div className="px-5 py-4">
                             {/* Slot info + pricing combined */}
@@ -789,30 +798,56 @@ export default function PublicVendorDetailPage() {
 
             {/* ====== Right: Sidebar ====== */}
             <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
-              {/* ── Map ── */}
+              {/* ── Map (lazy, hidden by default) ── */}
               {vendor.latitude != null && vendor.longitude != null && (
-                <div className="rounded-xl border bg-card">
-                  <div className="flex items-center justify-between border-b px-5 py-3">
-                    <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                      <MapPin className="size-4 shrink-0 text-primary" />
-                      موقعیت مکانی
-                    </h3>
-                    <a
-                      href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
+                <div className="rounded-xl border bg-card" ref={mapSectionRef}>
+                  {!showMap ? (
+                    <button
+                      onClick={() => setShowMap(true)}
+                      className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/20"
                     >
-                      باز کردن در گوگل مپ
-                    </a>
-                  </div>
-                  <VendorLocationMap
-                    latitude={vendor.latitude}
-                    longitude={vendor.longitude}
-                    name={vendor.name}
-                    height="320px"
-                    interactive={true}
-                  />
+                      <span className="flex items-center gap-1.5 text-sm font-semibold">
+                        <MapPin className="size-4 shrink-0 text-primary" />
+                        موقعیت مکانی
+                      </span>
+                      <span className="text-xs text-primary">
+                        نمایش روی نقشه
+                      </span>
+                    </button>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between border-b px-5 py-3">
+                        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+                          <MapPin className="size-4 shrink-0 text-primary" />
+                          موقعیت مکانی
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline"
+                          >
+                            باز کردن در گوگل مپ
+                          </a>
+                          <button
+                            onClick={() => setShowMap(false)}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            aria-label="بستن نقشه"
+                          >
+                            بستن
+                          </button>
+                        </div>
+                      </div>
+                      <VendorLocationMap
+                        latitude={vendor.latitude}
+                        longitude={vendor.longitude}
+                        name={vendor.name}
+                        height="200px"
+                        interactive={true}
+                      />
+                    </>
+                  )}
                 </div>
               )}
 

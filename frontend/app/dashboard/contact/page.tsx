@@ -19,15 +19,23 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+} from "@/components/ui/responsive-alert-dialog"
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
 import { Loader2, Mail, Phone, RefreshCw, Trash2, User, X } from "lucide-react"
@@ -191,7 +199,7 @@ export default function ContactMessagesPage() {
             className="w-fit"
           />
           {hasActiveFilter && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters}>
               <X className="ml-1.5 size-4" />
               حذف فیلتر
             </Button>
@@ -297,49 +305,54 @@ export default function ContactMessagesPage() {
       )}
 
       {/* Message detail dialog */}
-      <AlertDialog
+      <ResponsiveDialog
         open={!!selectedMessage}
         onOpenChange={(open) => !open && setSelectedMessage(null)}
       >
-        <AlertDialogContent className="max-w-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{selectedMessage?.subject}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4 text-right">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <User className="size-4" />
-                    <span>{selectedMessage?.name}</span>
-                  </div>
-                  <div
-                    className="flex items-center gap-1.5 text-muted-foreground"
-                    dir="ltr"
-                  >
-                    <Mail className="size-4" />
-                    <span>{selectedMessage?.email}</span>
-                  </div>
-                  {selectedMessage?.phone && (
-                    <div
-                      className="flex items-center gap-1.5 text-muted-foreground"
-                      dir="ltr"
-                    >
-                      <Phone className="size-4" />
-                      <span>{toPersianDigits(selectedMessage.phone)}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="rounded-lg bg-muted p-4 text-sm leading-relaxed">
-                  {selectedMessage?.message}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {selectedMessage && formatDate(selectedMessage.created_at)}
-                </div>
+        <ResponsiveDialogContent className="max-w-lg">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
+              {selectedMessage?.subject}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="sr-only">
+              {selectedMessage?.name} — {selectedMessage?.email}
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <div className="space-y-4 p-0 pt-2 text-right">
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <User className="size-4" />
+                <span>{selectedMessage?.name}</span>
               </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>بستن</AlertDialogCancel>
-            <AlertDialogAction
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                dir="ltr"
+              >
+                <Mail className="size-4" />
+                <span>{selectedMessage?.email}</span>
+              </div>
+              {selectedMessage?.phone && (
+                <div
+                  className="flex items-center gap-1.5 text-muted-foreground"
+                  dir="ltr"
+                >
+                  <Phone className="size-4" />
+                  <span>{toPersianDigits(selectedMessage.phone)}</span>
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg bg-muted p-4 text-sm leading-relaxed">
+              {selectedMessage?.message}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {selectedMessage && formatDate(selectedMessage.created_at)}
+            </div>
+          </div>
+          <ResponsiveDialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSelectedMessage(null)}>
+              بستن
+            </Button>
+            <Button
               variant="destructive"
               onClick={() =>
                 selectedMessage && setDeleteTarget(selectedMessage)
@@ -347,34 +360,34 @@ export default function ContactMessagesPage() {
             >
               <Trash2 className="ml-1 size-4" />
               حذف پیام
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Delete confirmation */}
-      <AlertDialog
+      <ResponsiveAlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف پیام</AlertDialogTitle>
-            <AlertDialogDescription>
+        <ResponsiveAlertDialogContent>
+          <ResponsiveAlertDialogHeader>
+            <ResponsiveAlertDialogTitle>حذف پیام</ResponsiveAlertDialogTitle>
+            <ResponsiveAlertDialogDescription>
               آیا از حذف این پیام مطمئن هستید؟ این عمل قابل بازگشت نیست.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
+            </ResponsiveAlertDialogDescription>
+          </ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogFooter>
+            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
+            <ResponsiveAlertDialogAction
               variant="destructive"
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
             >
               حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </ResponsiveAlertDialogAction>
+          </ResponsiveAlertDialogFooter>
+        </ResponsiveAlertDialogContent>
+      </ResponsiveAlertDialog>
     </div>
   )
 }

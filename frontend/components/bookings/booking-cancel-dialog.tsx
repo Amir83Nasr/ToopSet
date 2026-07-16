@@ -5,14 +5,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { toEnglishDigits, toPersianDigits } from "@/lib/utils"
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { AlertTriangle, CreditCard, Loader2 } from "lucide-react"
 import type {
   BookingCancellationTerms,
@@ -68,21 +67,21 @@ export function BookingCancelDialog({
     (!needsCard || cardNumber.replace(/\D/g, "").length === 16)
 
   return (
-    <AlertDialog
+    <ResponsiveDialog
       open={!!booking}
       onOpenChange={(open) => {
         if (!open) onOpenChange(false)
       }}
     >
-      <AlertDialogContent>
+      <ResponsiveDialogContent>
         {booking && (
           <>
-            <AlertDialogHeader>
-              <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
-              <AlertDialogDescription>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>لغو رزرو</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 شروط لغو رزرو {booking.vendor_name} را بررسی و تایید کنید.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
 
             {!terms ? (
               <div className="flex items-center justify-center gap-2 rounded-lg border p-6 text-sm text-muted-foreground">
@@ -173,8 +172,10 @@ export function BookingCancelDialog({
               </div>
             )}
 
-            <AlertDialogFooter>
-              <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <ResponsiveDialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                انصراف
+              </Button>
               <Button
                 disabled={!canSubmit || loading}
                 onClick={onConfirm}
@@ -190,10 +191,10 @@ export function BookingCancelDialog({
                   "تأیید لغو"
                 )}
               </Button>
-            </AlertDialogFooter>
+            </ResponsiveDialogFooter>
           </>
         )}
-      </AlertDialogContent>
-    </AlertDialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

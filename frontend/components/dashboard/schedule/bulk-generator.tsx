@@ -19,12 +19,13 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import {
   calculatePreviewCount,
   getThisWeekRange,
@@ -448,11 +449,14 @@ export function BulkGenerator({
       </Sheet>
 
       {/* Save template dialog */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ذخیره تمپلیت</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>ذخیره تمپلیت</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="sr-only">
+              ذخیره برنامه زمانی به عنوان تمپلیت برای استفاده مجدد
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           <div className="py-4">
             <Label>نام تمپلیت</Label>
             <Input
@@ -465,7 +469,7 @@ export function BulkGenerator({
               }}
             />
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
               انصراف
             </Button>
@@ -475,9 +479,9 @@ export function BulkGenerator({
             >
               ذخیره
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }

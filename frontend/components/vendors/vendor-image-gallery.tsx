@@ -45,6 +45,7 @@ export function VendorHeroGallery({
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set())
 
   const hasImages = images && images.length > 0
 
@@ -114,28 +115,45 @@ export function VendorHeroGallery({
                   className="relative aspect-21/9 min-h-80 cursor-pointer sm:min-h-100 lg:min-h-120"
                   onClick={() => openLightbox(i)}
                 >
-                  <Image
-                    src={buildVendorImageUrl(img)}
-                    alt={`${vendorName} - ${i + 1}`}
-                    fill
-                    sizes="(max-width: 1280px) 100vw, 1280px"
-                    className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
-                    priority={i === 0}
-                    onError={(e) => {
-                      const target = e.currentTarget
-                      target.style.display = "none"
-                      const parent = target.parentElement
-                      if (parent) {
-                        parent.classList.add("bg-muted")
-                        const fallback = document.createElement("div")
-                        fallback.className =
-                          "flex h-full items-center justify-center"
-                        fallback.innerHTML =
-                          '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
-                        parent.prepend(fallback)
+                  {failedImages.has(i) ? (
+                    <div className="flex h-full items-center justify-center bg-muted">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-muted-foreground/30"
+                      >
+                        <rect
+                          width="18"
+                          height="18"
+                          x="3"
+                          y="3"
+                          rx="2"
+                          ry="2"
+                        />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <Image
+                      src={buildVendorImageUrl(img)}
+                      alt={`${vendorName} - ${i + 1}`}
+                      fill
+                      sizes="(max-width: 1280px) 100vw, 1280px"
+                      className="object-cover transition-all duration-700 group-hover:scale-[1.02]"
+                      priority={i === 0}
+                      onError={() =>
+                        setFailedImages((prev) => new Set(prev).add(i))
                       }
-                    }}
-                  />
+                    />
+                  )}
                   {/* Multi-layer gradient overlay */}
                   <div className="absolute inset-0 bg-linear-to-t from-background via-background/10 to-transparent" />
                   <div className="absolute inset-0 bg-linear-to-r from-background/40 via-transparent to-transparent" />
@@ -233,6 +251,7 @@ export function VendorHeroGallery({
                     src={buildVendorImageUrl(img)}
                     alt=""
                     fill
+                    sizes="32px"
                     className="object-cover"
                     onError={(e) => {
                       ;(e.currentTarget as HTMLElement).style.display = "none"
@@ -270,6 +289,7 @@ export function VendorImageGallery({
   images: string[]
   vendorName: string
 }) {
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set())
   if (!images || images.length === 0) return null
   return (
     <div className="group relative mb-8 overflow-hidden rounded-2xl border">
@@ -278,27 +298,38 @@ export function VendorImageGallery({
           {images.map((img, i) => (
             <CarouselItem key={i}>
               <div className="relative aspect-21/9 cursor-pointer">
-                <Image
-                  src={img}
-                  alt={`${vendorName} - ${i + 1}`}
-                  fill
-                  className="object-cover"
-                  priority={i === 0}
-                  onError={(e) => {
-                    const target = e.currentTarget
-                    target.style.display = "none"
-                    const parent = target.parentElement
-                    if (parent) {
-                      parent.classList.add("bg-muted")
-                      const fallback = document.createElement("div")
-                      fallback.className =
-                        "flex h-full items-center justify-center"
-                      fallback.innerHTML =
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
-                      parent.prepend(fallback)
+                {failedImages.has(i) ? (
+                  <div className="flex h-full items-center justify-center bg-muted">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-muted-foreground/30"
+                    >
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                  </div>
+                ) : (
+                  <Image
+                    src={buildVendorImageUrl(img)}
+                    alt={`${vendorName} - ${i + 1}`}
+                    fill
+                    sizes="(max-width: 1280px) 100vw, 1280px"
+                    className="object-cover"
+                    priority={i === 0}
+                    onError={() =>
+                      setFailedImages((prev) => new Set(prev).add(i))
                     }
-                  }}
-                />
+                  />
+                )}
                 <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
               </div>
             </CarouselItem>

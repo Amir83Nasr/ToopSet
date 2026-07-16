@@ -69,14 +69,14 @@ export function ErrorPage({
   const actions = (
     <div className="flex flex-wrap items-center justify-center gap-3">
       {onRetry && (
-        <Button variant="default" size="sm" onClick={onRetry}>
+        <Button variant="default" onClick={onRetry}>
           <RefreshCw className="ml-1.5 size-4" />
           {retryLabel}
         </Button>
       )}
 
       {showHome && (
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" asChild>
           <Link href={homeHref}>
             <Home className="ml-1.5 size-4" />
             {homeLabel}
@@ -135,13 +135,13 @@ export function ErrorPage({
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
             {onRetry && (
-              <Button variant="default" size="sm" onClick={onRetry}>
+              <Button variant="default" onClick={onRetry}>
                 <RefreshCw className="ml-1.5 size-4" />
                 {retryLabel}
               </Button>
             )}
             {showHome && (
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" asChild>
                 <Link href={homeHref}>
                   <Home className="ml-1.5 size-4" />
                   {homeLabel}

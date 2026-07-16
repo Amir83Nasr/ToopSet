@@ -65,7 +65,9 @@ install-lefthook: ## Install lefthook git hooks
 dev-backend: ## Start backend server with auto-reload
 	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
-dev-frontend: ## Start frontend dev server with HMR
+dev-frontend: ## Start frontend dev server with HMR (clears Turbopack cache — prevents OOM)
+	@echo "  $(GREY)Clearing Turbopack cache (unbounded growth → OOM)...$(RESET)"
+	@rm -rf $(FRONTEND_DIR)/.next/dev/cache
 	@cd $(FRONTEND_DIR) && pnpm dev
 
 # ─── Build ────────────────────────────────────────────────────────────────────
@@ -236,7 +238,7 @@ clean-backend: ## Remove backend cache and artifacts
 	@find . -type f -name '*.pyc' -o -name '.coverage' -o -name '.DS_Store' -delete
 	@echo "  $(GREEN)✓$(RESET) Backend cache cleaned"
 
-clean-frontend: ## Remove frontend build artifacts
+clean-frontend: ## Remove frontend build artifacts (fixes OOM — bloated Turbopack cache)
 	@rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/dist
 	@echo "  $(GREEN)✓$(RESET) Frontend build artifacts cleaned"
 

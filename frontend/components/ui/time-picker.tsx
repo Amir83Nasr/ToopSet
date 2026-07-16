@@ -172,9 +172,7 @@ export function TimePicker({
             >
               انصراف
             </Button>
-            <Button size="sm" onClick={handleConfirm}>
-              تایید
-            </Button>
+            <Button onClick={handleConfirm}>تایید</Button>
           </div>
         </div>
       </PopoverContent>

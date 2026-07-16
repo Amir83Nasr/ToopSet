@@ -42,15 +42,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+} from "@/components/ui/responsive-alert-dialog"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import { buildAvatarUrl } from "@/lib/api"
 import { cn, getInitials, toPersianDigits } from "@/lib/utils"
@@ -202,6 +202,7 @@ export function SiteHeader() {
               width={36}
               height={36}
               className="size-9"
+              priority
             />
           </div>
           <span>توپ‌سِت</span>
@@ -210,12 +211,12 @@ export function SiteHeader() {
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
-            <Button key={link.href} variant="ghost" size="sm" asChild>
+            <Button key={link.href} variant="ghost" asChild>
               <Link href={link.href}>{link.label}</Link>
             </Button>
           ))}
           {isAuthenticated && (
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" asChild>
               <Link href="/dashboard/bookings">رزروهای من</Link>
             </Button>
           )}
@@ -521,9 +522,7 @@ export function SiteHeader() {
           ) : (
             <>
               <Link href="/login">
-                <Button className="px-4" size="sm">
-                  ورود / ثبت‌نام
-                </Button>
+                <Button className="px-4">ورود / ثبت‌نام</Button>
               </Link>
             </>
           )}
@@ -553,6 +552,7 @@ export function SiteHeader() {
                       width={36}
                       height={36}
                       className="size-9"
+                      priority
                     />
                   </span>
                   توپ‌سِت
@@ -680,17 +680,22 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>خروج از حساب</AlertDialogTitle>
-            <AlertDialogDescription>
+      <ResponsiveAlertDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+      >
+        <ResponsiveAlertDialogContent>
+          <ResponsiveAlertDialogHeader>
+            <ResponsiveAlertDialogTitle>
+              خروج از حساب
+            </ResponsiveAlertDialogTitle>
+            <ResponsiveAlertDialogDescription>
               آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
+            </ResponsiveAlertDialogDescription>
+          </ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogFooter>
+            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
+            <ResponsiveAlertDialogAction
               variant="destructive"
               onClick={() => {
                 logout()
@@ -698,10 +703,10 @@ export function SiteHeader() {
               }}
             >
               خروج
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </ResponsiveAlertDialogAction>
+          </ResponsiveAlertDialogFooter>
+        </ResponsiveAlertDialogContent>
+      </ResponsiveAlertDialog>
     </header>
   )
 }

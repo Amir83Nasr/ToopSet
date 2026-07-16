@@ -370,10 +370,10 @@ export default function AboutPage() {
                 نظرت را پیدا کن و رزرو کن.
               </p>
               <div className="mt-4 flex items-center justify-center gap-4">
-                <Button size="sm" asChild>
+                <Button asChild>
                   <Link href="/login">ثبت‌نام رایگان</Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild>
                   <Link href="/vendors">مشاهده سالن‌ها</Link>
                 </Button>
               </div>

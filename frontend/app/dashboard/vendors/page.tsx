@@ -33,15 +33,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+} from "@/components/ui/responsive-alert-dialog"
 import { toast } from "@/lib/toast"
 import {
   Plus,
@@ -164,7 +164,7 @@ export default function VendorsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchVendors()}>
+          <Button variant="outline" onClick={() => fetchVendors()}>
             <RefreshCw className="ml-1.5 size-4" />
             بروزرسانی
           </Button>
@@ -369,30 +369,32 @@ export default function VendorsPage() {
         </div>
       )}
 
-      <AlertDialog
+      <ResponsiveAlertDialog
         open={!!deleteVendor}
         onOpenChange={(open) => !open && setDeleteVendor(null)}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف مجموعه</AlertDialogTitle>
-            <AlertDialogDescription>
+        <ResponsiveAlertDialogContent>
+          <ResponsiveAlertDialogHeader>
+            <ResponsiveAlertDialogTitle>حذف مجموعه</ResponsiveAlertDialogTitle>
+            <ResponsiveAlertDialogDescription>
               آیا از حذف مجموعه «{deleteVendor?.name}» اطمینان دارید؟ این عمل
               قابل بازگشت نیست.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>انصراف</AlertDialogCancel>
-            <AlertDialogAction
+            </ResponsiveAlertDialogDescription>
+          </ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogFooter>
+            <ResponsiveAlertDialogCancel disabled={deleting}>
+              انصراف
+            </ResponsiveAlertDialogCancel>
+            <ResponsiveAlertDialogAction
               variant="destructive"
               onClick={handleDelete}
               disabled={deleting}
             >
               {deleting ? "در حال حذف..." : "حذف مجموعه"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </ResponsiveAlertDialogAction>
+          </ResponsiveAlertDialogFooter>
+        </ResponsiveAlertDialogContent>
+      </ResponsiveAlertDialog>
     </div>
   )
 }

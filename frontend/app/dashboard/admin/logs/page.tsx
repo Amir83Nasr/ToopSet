@@ -37,16 +37,16 @@ import { toast } from "@/lib/toast"
 import { ShieldX, History, RefreshCw, Trash2, X } from "lucide-react"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+  ResponsiveAlertDialogTrigger,
+} from "@/components/ui/responsive-alert-dialog"
 
 interface LogEntry {
   id: number
@@ -297,7 +297,7 @@ export default function AdminLogsPage() {
           />
 
           {hasActiveFilter && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters}>
               <X className="ml-1.5 size-4" />
               حذف فیلتر
             </Button>
@@ -315,51 +315,64 @@ export default function AdminLogsPage() {
             بروزرسانی
           </Button>
 
-          <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
+          <ResponsiveAlertDialog
+            open={clearDialogOpen}
+            onOpenChange={setClearDialogOpen}
+          >
+            <ResponsiveAlertDialogTrigger asChild>
+              <Button variant="destructive">
                 <Trash2 className="ml-1.5 size-4" />
                 پاکسازی همه
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>پاکسازی لاگ‌ها</AlertDialogTitle>
-                <AlertDialogDescription>
+            </ResponsiveAlertDialogTrigger>
+            <ResponsiveAlertDialogContent>
+              <ResponsiveAlertDialogHeader>
+                <ResponsiveAlertDialogTitle>
+                  پاکسازی لاگ‌ها
+                </ResponsiveAlertDialogTitle>
+                <ResponsiveAlertDialogDescription>
                   آیا از پاکسازی تمام لاگ‌ها اطمینان دارید؟ این عمل قابل بازگشت
                   نیست.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                <AlertDialogAction
+                </ResponsiveAlertDialogDescription>
+              </ResponsiveAlertDialogHeader>
+              <ResponsiveAlertDialogFooter>
+                <ResponsiveAlertDialogCancel>
+                  انصراف
+                </ResponsiveAlertDialogCancel>
+                <ResponsiveAlertDialogAction
                   onClick={handleClearAll}
                   variant="destructive"
                 >
                   پاکسازی همه
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </ResponsiveAlertDialogAction>
+              </ResponsiveAlertDialogFooter>
+            </ResponsiveAlertDialogContent>
+          </ResponsiveAlertDialog>
         </div>
       </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف لاگ</AlertDialogTitle>
-            <AlertDialogDescription>
+      <ResponsiveAlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      >
+        <ResponsiveAlertDialogContent>
+          <ResponsiveAlertDialogHeader>
+            <ResponsiveAlertDialogTitle>حذف لاگ</ResponsiveAlertDialogTitle>
+            <ResponsiveAlertDialogDescription>
               آیا از حذف این لاگ اطمینان دارید؟ این عمل قابل بازگشت نیست.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} variant="destructive">
+            </ResponsiveAlertDialogDescription>
+          </ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogFooter>
+            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
+            <ResponsiveAlertDialogAction
+              onClick={handleDelete}
+              variant="destructive"
+            >
               حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </ResponsiveAlertDialogAction>
+          </ResponsiveAlertDialogFooter>
+        </ResponsiveAlertDialogContent>
+      </ResponsiveAlertDialog>
 
       {loading ? (
         <div>

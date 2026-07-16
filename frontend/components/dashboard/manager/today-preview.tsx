@@ -62,7 +62,7 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
             <p className="text-sm text-muted-foreground">
               برنامه‌ای برای امروز ثبت نشده
             </p>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" asChild>
               <Link href="/dashboard/manager/schedule">رفتن به زمان‌بندی</Link>
             </Button>
           </div>

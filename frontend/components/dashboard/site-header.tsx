@@ -105,7 +105,7 @@ export function SiteHeader() {
             breadcrumb on narrow screens. */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" asChild>
               <Link href="/vendors">
                 <ExternalLink className="size-4 sm:me-1.5" />
                 <span className="max-sm:sr-only">جستجوی سالن</span>
@@ -118,7 +118,7 @@ export function SiteHeader() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" asChild>
               <Link href="/">
                 <Home className="size-4 sm:me-1.5" />
                 <span className="max-sm:sr-only">بازگشت به صفحه اصلی</span>

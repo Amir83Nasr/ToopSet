@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { Loader2, Send } from "lucide-react"
 
 interface NotificationBroadcastDialogProps {
@@ -30,16 +30,16 @@ export function NotificationBroadcastDialog({
   broadcasting,
 }: NotificationBroadcastDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="p-3">
-          <DialogTitle className="text-lg font-bold">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader className="p-3">
+          <ResponsiveDialogTitle className="text-lg font-bold">
             اعلان همگانی جدید
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             پیام خود را وارد کنید. این اعلان برای همه کاربران ارسال خواهد شد.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -56,7 +56,7 @@ export function NotificationBroadcastDialog({
             required
             autoFocus
           />
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -81,9 +81,9 @@ export function NotificationBroadcastDialog({
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

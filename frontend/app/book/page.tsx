@@ -225,7 +225,7 @@ function BookPageContent() {
       <main className="relative flex-1 pt-16">
         <div className="mx-auto max-w-lg px-4 py-8">
           {/* Back button */}
-          <Button variant="outline" size="sm" className="mb-4 w-fit" asChild>
+          <Button variant="outline" className="mb-4 w-fit" asChild>
             <Link href={`/vendors/${vendorId}`}>
               <ArrowRight className="me-1.5 size-4" />
               بازگشت به صفحه مجموعه

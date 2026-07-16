@@ -4,14 +4,14 @@ import { useCallback, useEffect, useState } from "react"
 import { Building2, CheckCircle2, Loader2, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -119,12 +119,14 @@ export function RegisterComplexDialog({
   }, [])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
         {/* Loading */}
         {step === "loading" && (
           <>
-            <DialogTitle className="sr-only">در حال دریافت اطلاعات</DialogTitle>
+            <ResponsiveDialogTitle className="sr-only">
+              در حال دریافت اطلاعات
+            </ResponsiveDialogTitle>
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
@@ -137,13 +139,13 @@ export function RegisterComplexDialog({
         {/* Explain — Step 1 */}
         {step === "explain" && (
           <>
-            <DialogHeader>
-              <DialogTitle>ثبت مجموعه جدید</DialogTitle>
-              <DialogDescription>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>ثبت مجموعه جدید</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 برای ثبت مجموعه ورزشی، نیاز به نقش <strong>مدیر مجموعه</strong>{" "}
                 دارید.
-              </DialogDescription>
-            </DialogHeader>
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
 
             <div className="space-y-4 rounded-lg border p-4 text-sm leading-relaxed">
               <p>
@@ -159,10 +161,10 @@ export function RegisterComplexDialog({
               </ol>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <DialogClose asChild>
+            <ResponsiveDialogFooter className="gap-2 sm:gap-0">
+              <ResponsiveDialogClose asChild>
                 <Button variant="outline">بازگشت</Button>
-              </DialogClose>
+              </ResponsiveDialogClose>
               <Button
                 onClick={() => {
                   if (user?.phone) setPhone(user.phone)
@@ -172,19 +174,19 @@ export function RegisterComplexDialog({
                 <Send className="ml-1 size-4" />
                 ارسال درخواست
               </Button>
-            </DialogFooter>
+            </ResponsiveDialogFooter>
           </>
         )}
 
         {/* Form — Step 2 */}
         {step === "form" && (
           <>
-            <DialogHeader>
-              <DialogTitle>اطلاعات درخواست</DialogTitle>
-              <DialogDescription>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>اطلاعات درخواست</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 اطلاعات زیر را برای ارسال درخواست به ادمین وارد کنید.
-              </DialogDescription>
-            </DialogHeader>
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
 
             <div className="space-y-4">
               {error && (
@@ -228,7 +230,7 @@ export function RegisterComplexDialog({
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <ResponsiveDialogFooter className="gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => setStep("explain")}>
                 بازگشت
               </Button>
@@ -239,14 +241,16 @@ export function RegisterComplexDialog({
                 <Send className="ml-1 size-4" />
                 ارسال درخواست
               </Button>
-            </DialogFooter>
+            </ResponsiveDialogFooter>
           </>
         )}
 
         {/* Submitting — Step 3 */}
         {step === "submitting" && (
           <>
-            <DialogTitle className="sr-only">در حال ارسال درخواست</DialogTitle>
+            <ResponsiveDialogTitle className="sr-only">
+              در حال ارسال درخواست
+            </ResponsiveDialogTitle>
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="size-8 animate-spin text-primary" />
               <p className="text-sm font-medium">در حال ارسال درخواست...</p>
@@ -257,12 +261,12 @@ export function RegisterComplexDialog({
         {/* Success — Step 4 */}
         {step === "success" && (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-center gap-2">
                 <CheckCircle2 className="size-5 text-status-confirmed" />
                 درخواست با موفقیت ثبت شد
-              </DialogTitle>
-            </DialogHeader>
+              </ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
 
             <div className="space-y-3 rounded-lg border p-4 text-sm leading-relaxed">
               <p>درخواست شما برای ادمین ارسال شد.</p>
@@ -277,23 +281,23 @@ export function RegisterComplexDialog({
               </p>
             </div>
 
-            <DialogFooter>
-              <DialogClose asChild>
+            <ResponsiveDialogFooter>
+              <ResponsiveDialogClose asChild>
                 <Button className="w-full sm:w-auto">متوجه شدم</Button>
-              </DialogClose>
-            </DialogFooter>
+              </ResponsiveDialogClose>
+            </ResponsiveDialogFooter>
           </>
         )}
 
         {/* Pending — existing request found */}
         {step === "pending" && (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-center gap-2">
                 <Building2 className="size-5 text-muted-foreground" />
                 درخواست در انتظار بررسی
-              </DialogTitle>
-            </DialogHeader>
+              </ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
 
             <div className="space-y-3 rounded-lg border p-4 text-sm leading-relaxed">
               <p>
@@ -307,11 +311,11 @@ export function RegisterComplexDialog({
               </ul>
             </div>
 
-            <DialogFooter>
-              <DialogClose asChild>
+            <ResponsiveDialogFooter>
+              <ResponsiveDialogClose asChild>
                 <Button className="w-full sm:w-auto">متوجه شدم</Button>
-              </DialogClose>
-            </DialogFooter>
+              </ResponsiveDialogClose>
+            </ResponsiveDialogFooter>
           </>
         )}
 
@@ -319,12 +323,12 @@ export function RegisterComplexDialog({
         {step === "explain" && error && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             {error.message}
-            <Button variant="link" size="sm" onClick={handleRetry}>
+            <Button variant="link" onClick={handleRetry}>
               تلاش دوباره
             </Button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

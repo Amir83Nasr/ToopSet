@@ -359,7 +359,7 @@ export default function PaymentsPage() {
           <h1 className="text-2xl font-bold tracking-tight">پرداخت‌ها</h1>
           <p className="text-muted-foreground">تاریخچه پرداخت‌های شما</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => fetchPayments()}>
+        <Button variant="outline" onClick={() => fetchPayments()}>
           <RefreshCw className="ml-1.5 size-4" />
           بروزرسانی
         </Button>

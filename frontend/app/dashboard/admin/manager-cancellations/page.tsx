@@ -138,7 +138,7 @@ export default function AdminManagerCancellationsPage() {
             می‌دهد.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchRows}>
+        <Button variant="outline" onClick={fetchRows}>
           <RefreshCw className="ml-1 size-4" />
           بروزرسانی
         </Button>
@@ -180,7 +180,7 @@ export default function AdminManagerCancellationsPage() {
             className="w-fit"
           />
           {hasActiveFilter && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters}>
               <X className="ml-1.5 size-4" />
               حذف فیلتر
             </Button>

@@ -150,7 +150,7 @@ export default function AdminSettlementsPage() {
             رزروهای داخل درخواست بعد از ثبت، دوباره وارد درخواست دیگر نمی‌شوند.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchSettlements}>
+        <Button variant="outline" onClick={fetchSettlements}>
           <RefreshCw className="ml-1 size-4" />
           بروزرسانی
         </Button>
@@ -197,7 +197,7 @@ export default function AdminSettlementsPage() {
             className="w-fit"
           />
           {hasActiveFilter && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters}>
               <X className="ml-1.5 size-4" />
               حذف فیلتر
             </Button>

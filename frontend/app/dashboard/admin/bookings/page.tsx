@@ -25,15 +25,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+} from "@/components/ui/responsive-alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import {
@@ -167,7 +167,7 @@ export default function AdminBookingsPage() {
           <p className="text-muted-foreground">همه رزروهای سیستم</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchBookings()}>
+          <Button variant="outline" onClick={() => fetchBookings()}>
             <RefreshCw className="ml-1.5 size-4" />
             بروزرسانی
           </Button>
@@ -325,23 +325,23 @@ export default function AdminBookingsPage() {
       )}
 
       {/* Cancel dialog */}
-      <AlertDialog
+      <ResponsiveAlertDialog
         open={!!cancellingBooking}
         onOpenChange={(o) => {
           if (!o) setCancellingBooking(null)
         }}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>لغو رزرو</AlertDialogTitle>
-            <AlertDialogDescription>
+        <ResponsiveAlertDialogContent>
+          <ResponsiveAlertDialogHeader>
+            <ResponsiveAlertDialogTitle>لغو رزرو</ResponsiveAlertDialogTitle>
+            <ResponsiveAlertDialogDescription>
               آیا از لغو رزرو {cancellingBooking?.vendor_name} توسط{" "}
               {cancellingBooking?.user_name} مطمئن هستید؟
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
+            </ResponsiveAlertDialogDescription>
+          </ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogFooter>
+            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
+            <ResponsiveAlertDialogAction
               variant="destructive"
               disabled={cancellingLoading}
               onClick={() =>
@@ -355,10 +355,10 @@ export default function AdminBookingsPage() {
               ) : (
                 "تأیید لغو"
               )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </ResponsiveAlertDialogAction>
+          </ResponsiveAlertDialogFooter>
+        </ResponsiveAlertDialogContent>
+      </ResponsiveAlertDialog>
     </div>
   )
 }

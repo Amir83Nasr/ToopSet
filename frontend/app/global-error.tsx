@@ -67,11 +67,11 @@ export default function GlobalError({
               )}
 
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button variant="default" size="sm" onClick={reset}>
+                <Button variant="default" onClick={reset}>
                   <RefreshCw className="ml-1.5 size-4" />
                   تلاش مجدد
                 </Button>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild>
                   <Link href="/">
                     <Home className="ml-1.5 size-4" />
                     صفحه اصلی

@@ -27,13 +27,13 @@ import {
   CardDescription,
 } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import {
   ChevronRight,
   ChevronLeft,
@@ -195,7 +195,7 @@ export function VendorBookingsTab({
           <Button variant="outline" size="icon-sm" onClick={onPrevWeek}>
             <ChevronRight className="size-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={onThisWeek}>
+          <Button variant="outline" onClick={onThisWeek}>
             این هفته
           </Button>
           <Button variant="outline" size="icon-sm" onClick={onNextWeek}>
@@ -203,7 +203,7 @@ export function VendorBookingsTab({
           </Button>
         </div>
         <div className="text-sm font-medium">{weekLabel}</div>
-        <Button variant="outline" size="sm" onClick={onRefresh}>
+        <Button variant="outline" onClick={onRefresh}>
           <RefreshCw className="ml-1.5 size-4" />
           بروزرسانی
         </Button>
@@ -364,7 +364,7 @@ export function VendorBookingsTab({
       </Card>
 
       {/* Booking detail / cancel dialog */}
-      <Dialog
+      <ResponsiveDialog
         open={!!selectedBookedSlot}
         onOpenChange={(open) => {
           if (!open) {
@@ -374,13 +374,13 @@ export function VendorBookingsTab({
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>جزئیات رزرو سانس</DialogTitle>
-            <DialogDescription>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>جزئیات رزرو سانس</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               اطلاعات رزروکننده و عملیات لغو این سانس
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           {selectedBookedSlot && (
             <div className="space-y-4">
               <div className="rounded-lg border p-3 text-sm">
@@ -434,7 +434,7 @@ export function VendorBookingsTab({
               </div>
             </div>
           )}
-          <DialogFooter className="gap-2 sm:justify-between">
+          <ResponsiveDialogFooter className="gap-2 sm:justify-between">
             <Button
               variant="outline"
               onClick={() => {
@@ -472,24 +472,24 @@ export function VendorBookingsTab({
                 لغو و آزادسازی
               </Button>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Manual booking dialog */}
-      <Dialog
+      <ResponsiveDialog
         open={!!manualBookingSlot}
         onOpenChange={(open) => {
           if (!open) setManualBookingSlot(null)
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>رزرو سانس آزاد</DialogTitle>
-            <DialogDescription>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>رزرو سانس آزاد</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               رزرو توسط سالندار بدون پرداخت آنلاین ثبت می‌شود.
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           {manualBookingSlot && (
             <div className="space-y-4">
               <div className="rounded-lg border p-3 text-sm">
@@ -545,7 +545,7 @@ export function VendorBookingsTab({
               </div>
             </div>
           )}
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               variant="outline"
               onClick={() => setManualBookingSlot(null)}
@@ -565,9 +565,9 @@ export function VendorBookingsTab({
               )}
               ثبت رزرو
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }

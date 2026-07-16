@@ -36,7 +36,7 @@ function OtpPageContent() {
       </div>
       <div className="relative flex flex-col items-center justify-center p-6 md:p-10">
         <div className="absolute inset-e-6 top-6">
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" asChild>
             <Link href="/">
               <ArrowRight className="me-1.5 size-4" />
               بازگشت به صفحه اصلی

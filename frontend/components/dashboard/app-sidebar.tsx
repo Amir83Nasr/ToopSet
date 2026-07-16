@@ -31,6 +31,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                     width={32}
                     height={32}
                     className="size-8"
+                    priority
                   />
                 </span>
                 <span className="text-lg font-bold">توپ‌سِت</span>

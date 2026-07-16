@@ -33,13 +33,13 @@ export function VendorHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" asChild>
           <Link href="/dashboard/vendors">
             <ArrowRight className="ml-1.5 size-4" />
             بازگشت
           </Link>
         </Button>
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" asChild>
           <Link href={`/vendors/${vendorId}`}>
             <Eye className="ml-1.5 size-4" />
             صفحه عمومی
@@ -66,7 +66,7 @@ export function VendorHeader({
           </Button>
         )}
         {canManage && (
-          <Button variant="destructive" size="sm" onClick={onDeleteClick}>
+          <Button variant="destructive" onClick={onDeleteClick}>
             <Trash2 className="ml-1.5 size-4" />
             حذف
           </Button>

@@ -22,23 +22,23 @@ import {
   CardDescription,
 } from "@/components/ui/card"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+} from "@/components/ui/responsive-alert-dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { WeeklyGrid } from "@/components/dashboard/schedule/weekly-grid"
 import { BulkGenerator } from "@/components/dashboard/schedule/bulk-generator"
 import { QuickSlotForm } from "@/components/dashboard/schedule/quick-slot-form"
@@ -280,7 +280,7 @@ export function VendorScheduleTab({
           <Button variant="outline" size="icon-sm" onClick={onPrevWeek}>
             <ChevronRight className="size-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={onThisWeek}>
+          <Button variant="outline" onClick={onThisWeek}>
             این هفته
           </Button>
           <Button variant="outline" size="icon-sm" onClick={onNextWeek}>
@@ -360,45 +360,45 @@ export function VendorScheduleTab({
       />
 
       {/* Slot delete confirmation */}
-      <AlertDialog
+      <ResponsiveAlertDialog
         open={!!slotToDelete}
         onOpenChange={(open) => {
           if (!open) setSlotToDelete(null)
         }}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف زمان</AlertDialogTitle>
-            <AlertDialogDescription>
+        <ResponsiveAlertDialogContent>
+          <ResponsiveAlertDialogHeader>
+            <ResponsiveAlertDialogTitle>حذف زمان</ResponsiveAlertDialogTitle>
+            <ResponsiveAlertDialogDescription>
               آیا از حذف این زمان اطمینان دارید؟ این عمل قابل بازگشت نیست.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
+            </ResponsiveAlertDialogDescription>
+          </ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogFooter>
+            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
+            <ResponsiveAlertDialogAction
               variant="destructive"
               onClick={confirmDeleteSlot}
             >
               حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </ResponsiveAlertDialogAction>
+          </ResponsiveAlertDialogFooter>
+        </ResponsiveAlertDialogContent>
+      </ResponsiveAlertDialog>
 
       {/* Slot edit dialog */}
-      <Dialog
+      <ResponsiveDialog
         open={!!editingSlot}
         onOpenChange={(open) => {
           if (!open) setEditingSlot(null)
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ویرایش سانس</DialogTitle>
-            <DialogDescription>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>ویرایش سانس</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               زمان و قیمت سانس را ویرایش کنید
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -451,7 +451,7 @@ export function VendorScheduleTab({
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={() => setEditingSlot(null)}>
               انصراف
             </Button>
@@ -470,9 +470,9 @@ export function VendorScheduleTab({
                 "ذخیره"
               )}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }

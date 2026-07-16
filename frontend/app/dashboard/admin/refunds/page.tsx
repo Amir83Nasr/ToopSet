@@ -159,7 +159,7 @@ export default function AdminRefundsPage() {
             عودت‌ها خودکار پرداخت نمی‌شوند و فقط وضعیت آن‌ها ثبت می‌شود.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchRefunds}>
+        <Button variant="outline" onClick={fetchRefunds}>
           <RefreshCw className="ml-1 size-4" />
           بروزرسانی
         </Button>
@@ -206,7 +206,7 @@ export default function AdminRefundsPage() {
             className="w-fit"
           />
           {hasActiveFilter && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters}>
               <X className="ml-1.5 size-4" />
               حذف فیلتر
             </Button>

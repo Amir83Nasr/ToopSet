@@ -35,13 +35,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
 import {
@@ -217,7 +217,7 @@ export default function UsersPage() {
           <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchUsers()}>
+          <Button variant="outline" onClick={() => fetchUsers()}>
             <RefreshCw className="ml-1.5 size-4" />
             بروزرسانی
           </Button>
@@ -406,7 +406,7 @@ export default function UsersPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      <Dialog
+      <ResponsiveDialog
         open={!!deleteTarget}
         onOpenChange={(open) => {
           if (!open) {
@@ -414,16 +414,16 @@ export default function UsersPage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>حذف کاربر</DialogTitle>
-            <DialogDescription>
+        <ResponsiveDialogContent className="sm:max-w-sm">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>حذف کاربر</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               آیا از حذف کاربر «{deleteTarget?.full_name}» اطمینان دارید؟ تمام
               اطلاعات مرتبط (مجموعه‌ها، رزروها، نظرات و ...) نیز برای همیشه حذف
               می‌شوند.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
@@ -438,9 +438,9 @@ export default function UsersPage() {
             >
               {deleting ? "در حال حذف..." : "حذف کاربر"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }
