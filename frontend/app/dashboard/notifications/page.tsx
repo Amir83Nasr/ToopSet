@@ -146,7 +146,7 @@ export default function NotificationsPage() {
             size="sm"
             onClick={() => fetchNotifications()}
           >
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             بروزرسانی
           </Button>
 
@@ -158,9 +158,9 @@ export default function NotificationsPage() {
               disabled={markingAll}
             >
               {markingAll ? (
-                <Loader2 className="ml-2 size-4 animate-spin" />
+                <Loader2 className="me-2 size-4 animate-spin" />
               ) : (
-                <CheckCheck className="ml-2 size-4" />
+                <CheckCheck className="me-2 size-4" />
               )}
               علامت همه
             </Button>
@@ -172,7 +172,7 @@ export default function NotificationsPage() {
               size="sm"
               onClick={() => setBroadcastOpen(true)}
             >
-              <Send className="ml-1 size-4" />
+              <Send className="me-1 size-4" />
               اعلان جدید
             </Button>
           )}

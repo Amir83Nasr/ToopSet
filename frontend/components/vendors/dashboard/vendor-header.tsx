@@ -35,13 +35,13 @@ export function VendorHeader({
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" asChild>
           <Link href="/dashboard/vendors">
-            <ArrowRight className="ml-1.5 size-4" />
+            <ArrowRight className="me-1.5 size-4" />
             بازگشت
           </Link>
         </Button>
         <Button variant="outline" asChild>
           <Link href={`/vendors/${vendorId}`}>
-            <Eye className="ml-1.5 size-4" />
+            <Eye className="me-1.5 size-4" />
             صفحه عمومی
           </Link>
         </Button>
@@ -54,12 +54,12 @@ export function VendorHeader({
           >
             {saving || isSubmitting ? (
               <>
-                <Loader2 className="ml-1.5 size-4 animate-spin" />
+                <Loader2 className="me-1.5 size-4 animate-spin" />
                 در حال ذخیره...
               </>
             ) : (
               <>
-                <Save className="ml-1.5 size-4" />
+                <Save className="me-1.5 size-4" />
                 ذخیره
               </>
             )}
@@ -67,7 +67,7 @@ export function VendorHeader({
         )}
         {canManage && (
           <Button variant="destructive" onClick={onDeleteClick}>
-            <Trash2 className="ml-1.5 size-4" />
+            <Trash2 className="me-1.5 size-4" />
             حذف
           </Button>
         )}

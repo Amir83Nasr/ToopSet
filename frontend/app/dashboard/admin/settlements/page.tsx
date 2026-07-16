@@ -151,7 +151,7 @@ export default function AdminSettlementsPage() {
           </p>
         </div>
         <Button variant="outline" onClick={fetchSettlements}>
-          <RefreshCw className="ml-1 size-4" />
+          <RefreshCw className="me-1 size-4" />
           بروزرسانی
         </Button>
       </div>
@@ -198,7 +198,7 @@ export default function AdminSettlementsPage() {
           />
           {hasActiveFilter && (
             <Button variant="outline" onClick={clearFilters}>
-              <X className="ml-1.5 size-4" />
+              <X className="me-1.5 size-4" />
               حذف فیلتر
             </Button>
           )}

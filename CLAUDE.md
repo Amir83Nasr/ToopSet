@@ -17,6 +17,7 @@ Guidance for Claude Code when working on **ToopSet (توپ‌سِت)** — sport
 Monorepo: `backend/` (FastAPI) + `frontend/` (Next.js).
 
 **Backend layers:**
+
 - `api/v1/*.py` — thin route handlers. No business logic.
 - `services/*.py` — business logic, orchestrate repos, enforce rules.
 - `repositories/*.py` — async SQLAlchemy CRUD. One class per model.
@@ -27,6 +28,7 @@ Monorepo: `backend/` (FastAPI) + `frontend/` (Next.js).
 **Frontend pattern:** Next.js App Router. Pages in `app/`. Shared components in `components/` (ui/ for shadcn primitives, domain-specific folders otherwise). Custom hooks in `hooks/`. Utilities in `lib/`.
 
 **DB:** PostgreSQL 17 via Docker Compose. Alembic migrations in `backend/migrations/`.
+
 - `make db-migrate` — apply migrations.
 - `cd backend && alembic revision --autogenerate -m "desc"` — create new.
 - `make db-seed` — seed test data.
@@ -53,6 +55,7 @@ frontend/
 **Run:** `make dev-backend` (uvicorn :8000), `make dev-frontend` (next --turbopack :3000), `make db-start` (docker postgres+redis).
 
 **Validation gates (must all pass before commit):**
+
 ```bash
 make lint           # ruff check (backend) + eslint (frontend)
 make format         # ruff format (backend) + prettier (frontend)
@@ -65,25 +68,40 @@ make check          # lint + typecheck + build (CI gate)
 **Lefthook** runs auto on `git commit` (staged: Ruff, Prettier, ESLint, trailing-whitespace, EOF-newline, merge-conflict, private-key, LF endings). `stage_fixed: true`. **Never** `--no-verify`.
 
 **Testing:**
+
 - Backend: `backend/tests/`. Requires `toopset_test` DB (`make test-db-setup`). Rate-limiter disabled in conftest. PrometheusMiddleware stripped (event-loop issue in py3.14+).
 - Frontend: `frontend/tests/`. Vitest.
+
+## Layout Rules
+
+- Body must never own the application scroll.
+- Use app root/container as the main scroll area.
+- Avoid width: 100vw unless required.
+- Always test RTL layouts.
+- Never introduce horizontal overflow.
+- Dialogs and Sheets must not shift page layout when opened.
 
 ## Code Style
 
 ### Section Headers
+
 Config/env/infra files use 80‑char wide `──` dividers:
+
 ```text
 # ── SECTION TITLE ────────────────────────────────────────────────────────────
 ```
+
 Use box-drawing `─` (U+2500), never hyphens. Major sections (Makefile) use `───`. Box banners in `.env.example` use `┌─┐`/`└─┘`.
 
 ### Backend
+
 - Python 3.12+, line length 100. Ruff (config: `backend/pyproject.toml`). Double quotes. `from __future__ import annotations`.
 - SQLAlchemy 2.0 async: `async with async_session_factory() as db`.
 - Services inject repos, never use sessions directly.
 - New model: create model → schema → repo → service → route.
 
 ### Frontend
+
 - TypeScript strict. Prettier + ESLint. React 19, function components + hooks.
 - Tailwind v4 (`@import "tailwindcss"` in `globals.css`, no `tailwind.config.ts`). Theme via `@theme inline {}` CSS variables.
 - shadcn radix-nova, RTL (`components.json`). Use `cn()` from `@/lib/utils` for class merging.
@@ -95,17 +113,17 @@ Use box-drawing `─` (U+2500), never hyphens. Major sections (Makefile) use `�
 
 ### Naming
 
-| Layer | Convention | Example |
-|-------|-----------|---------|
-| Backend models | snake_case, singular | `time_slot.py` |
-| Backend routes | snake_case, plural | `bookings.py` |
-| Backend services | snake_case + `_service` | `booking_service.py` |
-| Backend repos | snake_case + `_repo` | `time_slot_repo.py` |
-| Backend schemas | snake_case | `booking.py` |
-| Frontend components | kebab-case | `booking-cancel-dialog.tsx` |
-| Frontend hooks | `use-` prefix, kebab | `use-mobile.ts` |
-| Frontend lib files | kebab-case | `neshan-map.ts` |
-| API routes | kebab-case | `/api/v1/time-slots` |
+| Layer               | Convention              | Example                     |
+| ------------------- | ----------------------- | --------------------------- |
+| Backend models      | snake_case, singular    | `time_slot.py`              |
+| Backend routes      | snake_case, plural      | `bookings.py`               |
+| Backend services    | snake_case + `_service` | `booking_service.py`        |
+| Backend repos       | snake_case + `_repo`    | `time_slot_repo.py`         |
+| Backend schemas     | snake_case              | `booking.py`                |
+| Frontend components | kebab-case              | `booking-cancel-dialog.tsx` |
+| Frontend hooks      | `use-` prefix, kebab    | `use-mobile.ts`             |
+| Frontend lib files  | kebab-case              | `neshan-map.ts`             |
+| API routes          | kebab-case              | `/api/v1/time-slots`        |
 
 ## Git Workflow
 
@@ -126,6 +144,7 @@ Use box-drawing `─` (U+2500), never hyphens. Major sections (Makefile) use `�
 ## Environment Variables
 
 Single source of truth: `.env.example` (root). Copy sections to respective files:
+
 - `.env` (root) — Docker Compose
 - `backend/.env` — PostgreSQL, Redis, JWT, payment, SMS, Sentry, CORS, logging
 - `frontend/.env.local` — API URL, Neshan key, Sentry DSN
@@ -135,6 +154,7 @@ Key vars: `SECRET_KEY` (gen: `python3 -c "import secrets; print(secrets.token_ur
 ## Rules & Pitfalls
 
 ### Hard Rules
+
 1. **All user-facing numbers → Persian digits** via `toPersianDigits()`.
 2. **RTL-first CSS** — use `start`/`end` over `left`/`right`.
 3. **No `--no-verify`** — lefthook must pass before every commit.
@@ -147,6 +167,7 @@ Key vars: `SECRET_KEY` (gen: `python3 -c "import secrets; print(secrets.token_ur
 10. **Frontend auto-refreshes tokens** on 401 via `api()`. Listen for `auth:expired` events.
 
 ### Common Pitfalls
+
 - **Scrollbar shift:** `html body[data-scroll-locked]` CSS in `globals.css` neutralizes `react-remove-scroll-bar` margin. Don't remove.
 - **Leaflet popups:** Must use `.theme-popup` class to get app theming.
 - **RTL centering:** Centered overlays need `start-1/2` + `rtl:translate-x-1/2`, not `left-1/2` + `-translate-x-1/2`.

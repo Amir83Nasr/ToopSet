@@ -313,7 +313,6 @@
   }
   html {
     @apply font-sans;
-    overflow: hidden;
   }
   ::-webkit-scrollbar {
     width: 6px;
@@ -329,22 +328,6 @@
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.45);
   }
-}
-
-/* ── Prevent modal open scroll-lock shift (RTL) ── */
-
-/* react-remove-scroll-bar adds margin-right to body when modals/dialogs
-   open, to compensate for the disappearing scrollbar. But we already have
-   scrollbar-gutter: stable on html which reserves scrollbar space at all
-   times. The extra margin causes a visible shift. Neutralise it. */
-html body[data-scroll-locked] {
-  margin-right: 0 !important;
-  padding-right: 0 !important;
-  /* Also override overflow:hidden — Chrome can let body's overflow override
-     html's viewport scrollbar when body has overflow:hidden, even when html
-     has explicit overflow-y:auto + scrollbar-gutter:stable. Setting
-     overflow:visible on body keeps the scrollbar on html where it belongs. */
-  overflow: visible !important;
 }
 
 /* ── Mobile touch target minimum ── */
@@ -560,9 +543,18 @@ body {
   height: 100dvh;
 }
 
-/* ── App shell scroll container ── */
-/* Makes roots the scroll container so html/body stay fixed and only content
-   scrolls.  Dashboard layouts opt out with .overflow-hidden on their wrapper. */
+/* react-remove-scroll-bar injects margin-right: <gap>px on body[data-scroll-locked],
+   but in RTL the scrollbar is on the LEFT (inline-end), not the right. Override with
+   direction-aware margin-inline-end so compensation lands on the correct physical
+   side in both RTL (left) and LTR (right). */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+  margin-inline-end: var(--removed-body-scroll-bar-size, 0px) !important;
+}
+
+/* Scroll container — #toopset-root handles all scrolling so html/body stay
+   fixed and only content scrolls. Dashboard layouts opt out with overflow-hidden
+   on their own wrapper. */
 #toopset-root {
   height: 100dvh;
   overflow-y: auto;

@@ -152,7 +152,7 @@ function PaymentPageContent() {
                 </CardDescription>
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={() => router.push("/")}>
-                    <ArrowRight className="ml-2 size-4" />
+                    <ArrowRight className="me-2 size-4" />
                     بازگشت به صفحه اصلی
                   </Button>
                   {vendorId && (
@@ -186,7 +186,7 @@ function PaymentPageContent() {
                   اطلاعات این رزرو در دسترس نیست.
                 </CardDescription>
                 <Button variant="outline" onClick={() => router.push("/")}>
-                  <ArrowRight className="ml-2 size-4" />
+                  <ArrowRight className="me-2 size-4" />
                   بازگشت به صفحه اصلی
                 </Button>
               </CardContent>
@@ -264,7 +264,7 @@ function PaymentPageContent() {
           <div className="mt-6 flex flex-col gap-3">
             <Button className="w-full" asChild>
               <Link href="/dashboard/bookings">
-                <LayoutDashboard className="ml-2" />
+                <LayoutDashboard className="me-2" />
                 مشاهده رزروهای من
               </Link>
             </Button>

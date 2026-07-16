@@ -168,7 +168,7 @@ export default function AdminBookingsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => fetchBookings()}>
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             بروزرسانی
           </Button>
         </div>
@@ -307,7 +307,7 @@ export default function AdminBookingsPage() {
                         size="sm"
                         onClick={() => setCancellingBooking(b)}
                       >
-                        <XCircle className="ml-1 size-4" />
+                        <XCircle className="me-1 size-4" />
                         لغو
                       </Button>
                     )}
@@ -350,7 +350,7 @@ export default function AdminBookingsPage() {
             >
               {cancellingLoading ? (
                 <>
-                  <Loader2 className="ml-1 size-4 animate-spin" /> در حال لغو...
+                  <Loader2 className="me-1 size-4 animate-spin" /> در حال لغو...
                 </>
               ) : (
                 "تأیید لغو"

@@ -179,7 +179,7 @@ export default function AdminPendingVendorsPage() {
           disabled={loading}
         >
           <RefreshCw
-            className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`}
+            className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
           />
           بروزرسانی
         </Button>
@@ -328,7 +328,7 @@ export default function AdminPendingVendorsPage() {
                               disabled={actionLoading === vendor.id}
                               onClick={() => handleApprove(vendor.id)}
                             >
-                              <CheckCircle className="ml-1 size-4" />
+                              <CheckCircle className="me-1 size-4" />
                               تایید
                             </Button>
                             <Button
@@ -337,7 +337,7 @@ export default function AdminPendingVendorsPage() {
                               disabled={actionLoading === vendor.id}
                               onClick={() => handleReject(vendor.id)}
                             >
-                              <XCircle className="ml-1 size-4" />
+                              <XCircle className="me-1 size-4" />
                               رد
                             </Button>
                           </div>

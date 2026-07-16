@@ -2,12 +2,21 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "./providers"
 import type { Metadata, Viewport } from "next"
+import { pwaConfig } from "@/config/pwa"
 
 export const metadata: Metadata = {
-  title: "توپ‌سِت | ToopSet",
-  description: "سامانه رزرو آنلاین مجموعه‌های ورزشی",
+  title: pwaConfig.name,
+  description: pwaConfig.description,
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/icons/favicon.svg", type: "image/svg+xml" }],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/logo.svg", type: "image/svg+xml" }],
+    other: [
+      {
+        rel: "mask-icon",
+        url: "/icons/logo.svg",
+      },
+    ],
   },
 }
 
@@ -19,7 +28,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#212121" },
+    { media: "(prefers-color-scheme: dark)", color: pwaConfig.themeColor },
   ],
 }
 

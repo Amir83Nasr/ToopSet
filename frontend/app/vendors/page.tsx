@@ -100,6 +100,9 @@ function VendorsPageContent() {
   const [vendorsLoading, setVendorsLoading] = useState(true)
   const [page, setPage] = useState(0)
   const limit = 12
+
+  // Full filtered set for map markers (not paginated)
+  const [mapVendors, setMapVendors] = useState<Vendor[]>([])
   const initialized = useRef(false)
 
   // Filters from URL
@@ -172,6 +175,25 @@ function VendorsPageContent() {
     maxDistance,
   ])
 
+  // Same filters but no pagination — fetches all filtered vendors for the map
+  const mapApiParams = useMemo(() => {
+    const params = new URLSearchParams()
+    params.set("limit", "100")
+    params.set("is_active", "true")
+    if (searchText) params.set("search", searchText)
+    selectedSports.forEach((st) => params.append("sport_types", st))
+    if (sortBy === "price_asc") params.set("sort", "price_asc")
+    if (sortBy === "price_desc") params.set("sort", "price_desc")
+    if (sortBy === "rating") params.set("sort", "rating")
+    if (sortBy === "distance") params.set("sort", "distance")
+    if (sortBy === "distance" && userLocation) {
+      params.set("ref_lat", String(userLocation.latitude))
+      params.set("ref_lon", String(userLocation.longitude))
+      if (maxDistance) params.set("max_distance_km", maxDistance)
+    }
+    return params.toString()
+  }, [searchText, selectedSports, sortBy, userLocation, maxDistance])
+
   // Sync filters to URL
   useEffect(() => {
     const params = new URLSearchParams()
@@ -186,17 +208,21 @@ function VendorsPageContent() {
   const fetchVendors = useCallback(async () => {
     setVendorsLoading(true)
     try {
-      const res = await api<{ vendors: Vendor[]; total: number }>(
-        `/api/v1/vendors?${apiParams}`
-      )
-      setFeaturedVendors(res.vendors)
-      setTotal(res.total)
+      const [pagedRes, allRes] = await Promise.all([
+        api<{ vendors: Vendor[]; total: number }>(
+          `/api/v1/vendors?${apiParams}`
+        ),
+        api<{ vendors: Vendor[] }>(`/api/v1/vendors?${mapApiParams}`),
+      ])
+      setFeaturedVendors(pagedRes.vendors)
+      setTotal(pagedRes.total)
+      setMapVendors(allRes.vendors)
     } catch {
       // API may not be available
     } finally {
       setVendorsLoading(false)
     }
-  }, [apiParams])
+  }, [apiParams, mapApiParams])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchVendors(), 0)
@@ -254,7 +280,7 @@ function VendorsPageContent() {
                         setSearchText(e.target.value)
                         setPage(0)
                       }}
-                      className="pr-9"
+                      className="pe-9"
                     />
                   </div>
                 </div>
@@ -365,7 +391,7 @@ function VendorsPageContent() {
               {showMap && (
                 <div className="mt-4 overflow-hidden rounded-xl border">
                   <VendorsMap
-                    vendors={featuredVendors}
+                    vendors={mapVendors}
                     height="400px"
                     userLocation={userLocation}
                   />
@@ -462,7 +488,7 @@ function VendorsPageContent() {
                 <p className="text-sm text-muted-foreground">
                   {toPersianDigits(total)} مجموعه پیدا شد
                   {hasActiveFilters && (
-                    <span className="mr-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="ms-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                       {toPersianDigits(activeFilterCount)} فیلتر
                     </span>
                   )}

@@ -347,9 +347,9 @@ export default function SettingsPage() {
                     disabled={uploadingAvatar}
                   >
                     {uploadingAvatar ? (
-                      <Loader2 className="ml-1.5 animate-spin" />
+                      <Loader2 className="me-1.5 animate-spin" />
                     ) : (
-                      <Camera className="ml-1.5" />
+                      <Camera className="me-1.5" />
                     )}
                     {uploadingAvatar ? "در حال آپلود..." : "تغییر عکس"}
                   </Button>
@@ -361,9 +361,9 @@ export default function SettingsPage() {
                       disabled={deletingAvatar}
                     >
                       {deletingAvatar ? (
-                        <Loader2 className="ml-1.5 animate-spin" />
+                        <Loader2 className="me-1.5 animate-spin" />
                       ) : (
-                        <Trash2 className="ml-1.5" />
+                        <Trash2 className="me-1.5" />
                       )}
                       حذف
                     </Button>
@@ -433,7 +433,7 @@ export default function SettingsPage() {
                 }`}
               >
                 {saving ? (
-                  <Loader2 className="ml-1.5 size-4 animate-spin" />
+                  <Loader2 className="me-1.5 size-4 animate-spin" />
                 ) : null}
                 {saving ? "در حال ثبت..." : "ثبت تغییرات"}
               </Button>
@@ -511,7 +511,7 @@ export default function SettingsPage() {
                 disabled={savingCard}
               >
                 {savingCard && (
-                  <Loader2 className="ml-1.5 size-3.5 animate-spin" />
+                  <Loader2 className="me-1.5 size-3.5 animate-spin" />
                 )}
                 استعلام کارت
               </Button>
@@ -649,9 +649,9 @@ export default function SettingsPage() {
                     size="sm"
                   >
                     {changingPass ? (
-                      <Loader2 className="ml-1.5 size-3.5 animate-spin" />
+                      <Loader2 className="me-1.5 size-3.5 animate-spin" />
                     ) : (
-                      <Lock className="ml-1.5 size-3.5" />
+                      <Lock className="me-1.5 size-3.5" />
                     )}
                     {changingPass
                       ? "در حال ذخیره..."

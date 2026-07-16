@@ -138,7 +138,7 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
           >
             <Link href="/dashboard/manager/schedule">
               مشاهده برنامه کامل هفته
-              <ChevronLeft className="mr-1 size-3" />
+              <ChevronLeft className="ms-1 size-3" />
             </Link>
           </Button>
         </div>

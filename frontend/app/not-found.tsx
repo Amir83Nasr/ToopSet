@@ -21,7 +21,7 @@ export default function NotFound() {
         </p>
         <Button asChild>
           <Link href="/">
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             بازگشت به خانه
           </Link>
         </Button>

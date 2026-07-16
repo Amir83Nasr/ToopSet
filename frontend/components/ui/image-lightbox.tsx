@@ -91,7 +91,7 @@ export function ImageLightbox({
     >
       <ResponsiveDialogContent
         showCloseButton={false}
-        className="fixed inset-0 start-1/2 top-1/2 z-9999 h-svh max-w-none gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:h-[85vh] md:w-[90vw] md:max-w-none md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl"
+        className="fixed z-9999 h-dvh w-svw max-w-none gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:top-1/2 md:h-[85vh] md:w-[90vw] md:max-w-none md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl"
       >
         <ResponsiveDialogTitle className="sr-only">
           تصاویر {vendorName}
@@ -104,34 +104,34 @@ export function ImageLightbox({
           {/* Close */}
           <button
             onClick={() => onCloseRef.current()}
-            className="absolute top-3 right-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
+            className="absolute end-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
             aria-label="بستن"
           >
             <X className="size-4" />
           </button>
 
           {/* Counter */}
-          <span className="absolute top-3 left-3 z-20 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white/70">
+          <span className="absolute start-3 top-3 z-20 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white/70">
             {toPersianDigits(lightboxIndex + 1)} /{" "}
             {toPersianDigits(images.length)}
           </span>
 
-          {/* Prev — positioned on right (RTL: next appears on right side) */}
+          {/* Prev — end side (right in LTR, left in RTL) */}
           {images.length > 1 && (
             <button
               onClick={goPrev}
-              className="absolute right-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
+              className="absolute end-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
               aria-label="قبلی"
             >
               <ChevronRight className="size-5" />
             </button>
           )}
 
-          {/* Next — positioned on left (RTL: prev appears on left side) */}
+          {/* Next — start side (left in LTR, right in RTL) */}
           {images.length > 1 && (
             <button
               onClick={goNext}
-              className="absolute left-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
+              className="absolute start-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
               aria-label="بعدی"
             >
               <ChevronLeft className="size-5" />

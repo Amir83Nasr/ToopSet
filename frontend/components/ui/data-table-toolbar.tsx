@@ -20,12 +20,12 @@ export function SearchInput({
 }: SearchInputProps) {
   return (
     <div className="relative flex-1">
-      <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Search className="absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pr-10"
+        className="pe-10"
         {...props}
       />
     </div>

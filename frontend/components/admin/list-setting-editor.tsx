@@ -143,7 +143,7 @@ export function ListSettingEditor({
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-bold text-muted-foreground">{label}</h2>
         <Button variant="outline" onClick={addItem}>
-          <Plus className="ml-1 size-4" />
+          <Plus className="me-1 size-4" />
           افزودن بند
         </Button>
       </div>
@@ -208,9 +208,9 @@ export function ListSettingEditor({
       <div className="mt-4 flex items-center gap-3">
         <Button onClick={handleSave} disabled={saving}>
           {saving ? (
-            <Loader2 className="ml-1.5 animate-spin" />
+            <Loader2 className="me-1.5 animate-spin" />
           ) : (
-            <Save className="ml-1.5" />
+            <Save className="me-1.5" />
           )}
           ذخیره {label}
         </Button>

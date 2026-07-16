@@ -173,7 +173,7 @@ export default function ContactMessagesPage() {
           disabled={loading}
         >
           <RefreshCw
-            className={`ml-1 size-4 ${loading ? "animate-spin" : ""}`}
+            className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
           />
           بروزرسانی
         </Button>
@@ -200,7 +200,7 @@ export default function ContactMessagesPage() {
           />
           {hasActiveFilter && (
             <Button variant="outline" onClick={clearFilters}>
-              <X className="ml-1.5 size-4" />
+              <X className="me-1.5 size-4" />
               حذف فیلتر
             </Button>
           )}
@@ -210,7 +210,7 @@ export default function ContactMessagesPage() {
       {/* Loading */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="ml-2 size-5 animate-spin" />
+          <Loader2 className="me-2 size-5 animate-spin" />
           در حال بارگذاری...
         </div>
       ) : messages.length === 0 ? (
@@ -358,7 +358,7 @@ export default function ContactMessagesPage() {
                 selectedMessage && setDeleteTarget(selectedMessage)
               }
             >
-              <Trash2 className="ml-1 size-4" />
+              <Trash2 className="me-1 size-4" />
               حذف پیام
             </Button>
           </ResponsiveDialogFooter>

@@ -165,7 +165,7 @@ export default function VendorsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => fetchVendors()}>
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             بروزرسانی
           </Button>
         </div>
@@ -227,7 +227,7 @@ export default function VendorsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="ml-2 size-5 animate-spin" />
+          <Loader2 className="me-2 size-5 animate-spin" />
           در حال بارگذاری...
         </div>
       ) : vendors.length === 0 ? (
@@ -238,7 +238,7 @@ export default function VendorsPage() {
             {user?.role === "manager" && (
               <Button asChild>
                 <Link href="/dashboard/vendors/create">
-                  <Plus className="ml-1.5 size-4" />
+                  <Plus className="me-1.5 size-4" />
                   ثبت اولین مجموعه
                 </Link>
               </Button>

@@ -218,7 +218,7 @@ export default function UsersPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => fetchUsers()}>
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             بروزرسانی
           </Button>
         </div>
@@ -285,7 +285,7 @@ export default function UsersPage() {
       {/* Loading state */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="ml-2 size-5 animate-spin" />
+          <Loader2 className="me-2 size-5 animate-spin" />
           در حال بارگذاری...
         </div>
       ) : users.length === 0 ? (
@@ -364,7 +364,7 @@ export default function UsersPage() {
                           onClick={() => handleToggleActive(u.id, u.is_active)}
                         >
                           {updatingId === u.id ? (
-                            <Loader2 className="ml-1 size-4 animate-spin" />
+                            <Loader2 className="me-1 size-4 animate-spin" />
                           ) : (
                             <ToggleRight data-icon="inline-start" />
                           )}

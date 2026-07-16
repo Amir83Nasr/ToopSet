@@ -209,7 +209,7 @@ function BookPageContent() {
             <AlertTriangle className="size-12 text-muted-foreground" />
             <p className="text-lg text-muted-foreground">لینک ناقص است</p>
             <Button variant="outline" onClick={() => router.push("/")}>
-              <ArrowRight className="ml-2 size-4" />
+              <ArrowRight className="me-2 size-4" />
               بازگشت به صفحه اصلی
             </Button>
           </div>
@@ -314,7 +314,7 @@ function BookPageContent() {
               </Card>
 
               <Button className="w-full" size="lg" onClick={handleConfirm}>
-                <CreditCard className="ml-2 size-5" />
+                <CreditCard className="me-2 size-5" />
                 تأیید و پرداخت
               </Button>
             </div>
@@ -342,7 +342,7 @@ function BookPageContent() {
                 </CardDescription>
                 <Button asChild>
                   <Link href={`/vendors/${vendorId}`}>
-                    <ArrowRight className="ml-2 size-4" />
+                    <ArrowRight className="me-2 size-4" />
                     انتخاب سانس دیگر
                   </Link>
                 </Button>
@@ -363,7 +363,7 @@ function BookPageContent() {
                   variant="outline"
                   onClick={() => router.push(`/vendors/${vendorId}`)}
                 >
-                  <ArrowRight className="ml-2 size-4" />
+                  <ArrowRight className="me-2 size-4" />
                   بازگشت
                 </Button>
               </CardContent>

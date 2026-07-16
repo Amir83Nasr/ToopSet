@@ -185,7 +185,7 @@ export default function AdminSettingsPage() {
           disabled={loading}
         >
           <RefreshCw
-            className={`ml-1.5 size-4 ${loading ? "animate-spin" : ""}`}
+            className={`me-1.5 size-4 ${loading ? "animate-spin" : ""}`}
           />
           بروزرسانی
         </Button>

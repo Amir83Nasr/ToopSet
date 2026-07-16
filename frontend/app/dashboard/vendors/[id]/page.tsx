@@ -297,7 +297,7 @@ export default function DashboardVendorEditPage() {
           variant="outline"
           onClick={() => router.push("/dashboard/vendors")}
         >
-          <ArrowRight className="ml-2 size-4" />
+          <ArrowRight className="me-2 size-4" />
           بازگشت به لیست
         </Button>
       </div>

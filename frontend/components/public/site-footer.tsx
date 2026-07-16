@@ -157,11 +157,7 @@ export function SiteFooter() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() =>
-              document
-                .getElementById("toopset-root")
-                ?.scrollTo({ top: 0, behavior: "smooth" })
-            }
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="بازگشت به بالا"
             className="text-xs text-muted-foreground hover:gap-2 hover:text-foreground"
           >

@@ -70,7 +70,7 @@ export function ErrorPage({
     <div className="flex flex-wrap items-center justify-center gap-3">
       {onRetry && (
         <Button variant="default" onClick={onRetry}>
-          <RefreshCw className="ml-1.5 size-4" />
+          <RefreshCw className="me-1.5 size-4" />
           {retryLabel}
         </Button>
       )}
@@ -78,7 +78,7 @@ export function ErrorPage({
       {showHome && (
         <Button variant="outline" asChild>
           <Link href={homeHref}>
-            <Home className="ml-1.5 size-4" />
+            <Home className="me-1.5 size-4" />
             {homeLabel}
           </Link>
         </Button>
@@ -90,7 +90,7 @@ export function ErrorPage({
           size="sm"
           onClick={() => window.history.back()}
         >
-          <ChevronRight className="ml-1.5 size-4" />
+          <ChevronRight className="me-1.5 size-4" />
           {backLabel}
         </Button>
       )}
@@ -136,14 +136,14 @@ export function ErrorPage({
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
             {onRetry && (
               <Button variant="default" onClick={onRetry}>
-                <RefreshCw className="ml-1.5 size-4" />
+                <RefreshCw className="me-1.5 size-4" />
                 {retryLabel}
               </Button>
             )}
             {showHome && (
               <Button variant="outline" asChild>
                 <Link href={homeHref}>
-                  <Home className="ml-1.5 size-4" />
+                  <Home className="me-1.5 size-4" />
                   {homeLabel}
                 </Link>
               </Button>

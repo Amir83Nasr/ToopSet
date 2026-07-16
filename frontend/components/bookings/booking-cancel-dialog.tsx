@@ -184,7 +184,7 @@ export function BookingCancelDialog({
               >
                 {loading ? (
                   <>
-                    <Loader2 className="ml-1 size-4 animate-spin" />
+                    <Loader2 className="me-1 size-4 animate-spin" />
                     در حال لغو...
                   </>
                 ) : (

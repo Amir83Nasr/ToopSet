@@ -67,7 +67,7 @@ export function VendorFinanceTab({
             onClick={onRefresh}
             disabled={financeLoading || bookingsLoading}
           >
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             بروزرسانی
           </Button>
           <Button
@@ -81,9 +81,9 @@ export function VendorFinanceTab({
             }
           >
             {settlementRequesting ? (
-              <Loader2 className="ml-1.5 size-4 animate-spin" />
+              <Loader2 className="me-1.5 size-4 animate-spin" />
             ) : (
-              <Wallet className="ml-1.5 size-4" />
+              <Wallet className="me-1.5 size-4" />
             )}
             درخواست تسویه موارد قابل تسویه
           </Button>

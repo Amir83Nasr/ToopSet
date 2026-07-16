@@ -224,7 +224,7 @@ export default function BookingsPage() {
           <p className="text-muted-foreground">مدیریت رزروهای ورزشی شما</p>
         </div>
         <Button variant="outline" onClick={() => fetchBookings()}>
-          <RefreshCw className="ml-1.5 size-4" />
+          <RefreshCw className="me-1.5 size-4" />
           بروزرسانی
         </Button>
       </div>

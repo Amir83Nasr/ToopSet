@@ -96,7 +96,7 @@ export default function UserDetailPage() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" asChild>
           <Link href="/dashboard/users">
-            <ChevronRight className="ml-1 size-4" />
+            <ChevronRight className="me-1 size-4" />
             بازگشت
           </Link>
         </Button>

@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/icons/profile/profile.svg" />
-    <img src="docs/icons/profile/profile.svg" alt="ToopSet" width="120" />
+    <source media="(prefers-color-scheme: dark)" srcset="docs/icons/profile/logo.svg" />
+    <img src="docs/icons/profile/logo.svg" alt="ToopSet" width="120" />
   </picture>
 </p>
 
@@ -33,6 +33,7 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 ## Features
 
 ### Core Booking
+
 - **Court discovery** — browse by sport type, location (Neshan Maps), rating, and availability
 - **Time slot booking** — 7-day view with real-time availability, optimistic locking prevents double-booking
 - **Payment flow** — 10-minute payment window with simulated success/fraud/timeout scenarios
@@ -40,6 +41,7 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 - **Reviews & ratings** — per-court reviews with manager response capability
 
 ### Authentication & Security
+
 - **4-tier auth** — optional user, required user, manager-gated, admin-gated
 - **JWT with key rotation** — HS256, kid header, dual-key support for seamless rotation
 - **Refresh token rotation** — session-bound refresh tokens, hashed storage, automatic rotation detection
@@ -51,6 +53,7 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 - **OTP rate limiting** — lockout tracking with Prometheus counter, Redis-backed cooldown
 
 ### Observability (Phase C-4)
+
 - **Correlation IDs** — X-Request-ID propagation across all services, injected into logs and error responses
 - **OpenTelemetry** — configurable OTLP exporter, instruments FastAPI, SQLAlchemy, Redis, HTTPX
 - **Request profiler** — per-request DB/Redis timing breakdown, slow-request logging at configurable threshold
@@ -60,6 +63,7 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 - **SLO definitions** — availability (99.9%), latency P99 (500ms), error rate (1%)
 
 ### Pagination & Performance
+
 - **Cursor-based pagination** — O(log n) B-tree seek pagination via `WHERE id > :cursor`, base64-encoded cursors, backward-compatible with existing list schemas
 - **Redis caching** — time slot lists cached per court_id+date, graceful degradation on Redis failure
 - **Connection pooling** — asyncpg pool with tuneable size/overflow/recycle/timeout, pool_pre_ping for stale connection detection
@@ -67,12 +71,14 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 - **Query timing** — slow query logging at 200ms threshold, profiler integration with Prometheus histograms
 
 ### Infrastructure
+
 - **Docker Compose** — development (`compose.yml`: postgres + redis) and production (`compose.prod.yml`: postgres + redis + backend with healthchecks, PgBouncer/Caddy options commented)
 - **Multi-stage Dockerfile** — Python 3.12-slim, non-root user, layer caching, graceful shutdown
 - **CI/CD** — GitHub Actions: backend lint/tests on PR, Docker image build & push on tag
 - **Environment validation** — strict startup check for SECRET_KEY length, CORS origins, DB/Redis config
 
 ### UI/UX
+
 - **Persian-first** — RTL layout, IranYekanX font (10 weights), Jalali calendar, Persian digits throughout
 - **Dark mode** — next-themes with view-transition theme spread animation
 - **shadcn/ui** — 36 primitives from radix-nova, all RTL-adapted
@@ -84,17 +90,17 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 
 ## Stack
 
-| Layer        | Technology                                                       |
-| ------------ | ---------------------------------------------------------------- |
-| **Frontend** | Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui    |
-| **Backend**  | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic        |
-| **Database** | PostgreSQL 17 + Redis 7                                          |
-| **Auth**     | JWT (HS256) + bcrypt + refresh token rotation + session mgmt     |
-| **Maps**     | Neshan Maps SDK (Qom-bounded, CartoDB fallback)                  |
-| **Locale**   | Persian (fa-IR) — RTL layout, Jalali dates, Persian digits       |
-| **Monitoring**| Prometheus + Grafana + OpenTelemetry + Sentry                   |
-| **Container**| Docker Compose (multi-stage builds, healthchecks)                |
-| **CI/CD**    | GitHub Actions (lint, test, build, publish)                      |
+| Layer          | Technology                                                   |
+| -------------- | ------------------------------------------------------------ |
+| **Frontend**   | Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui |
+| **Backend**    | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic     |
+| **Database**   | PostgreSQL 17 + Redis 7                                      |
+| **Auth**       | JWT (HS256) + bcrypt + refresh token rotation + session mgmt |
+| **Maps**       | Neshan Maps SDK (Qom-bounded, CartoDB fallback)              |
+| **Locale**     | Persian (fa-IR) — RTL layout, Jalali dates, Persian digits   |
+| **Monitoring** | Prometheus + Grafana + OpenTelemetry + Sentry                |
+| **Container**  | Docker Compose (multi-stage builds, healthchecks)            |
+| **CI/CD**      | GitHub Actions (lint, test, build, publish)                  |
 
 ---
 
@@ -117,6 +123,7 @@ Repository Layer (repositories/*.py) ─── async SQLAlchemy queries
 ```
 
 **Middleware stack** (applied in order):
+
 1. `CORSMiddleware`
 2. `CorrelationIdMiddleware` — X-Request-ID propagation
 3. `ProfilerMiddleware` — per-request timing breakdown
@@ -125,6 +132,7 @@ Repository Layer (repositories/*.py) ─── async SQLAlchemy queries
 6. `SlowAPIMiddleware` — Redis-backed rate limiting
 
 **Background tasks** (asyncio, lifespan-managed):
+
 - Metrics refresh — polls DB every 120s for business gauges
 - Expired booking cleanup — cancels pending bookings past 10-min window every 60s
 
@@ -183,25 +191,25 @@ Run `make doctor` to verify your system setup.
 
 ## Documentation Index
 
-| File                                       | Content                                    |
-| ------------------------------------------ | ------------------------------------------ |
-| [architect.md](context/architect.md)       | Architecture layers, data flow, stack      |
-| [backend.md](context/backend.md)           | Models, services, auth deps, key decisions |
-| [frontend.md](context/frontend.md)         | Pages, components, API client, maps        |
-| [ui.md](context/ui.md)                     | Component structure, layout, theming       |
-| [commands.md](context/commands.md)         | Full Makefile reference                    |
-| [commit.md](context/commit.md)             | Conventional Commits type/scope rules      |
-| [config.md](context/config.md)             | Code style, naming, env vars               |
-| [memory.md](context/memory.md)             | Engineering memory & project history       |
+| File                                 | Content                                    |
+| ------------------------------------ | ------------------------------------------ |
+| [architect.md](context/architect.md) | Architecture layers, data flow, stack      |
+| [backend.md](context/backend.md)     | Models, services, auth deps, key decisions |
+| [frontend.md](context/frontend.md)   | Pages, components, API client, maps        |
+| [ui.md](context/ui.md)               | Component structure, layout, theming       |
+| [commands.md](context/commands.md)   | Full Makefile reference                    |
+| [commit.md](context/commit.md)       | Conventional Commits type/scope rules      |
+| [config.md](context/config.md)       | Code style, naming, env vars               |
+| [memory.md](context/memory.md)       | Engineering memory & project history       |
 
 ---
 
 ## Testing
 
-| Layer      | Framework | Count      |
-| ---------- | --------- | ---------- |
-| Backend    | pytest    | 248 tests  |
-| Frontend   | vitest    | Component tests |
+| Layer    | Framework | Count           |
+| -------- | --------- | --------------- |
+| Backend  | pytest    | 248 tests       |
+| Frontend | vitest    | Component tests |
 
 Run all tests: `make test`
 

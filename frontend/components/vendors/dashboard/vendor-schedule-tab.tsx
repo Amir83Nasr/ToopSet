@@ -296,7 +296,7 @@ export function VendorScheduleTab({
                 size="sm"
                 onClick={() => setShowBulkGen(true)}
               >
-                <Plus className="ml-1 size-3.5" />
+                <Plus className="me-1 size-3.5" />
                 ایجاد گروهی
               </Button>
               <Button
@@ -304,7 +304,7 @@ export function VendorScheduleTab({
                 size="sm"
                 onClick={handleDeletePastSlots}
               >
-                <Trash2 className="ml-1 size-3.5" />
+                <Trash2 className="me-1 size-3.5" />
                 پاکسازی گذشته
               </Button>
             </>
@@ -463,7 +463,7 @@ export function VendorScheduleTab({
             >
               {editLoading ? (
                 <>
-                  <Loader2 className="ml-1 size-4 animate-spin" />
+                  <Loader2 className="me-1 size-4 animate-spin" />
                   در حال ذخیره...
                 </>
               ) : (

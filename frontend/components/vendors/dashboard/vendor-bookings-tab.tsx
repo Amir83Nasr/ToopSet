@@ -204,7 +204,7 @@ export function VendorBookingsTab({
         </div>
         <div className="text-sm font-medium">{weekLabel}</div>
         <Button variant="outline" onClick={onRefresh}>
-          <RefreshCw className="ml-1.5 size-4" />
+          <RefreshCw className="me-1.5 size-4" />
           بروزرسانی
         </Button>
       </div>
@@ -454,7 +454,7 @@ export function VendorBookingsTab({
                 }
               >
                 {cancellingLoading && (
-                  <Loader2 className="ml-1 size-4 animate-spin" />
+                  <Loader2 className="me-1 size-4 animate-spin" />
                 )}
                 لغو بدون آزادسازی
               </Button>
@@ -467,7 +467,7 @@ export function VendorBookingsTab({
                 }
               >
                 {cancellingLoading && (
-                  <Loader2 className="ml-1 size-4 animate-spin" />
+                  <Loader2 className="me-1 size-4 animate-spin" />
                 )}
                 لغو و آزادسازی
               </Button>
@@ -561,7 +561,7 @@ export function VendorBookingsTab({
               onClick={handleManualSlotBooking}
             >
               {manualBookingLoading && (
-                <Loader2 className="ml-1 size-4 animate-spin" />
+                <Loader2 className="me-1 size-4 animate-spin" />
               )}
               ثبت رزرو
             </Button>

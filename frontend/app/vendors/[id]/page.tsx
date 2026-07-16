@@ -859,7 +859,7 @@ export default function PublicVendorDetailPage() {
                   <ImagePlus className="size-4 shrink-0 text-primary" />
                   گالری تصاویر
                   {vendor.images && vendor.images.length > 0 && (
-                    <span className="mr-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="ms-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                       {toPersianDigits(vendor.images.length)}
                     </span>
                   )}
@@ -880,9 +880,19 @@ export default function PublicVendorDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="py-1 text-xs text-muted-foreground/60">
-                    تصویری برای این مجموعه ثبت نشده است
-                  </p>
+                  <div className="flex flex-col items-center gap-3 py-8 text-center">
+                    <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+                      <ImagePlus className="size-7 text-muted-foreground/40" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        تصویری ثبت نشده
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground/60">
+                        هنوز عکسی برای این مجموعه آپلود نشده است
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
 

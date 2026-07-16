@@ -160,7 +160,8 @@ db-reset: ## Wipe and recreate database volumes
 	fi
 
 db-seed: ## Seed database with test data
-	@cd $(BACKEND_DIR) && python3 -m scripts.seed
+	@cd $(BACKEND_DIR) && python3 scripts/generate-placeholder-court-images.py -q 2>/dev/null; \
+		python3 -m scripts.seed
 	@echo "  $(GREEN)✓$(RESET) Database seeded"
 
 # ─── Docker: Full Stack ───────────────────────────────────────────────────────

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, type ComponentType } from "react"
+import { useState, Fragment, type ComponentType } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
 import { motion, useReducedMotion, type Variants } from "framer-motion"
 import { useAuth } from "@/hooks/use-auth"
+import { useDirection } from "@radix-ui/react-direction"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -54,6 +55,7 @@ import {
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import { buildAvatarUrl } from "@/lib/api"
 import { cn, getInitials, toPersianDigits } from "@/lib/utils"
+import { navGroups } from "@/lib/navigation"
 
 type NavIcon = ComponentType<{ className?: string }>
 
@@ -158,7 +160,7 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
-  const [isRtl] = useState(true)
+  const isRtl = useDirection() === "rtl"
 
   const closeMobile = () => setMobileOpen(false)
 
@@ -197,7 +199,7 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
             <Image
-              src="/icons/profile.svg"
+              src="/icons/logo.svg"
               alt="توپ‌سِت"
               width={36}
               height={36}
@@ -547,7 +549,7 @@ export function SiteHeader() {
                 <SheetTitle className="flex items-center gap-2 text-lg font-bold">
                   <span className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
                     <Image
-                      src="/icons/profile.svg"
+                      src="/icons/logo.svg"
                       alt="توپ‌سِت"
                       width={36}
                       height={36}
@@ -616,43 +618,52 @@ export function SiteHeader() {
                     variants={itemVariants}
                   />
                 ))}
-                {isAuthenticated && (
-                  <MobileNavItem
-                    href="/dashboard/bookings"
-                    label="رزروهای من"
-                    icon={Calendar}
-                    active={isActivePath("/dashboard/bookings")}
-                    onNavigate={closeMobile}
-                    variants={itemVariants}
-                  />
-                )}
-
-                {isAuthenticated && user && (
-                  <>
-                    <motion.p
-                      variants={itemVariants}
-                      className="px-2.5 pt-5 pb-1.5 text-xs font-medium text-muted-foreground/70"
-                    >
-                      حساب کاربری
-                    </motion.p>
-                    <MobileNavItem
-                      href="/dashboard"
-                      label="داشبورد"
-                      icon={LayoutDashboard}
-                      active={pathname === "/dashboard"}
-                      onNavigate={closeMobile}
-                      variants={itemVariants}
-                    />
-                    <MobileNavItem
-                      href="/dashboard/settings"
-                      label="تنظیمات"
-                      icon={Settings}
-                      active={isActivePath("/dashboard/settings")}
-                      onNavigate={closeMobile}
-                      variants={itemVariants}
-                    />
-                  </>
-                )}
+                {isAuthenticated && user
+                  ? navGroups
+                      .filter((g) => g.roles.includes(user.role))
+                      .filter((g) => g.items.length > 0)
+                      .map((group) => (
+                        <Fragment key={group.label + user.role}>
+                          <motion.p
+                            variants={itemVariants}
+                            className="px-2.5 pt-5 pb-1.5 text-xs font-medium text-muted-foreground/70"
+                          >
+                            {group.label}
+                          </motion.p>
+                          {group.items.map((item) => {
+                            // Dashboard root items match exact path only
+                            const isDashboardRoot = [
+                              "/dashboard/admin",
+                              "/dashboard/manager",
+                              "/dashboard/user",
+                            ].includes(item.url)
+                            const isActive = isDashboardRoot
+                              ? pathname === item.url
+                              : isActivePath(item.url)
+                            return (
+                              <MobileNavItem
+                                key={item.url}
+                                href={item.url}
+                                label={item.title}
+                                icon={item.icon}
+                                active={isActive}
+                                onNavigate={closeMobile}
+                                variants={itemVariants}
+                              />
+                            )
+                          })}
+                        </Fragment>
+                      ))
+                  : isAuthenticated && (
+                      <MobileNavItem
+                        href="/dashboard/bookings"
+                        label="رزروهای من"
+                        icon={Calendar}
+                        active={isActivePath("/dashboard/bookings")}
+                        onNavigate={closeMobile}
+                        variants={itemVariants}
+                      />
+                    )}
               </motion.div>
 
               {/* ── Pinned auth footer ── */}

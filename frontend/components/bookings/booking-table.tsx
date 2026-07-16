@@ -164,9 +164,9 @@ export function BookingTable({
                         onClick={() => onPay(b.id)}
                       >
                         {payingId === b.id ? (
-                          <Loader2 className="ml-1 size-4 animate-spin" />
+                          <Loader2 className="me-1 size-4 animate-spin" />
                         ) : (
-                          <CreditCard className="ml-1 size-4" />
+                          <CreditCard className="me-1 size-4" />
                         )}
                         پرداخت
                       </Button>
@@ -176,7 +176,7 @@ export function BookingTable({
                         className="flex-1"
                         onClick={() => onCancelClick(b)}
                       >
-                        <XCircle className="ml-1 size-4" />
+                        <XCircle className="me-1 size-4" />
                         لغو
                       </Button>
                     </>
@@ -188,7 +188,7 @@ export function BookingTable({
                       className="flex-1"
                       onClick={() => onCancelClick(b)}
                     >
-                      <XCircle className="ml-1 size-4" />
+                      <XCircle className="me-1 size-4" />
                       لغو سانس
                     </Button>
                   )}
@@ -273,9 +273,9 @@ export function BookingTable({
                           onClick={() => onPay(b.id)}
                         >
                           {payingId === b.id ? (
-                            <Loader2 className="ml-1 size-4 animate-spin" />
+                            <Loader2 className="me-1 size-4 animate-spin" />
                           ) : (
-                            <CreditCard className="ml-1 size-4" />
+                            <CreditCard className="me-1 size-4" />
                           )}
                           پرداخت
                         </Button>
@@ -284,7 +284,7 @@ export function BookingTable({
                           size="sm"
                           onClick={() => onCancelClick(b)}
                         >
-                          <XCircle className="ml-1 size-4" />
+                          <XCircle className="me-1 size-4" />
                           لغو
                         </Button>
                       </>
@@ -295,7 +295,7 @@ export function BookingTable({
                         size="sm"
                         onClick={() => onCancelClick(b)}
                       >
-                        <XCircle className="ml-1 size-4" />
+                        <XCircle className="me-1 size-4" />
                         لغو
                       </Button>
                     )}

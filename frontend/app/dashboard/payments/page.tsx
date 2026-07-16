@@ -192,7 +192,7 @@ export default function PaymentsPage() {
           <p className="text-lg text-muted-foreground">خطا در دریافت اطلاعات</p>
           <p className="text-sm text-muted-foreground/60">{error}</p>
           <Button variant="outline" onClick={fetchPayments}>
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             تلاش مجدد
           </Button>
         </CardContent>
@@ -216,7 +216,7 @@ export default function PaymentsPage() {
           </p>
           <Button asChild>
             <Link href="/dashboard/vendors">
-              <CreditCard className="ml-2 size-4" />
+              <CreditCard className="me-2 size-4" />
               رزرو مجموعه
             </Link>
           </Button>
@@ -360,7 +360,7 @@ export default function PaymentsPage() {
           <p className="text-muted-foreground">تاریخچه پرداخت‌های شما</p>
         </div>
         <Button variant="outline" onClick={() => fetchPayments()}>
-          <RefreshCw className="ml-1.5 size-4" />
+          <RefreshCw className="me-1.5 size-4" />
           بروزرسانی
         </Button>
       </div>

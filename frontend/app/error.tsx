@@ -55,12 +55,12 @@ export default function Error({
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button variant="default" onClick={reset}>
-            <RefreshCw className="ml-1.5 size-4" />
+            <RefreshCw className="me-1.5 size-4" />
             تلاش مجدد
           </Button>
           <Button variant="outline" asChild>
             <Link href="/">
-              <Home className="ml-1.5 size-4" />
+              <Home className="me-1.5 size-4" />
               صفحه اصلی
             </Link>
           </Button>

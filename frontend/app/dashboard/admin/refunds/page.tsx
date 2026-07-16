@@ -160,7 +160,7 @@ export default function AdminRefundsPage() {
           </p>
         </div>
         <Button variant="outline" onClick={fetchRefunds}>
-          <RefreshCw className="ml-1 size-4" />
+          <RefreshCw className="me-1 size-4" />
           بروزرسانی
         </Button>
       </div>
@@ -207,7 +207,7 @@ export default function AdminRefundsPage() {
           />
           {hasActiveFilter && (
             <Button variant="outline" onClick={clearFilters}>
-              <X className="ml-1.5 size-4" />
+              <X className="me-1.5 size-4" />
               حذف فیلتر
             </Button>
           )}

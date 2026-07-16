@@ -116,7 +116,7 @@ export default function CreateVendorPage() {
     <div className="pb-12">
       <div className="mb-8">
         <Button variant="ghost" className="mb-4" onClick={() => router.back()}>
-          <ArrowRight className="ml-2 size-4" />
+          <ArrowRight className="me-2 size-4" />
           بازگشت
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">

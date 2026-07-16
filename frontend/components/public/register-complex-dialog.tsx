@@ -121,12 +121,15 @@ export function RegisterComplexDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="sm:max-w-md">
-        {/* Loading */}
+        {/* Loading — brief transitional */}
         {step === "loading" && (
           <>
             <ResponsiveDialogTitle className="sr-only">
               در حال دریافت اطلاعات
             </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="sr-only">
+              در حال بررسی وضعیت درخواست شما
+            </ResponsiveDialogDescription>
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
@@ -153,7 +156,7 @@ export function RegisterComplexDialog({
                 دسترسی می‌توانید مجموعه ورزشی خود را ثبت کنید.
               </p>
               <p className="font-medium text-muted-foreground">مراحل:</p>
-              <ol className="mr-4 list-outside list-decimal space-y-2 text-muted-foreground">
+              <ol className="ms-4 list-outside list-decimal space-y-2 text-muted-foreground">
                 <li>اطلاعات خود را برای ادمین ارسال کنید</li>
                 <li>ادمین درخواست شما را بررسی می‌کند</li>
                 <li>پس از تأیید، دسترسی مدیر مجموعه برای شما فعال می‌شود</li>
@@ -171,7 +174,7 @@ export function RegisterComplexDialog({
                   setStep("form")
                 }}
               >
-                <Send className="ml-1 size-4" />
+                <Send className="me-1 size-4" />
                 ارسال درخواست
               </Button>
             </ResponsiveDialogFooter>
@@ -238,7 +241,7 @@ export function RegisterComplexDialog({
                 onClick={handleSubmit}
                 disabled={!vendorName.trim() || !phone.trim()}
               >
-                <Send className="ml-1 size-4" />
+                <Send className="me-1 size-4" />
                 ارسال درخواست
               </Button>
             </ResponsiveDialogFooter>
@@ -251,6 +254,9 @@ export function RegisterComplexDialog({
             <ResponsiveDialogTitle className="sr-only">
               در حال ارسال درخواست
             </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="sr-only">
+              در حال ارسال اطلاعات درخواست شما به ادمین
+            </ResponsiveDialogDescription>
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="size-8 animate-spin text-primary" />
               <p className="text-sm font-medium">در حال ارسال درخواست...</p>
@@ -266,11 +272,15 @@ export function RegisterComplexDialog({
                 <CheckCircle2 className="size-5 text-status-confirmed" />
                 درخواست با موفقیت ثبت شد
               </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
+                درخواست شما برای ادمین ارسال شد و پس از تأیید دسترسی مدیر مجموعه
+                برای شما فعال می‌شود.
+              </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
 
             <div className="space-y-3 rounded-lg border p-4 text-sm leading-relaxed">
               <p>درخواست شما برای ادمین ارسال شد.</p>
-              <ul className="mr-4 list-outside list-disc space-y-2 text-muted-foreground">
+              <ul className="ms-4 list-outside list-disc space-y-2 text-muted-foreground">
                 <li>ادمین درخواست شما را بررسی خواهد کرد</li>
                 <li>پس از تأیید، دسترسی مدیر مجموعه برای شما فعال می‌شود</li>
                 <li>از طریق پیام درون‌برنامه‌ای از نتیجه مطلع خواهید شد</li>
@@ -297,13 +307,17 @@ export function RegisterComplexDialog({
                 <Building2 className="size-5 text-muted-foreground" />
                 درخواست در انتظار بررسی
               </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
+                شما قبلاً یک درخواست ثبت کرده‌اید. پس از تأیید ادمین دسترسی مدیر
+                مجموعه برای شما فعال می‌شود.
+              </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
 
             <div className="space-y-3 rounded-lg border p-4 text-sm leading-relaxed">
               <p>
                 شما قبلاً یک درخواست ثبت کرده‌اید که در انتظار بررسی ادمین است.
               </p>
-              <ul className="mr-4 list-outside list-disc space-y-2 text-muted-foreground">
+              <ul className="ms-4 list-outside list-disc space-y-2 text-muted-foreground">
                 <li>
                   پس از تأیید ادمین، دسترسی مدیر مجموعه برای شما فعال می‌شود
                 </li>

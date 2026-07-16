@@ -1,5 +1,6 @@
 import withBundleAnalyzer from "@next/bundle-analyzer"
 import { withSentryConfig } from "@sentry/nextjs"
+import withSerwist from "@serwist/next"
 
 const analyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -37,6 +38,9 @@ const nextConfig = {
       },
     ],
   },
+  // Serwist injects a webpack config — explicit empty turbopack config
+  // prevents Next.js 16 from erroring on mixed configs.
+  turbopack: {},
   // ── Proxy uploads through Next.js to avoid private-IP block ──
   async rewrites() {
     return [
@@ -56,6 +60,26 @@ const sentryConfig = {
   automaticVercelMonitors: false,
 }
 
-export default process.env.NEXT_PUBLIC_SENTRY_DSN
+// ── PWA / Service Worker ──────────────────────────────────────────────────────
+// Uses @serwist/next in production only. In dev, serwist runs in a no-op mode
+// (no precaching, no runtime caching) so hot-reload is unaffected.
+// Disable entirely by setting ENABLE_PWA=false in frontend/.env.local.
+const withPwa = process.env.ENABLE_PWA !== "false"
+
+const pwaConfig = withPwa
+  ? withSerwist({
+      // The service worker source — compiled at build time.
+      swSrc: "app/sw.ts",
+      swDest: "sw.js",
+      // In development, serwist injects a no-op SW so nothing is cached.
+      // To test PWA locally, set ENABLE_PWA_DEV=true in .env.local
+      // (requires a production build).
+      disable: process.env.NODE_ENV === "development" && process.env.ENABLE_PWA_DEV !== "true",
+    })
+  : (config) => config
+
+const baseConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
   ? withSentryConfig(analyzer(nextConfig), sentryConfig)
   : analyzer(nextConfig)
+
+export default pwaConfig(baseConfig)
