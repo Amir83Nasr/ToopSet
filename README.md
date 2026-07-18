@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/icons/profile/logo.svg" />
-    <img src="docs/icons/profile/logo.svg" alt="ToopSet" width="120" />
+    <source media="(prefers-color-scheme: dark)" srcset="docs/icons/profile/profile.svg" />
+    <img src="docs/icons/profile/profile.svg" alt="ToopSet" width="120" />
   </picture>
 </p>
 

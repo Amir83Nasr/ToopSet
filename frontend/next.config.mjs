@@ -36,6 +36,16 @@ const nextConfig = {
         port: "8000",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "https",
+        hostname: "*.railway.app",
+        pathname: "/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.railway.com",
+        pathname: "/uploads/**",
+      },
     ],
   },
   // Serwist injects a webpack config — explicit empty turbopack config

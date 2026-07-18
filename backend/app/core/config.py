@@ -13,14 +13,18 @@ class EnvValidationError(RuntimeError):
 
 
 class Settings(BaseSettings):
-    # Database
+    # Database — set DATABASE_URL (single connection string) for cloud providers
+    # like Neon, or set individual POSTGRES_* fields for local dev / Docker.
+    DATABASE_URL: str = ""  # direct asyncpg URI (takes priority over POSTGRES_*)
     postgres_db: str = "toopset"
     postgres_user: str = "toopset"
     postgres_password: str = "toopset_secret"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
 
-    # Redis
+    # Redis — set REDIS_URL (single connection string) for cloud providers
+    # like Upstash, or set individual REDIS_* fields for local dev / Docker.
+    REDIS_URL: str = ""  # direct redis URI (takes priority over REDIS_*)
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_password: str = ""
@@ -96,14 +100,28 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        """Database connection URL. Uses DATABASE_URL if set, otherwise builds from POSTGRES_*."""
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if "+asyncpg" not in url and url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return url
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     @property
     def database_url_sync(self) -> str:
+        if self.DATABASE_URL:
+            # Strip asyncpg prefix if present, return raw postgresql:// URL
+            url = self.DATABASE_URL
+            url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+            return url
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     @property
     def redis_url(self) -> str:
+        """Redis connection URL. Uses REDIS_URL if set, otherwise builds from REDIS_*."""
+        if self.REDIS_URL:
+            return self.REDIS_URL
         scheme = "rediss" if self.redis_ssl else "redis"
         if self.redis_password:
             return f"{scheme}://:{self.redis_password}@{self.redis_host}:{self.redis_port}/0"
@@ -147,18 +165,25 @@ def validate_env(settings: Settings | None = None) -> None:
         )
 
     # ── DATABASE_URL / individual DB settings ─────────────────────────
-    if not settings.postgres_host:
-        errors.append("POSTGRES_HOST must be set.")
-    if not settings.postgres_user:
-        errors.append("POSTGRES_USER must be set.")
-    if not settings.postgres_password:
-        errors.append("POSTGRES_PASSWORD must be set (use a strong password).")
-    if not settings.postgres_db:
-        errors.append("POSTGRES_DB must be set.")
+    if settings.DATABASE_URL:
+        if not settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://")):
+            errors.append(
+                "DATABASE_URL must start with postgresql:// or postgresql+asyncpg://. "
+                f"Got: {settings.DATABASE_URL[:40]}…"
+            )
+    else:
+        if not settings.postgres_host:
+            errors.append("POSTGRES_HOST must be set (or set DATABASE_URL).")
+        if not settings.postgres_user:
+            errors.append("POSTGRES_USER must be set (or set DATABASE_URL).")
+        if not settings.postgres_password:
+            errors.append("POSTGRES_PASSWORD must be set (or set DATABASE_URL).")
+        if not settings.postgres_db:
+            errors.append("POSTGRES_DB must be set (or set DATABASE_URL).")
 
     # ── REDIS_URL / individual Redis settings ─────────────────────────
-    if not settings.redis_host:
-        errors.append("REDIS_HOST must be set.")
+    if not settings.REDIS_URL and not settings.redis_host:
+        errors.append("REDIS_HOST or REDIS_URL must be set.")
 
     # ── CORS_ORIGINS ───────────────────────────────────────────────────
     cors = settings.cors_origins
@@ -188,24 +213,29 @@ def validate_env(settings: Settings | None = None) -> None:
             f"Must be one of: {', '.join(sorted(_VALID_LOG_LEVELS))}."
         )
 
-    # ── PRODUCTION-only checks ────────────────────────────────────────
-    if not _is_dev_defaults(settings):
-        if settings.app_environment.lower() in {"development", "dev", "test", "bootstrap"}:
-            errors.append("APP_ENVIRONMENT must not be development/bootstrap/test in production.")
+    # ── PRODUCTION-only checks (when APP_ENVIRONMENT=production) ──────
+    is_production = settings.app_environment.lower() == "production"
+
+    if is_production:
         if not settings.refresh_cookie_secure:
             errors.append(
                 "REFRESH_COOKIE_SECURE must be true in production so refresh tokens are only "
                 "sent over HTTPS. Set REFRESH_COOKIE_SECURE=false only for local HTTP development."
             )
+        if settings.refresh_cookie_samesite.lower() != "none":
+            errors.append(
+                "REFRESH_COOKIE_SAMESITE must be 'none' in production for cross-origin auth "
+                "(Vercel frontend → Railway backend). Set it to 'none' so the refresh token "
+                "cookie is sent on cross-origin POST requests."
+            )
         if settings.payment_gateway == "mock":
             errors.append(
-                "PAYMENT_GATEWAY is 'mock' in non-development environment. "
+                "PAYMENT_GATEWAY is 'mock' in production. "
                 "Set it to your real payment gateway identifier."
             )
         if settings.sms_provider == "mock":
             errors.append(
-                "SMS_PROVIDER is 'mock' in non-development environment. "
-                "Set it to your real SMS provider identifier."
+                "SMS_PROVIDER is 'mock' in production. Set it to your real SMS provider identifier."
             )
 
     if errors:
@@ -224,14 +254,3 @@ def _validate_sentry_dsn(dsn: str, errors: list[str]) -> None:
             "SENTRY_DSN format looks invalid. "
             "Expected: https://<key>@<org>.ingest.sentry.io/<project>"
         )
-
-
-def _is_dev_defaults(s: Settings) -> bool:
-    """Heuristic: returns ``True`` if at least one setting is still at its
-    obvious development-only default value."""
-    dev_signals = [
-        s.secret_key in ("change-me-to-a-random-secret-key", "change-me"),
-        s.postgres_host in ("localhost", "127.0.0.1"),
-        s.sms_provider == "mock",
-    ]
-    return any(dev_signals)

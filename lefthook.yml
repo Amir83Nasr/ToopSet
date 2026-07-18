@@ -17,7 +17,7 @@ pre-commit:
   commands:
     # ── General hygiene ────────────────────────────────────────────────────────
     trailing-whitespace:
-      glob: "*"
+      glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
       run: sed -i '' 's/[[:space:]]*$//' {staged_files}
       stage_fixed: true
 

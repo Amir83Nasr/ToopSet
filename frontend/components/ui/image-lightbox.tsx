@@ -91,7 +91,7 @@ export function ImageLightbox({
     >
       <ResponsiveDialogContent
         showCloseButton={false}
-        className="fixed z-9999 h-dvh w-svw max-w-none gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:top-1/2 md:h-[85vh] md:w-[90vw] md:max-w-none md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl"
+        className="fixed inset-s-0 top-0 z-9999 h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:inset-s-1/2 md:top-1/2 md:h-[85vh] md:w-[90vw] md:max-w-none md:translate-x-1/2 md:-translate-y-1/2 md:rounded-xl"
       >
         <ResponsiveDialogTitle className="sr-only">
           تصاویر {vendorName}
@@ -104,14 +104,14 @@ export function ImageLightbox({
           {/* Close */}
           <button
             onClick={() => onCloseRef.current()}
-            className="absolute end-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
+            className="absolute inset-s-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
             aria-label="بستن"
           >
             <X className="size-4" />
           </button>
 
           {/* Counter */}
-          <span className="absolute start-3 top-3 z-20 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white/70">
+          <span className="absolute inset-e-3 top-3 z-20 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white/70">
             {toPersianDigits(lightboxIndex + 1)} /{" "}
             {toPersianDigits(images.length)}
           </span>
@@ -120,10 +120,10 @@ export function ImageLightbox({
           {images.length > 1 && (
             <button
               onClick={goPrev}
-              className="absolute end-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
+              className="absolute inset-e-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
               aria-label="قبلی"
             >
-              <ChevronRight className="size-5" />
+              <ChevronLeft className="size-5" />
             </button>
           )}
 
@@ -131,10 +131,10 @@ export function ImageLightbox({
           {images.length > 1 && (
             <button
               onClick={goNext}
-              className="absolute start-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
+              className="absolute inset-s-3 z-20 flex size-10 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
               aria-label="بعدی"
             >
-              <ChevronLeft className="size-5" />
+              <ChevronRight className="size-5" />
             </button>
           )}
 

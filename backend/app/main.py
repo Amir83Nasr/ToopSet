@@ -139,14 +139,14 @@ async def lifespan(app: FastAPI):
         import logging
 
         logger = logging.getLogger(__name__)
-        if settings.secret_key == "change-me-to-a-random-secret-key":
-            logger.warning(
-                "Running with development defaults — skipping strict validation. "
-                "Set SECRET_KEY, CORS_ORIGINS, and other production env vars before deploying."
-            )
-        else:
+        if settings.app_environment.lower() == "production":
             logger.error(str(exc))
             raise
+        logger.warning(
+            "Local development — skipping strict validation (%s).\n%s",
+            str(exc)[:100],
+            "Set APP_ENVIRONMENT=production and configure all env vars before deploying.",
+        )
 
     # ── OpenTelemetry ─────────────────────────────────────────────────
     if settings.otel_enabled:
