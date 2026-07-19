@@ -1,6 +1,6 @@
 """Add manager_requests table
 
-Revision ID: 0021
+Revision ID: 0021_manager_requests
 Revises: 0020
 Create Date: 2026-07-11
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0021"
+revision: str = "0021_manager_requests"
 down_revision: str | None = "0020"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

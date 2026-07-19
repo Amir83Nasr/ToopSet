@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+from app.api.v1 import admin as admin_api
 from app.models.log import Log
 from app.models.setting import Setting
 from app.models.vendor import Vendor
@@ -204,6 +205,26 @@ class TestSettings:
         assert resp.status_code == 201
         data = resp.json()
         assert data["seeded"] > 0
+
+        settings_resp = await client.get("/api/v1/admin/settings", headers=headers)
+        settings_by_key = {item["key"]: item for item in settings_resp.json()}
+        assert settings_by_key["cancel_window_hours"]["value"] == "48"
+        assert "۱۰٪" in settings_by_key["rules_text"]["value"]
+        assert "۴۸ ساعت" in settings_by_key["rules_text"]["value"]
+
+    async def test_hero_delete_cannot_escape_upload_directory(self, tmp_path, monkeypatch) -> None:
+        upload_dir = tmp_path / "hero"
+        upload_dir.mkdir()
+        outside = tmp_path / "outside.txt"
+        outside.write_text("keep", encoding="utf-8")
+        inside = upload_dir / "inside.png"
+        inside.write_bytes(b"image")
+        monkeypatch.setattr(admin_api, "_HERO_UPLOAD_DIR", upload_dir)
+
+        assert admin_api._delete_hero_image("/uploads/hero/../outside.txt") is False
+        assert outside.exists()
+        assert admin_api._delete_hero_image("/uploads/hero/inside.png") is True
+        assert not inside.exists()
 
     async def test_list_settings_after_seed(self, client: AsyncClient, admin_token: dict) -> None:
         headers = {"Authorization": f"Bearer {admin_token['access_token']}"}

@@ -82,7 +82,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 def _make_response(
     status_code: int,
-    detail: str,
+    detail: str | dict | list,
     request: Request | None = None,
     error_code: str | None = None,
     fields: list[FieldError] | None = None,
@@ -104,7 +104,7 @@ async def http_exception_handler(request: Request, exc: Exception) -> JSONRespon
         raise exc
     return _make_response(
         status_code=exc.status_code,
-        detail=exc.detail if isinstance(exc.detail, str) else str(exc.detail),
+        detail=exc.detail,
         request=request,
         error_code=_status_to_code(exc.status_code),
         headers=exc.headers,
@@ -147,7 +147,12 @@ async def integrity_error_handler(request: Request, exc: Exception) -> JSONRespo
         elif "slug" in orig_msg:
             detail = "این شناسه قبلاً استفاده شده است"
 
-    logger.warning("IntegrityError: %s", exc)
+    constraint_name = getattr(getattr(exc, "orig", None), "constraint_name", None)
+    logger.warning(
+        "IntegrityError on %s (constraint=%s)",
+        request.url.path,
+        constraint_name or "unknown",
+    )
     return _make_response(
         status_code=status.HTTP_409_CONFLICT,
         detail=detail,

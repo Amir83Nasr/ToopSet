@@ -5,6 +5,8 @@ Each test manages its own Redis OTP code + phone to stay fully isolated.
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,7 @@ from app.core.redis_client import get_redis
 from app.models.user import User, UserRole
 from app.repositories.user_repo import OTP_PLACEHOLDER_HASH
 from app.services.otp_service import (
+    _CONSUME_OTP_SCRIPT,
     OTP_FAIL_PREFIX,
     OTP_PREFIX,
     OTP_SEND_PREFIX,
@@ -52,7 +55,8 @@ class TestSendOtp:
         await provider.send_otp("09120000110", "123456")
 
         captured = capsys.readouterr()
-        assert "[SMS Mock] OTP for 09120000110: 123456" in captured.out
+        assert "Phone: 09120000110" in captured.out
+        assert "Code:  123456" in captured.out
 
     async def test_mock_provider_prints_generic_message_to_terminal(self, capsys) -> None:
         provider = MockSmsProvider()
@@ -293,6 +297,29 @@ class TestVerifyOtp:
 
 
 class TestOtpEdgeCases:
+    async def test_concurrent_otp_consumption_has_exactly_one_winner(self) -> None:
+        phone = "09120000309"
+        await _set_otp(phone)
+        redis = await get_redis()
+
+        async def consume() -> int:
+            return int(
+                await redis.eval(
+                    _CONSUME_OTP_SCRIPT,
+                    3,
+                    f"{OTP_PREFIX}{phone}",
+                    f"{OTP_FAIL_PREFIX}{phone}",
+                    f"{OTP_SEND_PREFIX}{phone}",
+                    TEST_CODE,
+                    OTP_TTL,
+                    5,
+                    1,
+                )
+            )
+
+        results = await asyncio.gather(consume(), consume())
+        assert sorted(results) == [0, 1]
+
     async def test_verify_code_one_time_use(
         self,
         client: AsyncClient,

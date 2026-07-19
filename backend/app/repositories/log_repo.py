@@ -70,9 +70,9 @@ class LogRepo:
             count_q = count_q.where(Log.created_at <= date_to)
         total = (await self.db.execute(count_q)).scalar_one()
 
-        query = select(Log).options(joinedload(Log.user)).order_by(Log.created_at.desc())
+        query = select(Log).options(joinedload(Log.user)).order_by(Log.id.desc())
         if after_id is not None:
-            query = query.where(Log.id > after_id)
+            query = query.where(Log.id < after_id)
         if action:
             query = query.where(Log.action == action)
         if user_id is not None:

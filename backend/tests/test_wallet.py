@@ -127,7 +127,7 @@ class TestBankCards:
             headers=headers,
         )
         assert first_confirm.status_code == 200
-        assert first_confirm.json()["masked_card_number"] == "603799******7891"
+        assert first_confirm.json()["masked_card_number"] == "6037-****-****-7891"
 
         second_lookup = await client.post(
             "/api/v1/wallet/bank-cards/lookup",
@@ -143,11 +143,11 @@ class TestBankCards:
             headers=headers,
         )
         assert second_confirm.status_code == 200
-        assert second_confirm.json()["masked_card_number"] == "589210******7890"
+        assert second_confirm.json()["masked_card_number"] == "5892-****-****-7890"
 
         verified = await client.get("/api/v1/wallet/bank-cards/verified", headers=headers)
         assert verified.status_code == 200
-        assert verified.json()["masked_card_number"] == "589210******7890"
+        assert verified.json()["masked_card_number"] == "5892-****-****-7890"
 
         count = await session.scalar(
             select(func.count()).select_from(BankCard).where(BankCard.user_id == user_id)

@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_serializer
 
+from app.core.card_security import mask_card_number
 from app.models.payment import PaymentStatus
 
 
@@ -29,10 +30,8 @@ class PaymentDetailResponse(BaseModel):
     @field_serializer("card_number")
     @classmethod
     def mask_card_number(cls, v: str | None) -> str | None:
-        """Only expose the last 4 digits of the card number."""
-        if v is None or len(v) < 4:
-            return v
-        return f"******{v[-4:]}"
+        """Expose only the first and last four digits."""
+        return mask_card_number(v) if v else None
 
 
 class PaymentListResponse(BaseModel):

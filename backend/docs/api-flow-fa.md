@@ -295,17 +295,22 @@
   1. slot با id خوانده می‌شود.
   2. کنترل می‌شود که `slot.vendor_id` با `vendor_id` مسیر یکی باشد.
   3. مالکیت vendor بررسی می‌شود.
-  4. فیلدهای مجاز مثل زمان، قیمت، وضعیت، جنسیت و تنظیم توپ آپدیت می‌شوند.
+  4. فیلدهای مجاز مثل زمان، قیمت، وضعیت و جنسیت آپدیت می‌شوند.
 - خروجی: slot به‌روزشده.
 
-### `DELETE /api/v1/vendors/{vendor_id}/slots/{slot_id}`
+### `GET /api/v1/vendors/{vendor_id}/slots/weekly-schedule-template`
 
 - دسترسی: manager مالک vendor یا admin.
-- فرآیند:
-  1. slot باید متعلق به vendor مسیر باشد.
-  2. اگر رزرو فعال داشته باشد، حذف محافظت می‌شود.
-  3. slot حذف و cache پاک می‌شود.
-- خروجی: `204`.
+- فرآیند: آخرین نسخه مستقل برنامه هفتگی خوانده می‌شود. فقط اگر هنوز نسخه‌ای وجود نداشته
+  باشد، نزدیک‌ترین هفته کامل آینده برای مقداردهی اولیه استفاده می‌شود.
+- خروجی: منبع الگو، شناسه نسخه، بازه اعمال و آیتم‌های هفتگی.
+
+### `POST /api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule`
+
+- دسترسی: manager مالک vendor یا admin.
+- فرآیند: تداخل رزروها به‌صورت preflight بررسی و سپس Slotهای آزاد به‌شکل تراکنشی
+  ایجاد، ویرایش یا حذف می‌شوند. در پایان نسخه مستقل الگو نیز در همان transaction ذخیره می‌شود.
+- خروجی: تعداد تغییرها، سانس‌های رزروشده حفظ‌شده و conflictهای غیرمسدودکننده.
 
 ### `GET /api/v1/slots/{slot_id}`
 
@@ -362,10 +367,11 @@
   2. آینده بودن slot، آزاد بودن، فعال بودن vendor و پنجره رزرو عمومی کنترل می‌شود.
   3. تعداد نفرات و ظرفیت بررسی می‌شود.
   4. قیمت نهایی از قیمت slot و هزینه توپ محاسبه می‌شود.
-  5. booking با status=`pending_payment` و زمان انقضای پرداخت ساخته می‌شود.
-  6. slot به وضعیت رزرو/در حال رزرو می‌رود.
-  7. notification و log مرتبط ثبت می‌شود.
-- خروجی: جزئیات رزرو pending.
+  5. برای سانس عادی، booking با status=`pending_payment` و زمان انقضای پرداخت ساخته می‌شود.
+  6. اگر رزرو قبلی `pending_cancellation` باشد، به‌جای booking یک `booking_hold` ده‌دقیقه‌ای ساخته می‌شود؛ مالک سانس همچنان رزرو قبلی است.
+  7. در حالت Hold، `replacement_request` به `held` و slot به `reserving` می‌رود تا خریدار دیگری هم‌زمان وارد پرداخت نشود.
+  8. notification و log مرتبط ثبت می‌شود.
+- خروجی: رزرو pending با `checkout_type=booking` یا Hold با `checkout_type=replacement_hold`.
 - خطاهای مهم: slot پر یا نامعتبر `409`، slot ناموجود `404`.
 
 ### `POST /api/v1/bookings/{booking_id}/pay`
@@ -380,6 +386,26 @@
   6. cacheهای رزرو و پرداخت admin پاک می‌شود.
 - خروجی: جزئیات رزرو تأییدشده همراه payment.
 - خطاهای مهم: موجودی ناکافی، timeout gateway، fraud، رزرو منقضی.
+
+### `GET /api/v1/bookings/replacement-holds/{hold_id}`
+
+- دسترسی: مالک Hold یا admin.
+- خروجی: قیمت snapshotشده، مهلت پرداخت، سانس و وضعیت Hold.
+
+### `POST /api/v1/bookings/replacement-holds/{hold_id}/pay`
+
+- دسترسی: مالک Hold.
+- فرآیند:
+  1. Hold به‌شکل idempotent قفل و به `processing` می‌رود و تراکنش قبل از تماس درگاه commit می‌شود.
+  2. در پرداخت موفق، رزرو قبلی ابتدا `transferred` می‌شود و سپس رزرو جدید مستقیماً `confirmed` ساخته می‌شود.
+  3. payment رزرو جدید، refund و penalty رزرو قبلی و انتقال مالکیت slot در یک تراکنش ثبت می‌شوند.
+  4. تکرار درخواست پرداخت، همان رزرو قطعی را برمی‌گرداند و payment/refund تکراری نمی‌سازد.
+- خروجی: رزرو جدید تأییدشده.
+
+### `DELETE /api/v1/bookings/replacement-holds/{hold_id}`
+
+- دسترسی: مالک Hold یا admin.
+- فرآیند: Hold فعال لغو، درخواست جایگزینی دوباره `open` و slot دوباره `pending_cancellation` می‌شود؛ رزرو قبلی تغییر نمی‌کند.
 
 ### `GET /api/v1/bookings/{booking_id}/cancellation-terms`
 
@@ -406,7 +432,8 @@
   5. refund و penalty ساخته می‌شود.
   6. wallet/refund/settlement status طبق سیاست مالی به‌روزرسانی می‌شود.
   7. notification و log ثبت می‌شود.
-  8. برای لغو نزدیک به زمان سانس، رزرو به `pending_cancellation` می‌رود تا جایگزین پیدا شود.
+  8. برای لغو نزدیک به زمان سانس، رزرو به `pending_cancellation` می‌رود و یک `replacement_request` با جریمه، refund و deadline snapshotشده ساخته می‌شود.
+  9. اگر تا شروع سانس جایگزین قطعی پیدا نشود، request منقضی، رزرو اولیه دوباره `confirmed` و slot دوباره `reserved` می‌شود؛ refund و penalty ساخته نمی‌شوند.
 - خروجی: رزرو به‌روزشده با وضعیت لغو/انتظار جایگزین و اطلاعات refund.
 
 ## Dashboard
@@ -587,6 +614,15 @@
 - فرآیند: همه paymentها با فیلتر و pagination خوانده می‌شوند، cache header تنظیم می‌شود.
 - خروجی: لیست مدیریتی پرداخت‌ها.
 
+## Refundهای کاربر
+
+### `GET /api/v1/refunds/my`
+
+- دسترسی: کاربر لاگین‌شده.
+- ورودی مهم: pagination، status و جست‌وجوی نام مجموعه.
+- فرآیند: فقط refundهایی خوانده می‌شوند که `user_id` آن‌ها برابر کاربر جاری است.
+- خروجی: مبلغ پرداختی، جریمه، مبلغ بازگشتی، وضعیت، کارت مقصد ۴+۴ mask‌شده، تاریخ‌های درخواست/تأیید/واریز و کد رهگیری.
+
 ## Wallet و کارت بانکی
 
 ### `POST /api/v1/wallet/bank-cards/lookup`
@@ -621,26 +657,26 @@
 
 ### `GET /api/v1/wallet/balance`
 
-- دسترسی: کاربر لاگین‌شده.
+- دسترسی: فقط development/bootstrap با gateway mock.
 - فرآیند: wallet کاربر خوانده می‌شود؛ اگر وجود نداشته باشد lazily ساخته می‌شود.
 - خروجی: موجودی wallet.
 
 ### `POST /api/v1/wallet/deposit`
 
-- دسترسی: کاربر لاگین‌شده.
+- دسترسی: فقط development/bootstrap با gateway mock.
 - ورودی مهم: amount و description اختیاری.
 - فرآیند: amount باید مثبت باشد؛ balance افزایش می‌یابد و transaction از نوع deposit ثبت می‌شود.
 - خروجی: موجودی جدید.
 
 ### `POST /api/v1/wallet/withdraw`
 
-- دسترسی: کاربر لاگین‌شده.
+- دسترسی: فقط development/bootstrap با gateway mock.
 - فرآیند: amount مثبت و موجودی کافی بررسی می‌شود؛ balance کم و transaction withdraw ثبت می‌شود.
 - خروجی: موجودی جدید.
 
 ### `GET /api/v1/wallet/transactions`
 
-- دسترسی: کاربر لاگین‌شده.
+- دسترسی: فقط development/bootstrap با gateway mock.
 - ورودی مهم: `limit` و `offset`.
 - فرآیند: wallet کاربر پیدا/ساخته می‌شود و transactionهای همان wallet خوانده می‌شوند.
 - خروجی: لیست تراکنش‌ها.
@@ -936,6 +972,12 @@
   4. tracking code و note ذخیره می‌شود.
   5. audit log ثبت می‌شود.
 - خروجی: refund به‌روزشده.
+
+### `GET /api/v1/admin/refunds/{refund_id}/destination`
+
+- دسترسی: فقط admin.
+- فرآیند: کارت مقصد snapshot‌شده Refund برای واریز دستی decrypt می‌شود، پاسخ با `Cache-Control: no-store` برمی‌گردد و مشاهده در audit log ثبت می‌شود.
+- خروجی: شماره کامل فقط برای عملیات پرداخت دستی، شماره mask‌شده و نام دارنده. پاسخ عمومی Refund هرگز شماره کامل را برنمی‌گرداند.
 
 ### `GET /api/v1/admin/manager-cancellations`
 

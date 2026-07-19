@@ -100,7 +100,11 @@ export function BookingCancelDialog({
                     <span>{formatMoney(booking.price_paid)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">مبلغ بازگشتی</span>
+                    <span className="text-muted-foreground">
+                      {terms.mode === "pending_replacement"
+                        ? "مبلغ در صورت جایگزینی"
+                        : "مبلغ بازگشتی"}
+                    </span>
                     <span className="font-medium text-status-confirmed">
                       {formatMoney(terms.refund_amount)}
                     </span>
@@ -112,6 +116,14 @@ export function BookingCancelDialog({
                     </span>
                   </div>
                 </div>
+
+                {terms.mode === "pending_replacement" && (
+                  <div className="rounded-lg border border-status-pending/30 bg-status-pending-bg p-3 text-sm text-status-pending">
+                    این رزرو اکنون لغو نمی‌شود؛ ابتدا در انتظار جایگزین قرار
+                    می‌گیرد. بازگشت وجه فقط پس از پرداخت موفق کاربر جایگزین ثبت
+                    خواهد شد.
+                  </div>
+                )}
 
                 {terms.blocking_reason && (
                   <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">

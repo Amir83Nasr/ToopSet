@@ -62,6 +62,11 @@ export const vendorCreateSchema = z.object({
     .int("ظرفیت باید عدد صحیح باشد")
     .positive("ظرفیت باید عدد مثبت باشد"),
   amenities: z.record(z.string(), z.unknown()).optional(),
+  ball_available: z.boolean().optional(),
+  ball_price: z.coerce
+    .number()
+    .nonnegative("قیمت توپ نمی‌تواند منفی باشد")
+    .optional(),
   images: z.array(z.string()).min(3, "حداقل ۳ تصویر از مجموعه الزامی است"),
 })
 

@@ -4,6 +4,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from app.core.config import settings
+
 
 class PaymentError(Exception):
     """Payment processing failed."""
@@ -93,6 +95,10 @@ class PaymentService:
             min_delay: Minimum simulated network delay in seconds.
             max_delay: Maximum simulated network delay in seconds.
         """
+        if settings.payment_gateway != "mock":
+            raise RuntimeError(
+                f"Payment gateway {settings.payment_gateway!r} is not implemented in this build"
+            )
         self.success_rate = success_rate
         self.min_delay = min_delay
         self.max_delay = max_delay

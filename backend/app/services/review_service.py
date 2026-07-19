@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import BookingStatus
@@ -133,16 +134,28 @@ class ReviewService:
 
         vendor_id = slot.vendor.id if slot.vendor else None
 
+        if vendor_id:
+            await self.review_repo.db.execute(
+                select(Vendor).where(Vendor.id == vendor_id).with_for_update()
+            )
+
         # Create review
-        review = await self.review_repo.create(
-            {
-                "user_id": self.current_user.id,
-                "booking_id": data.booking_id,
-                "rating": data.rating,
-                "comment": data.comment,
-                "vendor_id": vendor_id,
-            }
-        )
+        try:
+            review = await self.review_repo.create(
+                {
+                    "user_id": self.current_user.id,
+                    "booking_id": data.booking_id,
+                    "rating": data.rating,
+                    "comment": data.comment,
+                    "vendor_id": vendor_id,
+                }
+            )
+        except IntegrityError as exc:
+            await self.review_repo.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="برای این رزرو قبلاً نظر ثبت شده است",
+            ) from exc
 
         # Update vendor's average rating
         if vendor_id:
@@ -204,6 +217,9 @@ class ReviewService:
             )
 
         vendor_id = review.vendor_id
+        await self.review_repo.db.execute(
+            select(Vendor).where(Vendor.id == vendor_id).with_for_update()
+        )
         await self.review_repo.delete(review)
 
         # Recalculate vendor's average rating
@@ -223,8 +239,12 @@ class ReviewService:
                 detail="نظر یافت نشد",
             )
 
+        await self.review_repo.db.execute(
+            select(Vendor).where(Vendor.id == review.vendor_id).with_for_update()
+        )
         review.is_reported = True
         await self.review_repo.db.flush()
+        await self._recalc_vendor_rating(review.vendor_id)
         return {"success": True}
 
     async def _recalc_vendor_rating(self, vendor_id: int) -> None:

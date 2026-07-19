@@ -17,7 +17,7 @@ export const BOOKING_STATUS_LABELS: Record<
 > = {
   pending_payment: { label: "در انتظار پرداخت", variant: "outline" },
   confirmed: { label: "تایید شده", variant: "default" },
-  pending_cancellation: { label: "در انتظار لغو", variant: "outline" },
+  pending_cancellation: { label: "در انتظار جایگزین", variant: "outline" },
   transferred: { label: "جایگزین شده", variant: "secondary" },
   cancelled: { label: "لغو شده", variant: "secondary" },
   expired: { label: "منقضی شده", variant: "secondary" },

@@ -60,13 +60,17 @@ async def _create_slot(
 ) -> int:
     start = datetime.now(timezone.utc) + timedelta(hours=offset_hours)
     end = start + timedelta(hours=2)
+    await session.execute(
+        text("UPDATE vendors SET ball_available = :available, ball_price = :price WHERE id = :id"),
+        {"id": vendor_id, "available": ball_available, "price": ball_price},
+    )
     result = await session.execute(
         text(
             """
             INSERT INTO time_slots (
-                vendor_id, start_time, end_time, base_price, ball_available, ball_price, is_reserved, version
+                vendor_id, start_time, end_time, base_price, is_reserved, version
             )
-            VALUES (:vendor_id, :start, :end, 100.00, :ball_available, :ball_price, false, 1)
+            VALUES (:vendor_id, :start, :end, 100.00, false, 1)
             RETURNING id
             """
         ),
@@ -74,8 +78,6 @@ async def _create_slot(
             "vendor_id": vendor_id,
             "start": start,
             "end": end,
-            "ball_available": ball_available,
-            "ball_price": ball_price,
         },
     )
     await session.flush()
@@ -183,7 +185,11 @@ class TestRefundAndBallLogic:
             paid = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=headers)
         assert paid.status_code == 200
 
-        blocked = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=headers)
+        blocked = await client.post(
+            f"/api/v1/bookings/{booking_id}/cancel",
+            json={"accepted_terms": True},
+            headers=headers,
+        )
         assert blocked.status_code == 409
 
         lookup = await client.post(
@@ -199,7 +205,11 @@ class TestRefundAndBallLogic:
         )
         assert confirmed_card.status_code == 200
 
-        cancelled = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=headers)
+        cancelled = await client.post(
+            f"/api/v1/bookings/{booking_id}/cancel",
+            json={"accepted_terms": True},
+            headers=headers,
+        )
         assert cancelled.status_code == 200, cancelled.text
         assert cancelled.json()["status"] == "cancelled"
         assert cancelled.json()["penalty_amount"] == 10.0
@@ -207,7 +217,8 @@ class TestRefundAndBallLogic:
         refund = await session.execute(
             text(
                 """
-                SELECT refund_amount, penalty_amount, status, type
+                SELECT refund_amount, penalty_amount, status, type,
+                       destination_card_masked, destination_card_encrypted
                 FROM refunds
                 WHERE booking_id = :booking_id
                 """
@@ -219,11 +230,17 @@ class TestRefundAndBallLogic:
         assert float(refund_row["penalty_amount"]) == 10.0
         assert refund_row["status"] == "pending"
         assert refund_row["type"] == "user_cancellation"
+        assert refund_row["destination_card_masked"] == "6037-****-****-7891"
+        assert refund_row["destination_card_encrypted"]
+
+        my_refunds = await client.get("/api/v1/refunds/my", headers=headers)
+        assert my_refunds.status_code == 200
+        assert my_refunds.json()["refunds"][0]["destination_card_masked"] == ("6037-****-****-7891")
 
         balance = await client.get("/api/v1/wallet/balance", headers=headers)
         assert balance.json()["balance"] == 0.0
 
-    async def test_with_ball_booking_uses_slot_plus_ball_price(
+    async def test_with_ball_booking_uses_vendor_ball_price(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ) -> None:
         vendor_id = await _create_vendor(client, manager_token, session, active=True)

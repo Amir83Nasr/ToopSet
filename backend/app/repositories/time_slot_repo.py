@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.timezone import now_utc
+from app.core.timezone import iran_to_utc, now_utc
 from app.models.time_slot import TimeSlot
 
 
@@ -29,7 +29,17 @@ class TimeSlotRepo:
         count_q = select(func.count(TimeSlot.id)).where(TimeSlot.vendor_id == vendor_id)
 
         if after_id is not None:
-            base = base.where(TimeSlot.id > after_id)
+            cursor_start = (
+                select(TimeSlot.start_time)
+                .where(TimeSlot.id == after_id, TimeSlot.vendor_id == vendor_id)
+                .scalar_subquery()
+            )
+            base = base.where(
+                or_(
+                    TimeSlot.start_time > cursor_start,
+                    and_(TimeSlot.start_time == cursor_start, TimeSlot.id > after_id),
+                )
+            )
 
         if start_from is not None:
             base = base.where(TimeSlot.start_time >= start_from)
@@ -40,14 +50,17 @@ class TimeSlotRepo:
             count_q = count_q.where(TimeSlot.start_time <= start_until)
 
         if date:
-            start_dt = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            end_dt = start_dt.replace(hour=23, minute=59, second=59)
+            local_day = datetime.strptime(date, "%Y-%m-%d")
+            start_dt = iran_to_utc(local_day)
+            end_dt = iran_to_utc(local_day + timedelta(days=1))
             base = base.where(TimeSlot.start_time >= start_dt).where(TimeSlot.start_time < end_dt)
             count_q = count_q.where(TimeSlot.start_time >= start_dt).where(
                 TimeSlot.start_time < end_dt
             )
 
-        query = base.order_by(TimeSlot.start_time).options(selectinload(TimeSlot.vendor))
+        query = base.order_by(TimeSlot.start_time.asc(), TimeSlot.id.asc()).options(
+            selectinload(TimeSlot.vendor)
+        )
 
         total = (await self.db.execute(count_q)).scalar_one()
         if after_id is not None:
@@ -63,6 +76,30 @@ class TimeSlotRepo:
             stmt = stmt.with_for_update()
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def lock_vendor_schedule(self, vendor_id: int) -> None:
+        """Serialize schedule writes for one vendor inside the DB transaction."""
+        await self.db.execute(
+            text("SELECT pg_advisory_xact_lock(:namespace, :vendor_id)"),
+            {"namespace": 9022, "vendor_id": vendor_id},
+        )
+
+    async def has_overlap(
+        self,
+        vendor_id: int,
+        start_time: datetime,
+        end_time: datetime,
+        *,
+        exclude_slot_id: int | None = None,
+    ) -> bool:
+        stmt = select(TimeSlot.id).where(
+            TimeSlot.vendor_id == vendor_id,
+            TimeSlot.start_time < end_time,
+            TimeSlot.end_time > start_time,
+        )
+        if exclude_slot_id is not None:
+            stmt = stmt.where(TimeSlot.id != exclude_slot_id)
+        return (await self.db.execute(stmt.limit(1))).scalar_one_or_none() is not None
 
     async def list_upcoming_by_vendor(self, vendor_id: int) -> list[TimeSlot]:
         now = now_utc()
@@ -85,6 +122,21 @@ class TimeSlotRepo:
             )
         )
         return set(result.scalars().all())
+
+    async def list_range_for_update(
+        self, vendor_id: int, start_from: datetime, start_until: datetime
+    ) -> list[TimeSlot]:
+        result = await self.db.execute(
+            select(TimeSlot)
+            .where(
+                TimeSlot.vendor_id == vendor_id,
+                TimeSlot.start_time >= start_from,
+                TimeSlot.start_time < start_until,
+            )
+            .order_by(TimeSlot.start_time)
+            .with_for_update()
+        )
+        return list(result.scalars().all())
 
     async def create(self, data: dict) -> TimeSlot:
         slot = TimeSlot(**data)

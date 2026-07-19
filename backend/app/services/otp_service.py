@@ -33,6 +33,29 @@ OTP_SEND_PREFIX = "otp_send:"
 OTP_FAIL_LIMIT = 5  # max failed verify attempts per active OTP code
 OTP_FAIL_PREFIX = "otp_fail:"
 
+_CONSUME_OTP_SCRIPT = """
+local fail_count = tonumber(redis.call('GET', KEYS[2]) or '0')
+if fail_count >= tonumber(ARGV[3]) then
+    return -2
+end
+local stored = redis.call('GET', KEYS[1])
+if not stored then
+    return 0
+end
+if stored ~= ARGV[1] then
+    local failures = redis.call('INCR', KEYS[2])
+    if failures == 1 then
+        redis.call('EXPIRE', KEYS[2], tonumber(ARGV[2]))
+    end
+    return -1
+end
+if ARGV[4] == '0' then
+    return 2
+end
+redis.call('DEL', KEYS[1], KEYS[2], KEYS[3])
+return 1
+"""
+
 
 class OtpService:
     """Handles OTP send/verify logic.  Injects SmsProvider for testability."""
@@ -107,23 +130,38 @@ class OtpService:
         Tracks failed attempts per active OTP code; locks out after 5 failures.
         """
         phone = normalize_phone(phone)
-        # Check for phone-level lockout from too many failures
+        user = await self.repo.get_by_phone(phone)
+
+        # Atomically validate and consume the code. A plain GET followed by
+        # DEL permits two concurrent requests to replay the same OTP.
         fail_key = f"{OTP_FAIL_PREFIX}{phone}"
-        fail_count = await self.redis.get(fail_key)
-        if fail_count is not None and int(fail_count) >= OTP_FAIL_LIMIT:
+        result = int(
+            await self.redis.eval(
+                _CONSUME_OTP_SCRIPT,
+                3,
+                f"{OTP_PREFIX}{phone}",
+                fail_key,
+                f"{OTP_SEND_PREFIX}{phone}",
+                code,
+                OTP_TTL,
+                OTP_FAIL_LIMIT,
+                0 if user is None and not full_name else 1,
+            )
+        )
+        if result == -2:
             await log_action(
                 self.repo.db,
                 None,
                 "otp_lockout",
-                f"قفل OTP | شماره {phone} پس از {int(fail_count)} تلاش ناموفق قفل شد",
+                f"قفل OTP | شماره {phone} پس از {OTP_FAIL_LIMIT} تلاش ناموفق قفل شد",
             )
+            await self.repo.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="تلاش‌های ناموفق برای این کد بیش از حد مجاز است. لطفاً کد جدید بگیرید.",
             )
 
-        stored = await self._retrieve_code(phone)
-        if stored is None:
+        if result == 0:
             await log_action(
                 self.repo.db,
                 None,
@@ -131,15 +169,13 @@ class OtpService:
                 f"تأیید OTP ناموفق | کد منقضی شده برای شماره {phone}",
                 severity="WARNING",
             )
+            await self.repo.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="کد تأیید منقضی شده است. لطفاً دوباره درخواست دهید.",
             )
 
-        if stored != code:
-            # Record failed attempt
-            await self.redis.incr(fail_key)
-            await self.redis.expire(fail_key, OTP_TTL, nx=True)
+        if result == -1:
             await log_action(
                 self.repo.db,
                 None,
@@ -147,25 +183,20 @@ class OtpService:
                 f"تأیید OTP ناموفق | کد اشتباه برای شماره {phone}",
                 severity="WARNING",
             )
+            await self.repo.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="کد تأیید اشتباه است",
             )
 
-        # Successful verification — clear fail counter and OTP code
-        await self.redis.delete(fail_key)
-        await self._delete_code(phone)
-        await self.redis.delete(f"{OTP_SEND_PREFIX}{phone}")
-
-        user = await self.repo.get_by_phone(phone)
+        if result == 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="لطفاً نام خود را وارد کنید",
+            )
 
         if user is None:
             # ── New user registration via OTP ──
-            if not full_name:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="لطفاً نام خود را وارد کنید",
-                )
             user = await self.repo.create_otp_user(
                 phone=phone,
                 full_name=full_name,

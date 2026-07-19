@@ -6,6 +6,8 @@ __all__ = ["Settings", "settings", "validate_env", "EnvValidationError"]
 
 _VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 _SECRET_KEY_MIN_LENGTH = 32
+_SUPPORTED_PAYMENT_GATEWAYS = {"mock"}
+_SUPPORTED_SMS_PROVIDERS = {"mock"}
 
 
 class EnvValidationError(RuntimeError):
@@ -215,6 +217,15 @@ def validate_env(settings: Settings | None = None) -> None:
 
     # ── PRODUCTION-only checks (when APP_ENVIRONMENT=production) ──────
     is_production = settings.app_environment.lower() == "production"
+
+    if settings.payment_gateway not in _SUPPORTED_PAYMENT_GATEWAYS:
+        errors.append(
+            f"PAYMENT_GATEWAY={settings.payment_gateway!r} has no implementation in this build."
+        )
+    if settings.sms_provider not in _SUPPORTED_SMS_PROVIDERS:
+        errors.append(
+            f"SMS_PROVIDER={settings.sms_provider!r} has no implementation in this build."
+        )
 
     if is_production:
         if not settings.refresh_cookie_secure:

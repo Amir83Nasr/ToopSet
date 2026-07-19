@@ -64,11 +64,30 @@ import { setCookie, getCookie, removeCookie } from "./cookies"
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    public details?: unknown
   ) {
     super(message)
     this.name = "ApiError"
   }
+}
+
+function parseErrorDetail(detail: unknown): {
+  message: string
+  details?: unknown
+} {
+  if (typeof detail === "string") return { message: translateMessage(detail) }
+  if (detail && typeof detail === "object") {
+    const value = detail as { message?: unknown }
+    return {
+      message:
+        typeof value.message === "string"
+          ? translateMessage(value.message)
+          : "درخواست با خطا مواجه شد",
+      details: detail,
+    }
+  }
+  return { message: "درخواست با خطا مواجه شد" }
 }
 
 const enToFa: Record<string, string> = {
@@ -221,10 +240,8 @@ export async function api<T>(
         const body = await retryRes
           .json()
           .catch(() => ({ detail: "Request failed" }))
-        throw new ApiError(
-          retryRes.status,
-          translateMessage(body.detail || "Request failed")
-        )
+        const parsed = parseErrorDetail(body.detail || "Request failed")
+        throw new ApiError(retryRes.status, parsed.message, parsed.details)
       }
 
       return retryRes.json()
@@ -250,10 +267,8 @@ export async function api<T>(
         { tags: { path } }
       )
     }
-    throw new ApiError(
-      res.status,
-      translateMessage(body.detail || "Unknown error")
-    )
+    const parsed = parseErrorDetail(body.detail || "Unknown error")
+    throw new ApiError(res.status, parsed.message, parsed.details)
   }
 
   if (res.status === 204) {

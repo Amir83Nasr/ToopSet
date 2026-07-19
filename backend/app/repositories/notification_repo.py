@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +25,7 @@ class NotificationRepo:
         count_q = select(func.count(Notification.id)).where(Notification.user_id == user_id)
 
         if after_id is not None:
-            query = query.where(Notification.id > after_id)
+            query = query.where(Notification.id < after_id)
 
         if unread_only:
             query = query.where(Notification.is_read == False)
@@ -41,14 +39,13 @@ class NotificationRepo:
             query = query.where(Notification.type == type_filter)
             count_q = count_q.where(Notification.type == type_filter)
 
-        query = query.order_by(Notification.created_at.desc())
+        query = query.order_by(Notification.id.desc())
 
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         notifications = list(result.scalars().all())
         total = count_result.scalar_one()

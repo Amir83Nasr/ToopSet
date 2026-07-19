@@ -51,7 +51,7 @@ function refundBadge(booking: BookingDetail): {
     case "rejected":
       return { label: "عودت رد شده", variant: "destructive" }
     default:
-      if (booking.payment?.status === "success" || booking.price_paid > 0) {
+      if (booking.payment?.status === "success") {
         return { label: "عودت ثبت نشده", variant: "outline" }
       }
       return { label: "پرداختی نداشته", variant: "secondary" }
@@ -147,7 +147,32 @@ export function BookingTable({
                           {formatMoney(b.refund_amount)}
                         </span>
                       )}
+                      {b.refund_destination_card_masked && (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          dir="ltr"
+                        >
+                          {toPersianDigits(b.refund_destination_card_masked)}
+                        </span>
+                      )}
+                      {b.refund_paid_at && (
+                        <span className="text-xs text-muted-foreground">
+                          واریز: {formatDate(b.refund_paid_at)}
+                        </span>
+                      )}
+                      {b.refund_payment_tracking_code && (
+                        <span className="text-xs text-muted-foreground">
+                          پیگیری:{" "}
+                          {toPersianDigits(b.refund_payment_tracking_code)}
+                        </span>
+                      )}
                     </dd>
+                  </div>
+                )}
+                {b.status === "pending_cancellation" && (
+                  <div className="col-span-2 rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                    رزرو هنوز لغو قطعی نشده است. در صورت پرداخت توسط جایگزین،
+                    مبلغ بازگشت وجه با کسر ۱۰٪ ثبت می‌شود.
                   </div>
                 )}
               </dl>
@@ -249,7 +274,14 @@ export function BookingTable({
                 </TableCell>
                 <TableCell>{toPersianDigits(b.participants_count)}</TableCell>
                 <TableCell>
-                  <Badge variant={st.variant}>{st.label}</Badge>
+                  <div className="space-y-1">
+                    <Badge variant={st.variant}>{st.label}</Badge>
+                    {b.status === "pending_cancellation" && (
+                      <div className="max-w-44 text-xs text-muted-foreground">
+                        لغو پس از پرداخت جایگزین قطعی می‌شود.
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 {showRefundStatus && (
                   <TableCell>
@@ -258,6 +290,25 @@ export function BookingTable({
                       {b.refund_amount !== null && (
                         <div className="text-xs text-muted-foreground">
                           {formatMoney(b.refund_amount)}
+                        </div>
+                      )}
+                      {b.refund_destination_card_masked && (
+                        <div
+                          className="text-xs text-muted-foreground"
+                          dir="ltr"
+                        >
+                          {toPersianDigits(b.refund_destination_card_masked)}
+                        </div>
+                      )}
+                      {b.refund_paid_at && (
+                        <div className="text-xs text-muted-foreground">
+                          واریز: {formatDate(b.refund_paid_at)}
+                        </div>
+                      )}
+                      {b.refund_payment_tracking_code && (
+                        <div className="text-xs text-muted-foreground">
+                          پیگیری:{" "}
+                          {toPersianDigits(b.refund_payment_tracking_code)}
                         </div>
                       )}
                     </div>

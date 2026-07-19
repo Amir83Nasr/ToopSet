@@ -81,5 +81,4 @@ def get_sms_provider() -> SmsProvider:
     # if settings.sms_provider == "kavenegar":
     #     return KavenegarProvider(api_key=settings.kavenegar_api_key)
 
-    # Fallback to mock (safe default)
-    return MockSmsProvider()
+    raise RuntimeError(f"SMS provider {settings.sms_provider!r} is not implemented in this build")

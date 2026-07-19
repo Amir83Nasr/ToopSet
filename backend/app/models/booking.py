@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, SmallInteger, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, SmallInteger, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -38,7 +38,18 @@ class SettlementStatus(str, enum.Enum):
 class Booking(Base):
     __tablename__ = "bookings"
 
-    __table_args__ = (Index("ix_bookings_created_at", "created_at"),)
+    __table_args__ = (
+        Index("ix_bookings_created_at", "created_at"),
+        Index("ix_bookings_user_id_status", "user_id", "status"),
+        Index(
+            "uq_bookings_one_active_per_slot",
+            "slot_id",
+            unique=True,
+            postgresql_where=text(
+                "status IN ('pending_payment', 'confirmed', 'pending_cancellation')"
+            ),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -87,7 +98,7 @@ class Booking(Base):
 
     user: Mapped["User"] = relationship(back_populates="bookings", foreign_keys=[user_id])
     created_by_manager: Mapped["User | None"] = relationship(foreign_keys=[created_by_manager_id])
-    slot: Mapped["TimeSlot"] = relationship(back_populates="booking")
+    slot: Mapped["TimeSlot"] = relationship(back_populates="bookings")
     payments: Mapped[list["Payment"]] = relationship(back_populates="booking")
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
     penalties: Mapped[list["Penalty"]] = relationship(back_populates="booking")

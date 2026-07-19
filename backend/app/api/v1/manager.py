@@ -9,8 +9,9 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_manager
 from app.core.database import get_db
+from app.core.date_utils import parse_date_filter, parse_date_filter_end
 from app.core.pagination import decode_cursor, encode_cursor
-from app.models.booking import Booking, BookingSource
+from app.models.booking import Booking, BookingSource, BookingStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -114,14 +115,14 @@ async def list_manager_bookings(
     cursor_id = int(decode_cursor(cursor)) if cursor else None
     repo = BookingRepo(db)
     bookings, total = await repo.list_by_manager(
-        current_user.id,
+        None if current_user.role == "admin" else current_user.id,
         after_id=cursor_id,
         skip=skip,
         limit=limit,
         status_filter=status,
         vendor_id=effective_vendor_id,
-        date_from=date_from,
-        date_to=date_to,
+        date_from=parse_date_filter(date_from) if date_from else None,
+        date_to=parse_date_filter_end(date_to) if date_to else None,
         search=search,
     )
 
@@ -329,20 +330,18 @@ async def list_manager_slots(
         select(TimeSlot)
         .options(
             selectinload(TimeSlot.vendor),
-            selectinload(TimeSlot.booking).selectinload(Booking.user),
+            selectinload(TimeSlot.bookings).selectinload(Booking.user),
         )
         .join(Vendor, TimeSlot.vendor_id == Vendor.id)
-        .where(Vendor.manager_id == current_user.id)
     )
-    count_q = (
-        select(func.count(TimeSlot.id))
-        .join(Vendor, TimeSlot.vendor_id == Vendor.id)
-        .where(Vendor.manager_id == current_user.id)
-    )
+    count_q = select(func.count(TimeSlot.id)).join(Vendor, TimeSlot.vendor_id == Vendor.id)
+
+    if current_user.role != "admin":
+        query = query.where(Vendor.manager_id == current_user.id)
+        count_q = count_q.where(Vendor.manager_id == current_user.id)
 
     if cursor_id is not None:
-        query = query.where(TimeSlot.id > cursor_id)
-        count_q = count_q.where(TimeSlot.id > cursor_id)
+        query = query.where(TimeSlot.id < cursor_id)
     if effective_vendor_id:
         query = query.where(Vendor.id == effective_vendor_id)
         count_q = count_q.where(Vendor.id == effective_vendor_id)
@@ -350,16 +349,16 @@ async def list_manager_slots(
         query = query.where(TimeSlot.is_reserved == is_reserved)
         count_q = count_q.where(TimeSlot.is_reserved == is_reserved)
     if date_from:
-        dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+        dt_from = parse_date_filter(date_from)
         query = query.where(TimeSlot.start_time >= dt_from)
         count_q = count_q.where(TimeSlot.start_time >= dt_from)
     if date_to:
-        dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        dt_to = parse_date_filter_end(date_to)
         query = query.where(TimeSlot.start_time <= dt_to)
         count_q = count_q.where(TimeSlot.start_time <= dt_to)
 
     total = (await db.execute(count_q)).scalar_one()
-    query = query.order_by(TimeSlot.start_time.desc())
+    query = query.order_by(TimeSlot.id.desc())
     if cursor_id is not None:
         result = await db.execute(query.limit(limit))
     else:
@@ -369,7 +368,19 @@ async def list_manager_slots(
     slot_responses = []
     for slot in slots:
         vendor = slot.vendor
-        booking = getattr(slot, "booking", None)
+        booking = next(
+            (
+                item
+                for item in slot.bookings
+                if item.status
+                in (
+                    BookingStatus.PENDING_PAYMENT,
+                    BookingStatus.CONFIRMED,
+                    BookingStatus.PENDING_CANCELLATION,
+                )
+            ),
+            slot.bookings[0] if slot.bookings else None,
+        )
         booking_user = booking.user if booking else None
         slot_responses.append(
             ManagerSlotResponse(

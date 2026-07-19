@@ -9,6 +9,7 @@ from app.models.payment import Payment
 from app.models.penalty import Penalty
 from app.models.refresh_token import RefreshToken
 from app.models.refund import Refund
+from app.models.replacement import BookingHold, ReplacementRequest
 from app.models.review import Review
 from app.models.setting import Setting
 from app.models.settlement import Settlement, SettlementItem
@@ -19,6 +20,7 @@ from app.models.vendor import Vendor
 from app.models.vendor_image import VendorImage
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
+from app.models.weekly_schedule import WeeklyScheduleVersion, WeeklyScheduleVersionItem
 
 __all__ = [
     "User",
@@ -35,6 +37,7 @@ __all__ = [
     "Review",
     "Penalty",
     "Log",
+    "ManagerRequest",
     "Setting",
     "Wallet",
     "WalletTransaction",
@@ -43,5 +46,8 @@ __all__ = [
     "ContactMessage",
     "Favorite",
     "RefreshToken",
-    "ManagerRequest",
+    "ReplacementRequest",
+    "BookingHold",
+    "WeeklyScheduleVersion",
+    "WeeklyScheduleVersionItem",
 ]

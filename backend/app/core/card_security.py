@@ -19,9 +19,9 @@ def normalize_card_number(card_number: str) -> str:
 
 def mask_card_number(card_number: str) -> str:
     normalized = normalize_card_number(card_number)
-    if len(normalized) < 10:
+    if len(normalized) < 8:
         return "****"
-    return f"{normalized[:6]}******{normalized[-4:]}"
+    return f"{normalized[:4]}-****-****-{normalized[-4:]}"
 
 
 def card_fingerprint(card_number: str) -> str:
@@ -32,3 +32,8 @@ def card_fingerprint(card_number: str) -> str:
 def encrypt_card_number(card_number: str) -> str:
     normalized = normalize_card_number(card_number)
     return _fernet().encrypt(normalized.encode()).decode()
+
+
+def decrypt_card_number(encrypted_card_number: str) -> str:
+    """Decrypt a card number only in tightly scoped payout workflows."""
+    return _fernet().decrypt(encrypted_card_number.encode()).decode()

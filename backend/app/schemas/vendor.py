@@ -34,6 +34,8 @@ class VendorBase(BaseModel):
     longitude: float = Field(..., ge=-180, le=180)
     capacity: int = Field(..., gt=0)
     amenities: dict | None = None
+    ball_available: bool = False
+    ball_price: Decimal = Field(default=Decimal("0"), ge=0, decimal_places=2)
 
     @field_validator("sport_types", mode="before")
     @classmethod
@@ -57,7 +59,10 @@ class VendorUpdate(BaseModel):
     capacity: int | None = Field(None, gt=0)
     is_active: bool | None = None
     amenities: dict | None = None
+    ball_available: bool | None = None
+    ball_price: Decimal | None = Field(None, ge=0, decimal_places=2)
     images: list[str] | None = None
+    temp_ids: list[str] | None = None
     image_ids_to_remove: list[int] | None = None
 
 
@@ -70,6 +75,7 @@ class VendorResponse(VendorBase):
     vendor_images: list[VendorImageResponse] | None = None
     is_active: bool
     average_rating: float
+    ball_price: float = 0
     base_price: Decimal | None = None
     created_at: datetime
 

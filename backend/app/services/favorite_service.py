@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.models.vendor import Vendor
 from app.repositories.favorite_repo import FavoriteRepo
 
 
@@ -13,6 +14,16 @@ class FavoriteService:
         self.current_user = current_user
 
     async def add_favorite(self, vendor_id: int):
+        vendor = await self.repo.db.get(Vendor, vendor_id)
+        can_see_inactive = bool(
+            vendor
+            and (self.current_user.role == "admin" or vendor.manager_id == self.current_user.id)
+        )
+        if vendor is None or (not vendor.is_active and not can_see_inactive):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="مجموعه یافت نشد",
+            )
         existing = await self.repo.is_favorited(self.current_user.id, vendor_id)
         if existing:
             raise HTTPException(

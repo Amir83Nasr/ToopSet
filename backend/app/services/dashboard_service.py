@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -8,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.timezone import now_iran, now_utc
 from app.models.booking import Booking, BookingStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User, UserRole
@@ -16,12 +16,13 @@ from app.models.wallet import Wallet
 
 
 def _utcnow() -> datetime:
-    """Return a naive UTC datetime suitable for DB queries.
+    """Return an aware UTC datetime matching TIMESTAMPTZ model columns."""
+    return now_utc()
 
-    All datetimes stored in the DB are naive UTC (TIMESTAMP WITHOUT TIME ZONE).
-    Converting to naive UTC before querying avoids asyncpg type mismatches.
-    """
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+def _iran_day_start_utc() -> datetime:
+    """Start of the current product day (Iran local time), represented in UTC."""
+    return now_iran().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
 
 
 class DashboardStats(BaseModel):
@@ -109,7 +110,7 @@ class DashboardService:
         ]
 
     async def get_stats(self) -> DashboardStats:
-        today_start = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = _iran_day_start_utc()
 
         async def _active_vendors() -> int:
             r = await self.db.execute(
@@ -196,13 +197,13 @@ class DashboardService:
             total_users,
             recent_bookings,
             popular_vendors,
-        ) = await asyncio.gather(
-            _active_vendors(),
-            _today_bookings(),
-            _today_revenue(),
-            _total_users(),
-            _recent_bookings(),
-            _popular_vendors(),
+        ) = (
+            await _active_vendors(),
+            await _today_bookings(),
+            await _today_revenue(),
+            await _total_users(),
+            await _recent_bookings(),
+            await _popular_vendors(),
         )
 
         return DashboardStats(
@@ -219,9 +220,9 @@ class DashboardService:
     ) -> AdminStats:
         now = _utcnow()
 
-        start_date = date_from or now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = date_from or _iran_day_start_utc()
         end_date = date_to or now
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = _iran_day_start_utc()
         seven_days_ago = now - timedelta(days=7)
 
         async def _total_vendors() -> int:
@@ -367,19 +368,19 @@ class DashboardService:
             recent_bookings,
             popular_vendors,
             booking_trends,
-        ) = await asyncio.gather(
-            _total_vendors(),
-            _total_users(),
-            _total_bookings(),
-            _total_revenue(),
-            _active_managers(),
-            _pending_bookings(),
-            _today_bookings(),
-            _today_revenue(),
-            _total_managers(),
-            _recent_bookings(),
-            _popular_vendors(),
-            _booking_trends(),
+        ) = (
+            await _total_vendors(),
+            await _total_users(),
+            await _total_bookings(),
+            await _total_revenue(),
+            await _active_managers(),
+            await _pending_bookings(),
+            await _today_bookings(),
+            await _today_revenue(),
+            await _total_managers(),
+            await _recent_bookings(),
+            await _popular_vendors(),
+            await _booking_trends(),
         )
 
         return AdminStats(
@@ -399,7 +400,7 @@ class DashboardService:
 
     async def get_manager_stats(self, user_id: int) -> ManagerStats:
         now = _utcnow()
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = _iran_day_start_utc()
 
         async def _my_vendors() -> int:
             r = await self.db.execute(
@@ -464,12 +465,12 @@ class DashboardService:
             today_earnings,
             wallet_balance,
             recent_bookings,
-        ) = await asyncio.gather(
-            _my_vendors(),
-            _upcoming_bookings(),
-            _today_earnings(),
-            _wallet_balance(),
-            _recent_bookings(),
+        ) = (
+            await _my_vendors(),
+            await _upcoming_bookings(),
+            await _today_earnings(),
+            await _wallet_balance(),
+            await _recent_bookings(),
         )
 
         return ManagerStats(
@@ -521,13 +522,13 @@ class DashboardService:
             return r.scalar() or 0
 
         # All 6 queries (3 per month × 2 months) are independent
-        c_b, c_r, c_u, l_b, l_r, l_u = await asyncio.gather(
-            _month_bookings(current_month_start, now),
-            _month_revenue(current_month_start, now),
-            _month_users(current_month_start, now),
-            _month_bookings(last_month_start, last_month_end),
-            _month_revenue(last_month_start, last_month_end),
-            _month_users(last_month_start, last_month_end),
+        c_b, c_r, c_u, l_b, l_r, l_u = (
+            await _month_bookings(current_month_start, now),
+            await _month_revenue(current_month_start, now),
+            await _month_users(current_month_start, now),
+            await _month_bookings(last_month_start, last_month_end),
+            await _month_revenue(last_month_start, last_month_end),
+            await _month_users(last_month_start, last_month_end),
         )
 
         current = {"bookings": c_b, "revenue": c_r, "new_users": c_u}
@@ -620,11 +621,11 @@ class DashboardService:
                 for row in r
             ]
 
-        user_growth, vendor_growth, booking_trends, revenue_trends = await asyncio.gather(
-            _user_growth(),
-            _vendor_growth(),
-            _booking_trends(),
-            _revenue_trends(),
+        user_growth, vendor_growth, booking_trends, revenue_trends = (
+            await _user_growth(),
+            await _vendor_growth(),
+            await _booking_trends(),
+            await _revenue_trends(),
         )
 
         return {
@@ -708,12 +709,12 @@ class DashboardService:
             wallet_balance,
             favorite_sport,
             recent_bookings,
-        ) = await asyncio.gather(
-            _upcoming_bookings(),
-            _completed_bookings(),
-            _wallet_balance(),
-            _favorite_sport(),
-            _recent_bookings(),
+        ) = (
+            await _upcoming_bookings(),
+            await _completed_bookings(),
+            await _wallet_balance(),
+            await _favorite_sport(),
+            await _recent_bookings(),
         )
 
         return UserStats(

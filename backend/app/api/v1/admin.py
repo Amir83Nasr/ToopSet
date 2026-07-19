@@ -18,11 +18,12 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
+from app.core.card_security import decrypt_card_number
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
@@ -40,10 +41,10 @@ from app.models.user import User
 from app.models.vendor import Vendor
 from app.repositories.log_repo import LogRepo
 from app.repositories.notification_repo import NotificationRepo
-from app.repositories.review_repo import ReviewRepo
 from app.repositories.user_repo import UserRepository
 from app.repositories.vendor_repo import VendorRepo
 from app.schemas.finance import (
+    RefundDestinationResponse,
     RefundListResponse,
     RefundResponse,
     RefundStatusUpdate,
@@ -65,6 +66,40 @@ _HERO_UPLOAD_DIR = (
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+async def _guard_admin_deletion(db: AsyncSession, *, actor: User, target: User) -> None:
+    """Serialize admin membership changes and preserve at least one admin."""
+    await db.execute(text("SELECT pg_advisory_xact_lock(9023)"))
+    if actor.id == target.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ادمین نمی‌تواند حساب خودش را حذف کند",
+        )
+    if target.role == "admin":
+        admin_count = (
+            await db.execute(select(func.count(User.id)).where(User.role == "admin"))
+        ).scalar_one()
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="آخرین ادمین سامانه قابل حذف نیست",
+            )
+
+
+async def _vendor_has_booking_history(db: AsyncSession, vendor_id: int) -> bool:
+    from app.models.booking import Booking
+    from app.models.time_slot import TimeSlot
+
+    booking_id = (
+        await db.execute(
+            select(Booking.id)
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .where(TimeSlot.vendor_id == vendor_id)
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    return booking_id is not None
 
 
 def _refund_response(refund) -> RefundResponse:
@@ -92,6 +127,8 @@ def _refund_response(refund) -> RefundResponse:
         paid_at=refund.paid_at,
         admin_note=refund.admin_note,
         payment_tracking_code=refund.payment_tracking_code,
+        destination_card_masked=refund.destination_card_masked,
+        destination_card_holder_name=refund.destination_card_holder_name,
         user_name=refund.user.full_name if getattr(refund, "user", None) else "",
         user_phone=refund.user.phone if getattr(refund, "user", None) else "",
         vendor_name=refund.vendor.name if getattr(refund, "vendor", None) else "",
@@ -395,6 +432,16 @@ async def reject_vendor(
     vendor = await repo.get_by_id(vendor_id)
     if not vendor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+    if vendor.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="فقط درخواست تأییدنشده قابل رد است؛ برای مجموعه فعال از غیرفعال‌سازی استفاده کنید",
+        )
+    if await _vendor_has_booking_history(db, vendor_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="مجموعه دارای سابقه رزرو است و قابل حذف نیست",
+        )
     name = vendor.name
     for img in vendor.vendor_images or []:
         delete_upload(img.url)
@@ -430,6 +477,11 @@ async def hard_delete_vendor(
     vendor = await repo.get_by_id(vendor_id)
     if not vendor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+    if await _vendor_has_booking_history(db, vendor_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="مجموعه دارای سابقه رزرو یا مالی است و قابل حذف دائمی نیست",
+        )
     for img in vendor.vendor_images or []:
         delete_upload(img.url)
     await repo.delete(vendor)
@@ -469,6 +521,7 @@ async def hard_delete_user(
     user = await repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
+    await _guard_admin_deletion(db, actor=_, target=user)
 
     # Pre-check related data to avoid FK violations
     vendor_count = (
@@ -506,7 +559,7 @@ async def hard_delete_user(
     name = user.full_name
     delete_upload(user.avatar_url)
     await db.delete(user)
-    await db.commit()
+    await db.flush()
     await invalidate_admin_list_cache("users")
     await log_action(
         db, _.id, "user_deleted", f"حذف دائمی کاربر | '{name}' (id={user_id}) توسط ادمین حذف شد"
@@ -538,6 +591,7 @@ async def force_delete_user(
     user = await repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
+    await _guard_admin_deletion(db, actor=_, target=user)
     name = user.full_name
 
     delete_upload(user.avatar_url)
@@ -595,7 +649,7 @@ async def force_delete_user(
 
     # 3 ── Delete the user ─────────────────────────────────────────
     await db.execute(delete(User).where(User.id == user_id))
-    await db.commit()
+    await db.flush()
 
     from app.services.cache_service import invalidate_admin_list_cache
 
@@ -619,11 +673,9 @@ async def hard_delete_review(
     _: User = Depends(get_current_admin),
 ):
     """Permanently delete a review from the database."""
-    repo = ReviewRepo(db)
-    review = await repo.get_by_id(review_id)
-    if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="نظر یافت نشد")
-    await repo.delete(review)
+    from app.services.review_service import ReviewService
+
+    await ReviewService(db=db, current_user=_).delete_review(review_id)
     await log_action(
         db, _.id, "review_deleted", f"حذف دائمی نظر | نظر (id={review_id}) توسط ادمین حذف شد"
     )
@@ -710,10 +762,10 @@ async def seed_default_settings(
             "description": "ایمیل پشتیبانی",
         },
         {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
-        {"key": "cancel_window_hours", "value": "24", "description": "مهلت کنسل کردن (ساعت)"},
+        {"key": "cancel_window_hours", "value": "48", "description": "مهلت کنسل کردن (ساعت)"},
         {
             "key": "rules_text",
-            "value": '["پذیرش قوانین: با استفاده از سامانه توپ‌سِت، شما قوانین و مقررات زیر را می‌پذیرید. در صورت عدم موافقت با هر یک از بندها، لطفاً از سامانه استفاده نکنید.", "ثبت‌نام و حساب کاربری: کاربران موظف به ارائه اطلاعات صحیح و کامل در هنگام ثبت‌نام هستند. مسئولیت حفظ امنیت حساب کاربری و رمز عبور بر عهده کاربر می‌باشد. هر کاربر تنها مجاز به داشتن یک حساب کاربری است. در صورت مشاهده هرگونه فعالیت مشکوک، توپ‌سِت حق مسدود کردن حساب را دارد.", "رزرو و لغو: رزرو سانس پس از پرداخت هزینه قطعی می‌شود. لغو رزرو تا ۲۴ ساعت قبل از شروع سانس با کسر ۲۰٪ جریمه امکان‌پذیر است. لغو رزرو کمتر از ۲۴ ساعت قبل از شروع سانس امکان‌پذیر نیست. در صورت کنسل شدن سانس توسط مدیر مجموعه، مبلغ به طور کامل به کیف پول کاربر بازگردانده می‌شود.", "مسئولیت‌ها: توپ‌سِت تنها بستر ارتباط بین کاربران و مدیران مجموعه‌های ورزشی است. کیفیت و امکانات مجموعه‌های ورزشی بر عهده مدیران مجموعه می‌باشد. توپ‌سِت مسئولیتی در قبال خسارت‌های جسمی یا مالی حین استفاده از مجموعه‌ها ندارد.", "حریم خصوصی: اطلاعات شخصی کاربران نزد توپ‌سِت محفوظ است و بدون رضایت کاربر در اختیار شخص ثالث قرار نمی‌گیرد، مگر به حکم قانون.", "تغییرات: توپ‌سِت حق تغییر قوانین را در هر زمان محفوظ می‌دارد. تغییرات در همین صفحه اعلام خواهد شد و ادامه استفاده از سامانه به معنای پذیرش تغییرات است."]',
+            "value": '["پذیرش قوانین: با استفاده از سامانه توپ‌سِت، شما قوانین و مقررات زیر را می‌پذیرید. در صورت عدم موافقت با هر یک از بندها، لطفاً از سامانه استفاده نکنید.", "ثبت‌نام و حساب کاربری: کاربران موظف به ارائه اطلاعات صحیح و کامل در هنگام ثبت‌نام هستند. مسئولیت حفظ امنیت حساب کاربری و رمز عبور بر عهده کاربر می‌باشد. هر کاربر تنها مجاز به داشتن یک حساب کاربری است. در صورت مشاهده هرگونه فعالیت مشکوک، توپ‌سِت حق مسدود کردن حساب را دارد.", "رزرو و لغو: رزرو سانس پس از پرداخت هزینه قطعی می‌شود. درخواست لغو در ۴۸ ساعت پایانی وارد فرایند جایگزینی می‌شود؛ لغو قطعی زودتر از این بازه با کسر ۱۰٪ جریمه انجام می‌شود. در صورت لغو سانس توسط مدیر مجموعه، مبلغ پرداخت‌شده کاربر به‌طور کامل در فرایند عودت قرار می‌گیرد.", "مسئولیت‌ها: توپ‌سِت تنها بستر ارتباط بین کاربران و مدیران مجموعه‌های ورزشی است. کیفیت و امکانات مجموعه‌های ورزشی بر عهده مدیران مجموعه می‌باشد. توپ‌سِت مسئولیتی در قبال خسارت‌های جسمی یا مالی حین استفاده از مجموعه‌ها ندارد.", "حریم خصوصی: اطلاعات شخصی کاربران نزد توپ‌سِت محفوظ است و بدون رضایت کاربر در اختیار شخص ثالث قرار نمی‌گیرد، مگر به حکم قانون.", "تغییرات: توپ‌سِت حق تغییر قوانین را در هر زمان محفوظ می‌دارد. تغییرات در همین صفحه اعلام خواهد شد و ادامه استفاده از سامانه به معنای پذیرش تغییرات است."]',
             "description": "متن قوانین و مقررات (JSON array)",
         },
         {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
@@ -809,6 +861,30 @@ async def update_refund_status(
     if not refund:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="عودت یافت نشد")
 
+    allowed_transitions = {
+        RefundStatus.PENDING: {RefundStatus.APPROVED, RefundStatus.REJECTED},
+        RefundStatus.APPROVED: {RefundStatus.PAID},
+        RefundStatus.REJECTED: set(),
+        RefundStatus.PAID: set(),
+    }
+    if data.status != refund.status and data.status not in allowed_transitions[refund.status]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"تغییر وضعیت عودت از {refund.status.value} به {data.status.value} مجاز نیست",
+        )
+    if data.status == RefundStatus.PAID and not (
+        data.payment_tracking_code or refund.payment_tracking_code
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="برای ثبت عودت پرداخت‌شده، کد رهگیری الزامی است",
+        )
+    if data.status == RefundStatus.PAID and not refund.destination_card_encrypted:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="کارت مقصد عودت هنوز توسط کاربر ثبت نشده است",
+        )
+
     refund.status = data.status
     refund.admin_note = data.admin_note
     if data.payment_tracking_code:
@@ -828,6 +904,42 @@ async def update_refund_status(
         f"تغییر وضعیت عودت | refund={refund_id} → {data.status.value}",
     )
     return _refund_response(refund)
+
+
+@router.get(
+    "/refunds/{refund_id}/destination",
+    response_model=RefundDestinationResponse,
+    summary="Reveal refund payout destination for manual transfer",
+)
+async def reveal_refund_destination(
+    refund_id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    from app.models.refund import Refund
+
+    refund = await db.get(Refund, refund_id)
+    if not refund:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="عودت یافت نشد")
+    if not refund.destination_card_encrypted or not refund.destination_card_masked:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="کاربر هنوز کارت مقصد عودت را ثبت نکرده است",
+        )
+    await log_action(
+        db,
+        current_user.id,
+        "refund_destination_revealed",
+        f"مشاهده کارت مقصد عودت | refund={refund_id}",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return RefundDestinationResponse(
+        refund_id=refund.id,
+        card_number=decrypt_card_number(refund.destination_card_encrypted),
+        masked_card_number=refund.destination_card_masked,
+        holder_name=refund.destination_card_holder_name,
+    )
 
 
 @router.get(
@@ -964,7 +1076,14 @@ def _delete_hero_image(relative_url: str | None) -> bool:
         rel = path.lstrip("/")
         if rel.startswith("uploads/hero/"):
             rel = rel[len("uploads/hero/") :]
-        filepath = _HERO_UPLOAD_DIR / rel
+        # Settings are editable and may contain arbitrary strings. Do not let
+        # a crafted value escape the dedicated hero directory on deletion.
+        if not rel or Path(rel).name != rel:
+            return False
+        upload_root = _HERO_UPLOAD_DIR.resolve()
+        filepath = (upload_root / rel).resolve()
+        if filepath.parent != upload_root:
+            return False
         if filepath.exists() and filepath.is_file():
             filepath.unlink()
             return True
@@ -1015,7 +1134,12 @@ async def upload_hero_image(
         images.append(relative_url)
         setting.value = json.dumps(images)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        _delete_hero_image(relative_url)
+        raise
     await db.refresh(setting)
     from app.services.cache_service import invalidate_admin_list_cache
 
@@ -1043,13 +1167,15 @@ async def delete_hero_image(
 
     try:
         images = json.loads(setting.value)
-        if not isinstance(images, list) or index >= len(images):
+        if not isinstance(images, list) or index < 0 or index >= len(images):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="تصویر یافت نشد")
         removed = images.pop(index)
         setting.value = json.dumps(images)
-        _delete_hero_image(removed)
         await db.commit()
         await db.refresh(setting)
+        # Commit the authoritative setting first. An unlink failure can leave
+        # an orphan, but cannot leave the database pointing at a deleted file.
+        _delete_hero_image(removed)
     except (json.JSONDecodeError, ValueError):
         raise HTTPException(status_code=400, detail="فرمت داده نامعتبر است")
 

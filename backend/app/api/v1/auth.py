@@ -147,6 +147,7 @@ async def verify_otp(
     )
     # Persist refresh token from OTP login
     auth_service = _auth_service(db)
+    await auth_service.refresh_repo.revoke_all_for_user(user.id)
     await auth_service._persist_refresh_token(
         user_id=user.id,
         refresh_token=refresh_token,
@@ -361,14 +362,17 @@ async def delete_avatar(
 
 @router.get("/sessions", response_model=SessionListResponse, summary="List active sessions")
 async def list_sessions(
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: AuthService = Depends(_auth_service),
 ):
     sessions = await service.list_sessions(current_user)
-    # Determine current session from the latest refresh token
     current_session_id = None
-    if sessions:
-        current_session_id = sessions[0]["session_id"]
+    refresh_token = request.cookies.get(settings.refresh_cookie_name)
+    payload = decode_token(refresh_token, expected_type="refresh") if refresh_token else None
+    cookie_session_id = payload.get("sid") if payload else None
+    if cookie_session_id and any(item["session_id"] == cookie_session_id for item in sessions):
+        current_session_id = cookie_session_id
     return SessionListResponse(
         sessions=[SessionResponse(**s) for s in sessions],
         current_session_id=current_session_id,

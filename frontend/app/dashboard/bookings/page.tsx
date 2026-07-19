@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,12 @@ const emptyStateByTab: Record<
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingDetail[]>([])
+  const [total, setTotal] = useState(0)
+  const [tabCounts, setTabCounts] = useState({
+    current: 0,
+    past: 0,
+    cancelled: 0,
+  })
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<number | null>(null)
@@ -72,18 +78,24 @@ export default function BookingsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      params.set("skip", "0")
-      params.set("limit", "20")
-      const res = await api<{ bookings: BookingDetail[]; total: number }>(
-        `/api/v1/bookings?${params}`
-      )
+      params.set("skip", String(page * limit))
+      params.set("limit", String(limit))
+      params.set("category", activeTab)
+      if (debouncedSearch) params.set("search", debouncedSearch)
+      const res = await api<{
+        bookings: BookingDetail[]
+        total: number
+        category_counts?: Record<BookingTab, number>
+      }>(`/api/v1/bookings?${params}`)
       setBookings(res.bookings)
+      setTotal(res.total)
+      if (res.category_counts) setTabCounts(res.category_counts)
     } catch {
       // not authenticated
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeTab, debouncedSearch, limit, page])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchBookings(), 0)
@@ -132,17 +144,24 @@ export default function BookingsPage() {
     if (!cancellingBooking) return
     setCancellingLoading(true)
     try {
-      await api(`/api/v1/bookings/${cancellingBooking.id}/cancel`, {
-        method: "POST",
-        body: JSON.stringify({
-          accepted_terms: acceptedCancelTerms,
-          ...(cancelTerms?.requires_bank_card &&
-          !cancelTerms.has_verified_bank_card
-            ? { card_number: cancelCardNumber.replace(/\D/g, "") }
-            : {}),
-        }),
-      })
-      toast.success("رزرو لغو شد")
+      const result = await api<BookingDetail>(
+        `/api/v1/bookings/${cancellingBooking.id}/cancel`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            accepted_terms: acceptedCancelTerms,
+            ...(cancelTerms?.requires_bank_card &&
+            !cancelTerms.has_verified_bank_card
+              ? { card_number: cancelCardNumber.replace(/\D/g, "") }
+              : {}),
+          }),
+        }
+      )
+      toast.success(
+        result.status === "pending_cancellation"
+          ? "درخواست ثبت شد؛ رزرو در انتظار جایگزین است"
+          : "رزرو لغو شد"
+      )
       setCancellingBooking(null)
       setCancelTerms(null)
       setCancelCardNumber("")
@@ -156,60 +175,7 @@ export default function BookingsPage() {
     }
   }
 
-  const filteredBookings = useMemo(() => {
-    const query = debouncedSearch.trim().toLowerCase()
-    const now = new Date()
-
-    return bookings.filter((booking) => {
-      if (query && !booking.vendor_name.toLowerCase().includes(query)) {
-        return false
-      }
-
-      const isCancelled =
-        booking.status === "cancelled" || booking.status === "expired"
-      if (activeTab === "cancelled") return isCancelled
-      if (isCancelled) return false
-
-      const slotEnd = booking.slot_end_time
-        ? new Date(booking.slot_end_time)
-        : null
-      if (activeTab === "past") {
-        return !!slotEnd && slotEnd <= now
-      }
-      return !slotEnd || slotEnd > now
-    })
-  }, [bookings, debouncedSearch, activeTab])
-
-  const tabCounts = useMemo(() => {
-    const now = new Date()
-    return bookings.reduce(
-      (counts, booking) => {
-        const isCancelled =
-          booking.status === "cancelled" || booking.status === "expired"
-        if (isCancelled) {
-          counts.cancelled += 1
-          return counts
-        }
-        const slotEnd = booking.slot_end_time
-          ? new Date(booking.slot_end_time)
-          : null
-        if (slotEnd && slotEnd <= now) {
-          counts.past += 1
-        } else {
-          counts.current += 1
-        }
-        return counts
-      },
-      { current: 0, past: 0, cancelled: 0 }
-    )
-  }, [bookings])
-
-  const paginatedBookings = useMemo(() => {
-    const start = page * limit
-    return filteredBookings.slice(start, start + limit)
-  }, [filteredBookings, page, limit])
-
-  const totalPages = Math.ceil(filteredBookings.length / limit)
+  const totalPages = Math.ceil(total / limit)
 
   function handleTabChange(value: string) {
     setActiveTab(value as BookingTab)
@@ -248,7 +214,7 @@ export default function BookingsPage() {
           <TabsContent key={tab} value={tab} className="mt-4">
             {loading ? (
               <BookingTableSkeleton />
-            ) : filteredBookings.length === 0 ? (
+            ) : bookings.length === 0 ? (
               <BookingEmptyState
                 hasActiveFilters={!!debouncedSearch}
                 title={
@@ -267,7 +233,7 @@ export default function BookingsPage() {
               />
             ) : (
               <BookingTable
-                bookings={paginatedBookings}
+                bookings={bookings}
                 totalPages={totalPages}
                 page={page}
                 onPageChange={setPage}

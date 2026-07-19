@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 
 pytestmark = [pytest.mark.asyncio]
 
 _vendor_counter = 0
 
 
-async def _create_vendor(client: AsyncClient, token: dict) -> int:
-    """Create a vendor with a unique name and return its id."""
+async def _create_vendor(client: AsyncClient, token: dict, session) -> int:
+    """Create and approve a vendor with a unique name, then return its id."""
     global _vendor_counter
     _vendor_counter += 1
     headers = {"Authorization": f"Bearer {token['access_token']}"}
@@ -28,7 +29,13 @@ async def _create_vendor(client: AsyncClient, token: dict) -> int:
         headers=headers,
     )
     assert resp.status_code == 201, f"Vendor creation failed: {resp.status_code} {resp.text[:200]}"
-    return resp.json()["id"]
+    vendor_id = resp.json()["id"]
+    await session.execute(
+        text("UPDATE vendors SET is_active = true WHERE id = :vendor_id"),
+        {"vendor_id": vendor_id},
+    )
+    await session.flush()
+    return vendor_id
 
 
 class TestListFavorites:
@@ -39,10 +46,10 @@ class TestListFavorites:
         assert resp.json() == []
 
     async def test_list_with_data(
-        self, client: AsyncClient, user_token: dict, manager_token: dict
+        self, client: AsyncClient, user_token: dict, manager_token: dict, session
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        vendor_id = await _create_vendor(client, manager_token)
+        vendor_id = await _create_vendor(client, manager_token, session)
 
         # Add favorite
         await client.post(f"/api/v1/favorites/{vendor_id}", headers=headers)
@@ -60,10 +67,10 @@ class TestListFavorites:
 
 class TestCheckFavorites:
     async def test_check_some_favorited(
-        self, client: AsyncClient, user_token: dict, manager_token: dict
+        self, client: AsyncClient, user_token: dict, manager_token: dict, session
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        vendor = await _create_vendor(client, manager_token)
+        vendor = await _create_vendor(client, manager_token, session)
 
         # Favorite the vendor
         await client.post(f"/api/v1/favorites/{vendor}", headers=headers)
@@ -77,10 +84,10 @@ class TestCheckFavorites:
         assert data["favorited_vendor_ids"] == [vendor]
 
     async def test_check_none_favorited(
-        self, client: AsyncClient, user_token: dict, manager_token: dict
+        self, client: AsyncClient, user_token: dict, manager_token: dict, session
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        vendor1 = await _create_vendor(client, manager_token)
+        vendor1 = await _create_vendor(client, manager_token, session)
 
         resp = await client.get(
             f"/api/v1/favorites/check?vendor_ids={vendor1}",
@@ -92,27 +99,29 @@ class TestCheckFavorites:
 
 class TestAddFavorite:
     async def test_add_success(
-        self, client: AsyncClient, user_token: dict, manager_token: dict
+        self, client: AsyncClient, user_token: dict, manager_token: dict, session
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        vendor_id = await _create_vendor(client, manager_token)
+        vendor_id = await _create_vendor(client, manager_token, session)
 
         resp = await client.post(f"/api/v1/favorites/{vendor_id}", headers=headers)
         assert resp.status_code == 201
         assert resp.json()["vendor_id"] == vendor_id
 
-    async def test_add_unauthenticated(self, client: AsyncClient, manager_token: dict) -> None:
-        vendor_id = await _create_vendor(client, manager_token)
+    async def test_add_unauthenticated(
+        self, client: AsyncClient, manager_token: dict, session
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
         resp = await client.post(f"/api/v1/favorites/{vendor_id}")
         assert resp.status_code == 401
 
 
 class TestRemoveFavorite:
     async def test_remove_success(
-        self, client: AsyncClient, user_token: dict, manager_token: dict
+        self, client: AsyncClient, user_token: dict, manager_token: dict, session
     ) -> None:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
-        vendor_id = await _create_vendor(client, manager_token)
+        vendor_id = await _create_vendor(client, manager_token, session)
 
         # Add then remove
         await client.post(f"/api/v1/favorites/{vendor_id}", headers=headers)

@@ -10,7 +10,7 @@ interface DayColumnProps {
   dayIndex: number
   slots: TimeSlot[]
   isToday: boolean
-  onSlotDelete: (slot: TimeSlot) => void
+  onSlotDelete?: (slot: TimeSlot) => void
   onSlotEdit?: (slot: TimeSlot) => void
   onCellClick?: (day: Date) => void
 }

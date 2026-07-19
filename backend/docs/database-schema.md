@@ -280,6 +280,22 @@
 | `updated_at` | timestamp | زمان آخرین به‌روزرسانی. |
 | `expires_at` | timestamp, nullable | زمان انقضای نگه‌داشت پرداخت برای رزروهای در انتظار پرداخت. |
 
+## `replacement_requests`
+
+درخواست جایگزینی یک رزرو `pending_cancellation` را نگهداری می‌کند. برای هر رزرو اولیه فقط یک درخواست وجود دارد و مبلغ جریمه، مبلغ refund و deadline هنگام درخواست لغو snapshot می‌شوند.
+
+وضعیت‌ها: `open`, `held`, `completed`, `expired`, `revoked`.
+
+فیلدهای کلیدی: `original_booking_id` یکتا، `replacement_booking_id` یکتا و nullable، `slot_id`، `penalty_amount`، `refund_amount`، `deadline` و `completed_at`.
+
+## `booking_holds`
+
+قصد خرید موقت متقاضی جایگزین را بدون ساختن رزرو دوم نگهداری می‌کند. قیمت سانس، توپ و تعداد نفرات در Hold snapshot می‌شوند.
+
+وضعیت‌ها: `active`, `processing`, `paid`, `expired`, `failed`, `cancelled`.
+
+قید partial unique اجازه می‌دهد برای هر slot حداکثر یک Hold با وضعیت `active` یا `processing` وجود داشته باشد. اطلاعات نتیجه درگاه روی Hold ثبت و بعد از انتقال موفق، `replacement_booking_id` به رزرو قطعی اشاره می‌کند.
+
 ## `payments`
 
 تلاش‌ها و رکوردهای پرداخت مربوط به رزروها را نگهداری می‌کند.
@@ -331,10 +347,14 @@
 | `paid_at` | timestamp, nullable | زمان پرداخت واقعی بازپرداخت. |
 | `admin_note` | text, nullable | یادداشت ادمین برای تیم مالی/تاریخچه. |
 | `payment_tracking_code` | string(128), nullable | کد رهگیری بانکی/پرداخت. |
+| `destination_card_encrypted` | string(512), nullable | snapshot رمز‌شده کارت مقصد در زمان ایجاد Refund. |
+| `destination_card_masked` | string(32), nullable | کارت مقصد قابل نمایش با چهار رقم اول و چهار رقم آخر. |
+| `destination_card_holder_name` | string(128), nullable | snapshot نام دارنده کارت مقصد. |
 
 قیود:
 
 - یکتای `booking_id`, `type`
+- مقصد Refund از کارت mutable کاربر مستقل snapshot می‌شود؛ تغییر کارت بعدی مقصد Refund قبلی را عوض نمی‌کند.
 
 ## `penalties`
 

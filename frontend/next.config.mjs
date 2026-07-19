@@ -84,7 +84,9 @@ const pwaConfig = withPwa
       // In development, serwist injects a no-op SW so nothing is cached.
       // To test PWA locally, set ENABLE_PWA_DEV=true in .env.local
       // (requires a production build).
-      disable: process.env.NODE_ENV === "development" && process.env.ENABLE_PWA_DEV !== "true",
+      disable:
+        process.env.NODE_ENV === "development" &&
+        process.env.ENABLE_PWA_DEV !== "true",
     })
   : (config) => config
 

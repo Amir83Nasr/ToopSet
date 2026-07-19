@@ -227,9 +227,14 @@ export default function DashboardVendorEditPage() {
     try {
       await api(`/api/v1/vendors/${vendorId}`, {
         method: "PATCH",
-        body: JSON.stringify({ ...data, images: vendorImages }),
+        body: JSON.stringify({
+          ...data,
+          images: vendorImages,
+          temp_ids: imageTempIds,
+        }),
       })
       toast.success("تغییرات با موفقیت ذخیره شد")
+      setImageTempIds([])
       fetchData()
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در ذخیره تغییرات"

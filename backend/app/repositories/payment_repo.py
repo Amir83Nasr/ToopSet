@@ -44,7 +44,7 @@ class PaymentRepo:
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
             .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .where(Booking.user_id == user_id)
-            .order_by(Payment.created_at.desc())
+            .order_by(Payment.id.desc())
         )
         count_q = (
             select(func.count(Payment.id))
@@ -55,7 +55,7 @@ class PaymentRepo:
         )
 
         if after_id is not None:
-            query = query.where(Payment.id > after_id)
+            query = query.where(Payment.id < after_id)
 
         if status_filter:
             query = query.where(Payment.status == status_filter)
@@ -78,7 +78,7 @@ class PaymentRepo:
         result = await self.db.execute(
             select(Payment)
             .where(Payment.booking_id == booking_id)
-            .order_by(Payment.created_at.desc())
+            .order_by(Payment.id.desc())
             .limit(1)
         )
         return result.scalar_one_or_none()
@@ -132,7 +132,7 @@ class PaymentRepo:
         )
 
         if after_id is not None:
-            query = query.where(Payment.id > after_id)
+            query = query.where(Payment.id < after_id)
 
         if status_filter:
             query = query.where(Payment.status == status_filter)

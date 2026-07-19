@@ -9,6 +9,7 @@ from app.core.rate_limiter import limiter
 from app.core.redis_client import get_redis
 from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, save_upload
 from app.models.user import User
+from app.services.upload_temp_service import store_temp_upload
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/uploads", tags=["uploads"])
 async def upload_vendor_image(
     request: Request,
     file: UploadFile = File(...),
-    _: User = Depends(get_current_manager),
+    current_user: User = Depends(get_current_manager),
 ) -> dict:
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
@@ -37,5 +38,10 @@ async def upload_vendor_image(
     absolute_url = f"{base}{relative_url}"
     temp_id = uuid.uuid4().hex
     r = await get_redis()
-    await r.set(f"temp_upload:{temp_id}", absolute_url, ex=3600)
+    await store_temp_upload(
+        r,
+        temp_id=temp_id,
+        user_id=current_user.id,
+        path=relative_url,
+    )
     return {"temp_id": temp_id, "url": absolute_url}

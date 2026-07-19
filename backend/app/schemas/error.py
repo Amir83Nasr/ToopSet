@@ -11,7 +11,7 @@ class FieldError(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    detail: str
+    detail: str | dict | list
     error_code: str | None = None
     timestamp: datetime | None = None
     path: str | None = None

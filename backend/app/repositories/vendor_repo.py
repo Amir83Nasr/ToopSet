@@ -61,7 +61,7 @@ class VendorRepo:
             query = query.where(Vendor.name.ilike(pattern))
 
         if after_id is not None:
-            query = query.where(Vendor.id > after_id)
+            query = query.where(Vendor.id < after_id)
 
         # Date/price filters: join with time_slots to find vendors with available slots
         if date_from or date_to or price_min is not None or price_max is not None:
@@ -81,7 +81,7 @@ class VendorRepo:
 
             query = query.distinct()
 
-        count_q = select(func.count()).select_from(Vendor)
+        count_q = select(func.count(func.distinct(Vendor.id))).select_from(Vendor)
         if sport_types:
             count_cond = or_(Vendor.sport_types.any(st.value) for st in sport_types)
             count_q = count_q.where(count_cond)
@@ -108,7 +108,7 @@ class VendorRepo:
 
         total = (await self.db.execute(count_q)).scalar_one()
 
-        order = Vendor.created_at.desc()
+        order = Vendor.id.desc()
         if sort in ("price_asc", "price_desc"):
             price_subq = (
                 select(func.min(TimeSlot.base_price))
@@ -125,14 +125,19 @@ class VendorRepo:
         elif sort == "rating":
             order = Vendor.average_rating.desc()
 
-        if after_id is not None:
+        distance_filter = (
+            ref_lat is not None and ref_lon is not None and max_distance_km is not None
+        )
+        if distance_filter:
+            result = await self.db.execute(query.order_by(order))
+        elif after_id is not None:
             result = await self.db.execute(query.limit(limit).order_by(order))
         else:
             result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
         vendors = list(result.scalars().all())
 
         # Distance filter (in-memory Haversine)
-        if ref_lat is not None and ref_lon is not None and max_distance_km is not None:
+        if distance_filter:
             filtered = []
             for c in vendors:
                 if c.latitude is not None and c.longitude is not None:
@@ -141,6 +146,7 @@ class VendorRepo:
                         filtered.append(c)
             vendors = filtered
             total = len(filtered)
+            vendors = vendors[skip : skip + limit]
 
         return vendors, total
 

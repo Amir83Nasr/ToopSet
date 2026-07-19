@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
 
 from sqlalchemy import func, select
@@ -31,37 +30,112 @@ class BookingRepo:
         skip: int = 0,
         limit: int = 20,
         status_filter: str | None = None,
+        category: str | None = None,
+        search: str | None = None,
+        now: datetime | None = None,
     ) -> tuple[list[Booking], int]:
         query = (
             select(Booking)
             .options(selectinload(Booking.slot).selectinload(TimeSlot.vendor))
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .where(Booking.user_id == user_id)
-            .order_by(Booking.created_at.desc())
+            .order_by(Booking.id.desc())
         )
-        count_q = select(func.count(Booking.id)).where(Booking.user_id == user_id)
+        count_q = (
+            select(func.count(Booking.id))
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .join(Vendor, TimeSlot.vendor_id == Vendor.id)
+            .where(Booking.user_id == user_id)
+        )
 
         if after_id is not None:
-            query = query.where(Booking.id > after_id)
+            query = query.where(Booking.id < after_id)
 
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
 
+        cancelled_statuses = (
+            BookingStatus.CANCELLED,
+            BookingStatus.TRANSFERRED,
+            BookingStatus.EXPIRED,
+        )
+        reference = now or datetime.now().astimezone()
+        if category == "cancelled":
+            query = query.where(Booking.status.in_(cancelled_statuses))
+            count_q = count_q.where(Booking.status.in_(cancelled_statuses))
+        elif category == "past":
+            query = query.where(
+                Booking.status.notin_(cancelled_statuses), TimeSlot.end_time <= reference
+            )
+            count_q = count_q.where(
+                Booking.status.notin_(cancelled_statuses), TimeSlot.end_time <= reference
+            )
+        elif category == "current":
+            query = query.where(
+                Booking.status.notin_(cancelled_statuses), TimeSlot.end_time > reference
+            )
+            count_q = count_q.where(
+                Booking.status.notin_(cancelled_statuses), TimeSlot.end_time > reference
+            )
+
+        if search:
+            pattern = f"%{search.strip()}%"
+            query = query.where(Vendor.name.ilike(pattern))
+            count_q = count_q.where(Vendor.name.ilike(pattern))
+
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         bookings = list(result.scalars().all())
         total = count_result.scalar_one()
         return bookings, total
 
+    async def count_categories_by_user(self, user_id: int, *, now: datetime) -> dict[str, int]:
+        cancelled_statuses = (
+            BookingStatus.CANCELLED,
+            BookingStatus.TRANSFERRED,
+            BookingStatus.EXPIRED,
+        )
+        stmt = (
+            select(
+                func.count(Booking.id)
+                .filter(
+                    Booking.status.notin_(cancelled_statuses),
+                    TimeSlot.end_time > now,
+                )
+                .label("current_count"),
+                func.count(Booking.id)
+                .filter(
+                    Booking.status.notin_(cancelled_statuses),
+                    TimeSlot.end_time <= now,
+                )
+                .label("past_count"),
+                func.count(Booking.id)
+                .filter(Booking.status.in_(cancelled_statuses))
+                .label("cancelled_count"),
+            )
+            .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+            .where(Booking.user_id == user_id)
+        )
+        row = (await self.db.execute(stmt)).one()
+        return {
+            "current": int(row.current_count or 0),
+            "past": int(row.past_count or 0),
+            "cancelled": int(row.cancelled_count or 0),
+        }
+
     async def get_by_id(self, booking_id: int, *, for_update: bool = False) -> Booking | None:
         stmt = (
             select(Booking)
-            .options(selectinload(Booking.slot).selectinload(TimeSlot.vendor))
+            .options(
+                selectinload(Booking.slot).selectinload(TimeSlot.vendor),
+                selectinload(Booking.user),
+            )
             .where(Booking.id == booking_id)
         )
         if for_update:
@@ -134,7 +208,7 @@ class BookingRepo:
             .outerjoin(User, Booking.user_id == User.id)
         )
         if after_id is not None:
-            query = query.where(Booking.id > after_id)
+            query = query.where(Booking.id < after_id)
         if status_filter:
             query = query.where(Booking.status == status_filter)
             count_q = count_q.where(Booking.status == status_filter)
@@ -142,24 +216,27 @@ class BookingRepo:
             pattern = f"%{search}%"
             query = query.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
             count_q = count_q.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
-        query = query.order_by(Booking.created_at.desc())
+        query = query.order_by(Booking.id.desc())
 
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         bookings = list(result.scalars().all())
         total = count_result.scalar_one()
         return bookings, total
 
     async def list_expired_pending(self, now: datetime) -> list[Booking]:
-        stmt = select(Booking).where(
-            Booking.status == BookingStatus.PENDING_PAYMENT,
-            Booking.expires_at.isnot(None),
-            Booking.expires_at < now,
+        stmt = (
+            select(Booking)
+            .where(
+                Booking.status == BookingStatus.PENDING_PAYMENT,
+                Booking.expires_at.isnot(None),
+                Booking.expires_at < now,
+            )
+            .with_for_update(skip_locked=True)
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
@@ -197,7 +274,7 @@ class BookingRepo:
                 Booking.user_id == user_id,
                 Booking.status == BookingStatus.CONFIRMED,
             )
-            .order_by(Booking.updated_at.desc())
+            .order_by(Booking.id.desc())
         )
         count_q = select(func.count(Booking.id)).where(
             Booking.user_id == user_id,
@@ -205,14 +282,13 @@ class BookingRepo:
         )
 
         if after_id is not None:
-            query = query.where(Booking.id > after_id)
+            query = query.where(Booking.id < after_id)
 
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         bookings = list(result.scalars().all())
         total = count_result.scalar_one()
@@ -232,15 +308,15 @@ class BookingRepo:
 
     async def list_by_manager(
         self,
-        manager_id: int,
+        manager_id: int | None,
         *,
         after_id: int | None = None,
         skip: int = 0,
         limit: int = 20,
         status_filter: str | None = None,
         vendor_id: int | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         search: str | None = None,
     ) -> tuple[list[Booking], int]:
         """List bookings for vendors managed by *manager_id*."""
@@ -253,18 +329,20 @@ class BookingRepo:
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
             .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .outerjoin(User, Booking.user_id == User.id)
-            .where(Vendor.manager_id == manager_id)
         )
         count_q = (
             select(func.count(Booking.id))
             .join(TimeSlot, Booking.slot_id == TimeSlot.id)
             .join(Vendor, TimeSlot.vendor_id == Vendor.id)
             .outerjoin(User, Booking.user_id == User.id)
-            .where(Vendor.manager_id == manager_id)
         )
 
+        if manager_id is not None:
+            query = query.where(Vendor.manager_id == manager_id)
+            count_q = count_q.where(Vendor.manager_id == manager_id)
+
         if after_id is not None:
-            query = query.where(Booking.id > after_id)
+            query = query.where(Booking.id < after_id)
 
         if status_filter:
             query = query.where(Booking.status == status_filter)
@@ -283,14 +361,13 @@ class BookingRepo:
             query = query.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
             count_q = count_q.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
 
-        query = query.order_by(Booking.created_at.desc())
+        query = query.order_by(Booking.id.desc())
 
         if after_id is not None:
-            data_task = self.db.execute(query.limit(limit))
+            result = await self.db.execute(query.limit(limit))
         else:
-            data_task = self.db.execute(query.offset(skip).limit(limit))
-        count_task = self.db.execute(count_q)
-        result, count_result = await asyncio.gather(data_task, count_task)
+            result = await self.db.execute(query.offset(skip).limit(limit))
+        count_result = await self.db.execute(count_q)
 
         bookings = list(result.scalars().all())
         total = count_result.scalar_one()

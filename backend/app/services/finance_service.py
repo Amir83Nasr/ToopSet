@@ -19,6 +19,7 @@ from app.models.slot_cancellation import SlotCancellation
 from app.models.time_slot import SlotStatus, TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
+from app.repositories.bank_card_repo import BankCardRepo
 from app.repositories.booking_repo import BookingRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
@@ -34,6 +35,7 @@ class FinanceService:
         self.db = db
         self.current_user = current_user
         self.booking_repo = BookingRepo(db)
+        self.bank_card_repo = BankCardRepo(db)
         self.slot_repo = TimeSlotRepo(db)
         self.user_repo = UserRepository(db)
         self.notify_repo = NotificationRepo(db)
@@ -86,6 +88,7 @@ class FinanceService:
             )
         ).scalar_one_or_none()
         if existing:
+            await self._attach_refund_destination(existing)
             return existing
 
         slot = booking.slot
@@ -112,9 +115,21 @@ class FinanceService:
             penalty_charged_to_user=penalty_charged_to_user,
             site_bears_penalty=site_bears_penalty,
         )
+        await self._attach_refund_destination(refund)
         self.db.add(refund)
         await self.db.flush()
         return refund
+
+    async def _attach_refund_destination(self, refund: Refund) -> None:
+        """Snapshot the verified payout card without changing an older snapshot."""
+        if refund.destination_card_encrypted:
+            return
+        card = await self.bank_card_repo.get_verified_for_user(refund.user_id)
+        if card is None:
+            return
+        refund.destination_card_encrypted = card.encrypted_card_number
+        refund.destination_card_masked = card.masked_card_number
+        refund.destination_card_holder_name = card.holder_name
 
     async def create_manager_booking(
         self,
@@ -276,7 +291,7 @@ class FinanceService:
         if (
             booking.source == BookingSource.ONLINE
             and online_payment
-            and booking.status == BookingStatus.CONFIRMED
+            and booking.status in (BookingStatus.CONFIRMED, BookingStatus.PENDING_CANCELLATION)
         ):
             site_cost = Decimal(str(booking.price_paid))
             await self.create_refund(
@@ -292,6 +307,10 @@ class FinanceService:
         else:
             booking.settlement_status = SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION
 
+        if booking.status == BookingStatus.PENDING_CANCELLATION:
+            from app.services.replacement_service import revoke_replacement_request
+
+            await revoke_replacement_request(self.db, booking.id)
         booking.status = BookingStatus.CANCELLED
         if release_slot:
             await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
@@ -409,16 +428,18 @@ class FinanceService:
             for b in bookings
             if b.settlement_status == SettlementStatus.SETTLED
         )
-        refunds_amount = (
-            await self.db.execute(
-                select(func.coalesce(func.sum(Refund.refund_amount), 0))
-                .join(TimeSlot, Refund.slot_id == TimeSlot.id)
-                .join(Vendor, TimeSlot.vendor_id == Vendor.id)
-                .where(
-                    Vendor.manager_id == manager_id if self.current_user.role != "admin" else True
-                )
-            )
-        ).scalar_one()
+        refunds_query = (
+            select(func.coalesce(func.sum(Refund.refund_amount), 0))
+            .join(Vendor, Refund.vendor_id == Vendor.id)
+            .where(Vendor.manager_id == manager_id if self.current_user.role != "admin" else True)
+        )
+        if vendor_id is not None:
+            refunds_query = refunds_query.where(Refund.vendor_id == vendor_id)
+        if date_from is not None:
+            refunds_query = refunds_query.where(Refund.requested_at >= date_from)
+        if date_to is not None:
+            refunds_query = refunds_query.where(Refund.requested_at <= date_to)
+        refunds_amount = (await self.db.execute(refunds_query)).scalar_one()
 
         return {
             "vendor_id": vendor_id,
@@ -544,9 +565,55 @@ class FinanceService:
         admin_note: str | None,
         payment_tracking_code: str | None,
     ) -> Settlement:
-        settlement = await self.db.get(Settlement, settlement_id)
+        settlement = (
+            await self.db.execute(
+                select(Settlement).where(Settlement.id == settlement_id).with_for_update()
+            )
+        ).scalar_one_or_none()
         if not settlement:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="درخواست تسویه یافت نشد")
+        allowed_transitions = {
+            SettlementRequestStatus.PENDING: {
+                SettlementRequestStatus.APPROVED,
+                SettlementRequestStatus.REJECTED,
+            },
+            SettlementRequestStatus.APPROVED: {SettlementRequestStatus.PAID},
+            SettlementRequestStatus.REJECTED: set(),
+            SettlementRequestStatus.PAID: set(),
+        }
+        if (
+            new_status != settlement.status
+            and new_status not in allowed_transitions[settlement.status]
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail=(
+                    "تغییر وضعیت تسویه از "
+                    f"{settlement.status.value} به {new_status.value} مجاز نیست"
+                ),
+            )
+        if new_status == SettlementRequestStatus.PAID and not (
+            payment_tracking_code or settlement.payment_tracking_code
+        ):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="برای ثبت تسویه پرداخت‌شده، کد رهگیری الزامی است",
+            )
+        if approved_amount is not None and approved_amount > settlement.requested_amount:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="مبلغ تأییدشده نمی‌تواند بیشتر از مبلغ درخواستی باشد",
+            )
+        if (
+            new_status == SettlementRequestStatus.PAID
+            and approved_amount is not None
+            and settlement.approved_amount is not None
+            and approved_amount != settlement.approved_amount
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="مبلغ تسویه پس از تأیید قابل تغییر نیست",
+            )
         items = list(
             (
                 await self.db.execute(

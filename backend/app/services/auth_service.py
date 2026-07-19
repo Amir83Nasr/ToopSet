@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import log_action
@@ -105,6 +106,7 @@ class AuthService:
                 f"ورود ناموفق با رمز عبور | شماره {phone}",
                 severity="WARNING",
             )
+            await self.repo.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="شماره تلفن یا رمز عبور اشتباه است"
             )
@@ -114,6 +116,10 @@ class AuthService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
             )
 
+        # Authentication is intentionally single-device (documented via
+        # token_version). Revoke old refresh rows as well so the sessions API
+        # does not present unusable phantom sessions after a new login.
+        await self.refresh_repo.revoke_all_for_user(user.id)
         user.token_version += 1
         await self.repo.update_user(user.id, {"token_version": user.token_version})
 
@@ -176,7 +182,10 @@ class AuthService:
 
         # ── Refresh rotation flow ────────────────────────────────────
         token_hash = hash_token(refresh_token)
-        stored = await self.refresh_repo.get_by_hash(token_hash)
+        # Serialize rotation of the same token. Without a row lock, two
+        # concurrent refresh requests can both observe the token as active and
+        # issue two valid successors, defeating one-time rotation semantics.
+        stored = await self.refresh_repo.get_by_hash(token_hash, for_update=True)
 
         if stored is None or stored.revoked_at is not None:
             # Replay attack or already-used token
@@ -191,6 +200,7 @@ class AuthService:
                     f"استفاده مجدد مشکوک از توکن رفرش | نشست {session_id[:8] if session_id else '?'}... | نشست لغو شد",
                     severity="WARNING",
                 )
+                await self.repo.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="نشست شما به پایان رسید — لطفاً دوباره وارد شوید",
@@ -341,6 +351,12 @@ class AuthService:
             changed_fields.append("نام")
 
         if data.phone is not None:
+            existing_phone_owner = await self.repo.get_by_phone(data.phone)
+            if existing_phone_owner and existing_phone_owner.id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="این شماره تلفن قبلاً ثبت شده است",
+                )
             update_data["phone"] = data.phone
             changed_fields.append("شماره تماس")
 
@@ -356,6 +372,7 @@ class AuthService:
                         "تغییر رمز عبور ناموفق | رمز عبور فعلی نامعتبر است",
                         severity="WARNING",
                     )
+                    await self.repo.db.commit()
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="رمز عبور فعلی نامعتبر است",
@@ -363,7 +380,14 @@ class AuthService:
             update_data["password_hash"] = hash_password(data.new_password)
             changed_fields.append("رمز عبور")
 
-        updated_user = await self.repo.update_user(current_user.id, update_data)
+        try:
+            updated_user = await self.repo.update_user(current_user.id, update_data)
+        except IntegrityError as exc:
+            await self.repo.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="این شماره تلفن قبلاً ثبت شده است",
+            ) from exc
         if updated_user is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

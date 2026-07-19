@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import Depends, HTTPException, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -33,6 +34,7 @@ class UserService:
         return user
 
     async def update_role(self, admin_user: User, target_id: int, new_role: str):
+        await self.repo.db.execute(text("SELECT pg_advisory_xact_lock(9023)"))
         # Cannot change own role
         if admin_user.id == target_id:
             raise HTTPException(
@@ -66,6 +68,7 @@ class UserService:
         return updated
 
     async def toggle_active(self, admin_user: User, target_id: int):
+        await self.repo.db.execute(text("SELECT pg_advisory_xact_lock(9023)"))
         # Cannot disable yourself
         if admin_user.id == target_id:
             raise HTTPException(

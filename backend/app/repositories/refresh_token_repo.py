@@ -37,12 +37,20 @@ class RefreshTokenRepo:
         await self.db.refresh(token)
         return token
 
-    async def get_by_hash(self, token_hash: str) -> RefreshToken | None:
-        result = await self.db.execute(
+    async def get_by_hash(
+        self, token_hash: str, *, for_update: bool = False
+    ) -> RefreshToken | None:
+        stmt = (
             select(RefreshToken)
             .options(joinedload(RefreshToken.user))
             .where(RefreshToken.token_hash == token_hash)
         )
+        if for_update:
+            # joinedload(User) adds a nullable outer join; PostgreSQL cannot
+            # lock that side. Lock only the refresh-token row that governs
+            # one-time rotation.
+            stmt = stmt.with_for_update(of=RefreshToken)
+        result = await self.db.execute(stmt)
         return result.unique().scalar_one_or_none()
 
     async def get_active_sessions(

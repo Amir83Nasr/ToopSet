@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
@@ -37,14 +39,15 @@ async def _create_vendor(client: AsyncClient, token: dict) -> int:
 
 
 async def _create_past_slot(client: AsyncClient, vendor_id: int, token: dict) -> dict:
-    """Create a slot with a past date (required for review eligibility)."""
+    """Create a bookable future slot; it is completed after booking creation."""
     headers = {"Authorization": f"Bearer {token['access_token']}"}
+    start = datetime.now(timezone.utc) + timedelta(hours=4)
     resp = await client.post(
         f"/api/v1/vendors/{vendor_id}/slots",
         json={
             "vendor_id": vendor_id,
-            "start_time": "2024-01-01T10:00:00",
-            "end_time": "2024-01-01T11:30:00",
+            "start_time": start.isoformat(),
+            "end_time": (start + timedelta(hours=2)).isoformat(),
             "base_price": 100000,
         },
         headers=headers,
@@ -79,6 +82,8 @@ async def _confirm_booking_via_db(booking_id: int, slot_id: int, session: AsyncS
     booking.status = BookingStatus.CONFIRMED
     slot = await session.get(TimeSlot, slot_id)
     assert slot is not None
+    slot.start_time = datetime.now(timezone.utc) - timedelta(hours=5)
+    slot.end_time = datetime.now(timezone.utc) - timedelta(hours=3)
     slot.is_reserved = True
     await session.flush()
 
@@ -90,7 +95,7 @@ async def _setup_review_scenario(
     session: AsyncSession,
 ) -> dict:
     """
-    Create a vendor, a past-dated slot, a booking by user, and confirm it.
+    Create a vendor and booking, then move the confirmed slot into the completed past.
 
     Returns dict with vendor_id, slot_id, booking_id for review creation.
     """

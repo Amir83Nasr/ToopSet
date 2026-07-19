@@ -473,6 +473,8 @@ async def seed():
         # ── Vendors ──
         for vendor in ALL_VENDORS:
             vendor.manager_id = manager.id
+            vendor.ball_available = random.random() < 0.6
+            vendor.ball_price = random_price(50, 150) if vendor.ball_available else Decimal("0")
         db.add_all(ALL_VENDORS)
         await db.flush()
         vendors: list[Vendor] = ALL_VENDORS
@@ -601,8 +603,6 @@ async def seed():
                         start_time=iran_to_utc(start_iran),
                         end_time=iran_to_utc(end_iran),
                         base_price=random_price(),
-                        ball_available=random.random() < 0.35,
-                        ball_price=random_price(50, 150),
                         gender=slot_gender,
                     )
                     day_slots.append(slot)
@@ -667,8 +667,8 @@ async def seed():
                 continue
             slot = day_slots[slot_in_day]
             user = regular_users[user_idx % len(regular_users)]
-            with_ball = slot.ball_available and random.random() < 0.4
-            ball_price = slot.ball_price if with_ball else Decimal("0")
+            with_ball = vendor.ball_available and random.random() < 0.4
+            ball_price = vendor.ball_price if with_ball else Decimal("0")
             total_price = slot.base_price + ball_price
             participants = assign_participants(vendor.sport_types)
 

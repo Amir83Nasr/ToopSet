@@ -15,6 +15,9 @@ _SLOW_QUERY_THRESHOLD_MS = 200
 engine = create_async_engine(
     settings.database_url,
     echo=False,
+    # Prevent SQLAlchemy exception/log rendering from exposing passwords,
+    # phones, card identifiers, or other bound request values.
+    hide_parameters=True,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_max_overflow,
     pool_recycle=settings.db_pool_recycle,

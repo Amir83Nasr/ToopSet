@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +10,7 @@ from app.api.deps import get_current_manager
 from app.core.database import get_db
 from app.core.date_utils import parse_date_filter, parse_date_filter_end
 from app.core.pagination import decode_cursor
+from app.core.redis_client import get_redis
 from app.core.upload import delete_upload
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
@@ -21,6 +24,7 @@ from app.schemas.vendor import (
     VendorUpdate,
 )
 from app.services.review_service import ReviewService
+from app.services.upload_temp_service import consume_temp_uploads
 from app.services.vendor_service import VendorService, get_vendor_service, get_vendor_service_public
 
 router = APIRouter(prefix="/vendors", tags=["vendors"])
@@ -53,6 +57,16 @@ async def list_vendors(
     from app.services.cache_service import cache_admin_list, get_cached_admin_list
 
     # Build cache params only from filter keys (skip/limit affect pagination)
+    if cursor and sort not in (None, "default"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="صفحه‌بندی cursor با مرتب‌سازی قیمت یا امتیاز پشتیبانی نمی‌شود",
+        )
+    if cursor and max_distance_km is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="صفحه‌بندی cursor با فیلتر فاصله پشتیبانی نمی‌شود",
+        )
     cursor_id = int(decode_cursor(cursor)) if cursor else None
     cache_params = {
         "cursor": cursor,
@@ -71,10 +85,14 @@ async def list_vendors(
         "max_distance_km": max_distance_km,
         "sort": sort,
     }
-    cached = await get_cached_admin_list("vendors", cache_params)
-    if cached is not None:
-        response.headers["X-Cache"] = "HIT"
-        return VendorListResponse.model_validate(cached)
+    privileged_view = bool(
+        service.current_user and service.current_user.role in ("manager", "admin")
+    )
+    if not privileged_view:
+        cached = await get_cached_admin_list("vendors", cache_params)
+        if cached is not None:
+            response.headers["X-Cache"] = "HIT"
+            return VendorListResponse.model_validate(cached)
 
     effective_sport_types = sport_types or ([sport_type] if sport_type else None)
 
@@ -94,8 +112,11 @@ async def list_vendors(
         max_distance_km=max_distance_km,
         sort=sort or "default",
     )
-    await cache_admin_list("vendors", cache_params, result.model_dump(mode="json"))
-    response.headers["X-Cache"] = "MISS"
+    if not privileged_view:
+        await cache_admin_list("vendors", cache_params, result.model_dump(mode="json"))
+        response.headers["X-Cache"] = "MISS"
+    else:
+        response.headers["X-Cache"] = "BYPASS"
     return result
 
 
@@ -193,7 +214,8 @@ async def delete_vendor(
 )
 async def upload_vendor_image(
     vendor_id: int,
-    url: str,
+    url: str | None = None,
+    temp_id: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_manager),
 ):
@@ -202,6 +224,27 @@ async def upload_vendor_image(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
     if vendor.manager_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
+    if temp_id:
+        redis = await get_redis()
+        consumed = await consume_temp_uploads(redis, temp_ids=[temp_id], user_id=current_user.id)
+        safe_url = consumed[0]
+        if url and urlparse(url).path != safe_url:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="شناسه موقت و نشانی تصویر یکسان نیستند",
+            )
+    elif url:
+        if urlparse(url).path.startswith("/uploads/"):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="برای افزودن تصویر آپلودشده، temp_id مالک تصویر الزامی است",
+            )
+        safe_url = url
+    else:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="url یا temp_id الزامی است",
+        )
     max_order = await db.scalar(
         select(VendorImage.order)
         .where(VendorImage.vendor_id == vendor_id)
@@ -209,7 +252,7 @@ async def upload_vendor_image(
         .limit(1)
     )
     next_order = (max_order or -1) + 1
-    img = VendorImage(vendor_id=vendor_id, url=url, order=next_order)
+    img = VendorImage(vendor_id=vendor_id, url=safe_url, order=next_order)
     db.add(img)
     await db.commit()
     await db.refresh(img)
@@ -252,11 +295,26 @@ async def reorder_vendor_images(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Vendor not found")
     if vendor.manager_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید")
-    for idx, img_id in enumerate(ordered_ids):
-        await db.execute(
-            select(VendorImage).where(VendorImage.id == img_id, VendorImage.vendor_id == vendor_id)
+    if len(ordered_ids) != len(set(ordered_ids)):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="شناسه تصویر تکراری است",
         )
-        img = await db.get(VendorImage, img_id)
-        if img and img.vendor_id == vendor_id:
-            img.order = idx
+    images = list(
+        (
+            await db.execute(
+                select(VendorImage).where(
+                    VendorImage.id.in_(ordered_ids),
+                    VendorImage.vendor_id == vendor_id,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if len(images) != len(ordered_ids):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="یک یا چند تصویر یافت نشد")
+    image_by_id = {image.id: image for image in images}
+    for idx, img_id in enumerate(ordered_ids):
+        image_by_id[img_id].order = idx
     await db.commit()

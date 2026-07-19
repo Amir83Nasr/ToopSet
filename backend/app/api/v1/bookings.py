@@ -12,8 +12,10 @@ from app.schemas.booking import (
     BookingCancellationTermsResponse,
     BookingCancelRequest,
     BookingCreate,
+    BookingCreateResponse,
     BookingDetailResponse,
     BookingListResponse,
+    ReplacementHoldResponse,
 )
 from app.services.booking_service import BookingService, get_booking_service
 
@@ -26,11 +28,18 @@ async def list_my_bookings(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     status: str | None = None,
+    category: str | None = Query(None, pattern="^(current|past|cancelled)$"),
+    search: str | None = Query(None, max_length=100),
     service: BookingService = Depends(get_booking_service),
 ):
     cursor_id = int(decode_cursor(cursor)) if cursor else None
     return await service.list_my_bookings(
-        after_id=cursor_id, skip=skip, limit=limit, status_filter=status
+        after_id=cursor_id,
+        skip=skip,
+        limit=limit,
+        status_filter=status,
+        category=category,
+        search=search,
     )
 
 
@@ -89,6 +98,50 @@ async def list_all_bookings_admin(
     return result
 
 
+@router.get(
+    "/replacement-holds/{hold_id}",
+    response_model=ReplacementHoldResponse,
+    summary="Replacement hold details",
+    description="Return a replacement payment hold owned by the current user.",
+)
+async def get_replacement_hold(
+    hold_id: int,
+    service: BookingService = Depends(get_booking_service),
+):
+    return await service.get_replacement_hold(hold_id)
+
+
+@router.post(
+    "/replacement-holds/{hold_id}/pay",
+    response_model=BookingDetailResponse,
+    summary="Pay and finalize a replacement hold",
+    description="Pay a live replacement hold and atomically transfer the slot booking.",
+)
+async def pay_replacement_hold(
+    hold_id: int,
+    service: BookingService = Depends(get_booking_service),
+):
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.pay_replacement_hold(hold_id)
+    await invalidate_admin_list_cache("bookings")
+    await invalidate_admin_list_cache("payments")
+    return result
+
+
+@router.delete(
+    "/replacement-holds/{hold_id}",
+    response_model=ReplacementHoldResponse,
+    summary="Cancel a replacement hold",
+    description="Release an active replacement hold without changing the original booking.",
+)
+async def cancel_replacement_hold(
+    hold_id: int,
+    service: BookingService = Depends(get_booking_service),
+):
+    return await service.cancel_replacement_hold(hold_id)
+
+
 @router.get("/{booking_id}", response_model=BookingDetailResponse, summary="Booking details")
 async def get_booking(
     booking_id: int,
@@ -99,7 +152,7 @@ async def get_booking(
 
 @router.post(
     "",
-    response_model=BookingDetailResponse,
+    response_model=BookingCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create booking",
 )

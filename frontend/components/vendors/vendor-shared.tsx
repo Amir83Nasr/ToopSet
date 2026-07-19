@@ -10,6 +10,8 @@ export interface VendorData {
   capacity: number
   is_active: boolean
   average_rating: number
+  ball_available: boolean
+  ball_price: number
   amenities?: Record<string, boolean>
   images?: string[]
   manager_name?: string

@@ -22,13 +22,15 @@ class ReviewRepo:
         query = (
             select(Review)
             .options(selectinload(Review.vendor), selectinload(Review.user))
-            .where(Review.vendor_id == vendor_id)
-            .order_by(Review.created_at.desc())
+            .where(Review.vendor_id == vendor_id, Review.is_reported == False)
+            .order_by(Review.id.desc())
         )
-        count_q = select(func.count(Review.id)).where(Review.vendor_id == vendor_id)
+        count_q = select(func.count(Review.id)).where(
+            Review.vendor_id == vendor_id, Review.is_reported == False
+        )
 
         if after_id is not None:
-            query = query.where(Review.id > after_id)
+            query = query.where(Review.id < after_id)
 
         if after_id is not None:
             result = await self.db.execute(query.limit(limit))
@@ -52,12 +54,12 @@ class ReviewRepo:
             select(Review)
             .options(selectinload(Review.vendor), selectinload(Review.user))
             .where(Review.user_id == user_id)
-            .order_by(Review.created_at.desc())
+            .order_by(Review.id.desc())
         )
         count_q = select(func.count(Review.id)).where(Review.user_id == user_id)
 
         if after_id is not None:
-            query = query.where(Review.id > after_id)
+            query = query.where(Review.id < after_id)
 
         if after_id is not None:
             result = await self.db.execute(query.limit(limit))

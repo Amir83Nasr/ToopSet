@@ -134,25 +134,29 @@
 حالت‌های مهم:
 
 - اگر رزرو فعال قبلی وجود نداشته باشد، رزرو جدید عادی ساخته می‌شود.
-- اگر رزرو فعال قبلی `pending_cancellation` باشد و متعلق به کاربر دیگری باشد، رزرو جدید به عنوان جایگزین ساخته می‌شود و `replaces_booking_id` برابر رزرو قبلی قرار می‌گیرد.
+- اگر رزرو فعال قبلی `pending_cancellation` باشد و متعلق به کاربر دیگری باشد، `booking` جدید ساخته نمی‌شود؛ یک `booking_hold` مرتبط با `replacement_request` ساخته می‌شود.
 - اگر رزرو قبلی `pending_cancellation` متعلق به همین کاربر باشد، درخواست رد می‌شود.
 
 تغییرات دیتابیس:
 
-- یک رکورد `bookings` ساخته می‌شود:
+- در رزرو عادی یک رکورد `bookings` ساخته می‌شود:
   - `status = pending_payment`
   - `source = online`
   - `settlement_status = not_settled`
   - `expires_at = now + 10 minutes`
-  - `replaces_booking_id = null` یا id رزرو قبلی در حالت جایگزین
+  - `replaces_booking_id = null`
+- در حالت جایگزینی:
+  - یک `replacement_requests` باز باید برای رزرو قبلی وجود داشته باشد.
+  - یک `booking_holds` با `status=active` و مهلت حداکثر ۱۰ دقیقه ساخته می‌شود.
+  - هم‌زمان فقط یک Hold با وضعیت `active/processing` برای سانس مجاز است.
+  - تا قبل از پرداخت موفق هیچ رزرو دوم در جدول `bookings` وجود ندارد.
 - سانس آپدیت می‌شود:
   - `time_slots.status = reserving`
   - `time_slots.is_reserved = true`
   - `version += 1`
-- notification برای مدیر vendor ساخته می‌شود.
-- audit log با action `booking_created` ثبت می‌شود.
+- برای رزرو عادی notification مدیر و log `booking_created` ثبت می‌شود؛ برای جایگزینی log `replacement_hold_created` ثبت می‌شود.
 
-### مرحله ۲: پرداخت رزرو
+### مرحله ۲: پرداخت رزرو عادی
 
 فرایند:
 
@@ -162,25 +166,14 @@
 4. اگر `expires_at` گذشته باشد:
    - رزرو `expired` می‌شود.
    - `settlement_status = excluded_due_to_cancellation`
-   - اگر رزرو جایگزین نباشد، سانس آزاد می‌شود: `open / is_reserved=false`
-   - اگر رزرو جایگزین باشد و رزرو قبلی هنوز `pending_cancellation` باشد، سانس به `pending_cancellation / is_reserved=true` برمی‌گردد.
+   - سانس آزاد می‌شود: `open / is_reserved=false`
 5. اگر سانس بسته/مسدود/غیرفعال باشد، درخواست رد می‌شود.
-6. اگر رزرو جایگزین نباشد و سانس واقعاً توسط رزرو دیگری گرفته شده باشد، درخواست رد می‌شود.
-7. اگر رزرو جایگزین باشد، سانس باید هنوز `pending_cancellation` باشد.
-8. پرداخت شبیه‌سازی می‌شود.
+6. اگر سانس واقعاً توسط رزرو دیگری گرفته شده باشد، درخواست رد می‌شود.
+7. پرداخت شبیه‌سازی می‌شود.
 
 در پرداخت موفق:
 
 - رکورد `payments` با `status=success` ساخته می‌شود.
-- اگر رزرو جایگزین باشد:
-  - رزرو قبلی خوانده می‌شود.
-  - اگر رزرو قبلی هنوز `pending_cancellation` باشد:
-    - جریمه ۱۰٪ برای رزرو قبلی محاسبه می‌شود.
-    - رکورد `refunds` با `type=replaced_after_pending_cancellation` و `status=pending` ساخته می‌شود.
-    - رزرو قبلی `transferred` می‌شود.
-    - `penalty_amount` روی رزرو قبلی ثبت می‌شود.
-    - `settlement_status = excluded_due_to_refund`
-    - رکورد `penalties` برای کاربر قبلی ساخته می‌شود.
 - سانس قطعی می‌شود:
   - `time_slots.status = reserved`
   - `time_slots.is_reserved = true`
@@ -189,6 +182,18 @@
   - `bookings.status = confirmed`
 - notification تایید رزرو برای کاربر ساخته می‌شود.
 - audit log با action `booking_confirmed` ثبت می‌شود.
+
+### مرحله ۳: پرداخت Hold جایگزینی
+
+1. Hold، درخواست جایگزینی، رزرو قبلی و slot با قفل سطری بررسی می‌شوند.
+2. Hold قبل از تماس درگاه به `processing` می‌رود و commit می‌شود تا قفل دیتابیس هنگام I/O خارجی نگه داشته نشود.
+3. در پرداخت موفق، رزرو قبلی ابتدا `transferred` می‌شود تا قید «یک رزرو فعال برای هر سانس» آزاد شود.
+4. رزرو جدید مستقیماً `confirmed` و payment آن `success` ساخته می‌شود.
+5. refund و penalty بر اساس snapshot ثبت‌شده در `replacement_request` ایجاد می‌شوند.
+6. request به `completed`، Hold به `paid` و slot به `reserved` می‌روند.
+7. فراخوانی دوباره endpoint همان رزرو جدید را برمی‌گرداند و رکورد مالی تکراری نمی‌سازد.
+
+اگر Hold بدون پرداخت منقضی یا لغو شود، request دوباره `open` و slot دوباره `pending_cancellation` می‌شود و رزرو قبلی تغییر نمی‌کند. Timeout نامطمئن درگاه در `processing` باقی می‌ماند تا دوباره فروشی رخ ندهد.
 
 در پرداخت ناموفق:
 
@@ -492,6 +497,9 @@
 نکته:
 
 - پرداخت واقعی بانکی در کد انجام نمی‌شود؛ فقط وضعیت و کد رهگیری ثبت می‌شود.
+- کارت مقصد در زمان ایجاد Refund به‌صورت رمز‌شده و ۴+۴ mask‌شده snapshot می‌شود.
+- Admin برای واریز دستی از مسیر audit‌شده نمایش مقصد استفاده می‌کند؛ برای ثبت `paid` وجود کارت مقصد و کد رهگیری الزامی است.
+- User وضعیت Refund را از `GET /api/v1/refunds/my` و کنار رزرو لغوشده می‌بیند.
 
 ### بررسی تسویه‌ها
 
@@ -602,13 +610,27 @@ slot: reserved
   -> user cancel
 booking: pending_cancellation
 slot: pending_cancellation / is_reserved=true
-  -> another user books and pays
+  -> another user creates a booking_hold
+slot: reserving / is_reserved=true
+  -> replacement hold pays successfully
 old booking: transferred
 new booking: confirmed
 slot: reserved / is_reserved=true
 refund: pending / replaced_after_pending_cancellation
 penalty: 10%
 ```
+
+اگر تا deadline جایگزین قطعی پیدا نشود:
+
+```text
+replacement_request: expired
+booking: confirmed
+slot: reserved / is_reserved=true
+refund: none
+penalty: none
+```
+
+در این حالت رزرو و حق استفاده از سانس همچنان متعلق به کاربر اول است.
 
 ### لغو توسط سالندار با آزادسازی
 

@@ -28,7 +28,12 @@ export interface BookingDetail extends Booking {
   payment: { id: number; status: string } | null
   refund_status: string | null
   refund_amount: number | null
+  refund_penalty_amount: number | null
+  refund_requested_at: string | null
+  refund_approved_at: string | null
   refund_paid_at: string | null
+  refund_payment_tracking_code: string | null
+  refund_destination_card_masked: string | null
 }
 
 export interface BookingCancellationTerms {

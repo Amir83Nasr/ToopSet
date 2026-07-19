@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_db
+from app.core.logger import log_action
 from app.models.manager_request import ManagerRequest, ManagerRequestStatus
 from app.models.user import User, UserRole
 from app.schemas.manager_request import (
@@ -55,7 +57,14 @@ async def submit_manager_request(
         status=ManagerRequestStatus.PENDING,
     )
     db.add(request)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="شما قبلاً یک درخواست ثبت کرده‌اید. در انتظار بررسی ادمین باشید.",
+        ) from exc
     await db.refresh(request)
     return request
 
@@ -108,7 +117,7 @@ async def update_manager_request_status(
     db: AsyncSession = Depends(get_db),
 ) -> ManagerRequest:
     """Approve or reject a manager request (admin only)."""
-    stmt = select(ManagerRequest).where(ManagerRequest.id == request_id)
+    stmt = select(ManagerRequest).where(ManagerRequest.id == request_id).with_for_update()
     result = await db.execute(stmt)
     request = result.scalar_one_or_none()
     if not request:
@@ -118,6 +127,13 @@ async def update_manager_request_status(
         )
 
     new_status = ManagerRequestStatus(data.status)
+    if request.status != ManagerRequestStatus.PENDING:
+        if request.status == new_status:
+            return request
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="این درخواست قبلاً تعیین تکلیف شده است",
+        )
     request.status = new_status
     request.admin_note = data.admin_note
 
@@ -127,6 +143,12 @@ async def update_manager_request_status(
         if target_user:
             target_user.role = UserRole.MANAGER
 
+    await log_action(
+        db,
+        _user.id,
+        "manager_request_decided",
+        f"درخواست مدیر مجموعه {request.id} به وضعیت {new_status.value} تغییر کرد",
+    )
     await db.commit()
     await db.refresh(request)
     return request

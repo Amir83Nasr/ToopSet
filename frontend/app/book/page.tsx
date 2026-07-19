@@ -48,6 +48,7 @@ interface SlotDetail {
 type PageStep = "loading" | "confirm" | "processing" | "error" | "conflict"
 
 interface BookingResult {
+  checkout_type?: "booking" | "replacement_hold"
   id: number
   status: string
   price_paid: number
@@ -167,7 +168,9 @@ function BookPageContent() {
         }),
       })
       // Redirect to payment gateway page after successful booking creation
-      router.push(`/book/payment?booking_id=${res.id}&vendor_id=${vendorId}`)
+      router.push(
+        `/book/payment?booking_id=${res.id}&checkout_type=${res.checkout_type ?? "booking"}&vendor_id=${vendorId}`
+      )
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message)

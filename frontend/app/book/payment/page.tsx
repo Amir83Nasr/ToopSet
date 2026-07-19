@@ -63,10 +63,15 @@ function PaymentPageContent() {
 
   const bookingId = Number(searchParams.get("booking_id"))
   const vendorId = Number(searchParams.get("vendor_id"))
+  const checkoutType =
+    searchParams.get("checkout_type") === "replacement_hold"
+      ? "replacement_hold"
+      : "booking"
 
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState<BookingDetail | null>(null)
   const [error, setError] = useState<string>("")
+  const [paying, setPaying] = useState(false)
 
   // Redirect to login only if we're sure there's no auth (no token cookie)
   useEffect(() => {
@@ -84,7 +89,11 @@ function PaymentPageContent() {
 
     async function fetchBooking() {
       try {
-        const res = await api<BookingDetail>(`/api/v1/bookings/${bookingId}`)
+        const path =
+          checkoutType === "replacement_hold"
+            ? `/api/v1/bookings/replacement-holds/${bookingId}`
+            : `/api/v1/bookings/${bookingId}`
+        const res = await api<BookingDetail>(path)
         setBooking(res)
       } catch (err) {
         const msg =
@@ -95,13 +104,44 @@ function PaymentPageContent() {
       }
     }
     fetchBooking()
-  }, [bookingId, isAuthenticated])
+  }, [bookingId, checkoutType, isAuthenticated])
+
+  const handlePayment = async () => {
+    if (!booking) return
+    setPaying(true)
+    try {
+      const path =
+        checkoutType === "replacement_hold"
+          ? `/api/v1/bookings/replacement-holds/${booking.id}/pay`
+          : `/api/v1/bookings/${booking.id}/pay`
+      await api(path, { method: "POST" })
+      toast.success(
+        checkoutType === "replacement_hold"
+          ? "سانس با موفقیت به شما منتقل شد"
+          : "رزرو با موفقیت پرداخت شد"
+      )
+      router.push("/dashboard/bookings")
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "پرداخت ناموفق بود"
+      toast.error(msg)
+    } finally {
+      setPaying(false)
+    }
+  }
 
   const handleCancelBooking = async () => {
     if (!booking) return
     try {
-      await api(`/api/v1/bookings/${booking.id}/cancel`, { method: "POST" })
-      toast.success("رزرو لغو شد")
+      const path =
+        checkoutType === "replacement_hold"
+          ? `/api/v1/bookings/replacement-holds/${booking.id}`
+          : `/api/v1/bookings/${booking.id}/cancel`
+      await api(path, {
+        method: checkoutType === "replacement_hold" ? "DELETE" : "POST",
+      })
+      toast.success(
+        checkoutType === "replacement_hold" ? "هولد آزاد شد" : "رزرو لغو شد"
+      )
       router.push("/dashboard/bookings")
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
@@ -262,6 +302,13 @@ function PaymentPageContent() {
 
           {/* Actions */}
           <div className="mt-6 flex flex-col gap-3">
+            <Button
+              className="w-full"
+              disabled={paying}
+              onClick={handlePayment}
+            >
+              {paying ? "در حال پردازش پرداخت…" : "پرداخت و نهایی‌سازی رزرو"}
+            </Button>
             <Button className="w-full" asChild>
               <Link href="/dashboard/bookings">
                 <LayoutDashboard className="me-2" />

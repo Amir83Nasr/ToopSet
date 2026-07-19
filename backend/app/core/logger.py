@@ -14,10 +14,23 @@ Provides ``log_action()`` for writing structured security audit events to the
 
 from __future__ import annotations
 
+import re
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.correlation_id import get_request_id
 from app.repositories.log_repo import LogRepo
+
+_IR_MOBILE_RE = re.compile(r"(?<!\d)(09\d{9})(?!\d)")
+_CARD_NUMBER_RE = re.compile(r"(?<!\d)(\d{6})\d{6}(\d{4})(?!\d)")
+
+
+def redact_audit_details(details: str | None) -> str | None:
+    """Remove full phone/card identifiers before persistent audit logging."""
+    if details is None:
+        return None
+    details = _IR_MOBILE_RE.sub(lambda match: f"09*****{match.group(1)[-4:]}", details)
+    return _CARD_NUMBER_RE.sub(r"\1******\2", details)
 
 
 async def log_action(
@@ -34,7 +47,7 @@ async def log_action(
     await repo.create(
         user_id=user_id,
         action=action,
-        details=details,
+        details=redact_audit_details(details),
         severity=severity,
         request_id=get_request_id(),
         ip_address=ip_address,

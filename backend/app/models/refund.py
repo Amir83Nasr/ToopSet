@@ -77,6 +77,11 @@ class Refund(Base):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     payment_tracking_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # Immutable payout destination snapshot. BankCard is upserted per user, so a
+    # foreign key alone would silently change the destination of old refunds.
+    destination_card_encrypted: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    destination_card_masked: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    destination_card_holder_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     booking: Mapped["Booking"] = relationship(back_populates="refunds")
     user: Mapped["User"] = relationship()

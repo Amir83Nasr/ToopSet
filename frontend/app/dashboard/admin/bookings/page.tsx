@@ -135,7 +135,13 @@ export default function AdminBookingsPage() {
   async function handleCancelBooking(bookingId: number) {
     setCancellingLoading(true)
     try {
-      await api(`/api/v1/bookings/${bookingId}/cancel`, { method: "POST" })
+      await api(`/api/v1/manager/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({
+          release_slot: true,
+          reason: "لغو رزرو توسط مدیر سامانه",
+        }),
+      })
       toast.success("رزرو لغو شد")
       setCancellingBooking(null)
       fetchBookings()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.card_security import (
@@ -11,6 +12,7 @@ from app.core.card_security import (
     mask_card_number,
     normalize_card_number,
 )
+from app.core.config import settings
 from app.core.logger import log_action
 from app.core.timezone import now_utc
 from app.models.bank_card import BankCard, BankCardStatus
@@ -54,7 +56,15 @@ class BankCardService:
         self.db = db
         self.current_user = current_user
         self.repo = BankCardRepo(db)
-        self.provider = provider or MockBankCardVerificationProvider()
+        if provider is not None:
+            self.provider = provider
+        elif settings.is_development_or_bootstrap:
+            self.provider = MockBankCardVerificationProvider()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="سرویس واقعی استعلام کارت در این نسخه پیکربندی نشده است",
+            )
 
     async def lookup_card(self, card_number: str) -> BankCard:
         normalized = normalize_card_number(card_number)
@@ -103,6 +113,28 @@ class BankCardService:
             )
         card.status = BankCardStatus.VERIFIED
         card.verified_at = now_utc()
+        # Manager cancellations may create a pending refund before the user has
+        # a verified card. Attach this card only to refunds that still have no
+        # immutable payout destination snapshot.
+        from app.models.refund import Refund, RefundStatus
+
+        refunds = list(
+            (
+                await self.db.execute(
+                    select(Refund).where(
+                        Refund.user_id == self.current_user.id,
+                        Refund.status.in_((RefundStatus.PENDING, RefundStatus.APPROVED)),
+                        Refund.destination_card_encrypted.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for refund in refunds:
+            refund.destination_card_encrypted = card.encrypted_card_number
+            refund.destination_card_masked = card.masked_card_number
+            refund.destination_card_holder_name = card.holder_name
         await self.db.flush()
         await self.db.refresh(card)
         await log_action(

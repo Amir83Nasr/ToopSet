@@ -89,6 +89,11 @@ export const navGroups: NavGroup[] = [
         url: "/dashboard/payments",
         icon: CreditCard,
       },
+      {
+        title: "بازگشت وجه‌ها",
+        url: "/dashboard/refunds",
+        icon: Undo2,
+      },
     ],
   },
 
@@ -156,6 +161,11 @@ export const navGroups: NavGroup[] = [
         url: "/dashboard/payments",
         icon: CreditCard,
       },
+      {
+        title: "بازگشت وجه‌ها",
+        url: "/dashboard/refunds",
+        icon: Undo2,
+      },
     ],
   },
 
@@ -173,6 +183,11 @@ export const navGroups: NavGroup[] = [
         title: "پرداخت‌ها",
         url: "/dashboard/payments",
         icon: CreditCard,
+      },
+      {
+        title: "بازگشت وجه‌ها",
+        url: "/dashboard/refunds",
+        icon: Undo2,
       },
     ],
   },

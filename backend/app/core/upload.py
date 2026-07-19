@@ -6,7 +6,10 @@ from pathlib import Path
 BASE_UPLOAD_DIR = Path("uploads")
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".svg"}
+# SVG is intentionally not accepted for runtime uploads. Serving an attacker-
+# controlled SVG from the application's own origin creates an avoidable active-
+# content/XSS surface. Repository-owned SVG assets remain unaffected.
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 # Magic bytes signatures for MIME validation
 _MIME_SIGNATURES: dict[tuple[int, ...], str] = {
@@ -89,7 +92,12 @@ def delete_upload(relative_path: str | None) -> bool:
         rel = path.lstrip("/")
         if rel.startswith("uploads/"):
             rel = rel[len("uploads/") :]
-        filepath = BASE_UPLOAD_DIR / rel
+        upload_root = BASE_UPLOAD_DIR.resolve()
+        filepath = (upload_root / rel).resolve()
+        try:
+            filepath.relative_to(upload_root)
+        except ValueError:
+            return False
         if filepath.exists() and filepath.is_file():
             filepath.unlink()
             return True

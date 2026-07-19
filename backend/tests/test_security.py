@@ -293,6 +293,30 @@ class TestMultiDevice:
         r_b = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_b})
         assert r_b.status_code == 200
 
+    async def test_new_login_removes_phantom_old_sessions(self, client: AsyncClient):
+        registered = await client.post(
+            "/api/v1/auth/register",
+            json={"phone": "09121111995", "password": "Test1234", "full_name": "sessions"},
+        )
+        assert registered.status_code == 201
+        old_refresh = _refresh_cookie(client)
+
+        logged_in = await client.post(
+            "/api/v1/auth/login",
+            json={"phone": "09121111995", "password": "Test1234"},
+        )
+        assert logged_in.status_code == 200
+        new_refresh = _refresh_cookie(client)
+        assert new_refresh != old_refresh
+
+        sessions = await client.get(
+            "/api/v1/auth/sessions",
+            headers={"Authorization": f"Bearer {logged_in.json()['access_token']}"},
+        )
+        assert sessions.status_code == 200
+        assert len(sessions.json()["sessions"]) == 1
+        assert sessions.json()["current_session_id"] == sessions.json()["sessions"][0]["session_id"]
+
 
 # ── Sequential refresh (rotation correctness) ────────────────────────────
 

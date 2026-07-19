@@ -6,7 +6,18 @@ import { toast } from "@/lib/toast"
 import { toPersianDigits } from "@/lib/utils"
 import { formatMoney } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import {
   Select,
   SelectContent,
@@ -24,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { RefreshCw, X } from "lucide-react"
+import { Check, Eye, RefreshCw, Send, X, XCircle } from "lucide-react"
 import {
   SearchInput,
   DataTableToolbar,
@@ -46,6 +57,19 @@ interface Refund {
   type: string
   status: string
   requested_at: string
+  approved_at: string | null
+  paid_at: string | null
+  admin_note: string | null
+  payment_tracking_code: string | null
+  destination_card_masked: string | null
+  destination_card_holder_name: string | null
+}
+
+interface RefundDestination {
+  refund_id: number
+  card_number: string
+  masked_card_number: string
+  holder_name: string | null
 }
 
 const refundStatus: Record<string, string> = {
@@ -73,6 +97,15 @@ export default function AdminRefundsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState(todayStr())
+  const [action, setAction] = useState<{
+    refund: Refund
+    status: "approved" | "rejected" | "paid"
+  } | null>(null)
+  const [adminNote, setAdminNote] = useState("")
+  const [trackingCode, setTrackingCode] = useState("")
+  const [destination, setDestination] = useState<RefundDestination | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [revealing, setRevealing] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -135,16 +168,64 @@ export default function AdminRefundsPage() {
     setSearch("")
   }
 
-  async function updateStatus(id: number, status: string) {
+  function openAction(
+    refund: Refund,
+    status: "approved" | "rejected" | "paid"
+  ) {
+    setAction({ refund, status })
+    setAdminNote(refund.admin_note || "")
+    setTrackingCode(refund.payment_tracking_code || "")
+    setDestination(null)
+  }
+
+  function closeAction() {
+    setAction(null)
+    setAdminNote("")
+    setTrackingCode("")
+    setDestination(null)
+  }
+
+  async function revealDestination() {
+    if (!action) return
+    setRevealing(true)
     try {
-      await api(`/api/v1/admin/refunds/${id}`, {
+      const result = await api<RefundDestination>(
+        `/api/v1/admin/refunds/${action.refund.id}/destination`
+      )
+      setDestination(result)
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "خطا در دریافت کارت مقصد"
+      )
+    } finally {
+      setRevealing(false)
+    }
+  }
+
+  async function submitAction() {
+    if (!action) return
+    if (action.status === "paid" && !trackingCode.trim()) {
+      toast.error("کد رهگیری واریز الزامی است")
+      return
+    }
+    setSubmitting(true)
+    try {
+      await api(`/api/v1/admin/refunds/${action.refund.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status: action.status,
+          admin_note: adminNote.trim() || null,
+          payment_tracking_code:
+            action.status === "paid" ? trackingCode.trim() : null,
+        }),
       })
       toast.success("وضعیت عودت تغییر کرد")
-      fetchRefunds()
+      closeAction()
+      await fetchRefunds()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در تغییر وضعیت")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -233,6 +314,8 @@ export default function AdminRefundsPage() {
                 <TableHead>عودت</TableHead>
                 <TableHead>نوع</TableHead>
                 <TableHead>وضعیت</TableHead>
+                <TableHead>کارت مقصد</TableHead>
+                <TableHead>عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -253,26 +336,63 @@ export default function AdminRefundsPage() {
                   <TableCell>{money(r.refund_amount)}</TableCell>
                   <TableCell>{refundType[r.type] || r.type}</TableCell>
                   <TableCell>
-                    <Select
-                      value={r.status}
-                      onValueChange={(v) => updateStatus(r.id, v)}
+                    <Badge
+                      variant={
+                        r.status === "paid"
+                          ? "default"
+                          : r.status === "rejected"
+                            ? "destructive"
+                            : "outline"
+                      }
                     >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>وضعیت عودت</SelectLabel>
-                          {Object.entries(refundStatus).map(
-                            ([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                      {refundStatus[r.status] || r.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div dir="ltr" className="text-right text-xs">
+                      {r.destination_card_masked
+                        ? toPersianDigits(r.destination_card_masked)
+                        : "ثبت نشده"}
+                    </div>
+                    {r.destination_card_holder_name && (
+                      <div className="text-xs text-muted-foreground">
+                        {r.destination_card_holder_name}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.status === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => openAction(r, "approved")}
+                          >
+                            <Check className="me-1 size-3.5" />
+                            تأیید
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => openAction(r, "rejected")}
+                          >
+                            <XCircle className="me-1 size-3.5" />
+                            رد
+                          </Button>
+                        </>
+                      )}
+                      {r.status === "approved" && (
+                        <Button size="sm" onClick={() => openAction(r, "paid")}>
+                          <Send className="me-1 size-3.5" />
+                          ثبت واریز
+                        </Button>
+                      )}
+                      {r.status === "paid" && r.payment_tracking_code && (
+                        <span className="text-xs text-muted-foreground">
+                          پیگیری: {toPersianDigits(r.payment_tracking_code)}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -280,6 +400,109 @@ export default function AdminRefundsPage() {
           </Table>
         </div>
       )}
+
+      <ResponsiveDialog
+        open={!!action}
+        onOpenChange={(open) => {
+          if (!open) closeAction()
+        }}
+      >
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
+              {action?.status === "approved"
+                ? "تأیید بازگشت وجه"
+                : action?.status === "rejected"
+                  ? "رد بازگشت وجه"
+                  : "ثبت واریز دستی"}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              مبلغ {action ? money(action.refund.refund_amount) : ""} برای رزرو
+              شماره {action ? toPersianDigits(action.refund.booking_id) : ""}
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+
+          <div className="space-y-4">
+            {action?.status === "paid" && (
+              <div className="space-y-3 rounded-lg border p-3 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs text-muted-foreground">
+                      کارت مقصد
+                    </div>
+                    <div dir="ltr" className="font-medium">
+                      {destination
+                        ? toPersianDigits(destination.card_number)
+                        : action.refund.destination_card_masked
+                          ? toPersianDigits(
+                              action.refund.destination_card_masked
+                            )
+                          : "کارت ثبت نشده"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {destination?.holder_name ||
+                        action.refund.destination_card_holder_name ||
+                        "دارنده نامشخص"}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={revealDestination}
+                    disabled={
+                      revealing || !action.refund.destination_card_masked
+                    }
+                  >
+                    <Eye className="me-1 size-3.5" />
+                    {revealing ? "در حال دریافت" : "نمایش کامل"}
+                  </Button>
+                </div>
+                <Input
+                  value={trackingCode}
+                  onChange={(event) => setTrackingCode(event.target.value)}
+                  placeholder="کد رهگیری واریز"
+                  dir="ltr"
+                />
+              </div>
+            )}
+
+            <Textarea
+              value={adminNote}
+              onChange={(event) => setAdminNote(event.target.value)}
+              placeholder={
+                action?.status === "rejected"
+                  ? "دلیل رد بازگشت وجه"
+                  : "یادداشت ادمین (اختیاری)"
+              }
+            />
+          </div>
+
+          <ResponsiveDialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeAction}
+              disabled={submitting}
+            >
+              انصراف
+            </Button>
+            <Button
+              onClick={submitAction}
+              disabled={
+                submitting ||
+                (action?.status === "paid" &&
+                  (!trackingCode.trim() ||
+                    !action.refund.destination_card_masked))
+              }
+              variant={
+                action?.status === "rejected" ? "destructive" : "default"
+              }
+            >
+              {submitting ? "در حال ثبت..." : "ثبت نهایی"}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }

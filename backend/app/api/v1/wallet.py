@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.repositories.wallet_repo import WalletRepo
@@ -15,6 +16,17 @@ from app.schemas.wallet import (
 from app.services.bank_card_service import BankCardService
 
 router = APIRouter(prefix="/wallet", tags=["wallet"])
+
+
+def _require_mock_wallet_environment() -> None:
+    """Keep manual balance mutation strictly inside local/mock environments.
+
+    These endpoints are development helpers, not a verified payment or payout
+    flow.  Leaving them enabled with a real gateway would let an authenticated
+    user mint or withdraw arbitrary wallet balance.
+    """
+    if not settings.is_development_or_bootstrap or settings.payment_gateway != "mock":
+        raise HTTPException(status_code=404, detail="این مسیر در محیط فعلی فعال نیست")
 
 
 @router.post(
@@ -66,6 +78,7 @@ async def get_wallet_balance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_mock_wallet_environment()
     repo = WalletRepo(db)
     wallet = await repo.get_or_create(current_user.id)
     return WalletBalanceResponse(balance=float(wallet.balance))
@@ -77,6 +90,7 @@ async def deposit_to_wallet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_mock_wallet_environment()
     if request.amount <= 0:
         raise HTTPException(status_code=400, detail="مبلغ باید مثبت باشد")
     repo = WalletRepo(db)
@@ -93,6 +107,7 @@ async def withdraw_from_wallet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_mock_wallet_environment()
     if request.amount <= 0:
         raise HTTPException(status_code=400, detail="مبلغ باید مثبت باشد")
     repo = WalletRepo(db)
@@ -109,11 +124,12 @@ async def withdraw_from_wallet(
     "/transactions", response_model=list[WalletTransactionResponse], summary="Transaction history"
 )
 async def get_wallet_transactions(
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_mock_wallet_environment()
     repo = WalletRepo(db)
     wallet = await repo.get_or_create(current_user.id)
     transactions = await repo.get_transactions(wallet.id, limit, offset)

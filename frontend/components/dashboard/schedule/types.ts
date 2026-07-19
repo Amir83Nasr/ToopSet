@@ -14,8 +14,6 @@ export interface TimeSlotTemplate {
   start_time: string
   end_time: string
   base_price: string
-  ball_price: string
-  ball_available: boolean
 }
 
 export interface ScheduleTemplate {
@@ -34,7 +32,5 @@ export interface BulkGeneratePayload {
     start_time: string
     end_time: string
     base_price: number
-    ball_price: number
-    ball_available: boolean
   }[]
 }

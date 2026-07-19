@@ -129,13 +129,17 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "date range. Existing conflict rules are enforced by the scheduling "
         "service."
     ),
+    ("get", "/api/v1/vendors/{vendor_id}/slots/weekly-schedule-template"): (
+        "Returns the latest persisted weekly schedule version. For vendors without "
+        "a saved version, it bootstraps from the nearest complete future week."
+    ),
+    ("post", "/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule"): (
+        "Applies a weekly template transactionally from a date at least fourteen "
+        "days ahead, preserves active bookings, and stores an immutable template version."
+    ),
     ("patch", "/api/v1/vendors/{vendor_id}/slots/{slot_id}"): (
         "Updates a specific time slot for a manager-owned vendor. Used for price, "
         "time, status, gender, and ball-rental changes."
-    ),
-    ("delete", "/api/v1/vendors/{vendor_id}/slots/{slot_id}"): (
-        "Deletes a specific unneeded time slot for a manager-owned vendor. Slots "
-        "with active reservations are protected by service-level validation."
     ),
     ("get", "/api/v1/slots/{slot_id}"): (
         "Returns detailed information for one slot, including vendor information, "
@@ -176,6 +180,16 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "Previews cancellation eligibility before the user confirms cancellation. "
         "Returns the policy conditions, penalty amount, refund amount, and whether "
         "a verified bank card is required."
+    ),
+    ("get", "/api/v1/refunds/my"): (
+        "Lists only refunds owned by the authenticated user. The response includes "
+        "penalty and refund amounts, lifecycle timestamps, a masked payout card, and "
+        "the manual-transfer tracking code when payment has completed."
+    ),
+    ("get", "/api/v1/admin/refunds/{refund_id}/destination"): (
+        "Admin-only, audited reveal of the immutable payout destination for a manual "
+        "refund transfer. The response is marked no-store and ordinary refund APIs "
+        "continue to expose only the masked card number."
     ),
     ("get", "/api/v1/dashboard/stats"): (
         "Returns general dashboard counters for authenticated users, including "
@@ -502,11 +516,22 @@ def install_openapi_docs(app: FastAPI) -> None:
 
     def custom_openapi() -> dict:
         schema = original_openapi()
+        optional_bearer_operations = {
+            ("get", "/api/v1/vendors"),
+            ("get", "/api/v1/vendors/{vendor_id}"),
+            ("get", "/api/v1/vendors/{vendor_id}/slots"),
+            ("get", "/api/v1/slots/{slot_id}"),
+            ("get", "/api/v1/reviews/recent"),
+        }
         for path, methods in schema.get("paths", {}).items():
             for method, operation in methods.items():
                 description = OPERATION_DESCRIPTIONS.get((method.lower(), path))
                 if description:
                     operation["description"] = description
+                if (method.lower(), path) in optional_bearer_operations:
+                    # OpenAPI represents optional authentication by including
+                    # both an empty security requirement and the bearer scheme.
+                    operation["security"] = [{}, {"HTTPBearer": []}]
         return schema
 
     app.openapi = custom_openapi  # type: ignore[method-assign]

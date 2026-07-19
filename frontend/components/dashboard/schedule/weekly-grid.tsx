@@ -9,10 +9,11 @@ import type { TimeSlot } from "./types"
 interface WeeklyGridProps {
   slots: TimeSlot[]
   weekStart?: Date
-  onSlotDelete: (slot: TimeSlot) => void
+  onSlotDelete?: (slot: TimeSlot) => void
   onSlotEdit?: (slot: TimeSlot) => void
   onCellClick?: (day: Date) => void
   onAddSlot?: (date: Date) => void
+  readOnly?: boolean
 }
 
 export function WeeklyGrid({
@@ -22,6 +23,7 @@ export function WeeklyGrid({
   onSlotEdit,
   onCellClick,
   onAddSlot,
+  readOnly = false,
 }: WeeklyGridProps) {
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart])
   const groupedSlots = useMemo(
@@ -44,9 +46,9 @@ export function WeeklyGrid({
                 dayIndex={dayIndex}
                 slots={groupedSlots[dateKey] ?? []}
                 isToday={todayKey === dateKey}
-                onSlotDelete={onSlotDelete}
-                onSlotEdit={onSlotEdit}
-                onCellClick={onCellClick}
+                onSlotDelete={readOnly ? undefined : onSlotDelete}
+                onSlotEdit={readOnly ? undefined : onSlotEdit}
+                onCellClick={readOnly ? undefined : onCellClick}
               />
             )
           })}
@@ -58,9 +60,9 @@ export function WeeklyGrid({
         <MobileDayView
           slots={slots}
           weekStart={weekStart}
-          onSlotDelete={onSlotDelete}
-          onSlotEdit={onSlotEdit}
-          onAddSlot={onAddSlot}
+          onSlotDelete={readOnly ? undefined : onSlotDelete}
+          onSlotEdit={readOnly ? undefined : onSlotEdit}
+          onAddSlot={readOnly ? undefined : onAddSlot}
         />
       </div>
     </>

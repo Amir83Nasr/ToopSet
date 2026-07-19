@@ -19,7 +19,8 @@ export default function UserDashboardPage() {
           <h3 className="mb-2 text-xl font-semibold">در حال توسعه</h3>
           <p className="max-w-md text-center text-sm text-muted-foreground">
             داشبورد کاربری در حال بازطراحی است. به زودی اطلاعات جامع‌تری از
-            رزروها، کیف پول و فعالیت‌های شما در این بخش نمایش داده خواهد شد.
+            رزروها، پرداخت‌ها، بازگشت وجه‌ها و فعالیت‌های شما در این بخش نمایش
+            داده خواهد شد.
           </p>
         </CardContent>
       </Card>

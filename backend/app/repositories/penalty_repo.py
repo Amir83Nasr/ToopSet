@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +12,7 @@ class PenaltyRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def create(self, user_id: int, booking_id: int, amount: float, reason: str) -> Penalty:
+    async def create(self, user_id: int, booking_id: int, amount: Decimal, reason: str) -> Penalty:
         penalty = Penalty(user_id=user_id, booking_id=booking_id, amount=amount, reason=reason)
         self.db.add(penalty)
         await self.db.flush()
@@ -25,10 +27,10 @@ class PenaltyRepo:
         count_q = select(sa_func.count()).select_from(Penalty).where(Penalty.user_id == user_id)
         total = (await self.db.execute(count_q)).scalar_one()
 
-        stmt = select(Penalty).where(Penalty.user_id == user_id).order_by(Penalty.created_at.desc())
+        stmt = select(Penalty).where(Penalty.user_id == user_id).order_by(Penalty.id.desc())
 
         if after_id is not None:
-            stmt = stmt.where(Penalty.id > after_id).limit(limit)
+            stmt = stmt.where(Penalty.id < after_id).limit(limit)
         else:
             stmt = stmt.offset(skip).limit(limit)
 

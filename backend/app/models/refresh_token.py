@@ -19,12 +19,13 @@ class RefreshToken(Base):
         Index("ix_refresh_tokens_user_active", "user_id", "revoked_at"),
         Index("ix_refresh_tokens_expires", "expires_at"),
         Index("ix_refresh_tokens_session", "session_id"),
+        Index("ix_refresh_tokens_hash", "token_hash"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    session_id: Mapped[str] = mapped_column(String(36), index=True)
+    session_id: Mapped[str] = mapped_column(String(36))
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from urllib.parse import urlparse
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
@@ -12,6 +13,8 @@ from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.redis_client import get_redis
 from app.core.upload import delete_upload as delete_file
+from app.models.booking import Booking
+from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
@@ -23,6 +26,32 @@ from app.schemas.vendor import (
     VendorResponse,
     VendorUpdate,
 )
+from app.services.cache_service import invalidate_slot_list
+from app.services.upload_temp_service import consume_temp_uploads
+
+
+def _validated_image_urls(
+    requested_urls: list[str] | None,
+    *,
+    owned_upload_paths: set[str],
+) -> list[str]:
+    """Normalize local upload URLs and reject unowned runtime uploads."""
+    if requested_urls is None:
+        return list(owned_upload_paths)
+
+    normalized: list[str] = []
+    for url in requested_urls:
+        path = urlparse(url).path
+        if path.startswith("/uploads/"):
+            if path not in owned_upload_paths:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="شما به یکی از تصاویر انتخاب‌شده دسترسی ندارید",
+                )
+            normalized.append(path)
+        else:
+            normalized.append(url)
+    return normalized
 
 
 class VendorService:
@@ -107,30 +136,29 @@ class VendorService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="فقط مدیران مجموعه می‌توانند مجموعه ثبت کنند",
             )
-        vendor = await self.repo.create(
-            data.model_dump(exclude={"images", "temp_ids"})
-            | {"manager_id": self.current_user.id, "is_active": False}
-        )
-        urls: list[str] = []
+        consumed_paths: list[str] = []
         if data.temp_ids:
             r = await get_redis()
-            import logging
+            consumed_paths = await consume_temp_uploads(
+                r,
+                temp_ids=data.temp_ids,
+                user_id=self.current_user.id,
+            )
+        urls = (
+            consumed_paths
+            if data.images is None
+            else _validated_image_urls(
+                data.images,
+                owned_upload_paths=set(consumed_paths),
+            )
+        )
 
-            logger = logging.getLogger(__name__)
-            logger.info(f"Attempting to retrieve temp_ids: {data.temp_ids}")
-            for tid in data.temp_ids:
-                url = await r.get(f"temp_upload:{tid}")
-                logger.info(f"Retrieved URL for {tid}: {url}")
-                if not url:
-                    logger.error(f"Failed to retrieve URL for {tid}")
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"تصویر با شناسه {tid} منقضی شده است. لطفاً دوباره آپلود کنید.",
-                    )
-                urls.append(url)
-                await r.delete(f"temp_upload:{tid}")
-        elif data.images:
-            urls = data.images
+        create_data = data.model_dump(exclude={"images", "temp_ids"})
+        if not create_data["ball_available"]:
+            create_data["ball_price"] = Decimal("0")
+        vendor = await self.repo.create(
+            create_data | {"manager_id": self.current_user.id, "is_active": False}
+        )
         if urls:
             for idx, url in enumerate(urls):
                 self.repo.db.add(VendorImage(vendor_id=vendor.id, url=url, order=idx))
@@ -156,13 +184,20 @@ class VendorService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
             )
-        update_data = data.model_dump(exclude_none=True, exclude={"images", "image_ids_to_remove"})
+        update_data = data.model_dump(
+            exclude_none=True,
+            exclude={"images", "temp_ids", "image_ids_to_remove"},
+        )
+        if update_data.get("ball_available") is False:
+            update_data["ball_price"] = Decimal("0")
         if self.current_user.role != "admin" and "is_active" in update_data:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="تغییر وضعیت تأیید مجموعه فقط توسط ادمین امکان‌پذیر است",
             )
         updated = await self.repo.update(vendor, update_data)
+        if "ball_available" in update_data or "ball_price" in update_data:
+            await invalidate_slot_list(vendor_id)
         if data.image_ids_to_remove:
             result = await self.repo.db.execute(
                 select(VendorImage).where(
@@ -187,8 +222,26 @@ class VendorService:
                 .scalars()
                 .all()
             )
-            old_by_url = {img.url: img for img in existing}
-            new_urls = data.images
+            old_by_url = {
+                (
+                    urlparse(img.url).path
+                    if urlparse(img.url).path.startswith("/uploads/")
+                    else img.url
+                ): img
+                for img in existing
+            }
+            consumed_paths: list[str] = []
+            if data.temp_ids:
+                r = await get_redis()
+                consumed_paths = await consume_temp_uploads(
+                    r,
+                    temp_ids=data.temp_ids,
+                    user_id=self.current_user.id,
+                )
+            new_urls = _validated_image_urls(
+                data.images,
+                owned_upload_paths=set(old_by_url) | set(consumed_paths),
+            )
             new_urls_set = set(new_urls)
 
             # Delete images no longer in the set + remove physical files
@@ -226,6 +279,19 @@ class VendorService:
         if vendor.manager_id != self.current_user.id and self.current_user.role != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این مجموعه دسترسی ندارید"
+            )
+        booking_exists = (
+            await self.repo.db.execute(
+                select(Booking.id)
+                .join(TimeSlot, Booking.slot_id == TimeSlot.id)
+                .where(TimeSlot.vendor_id == vendor_id)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if booking_exists is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="مجموعه دارای سابقه رزرو است و برای حفظ سوابق مالی قابل حذف نیست",
             )
         # delete image files before removing the vendor record
         for img in vendor.vendor_images or []:

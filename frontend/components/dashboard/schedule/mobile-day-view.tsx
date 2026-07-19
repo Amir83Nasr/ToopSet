@@ -15,7 +15,7 @@ import type { TimeSlot } from "./types"
 interface MobileDayViewProps {
   slots: TimeSlot[]
   weekStart?: Date
-  onSlotDelete: (slot: TimeSlot) => void
+  onSlotDelete?: (slot: TimeSlot) => void
   onSlotEdit?: (slot: TimeSlot) => void
   onAddSlot?: (date: Date) => void
 }

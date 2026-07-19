@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.refund import RefundStatus, RefundType
 from app.models.settlement import SettlementRequestStatus
@@ -33,6 +33,8 @@ class RefundResponse(BaseModel):
     paid_at: datetime | None = None
     admin_note: str | None = None
     payment_tracking_code: str | None = None
+    destination_card_masked: str | None = None
+    destination_card_holder_name: str | None = None
     user_name: str = ""
     user_phone: str = ""
     vendor_name: str = ""
@@ -43,6 +45,38 @@ class RefundResponse(BaseModel):
 class RefundListResponse(BaseModel):
     refunds: list[RefundResponse]
     total: int
+
+
+class UserRefundResponse(BaseModel):
+    id: int
+    booking_id: int
+    vendor_name: str = ""
+    slot_start_time: datetime
+    total_paid: float
+    penalty_amount: float
+    refund_amount: float
+    reason: str
+    type: RefundType
+    status: RefundStatus
+    destination_card_masked: str | None = None
+    destination_card_holder_name: str | None = None
+    requested_at: datetime
+    approved_at: datetime | None = None
+    paid_at: datetime | None = None
+    payment_tracking_code: str | None = None
+
+
+class UserRefundListResponse(BaseModel):
+    refunds: list[UserRefundResponse]
+    total: int
+    next_cursor: str | None = None
+
+
+class RefundDestinationResponse(BaseModel):
+    refund_id: int
+    card_number: str
+    masked_card_number: str
+    holder_name: str | None = None
 
 
 class RefundStatusUpdate(BaseModel):
@@ -70,6 +104,30 @@ class ManagerRecurringBookingCreate(BaseModel):
     end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
     participants_count: int = Field(default=1, ge=1)
     allow_partial: bool = False
+
+    @field_validator("days_of_week")
+    @classmethod
+    def validate_days(cls, value: list[int]) -> list[int]:
+        if any(day < 0 or day > 6 for day in value):
+            raise ValueError("days_of_week must contain values from 0 to 6")
+        return sorted(set(value))
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_time(cls, value: str) -> str:
+        try:
+            datetime.strptime(value, "%H:%M")
+        except ValueError as exc:
+            raise ValueError("time must be in valid HH:MM format") from exc
+        return value
+
+    @model_validator(mode="after")
+    def validate_range(self) -> "ManagerRecurringBookingCreate":
+        if self.date_to < self.date_from:
+            raise ValueError("date_to must not be before date_from")
+        if self.start_time >= self.end_time:
+            raise ValueError("start_time must be before end_time")
+        return self
 
 
 class ManagerRecurringBookingResponse(BaseModel):

@@ -1,5 +1,3 @@
-import asyncio
-
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,17 +58,16 @@ class UserRepository:
             query = query.where(User.is_active == is_active)
             count_query = count_query.where(User.is_active == is_active)
         if after_id is not None:
-            query = query.where(User.id > after_id)
+            query = query.where(User.id < after_id)
 
-        query = query.order_by(User.created_at.desc())
+        query = query.order_by(User.id.desc())
         if after_id is not None:
             query = query.limit(limit)
         else:
             query = query.offset(skip).limit(limit)
 
-        data_task = self.db.execute(query)
-        count_task = self.db.execute(count_query)
-        result, count_result = await asyncio.gather(data_task, count_task)
+        result = await self.db.execute(query)
+        count_result = await self.db.execute(count_query)
 
         users = result.scalars().all()
         total = count_result.scalar_one()

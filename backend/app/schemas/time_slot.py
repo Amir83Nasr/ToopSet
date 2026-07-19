@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.time_slot import SlotGender, SlotStatus
 
@@ -13,8 +14,6 @@ class TimeSlotCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     base_price: Decimal = Field(..., gt=0, decimal_places=2)
-    ball_price: Decimal = Field(default=Decimal("0"), ge=0, decimal_places=2)
-    ball_available: bool = False
     gender: SlotGender = SlotGender.MALE
 
 
@@ -22,10 +21,19 @@ class TimeSlotUpdate(BaseModel):
     start_time: datetime | None = None
     end_time: datetime | None = None
     base_price: Decimal | None = Field(None, gt=0, decimal_places=2)
-    ball_price: Decimal | None = Field(None, ge=0, decimal_places=2)
-    ball_available: bool | None = None
     gender: SlotGender | None = None
     status: SlotStatus | None = None
+
+    @field_validator("status")
+    @classmethod
+    def prevent_manual_system_statuses(cls, value: SlotStatus | None) -> SlotStatus | None:
+        if value in {
+            SlotStatus.RESERVING,
+            SlotStatus.RESERVED,
+            SlotStatus.PENDING_CANCELLATION,
+        }:
+            raise ValueError("Reservation-managed slot statuses cannot be set manually")
+        return value
 
 
 class TimeSlotResponse(BaseModel):
@@ -62,8 +70,6 @@ class TimeSlotTemplate(BaseModel):
     start_time: str  # HH:MM
     end_time: str  # HH:MM
     base_price: Decimal = Field(..., gt=0, decimal_places=2)
-    ball_price: Decimal = Field(default=Decimal("0"), ge=0, decimal_places=2)
-    ball_available: bool = False
     gender: SlotGender = SlotGender.MALE
 
     @field_validator("start_time", "end_time")
@@ -74,6 +80,12 @@ class TimeSlotTemplate(BaseModel):
         except ValueError:
             raise ValueError("Time must be in HH:MM format")
         return v
+
+    @model_validator(mode="after")
+    def validate_time_order(self) -> "TimeSlotTemplate":
+        if self.start_time >= self.end_time:
+            raise ValueError("start_time must be before end_time")
+        return self
 
 
 class TimeSlotGenerate(BaseModel):
@@ -97,9 +109,89 @@ class TimeSlotGenerate(BaseModel):
             raise ValueError("date_to must be after date_from")
         return v
 
+    @model_validator(mode="after")
+    def validate_template_overlap(self) -> "TimeSlotGenerate":
+        if self.date_to > self.date_from + timedelta(days=186):
+            raise ValueError("Slot generation range cannot exceed 186 days")
+        ordered = sorted(self.templates, key=lambda item: item.start_time)
+        for previous, current in zip(ordered, ordered[1:], strict=False):
+            if current.start_time < previous.end_time:
+                raise ValueError("Time slot templates must not overlap")
+        return self
+
 
 class TimeSlotGenerateResponse(BaseModel):
     created: int
     skipped: int
     total: int
     slots: list[TimeSlotResponse]
+
+
+class WeeklyScheduleItem(BaseModel):
+    day_of_week: int = Field(..., ge=0, le=6, description="0=Saturday ... 6=Friday")
+    start_time: str
+    end_time: str
+    base_price: Decimal = Field(..., gt=0, decimal_places=2)
+    gender: SlotGender = SlotGender.MALE
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_weekly_time(cls, value: str) -> str:
+        try:
+            datetime.strptime(value, "%H:%M")
+        except ValueError as exc:
+            raise ValueError("Time must be in HH:MM format") from exc
+        return value
+
+    @model_validator(mode="after")
+    def validate_order(self) -> "WeeklyScheduleItem":
+        if self.start_time >= self.end_time:
+            raise ValueError("start_time must be before end_time")
+        return self
+
+
+class WeeklyScheduleApply(BaseModel):
+    effective_from: date
+    duration_months: Literal[6, 12]
+    items: list[WeeklyScheduleItem] = Field(default_factory=list, max_length=70)
+
+    @model_validator(mode="after")
+    def validate_no_template_overlap(self) -> "WeeklyScheduleApply":
+        by_day: dict[int, list[WeeklyScheduleItem]] = {}
+        for item in self.items:
+            by_day.setdefault(item.day_of_week, []).append(item)
+        for day_items in by_day.values():
+            ordered = sorted(day_items, key=lambda item: item.start_time)
+            for previous, current in zip(ordered, ordered[1:], strict=False):
+                if current.start_time < previous.end_time:
+                    raise ValueError("Weekly schedule items must not overlap")
+        return self
+
+
+class WeeklyScheduleTemplateResponse(BaseModel):
+    source: Literal["saved_version", "upcoming_week"]
+    version_id: int | None = None
+    effective_from: date | None = None
+    effective_until: date | None = None
+    items: list[WeeklyScheduleItem] = Field(default_factory=list)
+
+
+class WeeklyScheduleConflict(BaseModel):
+    slot_id: int
+    date: date
+    start_time: datetime
+    end_time: datetime
+    booking_id: int | None = None
+    booking_source: str | None = None
+    reason: str
+
+
+class WeeklyScheduleApplyResponse(BaseModel):
+    effective_from: date
+    effective_until: date
+    created: int
+    updated: int
+    deleted: int
+    unchanged: int
+    preserved_reserved: int
+    conflicts: list[WeeklyScheduleConflict] = Field(default_factory=list)

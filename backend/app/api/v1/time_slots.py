@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date as Date
+
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import get_current_manager
@@ -13,6 +15,9 @@ from app.schemas.time_slot import (
     TimeSlotListResponse,
     TimeSlotResponse,
     TimeSlotUpdate,
+    WeeklyScheduleApply,
+    WeeklyScheduleApplyResponse,
+    WeeklyScheduleTemplateResponse,
 )
 from app.services.time_slot_service import (
     TimeSlotService,
@@ -31,7 +36,7 @@ legacy_router = APIRouter(
 async def list_slots(
     vendor_id: int,
     cursor: str | None = Query(None, description="Cursor for next page"),
-    date: str | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
+    date: Date | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=1000),
     service: TimeSlotService = Depends(get_time_slot_service_public),
@@ -39,7 +44,11 @@ async def list_slots(
 ):
     cursor_id = int(decode_cursor(cursor)) if cursor else None
     result = await service.list_slots(
-        vendor_id, after_id=cursor_id, date=date, skip=skip, limit=limit
+        vendor_id,
+        after_id=cursor_id,
+        date=date.isoformat() if date else None,
+        skip=skip,
+        limit=limit,
     )
     response.headers["X-Cache"] = "HIT" if getattr(service, "_from_cache", False) else "MISS"
     return result
@@ -87,6 +96,33 @@ async def generate_slots(
     return await service.generate_slots(vendor_id, data)
 
 
+@router.get(
+    "/weekly-schedule-template",
+    response_model=WeeklyScheduleTemplateResponse,
+    summary="Get the latest saved weekly schedule template",
+)
+async def get_weekly_schedule_template(
+    vendor_id: int,
+    service: TimeSlotService = Depends(get_time_slot_service),
+    _: User = Depends(get_current_manager),
+):
+    return await service.get_weekly_schedule_template(vendor_id)
+
+
+@router.post(
+    "/apply-weekly-schedule",
+    response_model=WeeklyScheduleApplyResponse,
+    summary="Apply a weekly schedule from a future date",
+)
+async def apply_weekly_schedule(
+    vendor_id: int,
+    data: WeeklyScheduleApply,
+    service: TimeSlotService = Depends(get_time_slot_service),
+    _: User = Depends(get_current_manager),
+):
+    return await service.apply_weekly_schedule(vendor_id, data)
+
+
 @legacy_router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="Update time slot")
 @router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="Update time slot")
 async def update_slot(
@@ -97,19 +133,6 @@ async def update_slot(
     _: User = Depends(get_current_manager),
 ):
     return await service.update_vendor_slot(vendor_id, slot_id, data)
-
-
-@legacy_router.delete(
-    "/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot"
-)
-@router.delete("/{slot_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete time slot")
-async def delete_slot(
-    vendor_id: int,
-    slot_id: int,
-    service: TimeSlotService = Depends(get_time_slot_service),
-    _: User = Depends(get_current_manager),
-):
-    await service.delete_vendor_slot(vendor_id, slot_id)
 
 
 # Dedicated slot detail router — used by the booking flow

@@ -2,8 +2,22 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import ARRAY, JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import (
+    ARRAY,
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -37,6 +51,8 @@ class Vendor(Base):
     longitude: Mapped[float] = mapped_column(Float)
     capacity: Mapped[int] = mapped_column(Integer)
     amenities: Mapped[dict | None] = mapped_column(type_=JSON, default=None)
+    ball_available: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    ball_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     average_rating: Mapped[float] = mapped_column(Float, default=0.0, server_default="0.0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -52,3 +68,6 @@ class Vendor(Base):
         back_populates="vendor", cascade="all, delete-orphan", order_by="VendorImage.order"
     )
     favorites: Mapped[list["Favorite"]] = relationship(back_populates="vendor")
+    weekly_schedule_versions: Mapped[list["WeeklyScheduleVersion"]] = relationship(
+        cascade="all, delete-orphan"
+    )

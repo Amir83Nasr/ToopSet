@@ -126,6 +126,7 @@ async def invalidate_slot_list(vendor_id: int) -> None:
     """Drop all slot-list cache keys for a vendor (called after writes)."""
     try:
         r = await get_redis()
+        await r.delete(_slot_list_key(vendor_id, None))
         pattern = f"slots:{vendor_id}:*"
         await _scan_delete(r, pattern)
     except RedisError:
