@@ -3,8 +3,8 @@ name: Mirror to HamGit
 on:
   push:
     branches: ["*"]
-  tags:
-    - "*"
+    tags:
+      - "*"
 
 jobs:
   to_hamgit:
