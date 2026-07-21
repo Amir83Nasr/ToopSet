@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ApiError, api, clearTokens, setTokens } from "@/lib/api"
+import {
+  ApiError,
+  api,
+  clearTokens,
+  setTokens,
+  clearInflightCache,
+} from "@/lib/api"
 import { getCookie } from "@/lib/cookies"
 import type {
   AuthResponse,
@@ -27,27 +33,37 @@ type CurrentUserResponse = {
   created_at: string
 }
 
-let currentUserRequest: Promise<User | null> | null = null
+// ── User cache with 30s expiry ────────────────────────────────────────────
+
+const USER_CACHE_TTL = 30_000 // 30 seconds
+
+let cachedUserPromise: { promise: Promise<User | null>; ts: number } | null =
+  null
 
 async function fetchCurrentUser(): Promise<User | null> {
   const token = getCookie("access_token")
   if (!token) return null
 
-  if (!currentUserRequest) {
-    currentUserRequest = api<CurrentUserResponse>("/api/v1/auth/me")
-      .then((data) => ({ ...data, role: data.role as User["role"] }))
-      .catch((err) => {
-        if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
-          clearTokens()
-        }
-        return null
-      })
-      .finally(() => {
-        currentUserRequest = null
-      })
+  // Return cached user if within TTL
+  const now = Date.now()
+  if (cachedUserPromise && now - cachedUserPromise.ts < USER_CACHE_TTL) {
+    return cachedUserPromise.promise
   }
 
-  return currentUserRequest
+  const promise = api<CurrentUserResponse>("/api/v1/auth/me")
+    .then((data) => ({ ...data, role: data.role as User["role"] }))
+    .catch((err) => {
+      if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
+        clearTokens()
+      }
+      return null
+    })
+    .finally(() => {
+      // Leave cached promise for TTL; next caller past TTL creates fresh
+    })
+
+  cachedUserPromise = { promise, ts: now }
+  return promise
 }
 
 export function useAuth() {
@@ -162,6 +178,8 @@ export function useAuth() {
     }
     clearTokens()
     setUser(null)
+    cachedUserPromise = null
+    clearInflightCache()
     router.push("/")
   }, [router])
 

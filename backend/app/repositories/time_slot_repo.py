@@ -153,8 +153,7 @@ class TimeSlotRepo:
 
     async def update(self, slot: TimeSlot, data: dict) -> TimeSlot:
         for key, value in data.items():
-            if value is not None:
-                setattr(slot, key, value)
+            setattr(slot, key, value)
         slot.version += 1  # optimistic lock
         await self.db.flush()
         await self.db.refresh(slot)

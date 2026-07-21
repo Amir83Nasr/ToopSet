@@ -61,6 +61,14 @@ export function buildVendorImageUrl(url: string | null | undefined): string {
 import * as Sentry from "@sentry/nextjs"
 import { setCookie, getCookie, removeCookie } from "./cookies"
 
+// ── Request deduplication ───────────────────────────────────────────────────
+// Removed — sharing a single Response object between concurrent callers causes
+// "body stream already read" errors. The network layer handles coalescing fine.
+
+export function clearInflightCache() {
+  // No-op, kept for API compat
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -194,11 +202,14 @@ export async function api<T>(
 
   let res: Response
   try {
-    res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers,
-      credentials: options.credentials ?? "include",
-    })
+    // Deduplicate concurrent GET requests to the same endpoint
+    const fetchFn = () =>
+      fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers,
+        credentials: options.credentials ?? "include",
+      })
+    res = await fetchFn()
   } catch (err) {
     throw new ApiError(
       0,

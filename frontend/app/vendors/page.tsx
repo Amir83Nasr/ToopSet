@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/card"
 import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
-import { motion } from "framer-motion"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import dynamic from "next/dynamic"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
@@ -272,7 +272,7 @@ function VendorsPageContent() {
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
                   <div className="relative">
-                    <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="جستجوی نام مجموعه، آدرس..."
                       value={searchText}
@@ -280,7 +280,7 @@ function VendorsPageContent() {
                         setSearchText(e.target.value)
                         setPage(0)
                       }}
-                      className="pe-9"
+                      className="pe-10"
                     />
                   </div>
                 </div>
@@ -530,24 +530,13 @@ function VendorsPageContent() {
                 </div>
               ) : (
                 <>
-                  <motion.div
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, amount: 0.1 }}
-                    variants={{
-                      visible: { transition: { staggerChildren: 0.05 } },
-                    }}
+                  <ScrollReveal
+                    stagger={0.04}
+                    animation="fade-in-up"
                     className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
                   >
                     {featuredVendors.map((vendor) => (
-                      <motion.div
-                        key={vendor.id}
-                        variants={{
-                          hidden: { opacity: 0, y: 8 },
-                          visible: { opacity: 1, y: 0 },
-                        }}
-                        transition={{ duration: 0.2 }}
-                      >
+                      <div key={vendor.id}>
                         <Link
                           href={`/vendors/${vendor.id}`}
                           className="group block"
@@ -618,9 +607,9 @@ function VendorsPageContent() {
                             )}
                           </Card>
                         </Link>
-                      </motion.div>
+                      </div>
                     ))}
-                  </motion.div>
+                  </ScrollReveal>
 
                   <TablePagination
                     page={page}

@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { motion } from "framer-motion"
 import { api, getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { contactSchema } from "@/lib/validations"
@@ -28,17 +27,6 @@ interface ContactInfo {
   support_email?: string
   messenger_id?: string
 }
-
-const container = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
-}
-
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0 },
-}
-
 export default function ContactPage() {
   const [contact, setContact] = useState<ContactInfo | null>(null)
 
@@ -139,12 +127,7 @@ export default function ContactPage() {
       <SiteHeader />
       <main className="flex-1 overflow-x-hidden pt-16">
         <section className="relative overflow-hidden px-4 py-12 md:py-20">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="relative z-10 mx-auto max-w-5xl"
-          >
+          <div className="animate-fade-in relative z-10 mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h1 className="text-3xl font-bold md:text-4xl">ارتباط با ما</h1>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
@@ -154,19 +137,17 @@ export default function ContactPage() {
 
             <div className="grid gap-10 md:grid-cols-3">
               {/* Contact Info */}
-              <motion.div
-                variants={container}
-                initial="hidden"
-                animate="visible"
-                className="space-y-6 md:col-span-1"
-              >
-                {contactInfo.map((info) => {
+              <div className="space-y-6 md:col-span-1">
+                {contactInfo.map((info, i) => {
                   const Icon = info.icon
                   return (
-                    <motion.div
+                    <div
                       key={info.label}
-                      variants={item}
-                      className="flex items-start gap-3"
+                      className="animate-fade-in flex items-start gap-3"
+                      style={{
+                        animationDelay: `${100 + i * 100}ms`,
+                        animationFillMode: "both",
+                      }}
                     >
                       <Icon className="mt-0.5 size-5 shrink-0 text-primary" />
                       <div>
@@ -189,19 +170,15 @@ export default function ContactPage() {
                           </p>
                         )}
                       </div>
-                    </motion.div>
+                    </div>
                   )
                 })}
-              </motion.div>
+              </div>
 
               {/* Contact Form */}
               <div className="md:col-span-2">
                 {success ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center gap-4 py-16 text-center"
-                  >
+                  <div className="animate-scale-in flex flex-col items-center gap-4 py-16 text-center">
                     <CheckCircle2 className="size-16 text-primary" />
                     <h3 className="text-xl font-semibold">
                       پیام شما با موفقیت ارسال شد
@@ -213,14 +190,15 @@ export default function ContactPage() {
                     <Button variant="outline" onClick={() => setSuccess(false)}>
                       ارسال پیام جدید
                     </Button>
-                  </motion.div>
+                  </div>
                 ) : (
-                  <motion.form
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
+                  <form
                     onSubmit={handleSubmit}
-                    className="space-y-5 rounded-xl border bg-card p-6 md:p-8"
+                    className="animate-fade-in space-y-5 rounded-xl border bg-card p-6 md:p-8"
+                    style={{
+                      animationDelay: "0.2s",
+                      animationFillMode: "both",
+                    }}
                   >
                     <div className="grid gap-5 sm:grid-cols-2">
                       <div className="space-y-2">
@@ -323,11 +301,11 @@ export default function ContactPage() {
                       )}
                       {submitting ? "در حال ارسال..." : "ارسال پیام"}
                     </Button>
-                  </motion.form>
+                  </form>
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         </section>
       </main>
       <SiteFooter />

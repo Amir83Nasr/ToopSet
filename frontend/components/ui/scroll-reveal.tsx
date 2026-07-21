@@ -1,7 +1,6 @@
 "use client"
 
-import { motion, type Variants } from "framer-motion"
-import { Children, isValidElement } from "react"
+import { useRef, useEffect, useState, Children, isValidElement } from "react"
 
 type AnimationVariant =
   | "fade-in-up"
@@ -14,45 +13,21 @@ type AnimationVariant =
 interface ScrollRevealProps {
   children: React.ReactNode
   className?: string
-  /** Animation variant (default: "fade-in-up") */
   animation?: AnimationVariant
-  /** Delay in seconds before animation starts */
   delay?: number
-  /** Intersection threshold (0-1) */
   threshold?: number
-  /** Only animate once (default: true) */
   once?: boolean
-  /** Stagger delay between each child in seconds (default: 0 = no stagger) */
   stagger?: number
-  /** Hide element initially (default: true) */
   initialHidden?: boolean
 }
 
-const animVariants: Record<AnimationVariant, Variants> = {
-  "fade-in-up": {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0 },
-  },
-  "fade-in-down": {
-    hidden: { opacity: 0, y: -24 },
-    visible: { opacity: 1, y: 0 },
-  },
-  "fade-in-left": {
-    hidden: { opacity: 0, x: 24 },
-    visible: { opacity: 1, x: 0 },
-  },
-  "fade-in-right": {
-    hidden: { opacity: 0, x: -24 },
-    visible: { opacity: 1, x: 0 },
-  },
-  "scale-in": {
-    hidden: { opacity: 0, scale: 0.9 },
-    visible: { opacity: 1, scale: 1 },
-  },
-  none: {
-    hidden: {},
-    visible: {},
-  },
+const CSS_CLASSES: Record<AnimationVariant, string> = {
+  "fade-in-up": "animate-fade-in",
+  "fade-in-down": "animate-fade-in-down",
+  "fade-in-left": "animate-fade-in-left",
+  "fade-in-right": "animate-fade-in-right",
+  "scale-in": "animate-scale-in",
+  none: "",
 }
 
 export function ScrollReveal({
@@ -63,50 +38,66 @@ export function ScrollReveal({
   threshold = 0.15,
   once = true,
   stagger = 0,
-  initialHidden = true,
 }: ScrollRevealProps) {
-  const anim = animVariants[animation]
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
 
-  // Stagger children using framer-motion's staggerChildren
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          if (once) observer.unobserve(el)
+        } else if (!once) {
+          setVisible(false)
+        }
+      },
+      { threshold }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [threshold, once])
+
+  const animClass = CSS_CLASSES[animation]
+  const isVisible = animation === "none" || visible
+
   if (stagger > 0) {
     const childrenArray = Children.toArray(children)
     return (
-      <motion.div
-        className={className}
-        initial={initialHidden ? "hidden" : "visible"}
-        whileInView="visible"
-        viewport={{ once, amount: threshold }}
-        variants={{
-          visible: {
-            transition: {
-              staggerChildren: stagger,
-              delayChildren: delay,
-            },
-          },
-        }}
-      >
+      <div ref={ref} className={`${className} ${isVisible ? "" : "opacity-0"}`}>
         {childrenArray.map((child, i) => {
           if (!isValidElement(child)) return child
           return (
-            <motion.div key={i} variants={anim}>
+            <div
+              key={i}
+              className={isVisible ? animClass : "opacity-0"}
+              style={{
+                animationDelay: `${delay + i * stagger}s`,
+                animationFillMode: "both",
+              }}
+            >
               {child}
-            </motion.div>
+            </div>
           )
         })}
-      </motion.div>
+      </div>
     )
   }
 
   return (
-    <motion.div
-      className={className}
-      initial={initialHidden ? "hidden" : "visible"}
-      whileInView="visible"
-      viewport={{ once, amount: threshold }}
-      variants={anim}
-      transition={{ delay, duration: 0.5 }}
+    <div
+      ref={ref}
+      className={`${className} ${isVisible ? animClass : "opacity-0"}`}
+      style={{
+        animationDelay: `${delay}s`,
+        animationFillMode: "both",
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   )
 }

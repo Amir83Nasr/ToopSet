@@ -193,8 +193,7 @@ class VendorRepo:
 
     async def update(self, vendor: Vendor, data: dict) -> Vendor:
         for key, value in data.items():
-            if value is not None:
-                setattr(vendor, key, value)
+            setattr(vendor, key, value)
         await self.db.flush()
         await self.db.refresh(vendor)
         return vendor

@@ -1,11 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { Mail, Phone, MessageCircle, ArrowUp } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Phone, Mail, MessageCircle, ArrowUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getApiBase } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+
+// ── Data ───────────────────────────────────────────────────────────────────
 
 const API_BASE = getApiBase()
 
@@ -26,27 +27,26 @@ const pageLinks = [
   { href: "/privacy", label: "حریم خصوصی" },
 ]
 
+// ── Component ──────────────────────────────────────────────────────────────
+
 export function SiteFooter() {
   const [contact, setContact] = useState<ContactInfo | null>(null)
 
-  const fetchContact = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/settings/public/contact`)
-      if (res.ok) setContact(await res.json())
-    } catch {
-      // swallow — footer just won't show contact
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_BASE}/api/v1/settings/public/contact`)
+      .then((res) => {
+        if (res.ok && !cancelled) res.json().then(setContact)
+      })
+      .catch(() => {}) // swallow — static fallback shown below
+    return () => {
+      cancelled = true
     }
   }, [])
-
-  useEffect(() => {
-    const timer = setTimeout(() => fetchContact(), 0)
-    return () => clearTimeout(timer)
-  }, [fetchContact])
 
   return (
     <footer className="pb-safe relative overflow-hidden border-t bg-background max-md:pb-4">
       <div className="px-safe relative mx-auto max-w-7xl px-4">
-        {/* Main footer content */}
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
           <div className="sm:col-span-2 lg:col-span-1">
@@ -60,7 +60,6 @@ export function SiteFooter() {
               سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی. به راحتی سالن مورد نظر
               خود را پیدا کنید و سانس دلخواه را رزرو نمایید.
             </p>
-            {/* Social / trust badge */}
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground/60">
               <span className="relative flex size-1.5">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/40" />
@@ -107,44 +106,43 @@ export function SiteFooter() {
           {/* Contact */}
           <div>
             <h4 className="mb-4 text-sm font-semibold">ارتباط با ما</h4>
-            {contact ? (
-              <ul className="space-y-3">
-                {contact.support_phone && (
-                  <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <ul className="space-y-3">
+              {contact?.support_phone && (
+                <li>
+                  <a
+                    href={`tel:${contact.support_phone}`}
+                    className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
                     <Phone className="size-4 shrink-0 text-primary/60" />
-                    <span dir="ltr">
-                      {toPersianDigits(contact.support_phone)}
-                    </span>
-                  </li>
-                )}
-                {contact.support_email && (
-                  <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                    <Mail className="size-4 shrink-0 text-primary/60" />
-                    <span>{contact.support_email}</span>
-                  </li>
-                )}
-                {contact.messenger_id && (
-                  <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                    <MessageCircle className="size-4 shrink-0 text-primary/60" />
-                    <a
-                      href={`https://ble.ir/${contact.messenger_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="transition-colors hover:text-primary"
-                    >
-                      {contact.messenger_id}
-                    </a>
-                  </li>
-                )}
-              </ul>
-            ) : (
-              <ul className="space-y-3">
-                <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                  <Phone className="size-4 shrink-0 text-primary/60" />
-                  <span dir="ltr">در حال بارگذاری...</span>
+                    <span>{contact.support_phone}</span>
+                  </a>
                 </li>
-              </ul>
-            )}
+              )}
+              {contact?.support_email && (
+                <li>
+                  <a
+                    href={`mailto:${contact.support_email}`}
+                    className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Mail className="size-4 shrink-0 text-primary/60" />
+                    <span dir="ltr">{contact.support_email}</span>
+                  </a>
+                </li>
+              )}
+              {contact?.messenger_id && (
+                <li>
+                  <a
+                    href={`https://ble.ir/${contact.messenger_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <MessageCircle className="size-4 shrink-0 text-primary/60" />
+                    <span>{contact.messenger_id}</span>
+                  </a>
+                </li>
+              )}
+            </ul>
           </div>
         </div>
 
@@ -156,11 +154,12 @@ export function SiteFooter() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() =>
-              document
-                .getElementById("toopset-root")
-                ?.scrollTo({ top: 0, behavior: "smooth" })
-            }
+            onClick={() => {
+              if (typeof document !== "undefined") {
+                const root = document.getElementById("toopset-root")
+                root?.scrollTo({ top: 0, behavior: "smooth" })
+              }
+            }}
             aria-label="بازگشت به بالا"
             className="text-xs text-muted-foreground hover:gap-2 hover:text-foreground"
           >

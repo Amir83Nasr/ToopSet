@@ -3,7 +3,6 @@
 import { useEffect, useRef, type ReactNode } from "react"
 import Link from "next/link"
 import { AlertTriangle, RefreshCw, Home, ChevronRight } from "lucide-react"
-import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ErrorIllustration } from "@/components/ui/error-illustration"
@@ -161,11 +160,11 @@ export function ErrorPage({
       className="relative flex min-h-screen items-center justify-center overflow-hidden p-4"
       dir="rtl"
     >
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className={cn("relative z-10 w-full max-w-md", className)}
+      <div
+        className={cn(
+          "animate-fade-in relative z-10 w-full max-w-md",
+          className
+        )}
       >
         <div className="glass-card rounded-2xl px-6 py-10 sm:px-10 sm:py-12">
           <div
@@ -209,7 +208,7 @@ export function ErrorPage({
             <div className="mt-2">{actions}</div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

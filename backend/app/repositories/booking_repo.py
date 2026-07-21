@@ -176,8 +176,7 @@ class BookingRepo:
 
     async def update(self, booking: Booking, data: dict) -> Booking:
         for key, value in data.items():
-            if value is not None:
-                setattr(booking, key, value)
+            setattr(booking, key, value)
         await self.db.flush()
         await self.db.refresh(booking)
         return booking
