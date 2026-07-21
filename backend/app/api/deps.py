@@ -10,7 +10,6 @@ from app.repositories.user_repo import UserRepository
 security = HTTPBearer(auto_error=False)
 
 
-# ----
 async def get_current_user_optional(
     token: str | None = Depends(security),
     db: AsyncSession = Depends(get_db),
