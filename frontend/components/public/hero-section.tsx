@@ -103,8 +103,10 @@ export function HeroSection() {
           </div>
 
           {/* Left side illustration */}
-          <div className="ms-25 me-auto mt-10 hidden scale-125 lg:block">
-            <HeroAnimatedIllustration />
+          <div className="me-0 hidden justify-self-end lg:block">
+            <div className="scale-125">
+              <HeroAnimatedIllustration />
+            </div>
           </div>
         </div>
       </div>

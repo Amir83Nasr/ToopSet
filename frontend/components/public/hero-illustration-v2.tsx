@@ -61,7 +61,7 @@ export function HeroAnimatedIllustration() {
     >
       <motion.svg
         viewBox="0 0 664.06 649.67"
-        className="h-auto w-full max-w-xs"
+        className="ml-6 h-auto w-full max-w-xs md:max-w-sm lg:max-w-md"
         aria-hidden="true"
       >
         {/* ── Background bodies (faint pulse) ── */}

@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     app_environment: str = "development"
     bootstrap_admin_secret: str = ""
     allow_audit_log_deletion: bool = False
+    auto_migrate: bool = True
     refresh_cookie_name: str = "refresh_token"
     refresh_cookie_secure: bool = False
     refresh_cookie_samesite: str = "lax"

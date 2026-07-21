@@ -22,7 +22,6 @@ const quickLinks = [
 ]
 
 const pageLinks = [
-  { href: "/about", label: "درباره توپ‌سِت" },
   { href: "/terms", label: "قوانین و مقررات" },
   { href: "/privacy", label: "حریم خصوصی" },
 ]
@@ -157,7 +156,11 @@ export function SiteFooter() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={() =>
+              document
+                .getElementById("toopset-root")
+                ?.scrollTo({ top: 0, behavior: "smooth" })
+            }
             aria-label="بازگشت به بالا"
             className="text-xs text-muted-foreground hover:gap-2 hover:text-foreground"
           >

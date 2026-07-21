@@ -149,6 +149,38 @@ async def lifespan(app: FastAPI):
             "Set APP_ENVIRONMENT=production and configure all env vars before deploying.",
         )
 
+    # ── Migration check + auto-apply ───────────────────────────────────
+    if settings.auto_migrate:
+        import logging
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        logger = logging.getLogger(__name__)
+        try:
+            logger.info("Checking migration revisions (AUTO_MIGRATE=True)…")
+            result = subprocess.run(
+                [sys.executable, "-m", "scripts.check_revisions", "--strict"],
+                cwd=Path(__file__).resolve().parent.parent,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                logger.error(
+                    "Static migration check FAILED:\n%s\n%s",
+                    result.stdout,
+                    result.stderr,
+                )
+                raise RuntimeError(
+                    "AUTO_MIGRATE: static migration revision check failed. "
+                    "Run `make db-check` locally to diagnose."
+                )
+        except FileNotFoundError:
+            logger.warning("scripts.check_revisions not found — skipping")
+        except OSError as exc:
+            raise RuntimeError("AUTO_MIGRATE: could not run migration check: %s" % exc) from exc
+
     # ── OpenTelemetry ─────────────────────────────────────────────────
     if settings.otel_enabled:
         from app.core.telemetry import setup_opentelemetry

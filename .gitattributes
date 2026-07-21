@@ -1,0 +1,15 @@
+# ─── ToopSet — Git attributes ──────────────────────────────────────────────────
+# Normalize line endings for all text files.
+* text=auto
+
+# Python files are text (no CRLF, no binary diff).
+*.py text diff=python
+
+# Migration files are Python — force LF line endings.
+backend/migrations/versions/*.py text eol=lf
+
+# Never diff compiled Python (shouldn't be committed, but just in case).
+*.pyc binary
+
+# Lock files as-is (no normalization).
+pnpm-lock.yaml -text

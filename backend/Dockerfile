@@ -42,6 +42,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY app/ ./app/
 COPY alembic.ini ./
 COPY migrations/ ./migrations/
+COPY scripts/ ./scripts/
+COPY docker-entrypoint.sh ./
 
 # Writable directories
 RUN mkdir -p /app/logs /app/uploads && chown -R toopset:toopset /app
@@ -52,6 +54,10 @@ EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -sf http://localhost:${PORT:-8000}/health || exit 1
+
+# Entrypoint: static revision check + alembic upgrade + exec CMD
+# Skips migration run when AUTO_MIGRATE=false (env var).
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Graceful shutdown: uvicorn traps SIGTERM, drains in-flight requests
 # $PORT is injected by Railway at runtime (defaults to 8000 for local Docker).

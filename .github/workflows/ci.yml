@@ -69,11 +69,37 @@ jobs:
         run: pnpm build
 
   backend:
-    name: Backend (ruff + mypy + format)
+    name: Backend (lint + migration + test)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: toopset_test
+          POSTGRES_USER: toopset
+          POSTGRES_PASSWORD: toopset_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -90,7 +116,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff mypy -r requirements.txt
+          pip install ruff mypy pytest pytest-asyncio httpx -r requirements.txt
 
       - name: Format check (Ruff)
         run: ruff format --check .
@@ -100,3 +126,26 @@ jobs:
 
       - name: Typecheck (mypy)
         run: mypy app
+
+      - name: Static migration revision check (no DB)
+        run: python3 -m scripts.check_revisions --strict
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        env:
+          POSTGRES_DB: toopset_test
+          POSTGRES_USER: toopset
+          POSTGRES_PASSWORD: toopset_secret
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          DATABASE_URL: postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test
+
+      - name: Test (pytest)
+        run: python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
+        env:
+          POSTGRES_DB: toopset_test
+          POSTGRES_USER: toopset
+          POSTGRES_PASSWORD: toopset_secret
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          DATABASE_URL: postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test

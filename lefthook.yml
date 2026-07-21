@@ -18,7 +18,7 @@ pre-commit:
     # ── General hygiene ────────────────────────────────────────────────────────
     trailing-whitespace:
       glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
-      run: sed -i 's/[[:space:]]*$//' {staged_files}
+      run: for f in {staged_files}; do sed -i '' 's/[[:space:]]*$//' "$f"; done
       stage_fixed: true
 
     eof-newline:
@@ -51,7 +51,7 @@ pre-commit:
       glob: "*"
       run: |
         for f in {staged_files}; do
-          grep -lP '\r\n' "$f" 2>/dev/null && sed -i 's/\r$//' "$f" || true
+          grep -lP '\r\n' "$f" 2>/dev/null && sed -i '' 's/\r$//' "$f" || true
         done
       stage_fixed: true
 
@@ -111,6 +111,11 @@ pre-push:
     yaml-validate:
       glob: ".github/**/*.yml"
       run: python3 -c "import yaml; yaml.safe_load(open('{staged_files}')); print('  ✓ YAML valid')"
+
+    # ── Migration revision check (static, no DB) ───────────────────────────────────────────────────
+    migration-check:
+      glob: "backend/migrations/versions/*.py"
+      run: cd backend && python3 -m scripts.check_revisions --strict
 
     # ── Main-branch-only checks ─────────────────────────────────────────────────
     dep-audit:
