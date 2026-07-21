@@ -5,14 +5,8 @@ import { useRouter } from "next/navigation"
 import { Building2, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HeroAnimatedIllustration } from "@/components/public/hero-illustration-v2"
-import dynamic from "next/dynamic"
+import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { useAuth } from "@/hooks/use-auth"
-
-const RegisterComplexDialog = dynamic(() =>
-  import("@/components/public/register-complex-dialog").then(
-    (m) => m.RegisterComplexDialog
-  )
-)
 
 export function HeroSection() {
   const router = useRouter()

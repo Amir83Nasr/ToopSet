@@ -57,7 +57,9 @@ describe("HeroSection", () => {
     await user.click(screen.getByText("ثبت مجموعه جدید"))
 
     expect(
-      screen.getByText((content) => content.includes("برای ثبت مجموعه ورزشی"))
+      await screen.findByText((content) =>
+        content.includes("برای ثبت مجموعه ورزشی")
+      )
     ).toBeInTheDocument()
   })
 

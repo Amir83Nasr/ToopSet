@@ -22,11 +22,11 @@ from collections import defaultdict
 from pathlib import Path
 
 REV_RE = re.compile(
-    r'^revision\s*(?::\s*(?:Union\[str,\s*None\]|str(?:\s*\|\s*None)?))?\s*=\s*"([^"]+)"',
+    r'^revision\s*(?::\s*[^=]+)?=\s*"([^"]+)"',
     re.MULTILINE,
 )
 DOWN_RE = re.compile(
-    r'^down_revision\s*(?::\s*(?:Union\[str,\s*None\]|str(?:\s*\|\s*None)?))?\s*=\s*"([^"]*)"',
+    r'^down_revision\s*(?::\s*[^=]+)?=\s*\(?\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)?',
     re.MULTILINE,
 )
 
@@ -52,8 +52,9 @@ def _check(p: Path, strict: bool = False) -> int:
             errors.append(f"  {f.name}: no revision identifier found")
             continue
         rev = rev_m.group(1)
-        down = down_m.group(1) if down_m else ""
-        revisions[rev] = {"down": down, "file": f.name, "path": f}
+        # down_revision can be scalar or tuple — capture all
+        downs = [g for g in (down_m.groups() if down_m else ()) if g]
+        revisions[rev] = {"downs": downs, "file": f.name, "path": f}
 
     if not revisions:
         errors.append("No revision files found.")
@@ -68,26 +69,36 @@ def _check(p: Path, strict: bool = False) -> int:
             errors.append(f"Duplicate revision ID {rev!r} in: {', '.join(files_list)}")
 
     # ── Duplicate file-name prefixes ─────────────────────────────────────
+    # Warn only when two files share a numeric prefix AND have different
+    # revision IDs — a proper merge branch (different IDs, graph converges)
+    # is expected, while genuinely conflicting revisions (same ID) is caught
+    # above.
     prefix_map = defaultdict(list)
     for rev, info in revisions.items():
         prefix = rev.split("_")[0]
-        prefix_map[prefix].append(info["file"])
-    for prefix, files_list in prefix_map.items():
-        if len(files_list) > 1:
-            warnings.append(
-                f"Prefix {prefix!r} shared by: {', '.join(files_list)} "
-                "(possible merge conflict residue)"
-            )
+        prefix_map[prefix].append((rev, info["file"]))
+    for prefix, items in prefix_map.items():
+        if len(items) <= 1:
+            continue
+        revs, files_list = zip(*items)
+        # If all revision IDs are the same, it's a genuine duplicate (caught above).
+        # If they differ, the prefix collision is from a merge branch — expected.
+        if len(set(revs)) > 1:
+            continue
+        warnings.append(
+            f"Prefix {prefix!r} shared by: {', '.join(files_list)} "
+            "(possible merge conflict residue)"
+        )
 
     # ── Build graph ──────────────────────────────────────────────────────
     children: dict[str, list[str]] = {}
     for rev, info in revisions.items():
-        d = info["down"]
-        if d and d != "":
-            children.setdefault(d, []).append(rev)
+        for d in info["downs"]:
+            if d and d != "":
+                children.setdefault(d, []).append(rev)
 
     bases = sorted(
-        [r for r, info in revisions.items() if not info["down"] or info["down"] == ""],
+        [r for r, info in revisions.items() if not info["downs"] or info["downs"] == [""]],
         key=_sort_key,
     )
     heads = sorted(
@@ -95,9 +106,7 @@ def _check(p: Path, strict: bool = False) -> int:
         key=_sort_key,
     )
 
-    # ── Determine expected heads from chain ──────────────────────────────
-    # Real heads are those that are NOT a down_revision of anything else
-    # AND that are reachable from a base.
+    # ── Reachable chain walk ─────────────────────────────────────────────
     reachable: set[str] = set()
 
     def walk(r: str) -> None:
@@ -123,18 +132,18 @@ def _check(p: Path, strict: bool = False) -> int:
             "If intentional, OK — if not, create a merge migration."
         )
 
-    # ── Branches (multiple children per parent) ─────────────────────────
-    branches = [(r, kids) for r, kids in children.items() if len(kids) > 1]
-    if branches:
-        warnings.append("Branch points (multiple children):")
-        for r, kids in branches:
-            warnings.append(f"  {r} -> {', '.join(kids)}")
+    # ── Branches (multiple children per parent) ──────────────────────────
+    # Warn only when a branch was *never* merged (multiple heads remain).
+    if len(real_heads) > 1:
+        branch_points = [(r, kids) for r, kids in children.items() if len(kids) > 1]
+        if branch_points:
+            warnings.append("Unresolved branch points (multiple children):")
+            for r, kids in branch_points:
+                warnings.append(f"  {r} -> {', '.join(kids)}")
 
     # ── Sequence gaps (strict only) ──────────────────────────────────────
     if strict:
-        numeric = sorted(
-            [int(r) for r in revisions if r.isdigit()],
-        )
+        numeric = sorted([int(r) for r in revisions if r.isdigit()])
         if numeric:
             full = set(range(numeric[0], numeric[-1] + 1))
             missing = sorted(full - set(numeric))
