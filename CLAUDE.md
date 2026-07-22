@@ -53,6 +53,7 @@ frontend/
 
 **Setup:** `make install` (backend: `pip install -r backend/requirements.txt`, frontend: `pnpm install`).
 **Run:** `make dev-backend` (uvicorn :8000), `make dev-frontend` (next --turbopack :3000), `make db-start` (docker postgres+redis).
+**Production:** `make build` → `make start` (standalone server on :3000)
 
 **Validation gates (must all pass before commit):**
 

@@ -13,16 +13,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/icons/logo.svg", sizes: "1080x1080", type: "image/svg+xml" },
+      { url: "/icons/logo-1080.webp", sizes: "1080x1080", type: "image/webp" },
+      { url: "/icons/logo-512.webp", sizes: "512x512", type: "image/webp" },
     ],
     apple: [
-      { url: "/icons/logo.svg", sizes: "1080x1080", type: "image/svg+xml" },
-    ],
-    other: [
-      {
-        rel: "mask-icon",
-        url: "/icons/logo.svg",
-      },
+      { url: "/icons/logo-180.webp", sizes: "180x180", type: "image/webp" },
     ],
   },
 }
@@ -48,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <head>
+        {/* Preload body font (Regular = FCP text) + LCP font (ExtraBold = hero heading) */}
         <link
           rel="preload"
           href="/fonts/iran-yekan-x/IRANYekanX-Regular.woff2"
@@ -57,21 +53,7 @@ export default function RootLayout({
         />
         <link
           rel="preload"
-          href="/fonts/iran-yekan-x/IRANYekanX-Bold.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
           href="/fonts/iran-yekan-x/IRANYekanX-ExtraBold.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/iran-yekan-x/IRANYekanX-Medium.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"

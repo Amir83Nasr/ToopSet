@@ -1,20 +1,6 @@
-"use client"
-
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { Phone, Mail, MessageCircle, ArrowUp } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { getApiBase } from "@/lib/api"
-
-// ── Data ───────────────────────────────────────────────────────────────────
-
-const API_BASE = getApiBase()
-
-interface ContactInfo {
-  support_phone?: string
-  support_email?: string
-  messenger_id?: string
-}
+import { FooterContact } from "@/components/public/footer-contact"
+import { FooterScrollButton } from "@/components/public/footer-scroll-button"
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -27,23 +13,7 @@ const pageLinks = [
   { href: "/privacy", label: "حریم خصوصی" },
 ]
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export function SiteFooter() {
-  const [contact, setContact] = useState<ContactInfo | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    fetch(`${API_BASE}/api/v1/settings/public/contact`)
-      .then((res) => {
-        if (res.ok && !cancelled) res.json().then(setContact)
-      })
-      .catch(() => {}) // swallow — static fallback shown below
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   return (
     <footer className="pb-safe relative overflow-hidden border-t bg-background max-md:pb-4">
       <div className="px-safe relative mx-auto max-w-7xl px-4">
@@ -106,43 +76,7 @@ export function SiteFooter() {
           {/* Contact */}
           <div>
             <h4 className="mb-4 text-sm font-semibold">ارتباط با ما</h4>
-            <ul className="space-y-3">
-              {contact?.support_phone && (
-                <li>
-                  <a
-                    href={`tel:${contact.support_phone}`}
-                    className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Phone className="size-4 shrink-0 text-primary/60" />
-                    <span>{contact.support_phone}</span>
-                  </a>
-                </li>
-              )}
-              {contact?.support_email && (
-                <li>
-                  <a
-                    href={`mailto:${contact.support_email}`}
-                    className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Mail className="size-4 shrink-0 text-primary/60" />
-                    <span dir="ltr">{contact.support_email}</span>
-                  </a>
-                </li>
-              )}
-              {contact?.messenger_id && (
-                <li>
-                  <a
-                    href={`https://ble.ir/${contact.messenger_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <MessageCircle className="size-4 shrink-0 text-primary/60" />
-                    <span>{contact.messenger_id}</span>
-                  </a>
-                </li>
-              )}
-            </ul>
+            <FooterContact />
           </div>
         </div>
 
@@ -151,21 +85,7 @@ export function SiteFooter() {
           <p className="text-xs text-muted-foreground">
             تمامی حقوق مادی و معنوی این وبسایت متعلق به توپ‌سِت می‌باشد.
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (typeof document !== "undefined") {
-                const root = document.getElementById("toopset-root")
-                root?.scrollTo({ top: 0, behavior: "smooth" })
-              }
-            }}
-            aria-label="بازگشت به بالا"
-            className="text-xs text-muted-foreground hover:gap-2 hover:text-foreground"
-          >
-            <ArrowUp className="size-3.5" />
-            بازگشت به بالا
-          </Button>
+          <FooterScrollButton />
         </div>
       </div>
     </footer>

@@ -323,7 +323,8 @@ make version-check   # Verify version consistency
 | `make format`            | Format all code (Ruff + Prettier)        |
 | `make typecheck`         | Run all type checkers (mypy + tsc)       |
 | `make test`              | Run all tests (pytest + vitest)          |
-| `make build`             | Build frontend                           |
+| `make build`             | Build frontend (production, webpack)     |
+| `make start`             | Start production frontend (standalone)   |
 | `make check`             | lint + typecheck + build                 |
 | `make version-bump`      | Bump: `BUMP=patch|minor|major`           |
 | `make doctor`            | Verify system setup                      |

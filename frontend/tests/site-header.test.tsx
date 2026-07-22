@@ -1,4 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
+vi.mock("@/components/public/desktop-user-menu", () => ({
+  DesktopUserMenu: (props: Record<string, unknown>) => {
+    if (props.loading) return <div className="animate-spin" />
+    if (!props.isAuthenticated || !props.user) {
+      return (
+        <a key="login" href="/login">
+          ورود / ثبت‌نام
+        </a>
+      )
+    }
+    const u = props.user as { full_name: string }
+    return <>{u.full_name}</>
+  },
+}))
+vi.mock("@/components/public/mobile-nav-panel", () => ({
+  MobileNavPanel: () => null,
+}))
 import { render, screen } from "@testing-library/react"
 import { SiteHeader } from "@/components/public/site-header"
 import { useAuth } from "@/hooks/use-auth"
@@ -99,13 +116,14 @@ describe("SiteHeader", () => {
       })
     })
 
-    it("shows the user's full name", () => {
+    it("shows the user's full name", async () => {
       renderWithProviders(<SiteHeader />)
-      expect(screen.getByText("کاربر تست")).toBeInTheDocument()
+      expect(await screen.findByText("کاربر تست")).toBeInTheDocument()
     })
 
-    it("does NOT show login/register buttons", () => {
+    it("does NOT show login/register buttons", async () => {
       renderWithProviders(<SiteHeader />)
+      await screen.findByText("کاربر تست")
       expect(screen.queryByText("ورود")).not.toBeInTheDocument()
       expect(screen.queryByText("ثبت‌نام")).not.toBeInTheDocument()
       expect(screen.queryByText("ورود / ثبت‌نام")).not.toBeInTheDocument()

@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -8,14 +7,6 @@
   font-family: "IranYekanX";
   src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.woff2") format("woff2");
   font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.woff2") format("woff2");
-  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }

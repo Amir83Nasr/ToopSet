@@ -1,0 +1,25 @@
+{
+  "name": "ToopSet | توپ‌سِت",
+  "short_name": "ToopSet",
+  "description": "سامانه رزرواسیون مجموعه‌های ورزشی",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#212121",
+  "background_color": "#fafafa",
+  "lang": "fa-IR",
+  "categories": ["sports", "booking", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/logo-1080.webp",
+      "sizes": "1080x1080",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/logo-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}
