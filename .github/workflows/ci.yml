@@ -1,7 +1,9 @@
 # ── ToopSet — Continuous Integration ──────────────────────────────────────────
 # Final safety layer after local pre-commit + pre-push hooks.
-# Runs on every PR and push to main.
+# Runs on every PR and push to main + develop.
 # Both frontend and backend jobs run in parallel for fast feedback.
+# On failure: the failing step exits with non-zero and the job stops immediately
+# (default GitHub behavior: fail-fast). No subsequent steps execute.
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: CI
@@ -10,7 +12,7 @@ on:
   pull_request:
     branches: ["*"]
   push:
-    branches: [main]
+    branches: [main, develop]
 
 # Cancel redundant runs for the same PR (new commits kill in-progress runs).
 concurrency:

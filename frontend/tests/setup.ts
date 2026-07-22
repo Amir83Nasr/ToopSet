@@ -1,5 +1,4 @@
 import "@testing-library/jest-dom/vitest"
-import "./mocks/framer-motion"
 import "./mocks/next-link"
 import "./mocks/next-navigation"
 import "./mocks/next-image"

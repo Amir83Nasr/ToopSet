@@ -190,7 +190,7 @@ function BookPageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16">
+        <main id="main-content" className="relative flex-1 pt-16">
           <div className="mx-auto max-w-lg px-4 py-12">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="mt-6 h-48 w-full rounded-xl" />
@@ -207,7 +207,7 @@ function BookPageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16">
+        <main id="main-content" className="relative flex-1 pt-16">
           <div className="flex flex-col items-center justify-center gap-4 py-20">
             <AlertTriangle className="size-12 text-muted-foreground" />
             <p className="text-lg text-muted-foreground">لینک ناقص است</p>
@@ -225,7 +225,7 @@ function BookPageContent() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative flex-1 pt-16">
+      <main id="main-content" className="relative flex-1 pt-16">
         <div className="mx-auto max-w-lg px-4 py-8">
           {/* Back button */}
           <Button variant="outline" className="mb-4 w-fit" asChild>

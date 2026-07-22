@@ -100,7 +100,7 @@ function LoadingSkeleton() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative flex-1 pt-16">
+      <main id="main-content" className="relative flex-1 pt-16">
         <div className="mx-auto max-w-7xl px-4 pt-8 pb-20">
           <Skeleton className="h-24 w-full rounded-lg" />
           <Skeleton className="mt-8 h-8 w-40" />
@@ -466,7 +466,7 @@ export default function PublicVendorDetailPage() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16">
+        <main id="main-content" className="relative flex-1 pt-16">
           <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
             <div className="flex size-16 items-center justify-center rounded-full bg-muted">
               <MapPin className="size-8 text-muted-foreground/50" />
@@ -491,7 +491,7 @@ export default function PublicVendorDetailPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative flex-1 pt-16">
+      <main id="main-content" className="relative flex-1 pt-16">
         <div className="mx-auto max-w-7xl px-4 pt-10 pb-20">
           {/* ═══════════════════════════════════
                Vendor Hero Card

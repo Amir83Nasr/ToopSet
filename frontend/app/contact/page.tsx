@@ -125,7 +125,7 @@ export default function ContactPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="flex-1 overflow-x-hidden pt-16">
+      <main id="main-content" className="flex-1 overflow-x-hidden pt-16">
         <section className="relative overflow-hidden px-4 py-12 md:py-20">
           <div className="animate-fade-in relative z-10 mx-auto max-w-5xl">
             <div className="mb-10 text-center">

@@ -4,6 +4,8 @@ import * as React from "react"
 import { flushSync } from "react-dom"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+// ── Theme transition helpers ────────────────────────────────────────────────
+
 function toggleThemeWithTransition(
   theme: string,
   setTheme: (t: string) => void
@@ -15,24 +17,6 @@ function toggleThemeWithTransition(
   } else {
     setTheme(theme)
   }
-}
-
-function ThemeProvider({
-  children,
-  ...props
-}: React.ComponentProps<typeof NextThemesProvider>) {
-  return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem
-      {...props}
-    >
-      <ThemeClickTracker />
-      <ThemeHotkey />
-      {children}
-    </NextThemesProvider>
-  )
 }
 
 function isTypingTarget(target: EventTarget | null) {
@@ -48,7 +32,8 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
-/* Track last click position for view-transition origin */
+// ── Click tracker for view-transition origin ────────────────────────────────
+
 function ThemeClickTracker() {
   React.useEffect(() => {
     function recordClick(e: MouseEvent) {
@@ -60,6 +45,8 @@ function ThemeClickTracker() {
   }, [])
   return null
 }
+
+// ── Keyboard shortcut (D key) ──────────────────────────────────────────────
 
 function ThemeHotkey() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -98,4 +85,24 @@ function ThemeHotkey() {
   return null
 }
 
-export { ThemeProvider }
+// ── Provider ───────────────────────────────────────────────────────────────
+
+function ThemeProvider({
+  children,
+  ...props
+}: React.ComponentProps<typeof NextThemesProvider>) {
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+      {...props}
+    >
+      <ThemeClickTracker />
+      <ThemeHotkey />
+      {children}
+    </NextThemesProvider>
+  )
+}
+
+export { ThemeProvider, toggleThemeWithTransition }

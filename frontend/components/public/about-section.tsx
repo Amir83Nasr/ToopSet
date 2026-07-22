@@ -8,9 +8,9 @@ import {
   Building2,
   BarChart3,
   Clock,
-  Camera,
   MessageSquare,
   ShieldCheck,
+  Camera,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,14 +22,14 @@ import {
 } from "@/components/ui/card"
 import { toPersianDigits } from "@/lib/utils"
 
-// ── Section data ───────────────────────────────────────────────────────────
+// ── Data ─────────────────────────────────────────────────────────────────────
 
 const stats = [
-  { value: 15, suffix: "+", label: "سالن ورزشی" },
-  { value: 2000, suffix: "+", label: "کاربر فعال" },
-  { value: 5000, suffix: "+", label: "رزرو موفق" },
-  { label: "قم", suffix: "", value: 1, isString: true },
-]
+  { kind: "number", value: 15, suffix: "+", label: "سالن ورزشی" },
+  { kind: "number", value: 2000, suffix: "+", label: "کاربر فعال" },
+  { kind: "number", value: 5000, suffix: "+", label: "رزرو موفق" },
+  { kind: "string", value: "قم", label: "شهر فعال" },
+] as const
 
 const features = [
   {
@@ -61,30 +61,45 @@ const features = [
     description:
       "اولین درخواست رزرو برنده است — سانس به محض رزرو برای دیگران قفل می‌شود",
   },
-]
+] as const
 
 const managerBenefits = [
   { icon: Building2, title: "تعریف و مدیریت سالن و سانس‌ها" },
   { icon: BarChart3, title: "گزارش درآمد روزانه و ماهانه" },
   { icon: Clock, title: "مشاهده لحظه‌ای رزروهای امروز" },
   { icon: MessageSquare, title: "پاسخ به نظرات و مدیریت کیفیت" },
-]
+] as const
 
-// ── Component ──────────────────────────────────────────────────────────────
+// ── Icons ────────────────────────────────────────────────────────────────────
+
+function CardIcon({
+  icon: Icon,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+      <Icon className="size-5" />
+    </div>
+  )
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function AboutSection() {
   return (
     <section id="about-section" className="overflow-x-hidden">
       <div className="mx-auto max-w-7xl px-4">
         {/* ═══ Header ═══ */}
-        <div className="animate-fade-in px-4 pt-16 pb-8 text-center">
+        <div className="animate-fade-in pt-10 pb-8 text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border bg-muted/80 px-4 py-1.5 text-xs text-muted-foreground">
             <span className="size-1.5 rounded-full bg-primary/80" />
             درباره توپ‌سِت
           </div>
 
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            سامانه هوشمند <span className="text-primary">رزرو سانس ورزشی</span>
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl">
+            سامانه هوشمند رزرو
+            <span className="text-primary"> سانس‌های ورزشی</span>
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl leading-relaxed text-muted-foreground">
@@ -97,7 +112,7 @@ export function AboutSection() {
         </div>
 
         {/* ═══ Stats ═══ */}
-        <div className="px-4 pb-8">
+        <div className="pb-8">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {stats.map((stat) => (
               <Card
@@ -107,12 +122,12 @@ export function AboutSection() {
               >
                 <CardContent className="py-2">
                   <div className="text-3xl font-bold tracking-tight">
-                    {stat.isString
-                      ? stat.label
+                    {stat.kind === "string"
+                      ? stat.value
                       : `${toPersianDigits(stat.value)}${stat.suffix}`}
                   </div>
                   <CardDescription className="mt-1">
-                    {stat.isString ? "شهر فعال" : stat.label}
+                    {stat.label}
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -121,15 +136,13 @@ export function AboutSection() {
         </div>
 
         {/* ═══ Mission & Vision ═══ */}
-        <div className="px-4 pb-16">
+        <div className="pb-10">
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="animate-fade-in h-full">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Target className="size-5" />
-                  </div>
-                  <CardTitle>رسالت ما</CardTitle>
+                  <CardIcon icon={Target} />
+                  <CardTitle className="font-semibold">رسالت ما</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -144,10 +157,8 @@ export function AboutSection() {
             <Card className="animate-fade-in h-full">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Eye className="size-5" />
-                  </div>
-                  <CardTitle>چشم‌انداز ما</CardTitle>
+                  <CardIcon icon={Eye} />
+                  <CardTitle className="font-semibold">چشم‌انداز ما</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -163,11 +174,11 @@ export function AboutSection() {
         </div>
 
         {/* ═══ Features ═══ */}
-        <div className="px-4 pb-16">
-          <div className="animate-fade-in mb-12 text-center">
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+        <div className="pb-10">
+          <div className="animate-fade-in mb-10 text-center">
+            <h3 className="text-2xl font-bold tracking-tight md:text-3xl">
               چرا توپ‌سِت؟
-            </h2>
+            </h3>
             <p className="mt-2 text-muted-foreground">
               امکاناتی که توپ‌سِت را از روش سنتی جدا می‌کند
             </p>
@@ -183,10 +194,12 @@ export function AboutSection() {
                   style={{ animationDelay: `${i * 80}ms` }}
                 >
                   <CardHeader>
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-                      <Icon className="size-5" />
+                    <div className="mb-2 flex items-center gap-3">
+                      <CardIcon icon={Icon} />
+                      <CardTitle className="font-semibold">
+                        {feature.title}
+                      </CardTitle>
                     </div>
-                    <CardTitle>{feature.title}</CardTitle>
                     <CardDescription>{feature.description}</CardDescription>
                   </CardHeader>
                 </Card>
@@ -196,15 +209,15 @@ export function AboutSection() {
         </div>
 
         {/* ═══ For Managers ═══ */}
-        <div className="px-4 pb-16">
-          <div className="animate-fade-in mb-12 text-center">
+        <div className="pb-10">
+          <div className="animate-fade-in mb-10 text-center">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-primary/40" />
+              <span className="size-1.5 rounded-full bg-primary/80" />
               مدیران مجموعه
             </div>
-            <h2 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">
+            <h3 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">
               مدیریت هوشمند سالن‌ها
-            </h2>
+            </h3>
             <p className="mx-auto max-w-xl leading-relaxed text-muted-foreground">
               مدیر سالن دیگر نیازی به پاسخگویی تلفنی، ثبت دستی رزروها، یا نگرانی
               از پر شدن دوگانه سانس‌ها ندارد. همه چیز آنلاین، خودکار و شفاف است.
@@ -220,10 +233,8 @@ export function AboutSection() {
                   className="group animate-fade-in h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm"
                   style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <CardHeader>
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-                      <Icon className="size-5" />
-                    </div>
+                  <CardHeader className="items-center gap-3 max-sm:flex">
+                    <CardIcon icon={Icon} />
                     <CardTitle>{benefit.title}</CardTitle>
                   </CardHeader>
                 </Card>
@@ -233,11 +244,11 @@ export function AboutSection() {
         </div>
 
         {/* ═══ CTA ═══ */}
-        <div className="px-4 pb-20">
+        <div className="pb-16">
           <div className="animate-fade-in mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+            <h3 className="text-2xl font-bold tracking-tight md:text-3xl">
               آماده شروع هستی؟
-            </h2>
+            </h3>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
               دیگر وقت خود را با تماس‌های تلفنی تلف نکن. در چند کلیک سانس مورد
               نظرت را پیدا کن و رزرو کن.

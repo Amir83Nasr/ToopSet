@@ -154,7 +154,7 @@ function PaymentPageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16">
+        <main id="main-content" className="relative flex-1 pt-16">
           <div className="mx-auto max-w-lg px-4 py-12">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="mt-6 h-48 w-full rounded-xl" />
@@ -170,7 +170,7 @@ function PaymentPageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16" />
+        <main id="main-content" className="relative flex-1 pt-16" />
         <SiteFooter />
       </div>
     )
@@ -181,7 +181,7 @@ function PaymentPageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16">
+        <main id="main-content" className="relative flex-1 pt-16">
           <div className="mx-auto max-w-lg px-4 py-12">
             <Card>
               <CardContent className="flex flex-col items-center gap-4 py-12">
@@ -216,7 +216,7 @@ function PaymentPageContent() {
     return (
       <div className="flex min-h-svh flex-col">
         <SiteHeader />
-        <main className="relative flex-1 pt-16">
+        <main id="main-content" className="relative flex-1 pt-16">
           <div className="mx-auto max-w-lg px-4 py-12">
             <Card>
               <CardContent className="flex flex-col items-center gap-4 py-12">
@@ -241,7 +241,7 @@ function PaymentPageContent() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-      <main className="relative flex-1 pt-16">
+      <main id="main-content" className="relative flex-1 pt-16">
         <div className="mx-auto max-w-lg px-4 py-8">
           {/* Under Construction Card */}
           <Card className="border-amber-200 dark:border-amber-800">

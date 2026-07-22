@@ -4,9 +4,7 @@ import { useState, Fragment, type ComponentType } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
-import { motion, useReducedMotion, type Variants } from "framer-motion"
 import { useAuth } from "@/hooks/use-auth"
-import { useDirection } from "@radix-ui/react-direction"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -72,33 +70,28 @@ const roleLabels: Record<string, string> = {
 }
 
 /**
- * Animated hamburger → X icon. The three bars morph based on `open`,
- * respecting reduced-motion preferences.
+ * Animated hamburger → X icon. Three bars morph based on `open` using CSS
+ * transitions. Respects prefers-reduced-motion via CSS.
  */
 function MenuToggleIcon({ open }: { open: boolean }) {
-  const reduce = useReducedMotion()
-  const transition = reduce
-    ? { duration: 0 }
-    : { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }
   const bar =
-    "absolute inset-x-0 mx-auto block h-[2px] w-5 rounded-full bg-current"
-
+    "absolute inset-x-0 mx-auto block h-[2px] w-5 rounded-full bg-current transition-all duration-300 motion-reduce:transition-none"
   return (
     <span className="relative block size-5" aria-hidden="true">
-      <motion.span
-        className={cn(bar, "top-1")}
-        animate={open ? { rotate: 45, top: 9 } : { rotate: 0, top: 4 }}
-        transition={transition}
+      <span
+        className={cn(bar, open ? "top-[9px] rotate-45" : "top-1 rotate-0")}
       />
-      <motion.span
-        className={cn(bar, "top-[9px]")}
-        animate={open ? { opacity: 0, scaleX: 0.4 } : { opacity: 1, scaleX: 1 }}
-        transition={transition}
+      <span
+        className={cn(
+          "absolute inset-x-0 top-[9px] mx-auto block h-[2px] w-5 rounded-full bg-current transition-all duration-300 motion-reduce:transition-none",
+          open ? "scale-[0.4] opacity-0" : "scale-100 opacity-100"
+        )}
       />
-      <motion.span
-        className={cn(bar, "top-[15px]")}
-        animate={open ? { rotate: -45, top: 9 } : { rotate: 0, top: 14 }}
-        transition={transition}
+      <span
+        className={cn(
+          bar,
+          open ? "top-[9px] -rotate-45" : "top-[15px] rotate-0"
+        )}
       />
     </span>
   )
@@ -111,56 +104,49 @@ function MobileNavItem({
   icon: Icon,
   active,
   onNavigate,
-  variants,
 }: {
   href: string
   label: string
-  icon: NavIcon
+  icon: React.ElementType
   active: boolean
   onNavigate: () => void
-  variants: Variants
 }) {
   return (
-    <motion.div variants={variants}>
-      <Link
-        href={href}
-        onClick={onNavigate}
-        aria-current={active ? "page" : undefined}
+    <Link
+      href={href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-sm font-medium transition-colors",
+        active
+          ? "bg-accent text-accent-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/70"
+      )}
+    >
+      <span
         className={cn(
-          "group flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-sm font-medium transition-colors",
+          "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
           active
-            ? "bg-accent text-accent-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/70"
+            ? "bg-primary/12 text-primary"
+            : "bg-muted/60 text-muted-foreground group-hover:text-foreground"
         )}
       >
-        <span
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-            active
-              ? "bg-primary/12 text-primary"
-              : "bg-muted/60 text-muted-foreground group-hover:text-foreground"
-          )}
-        >
-          <Icon className="size-[18px]" />
-        </span>
-        <span className="flex-1 truncate">{label}</span>
-        {active && (
-          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-        )}
-      </Link>
-    </motion.div>
+        <Icon className="size-[18px]" />
+      </span>
+      <span className="flex-1 truncate">{label}</span>
+      {active && <span className="size-1.5 shrink-0 rounded-full bg-primary" />}
+    </Link>
   )
 }
 
 export function SiteHeader() {
   const router = useRouter()
   const pathname = usePathname()
-  const reduce = useReducedMotion()
   const { user, loading, isAuthenticated, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
-  const isRtl = useDirection() === "rtl"
+  const isRtl = true // app is RTL-only
 
   const closeMobile = () => setMobileOpen(false)
 
@@ -170,27 +156,6 @@ export function SiteHeader() {
     href === "/"
       ? pathname === "/"
       : pathname === href || pathname.startsWith(href + "/")
-
-  // Stagger the nav rows in when the sheet opens; collapse to instant when the
-  // user prefers reduced motion.
-  const listVariants: Variants = {
-    hidden: {},
-    show: {
-      transition: reduce
-        ? { duration: 0 }
-        : { staggerChildren: 0.05, delayChildren: 0.08 },
-    },
-  }
-  const itemVariants: Variants = reduce
-    ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
-    : {
-        hidden: { opacity: 0, x: 12 },
-        show: {
-          opacity: 1,
-          x: 0,
-          transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
-        },
-      }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
@@ -562,14 +527,9 @@ export function SiteHeader() {
               </SheetHeader>
 
               {/* ── Scrollable nav ── */}
-              <motion.div
-                variants={listVariants}
-                initial="hidden"
-                animate="show"
-                className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4"
-              >
+              <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
                 {isAuthenticated && user && (
-                  <motion.div variants={itemVariants} className="mb-3">
+                  <div className="mb-3">
                     <div className="flex items-center gap-3 rounded-2xl bg-muted/40 p-3">
                       <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
                         {buildAvatarUrl(user.avatar_url) ? (
@@ -604,7 +564,7 @@ export function SiteHeader() {
                         </p>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
 
                 {navLinks.map((link) => (
@@ -615,7 +575,6 @@ export function SiteHeader() {
                     icon={link.icon}
                     active={isActivePath(link.href)}
                     onNavigate={closeMobile}
-                    variants={itemVariants}
                   />
                 ))}
                 {isAuthenticated && user
@@ -624,12 +583,9 @@ export function SiteHeader() {
                       .filter((g) => g.items.length > 0)
                       .map((group) => (
                         <Fragment key={group.label + user.role}>
-                          <motion.p
-                            variants={itemVariants}
-                            className="px-2.5 pt-5 pb-1.5 text-xs font-medium text-muted-foreground/70"
-                          >
+                          <p className="px-2.5 pt-5 pb-1.5 text-xs font-medium text-muted-foreground/70">
                             {group.label}
-                          </motion.p>
+                          </p>
                           {group.items.map((item) => {
                             // Dashboard root items match exact path only
                             const isDashboardRoot = [
@@ -648,7 +604,6 @@ export function SiteHeader() {
                                 icon={item.icon}
                                 active={isActive}
                                 onNavigate={closeMobile}
-                                variants={itemVariants}
                               />
                             )
                           })}
@@ -661,10 +616,9 @@ export function SiteHeader() {
                         icon={Calendar}
                         active={isActivePath("/dashboard/bookings")}
                         onNavigate={closeMobile}
-                        variants={itemVariants}
                       />
                     )}
-              </motion.div>
+              </div>
 
               {/* ── Pinned auth footer ── */}
               <SheetFooter className="border-t p-4">

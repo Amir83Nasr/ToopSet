@@ -15,7 +15,6 @@ import type {
   BookingDetail,
 } from "@/components/bookings/types"
 import { toast } from "@/lib/toast"
-import confetti from "canvas-confetti"
 import { RefreshCw } from "lucide-react"
 
 type BookingTab = "current" | "past" | "cancelled"
@@ -107,7 +106,7 @@ export default function BookingsPage() {
     try {
       await api(`/api/v1/bookings/${bookingId}/pay`, { method: "POST" })
       toast.success("پرداخت با موفقیت انجام شد")
-      confetti({
+      ;(await import("canvas-confetti")).default({
         particleCount: 120,
         spread: 80,
         origin: { y: 0.6 },

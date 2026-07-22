@@ -22,8 +22,12 @@
 # ── Testing ───────────────────────────────────────────────
 /coverage
 
-# ── Environment ───────────────────────────────────────────
-.env*.local
+# ── Environment (secrets stay in Vercel dashboard) ────────
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
 
 # ── Debug logs ────────────────────────────────────────────
 npm-debug.log*

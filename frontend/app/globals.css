@@ -1,37 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-UltraLight.ttf") format("truetype");
-  font-weight: 100;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Thin.ttf") format("truetype");
-  font-weight: 200;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Light.ttf") format("truetype");
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -39,7 +14,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -47,7 +22,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-DemiBold.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-DemiBold.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -55,7 +30,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Bold.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -63,32 +38,8 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-ExtraBold.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-ExtraBold.woff2") format("woff2");
   font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Heavy.ttf") format("truetype");
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Black.ttf") format("truetype");
-  font-weight: 950;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-ExtraBlack.ttf") format("truetype");
-  font-weight: 1000;
   font-style: normal;
   font-display: swap;
 }
@@ -559,23 +510,6 @@ html body[data-scroll-locked] {
   height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-/* ── Shimmer text animation ── */
-
-@keyframes shimmer-text {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-.shimmer-text {
-  background-size: 200% 100%;
-  animation: shimmer-text 4s ease-in-out infinite;
 }
 
 /* ── Leaflet popup theming ── */

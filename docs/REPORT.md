@@ -4,8 +4,6 @@
 > ارائه‌شده برای درس **تحلیل و طراحی سیستم‌ها**
 > نسخه پروژه: `1.1.0` — تاریخ: `۲۰۲۶-۰۷-۲۱`
 
----
-
 ## فهرست
 
 1. [معرفی پروژه](#۱-معرفی-پروژه)
@@ -38,12 +36,12 @@
 
 ### ۱.۳. ذی‌نفعان (Stakeholders)
 
-| ذی‌نفع | نقش |
-|--------|------|
-| **کاربر عادی** | جستجو، مشاهده، رزرو، پرداخت، لغو، ثبت نظر |
+| ذی‌نفع                              | نقش                                                                                 |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- |
+| **کاربر عادی**             | جستجو، مشاهده، رزرو، پرداخت، لغو، ثبت نظر           |
 | **مدیر مجموعه (Manager)** | مدیریت سانس‌ها، تأیید رزرو دستی، درخواست تسویه |
-| **مدیر سیستم (Admin)** | مدیریت کاربران، مجموعه‌ها، تنظیمات، گزارش‌ها |
-| **توسعه‌دهنده** | نگهداری کد، استقرار، مانیتورینگ |
+| **مدیر سیستم (Admin)**     | مدیریت کاربران، مجموعه‌ها، تنظیمات، گزارش‌ها   |
+| **توسعه‌دهنده**          | نگهداری کد، استقرار، مانیتورینگ                            |
 
 ---
 
@@ -51,37 +49,37 @@
 
 ### ۲.۱. نیازمندی‌های عملکردی (Functional)
 
-| کد | عنوان | توضیح |
-|----|-------|-------|
-| **F-01** | ثبت‌نام/ورود کاربر | ثبت‌نام دو مرحله‌ای (OTP) یا رمز عبور |
-| **F-02** | احراز هویت چهارسطحی | کاربر مهمان، کاربر عادی، مدیر مجموعه، مدیر سیستم |
-| **F-03** | جستجوی مجموعه‌ها | بر اساس نوع ورزش، موقعیت (نقشه نشان)، امتیاز |
-| **F-04** | نمایش سانس‌های ۷ روزه | سانس‌های خالی به همراه قیمت و وضعیت جنسیتی |
-| **F-05** | رزرو سانس | انتخاب سانس، تعیین تعداد نفرات، توپ، مدت ۱۰ دقیقه پرداخت |
-| **F-06** | پرداخت | درگاه پرداخت شبیه‌سازی‌شده (موفق/مردود/وقفه) |
+| کد           | عنوان                                   | توضیح                                                                                                           |
+| -------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **F-01** | ثبت‌نام/ورود کاربر           | ثبت‌نام دو مرحله‌ای (OTP) یا رمز عبور                                                      |
+| **F-02** | احراز هویت چهارسطحی         | کاربر مهمان، کاربر عادی، مدیر مجموعه، مدیر سیستم                            |
+| **F-03** | جستجوی مجموعه‌ها              | بر اساس نوع ورزش، موقعیت (نقشه نشان)، امتیاز                                      |
+| **F-04** | نمایش سانس‌های ۷ روزه      | سانس‌های خالی به همراه قیمت و وضعیت جنسیتی                                        |
+| **F-05** | رزرو سانس                            | انتخاب سانس، تعیین تعداد نفرات، توپ، مدت ۱۰ دقیقه پرداخت              |
+| **F-06** | پرداخت                                 | درگاه پرداخت شبیه‌سازی‌شده (موفق/مردود/وقفه)                                    |
 | **F-07** | لغو رزرو با جریمه پلکانی | زیر ۲ ساعت (غیرممکن)، ۲-۲۴ ساعت (۵۰٪)، بالای ۲۴ ساعت (استرداد کامل) |
-| **F-08** | ثبت نظر و امتیاز | کاربر پس از رزرو می‌تواند نظر دهد، مدیر مجموعه پاسخ دهد |
-| **F-09** | کیف پول | شارژ، برداشت، استرداد مبلغ به کیف پول |
-| **F-10** | تسویه حساب مدیر مجموعه | درخواست تسویه، تأیید ادمین، پرداخت |
-| **F-11** | پنل مدیریت | داشبورد کاربر/مدیر/ادمین با آمار و نمودار |
-| **F-12** | سیستم اعلان‌ها | اعلان‌های درون برنامه‌ای برای رزروها و تغییرات |
-| **F-13** | مدیریت علاقه‌مندی‌ها | ذخیره مجموعه‌های مورد علاقه کاربر |
-| **F-14** | تاریخچه مالی کامل | تراکنش‌ها، استردادها، جریمه‌ها |
+| **F-08** | ثبت نظر و امتیاز                | کاربر پس از رزرو می‌تواند نظر دهد، مدیر مجموعه پاسخ دهد                 |
+| **F-09** | کیف پول                                | شارژ، برداشت، استرداد مبلغ به کیف پول                                                 |
+| **F-10** | تسویه حساب مدیر مجموعه    | درخواست تسویه، تأیید ادمین، پرداخت                                                     |
+| **F-11** | پنل مدیریت                          | داشبورد کاربر/مدیر/ادمین با آمار و نمودار                                          |
+| **F-12** | سیستم اعلان‌ها                  | اعلان‌های درون برنامه‌ای برای رزروها و تغییرات                               |
+| **F-13** | مدیریت علاقه‌مندی‌ها      | ذخیره مجموعه‌های مورد علاقه کاربر                                                       |
+| **F-14** | تاریخچه مالی کامل             | تراکنش‌ها، استردادها، جریمه‌ها                                                           |
 
 ### ۲.۲. نیازمندی‌های غیرعملکردی (Non-Functional)
 
-| کد | عنوان | هدف |
-|----|-------|-----|
-| **NF-01** | امنیت | JWT با چرخش کلید، توکن رفرش چرخشی، هش رمز bcrypt، هدرهای امنیتی OWASP |
-| **NF-02** | سرعت | حافظه‌گذاری Redis، صفحه‌بندی cursor-based با O(log n) |
-| **NF-03** | مقیاس‌پذیری | اتصال pooling (asyncpg)، معماری لایه‌ای با Dependency Injection |
-| **NF-04** | قابلیت اطمینان | ۹۹/۹٪ در دسترس بودن (SLO)، P99 latency < ۵۰۰ms |
-| **NF-05** | فارسی | RTL، اعداد فارسی، گاهشماری جلالی، فونت ایران‌یکان |
-| **NF-06** | واکنش‌گرایی (Responsive) | موبایل-first، دیالوگ‌ها در موبایل به Bottom Sheet تبدیل می‌شوند |
-| **NF-07** | مانیتورینگ | Prometheus + Grafana + OpenTelemetry + Sentry |
-| **NF-08** | محدودیت نرخ | ۳/min برای ثبت‌نام، ۵/min برای ورود (Redis-backed) |
-| **NF-09** | قابلیت نگهداری | معماری Repository Pattern، جداسازی لایه‌ها، ۲۴۸ تست |
-| **NF-10** | یکپارچه‌سازی مداوم | CI/CD با GitHub Actions (Lint, Test, Build, Publish) |
+| کد            | عنوان                          | هدف                                                                                                           |
+| --------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **NF-01** | امنیت                          | JWT با چرخش کلید، توکن رفرش چرخشی، هش رمز bcrypt، هدرهای امنیتی OWASP |
+| **NF-02** | سرعت                            | حافظه‌گذاری Redis، صفحه‌بندی cursor-based با O(log n)                                     |
+| **NF-03** | مقیاس‌پذیری              | اتصال pooling (asyncpg)، معماری لایه‌ای با Dependency Injection                             |
+| **NF-04** | قابلیت اطمینان         | ۹۹/۹٪ در دسترس بودن (SLO)، P99 latency < ۵۰۰ms                                                |
+| **NF-05** | فارسی                          | RTL، اعداد فارسی، گاهشماری جلالی، فونت ایران‌یکان                        |
+| **NF-06** | واکنش‌گرایی (Responsive) | موبایل-first، دیالوگ‌ها در موبایل به Bottom Sheet تبدیل می‌شوند            |
+| **NF-07** | مانیتورینگ                | Prometheus + Grafana + OpenTelemetry + Sentry                                                                    |
+| **NF-08** | محدودیت نرخ               | ۳/min برای ثبت‌نام، ۵/min برای ورود (Redis-backed)                                         |
+| **NF-09** | قابلیت نگهداری         | معماری Repository Pattern، جداسازی لایه‌ها، ۲۴۸ تست                                  |
+| **NF-10** | یکپارچه‌سازی مداوم | CI/CD با GitHub Actions (Lint, Test, Build, Publish)                                                           |
 
 ---
 
@@ -111,18 +109,18 @@
 
 ### ۳.۲. پشته فناوری (Technology Stack)
 
-| لایه | فناوری |
-|------|--------|
-| **Frontend** | Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui (radix-nova) |
-| **Backend** | Python 3.12+ / FastAPI / SQLAlchemy 2.0 (async) / Alembic |
-| **Database** | PostgreSQL 17 + asyncpg |
-| **Cache/Session** | Redis 7 |
+| لایه                 | فناوری                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| **Frontend**       | Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui (radix-nova)    |
+| **Backend**        | Python 3.12+ / FastAPI / SQLAlchemy 2.0 (async) / Alembic                    |
+| **Database**       | PostgreSQL 17 + asyncpg                                                      |
+| **Cache/Session**  | Redis 7                                                                      |
 | **Authentication** | JWT (HS256, kid header, dual-key rotation) + bcrypt + refresh token rotation |
-| **Mapping** | Neshan Maps SDK (محدوده قم) + CartoDB fallback |
-| **Localization** | Persian (fa-IR): RTL, Jalali dates, Persian digits |
-| **Monitoring** | Prometheus + Grafana + OpenTelemetry + Sentry |
-| **Container** | Docker Compose (multi-stage builds, healthchecks) |
-| **CI/CD** | GitHub Actions (lint, test, build, publish to ghcr.io) |
+| **Mapping**        | Neshan Maps SDK (محدوده قم) + CartoDB fallback                       |
+| **Localization**   | Persian (fa-IR): RTL, Jalali dates, Persian digits                           |
+| **Monitoring**     | Prometheus + Grafana + OpenTelemetry + Sentry                                |
+| **Container**      | Docker Compose (multi-stage builds, healthchecks)                            |
+| **CI/CD**          | GitHub Actions (lint, test, build, publish to ghcr.io)                       |
 
 ### ۳.۳. میان‌افزارها (Middleware Stack)
 
@@ -148,33 +146,33 @@
 
 ### ۴.۱. موجودیت‌های اصلی (۲۴ مدل ORM)
 
-| مدل | جدول | توضیح |
-|------|-------|-------|
-| **User** | `users` | کاربران با سه نقش (user, manager, admin)، شماره تلفن یکتا |
-| **Vendor** | `vendors` | مجموعه‌های ورزشی با موقعیت مکانی و امکانات |
-| **TimeSlot** | `time_slots` | سانس‌های هر مجموعه (زمان شروع/پایان، قیمت، جنسیت، وضعیت) |
-| **Booking** | `bookings` | رزروها با وضعیت‌های مختلف، مبلغ پرداختی، وضعیت تسویه |
-| **Payment** | `payments` | تراکنش‌های پرداخت با شناسه یکتای درگاه |
-| **Review** | `reviews` | نظرات کاربران با امکان پاسخ مدیر مجموعه |
-| **Refund** | `refunds` | استرداد وجه با انواع مختلف (لغو کاربر/مدیر/جایگزینی) |
-| **Penalty** | `penalties` | جریمه‌های لغو رزرو |
-| **Wallet** | `wallets` | کیف پول کاربران با موجودی |
-| **WalletTransaction** | `wallet_transactions` | تراکنش‌های کیف پول (واریز، برداشت، استرداد) |
-| **Settlement** | `settlements` | درخواست تسویه مدیران مجموعه |
-| **SettlementItem** | `settlement_items` | آیتم‌های تسویه (ارتباط با رزروها) |
-| **Notification** | `notifications` | اعلان‌های درون برنامه‌ای |
-| **NotificationDelivery** | `notification_deliveries` | وضعیت ارسال اعلان‌ها |
-| **BankCard** | `bank_cards` | کارت بانکی کاربران (شماره رمزگذاری شده) |
-| **Favorite** | `favorites` | علاقه‌مندی‌های کاربران |
-| **RefreshToken** | `refresh_tokens` | توکن‌های رفرش با چرخش امن |
-| **VendorImage** | `vendor_images` | تصاویر مجموعه‌ها |
-| **WeeklyScheduleVersion** | `weekly_schedule_versions` | نسخه‌های برنامه هفتگی سانس‌ها |
-| **SlotCancellation** | `slot_cancellations` | لغو سانس توسط مدیر مجموعه |
-| **Replacement** | `replacement_requests` / `booking_holds` | درخواست جایگزینی رزرو |
-| **ManagerRequest** | `manager_requests` | درخواست‌های مدیریتی (ثبت نام مدیر) |
-| **Log** | `logs` | لاگ ممیزی (audit log) |
-| **Setting** | `settings` | تنظیمات سیستم |
-| **Contact** | `contact_messages` | پیام‌های تماس |
+| مدل                          | جدول                                     | توضیح                                                                                             |
+| ------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **User**                  | `users`                                    | کاربران با سه نقش (user, manager, admin)، شماره تلفن یکتا                  |
+| **Vendor**                | `vendors`                                  | مجموعه‌های ورزشی با موقعیت مکانی و امکانات                         |
+| **TimeSlot**              | `time_slots`                               | سانس‌های هر مجموعه (زمان شروع/پایان، قیمت، جنسیت، وضعیت) |
+| **Booking**               | `bookings`                                 | رزروها با وضعیت‌های مختلف، مبلغ پرداختی، وضعیت تسویه      |
+| **Payment**               | `payments`                                 | تراکنش‌های پرداخت با شناسه یکتای درگاه                                |
+| **Review**                | `reviews`                                  | نظرات کاربران با امکان پاسخ مدیر مجموعه                               |
+| **Refund**                | `refunds`                                  | استرداد وجه با انواع مختلف (لغو کاربر/مدیر/جایگزینی)         |
+| **Penalty**               | `penalties`                                | جریمه‌های لغو رزرو                                                                     |
+| **Wallet**                | `wallets`                                  | کیف پول کاربران با موجودی                                                         |
+| **WalletTransaction**     | `wallet_transactions`                      | تراکنش‌های کیف پول (واریز، برداشت، استرداد)                        |
+| **Settlement**            | `settlements`                              | درخواست تسویه مدیران مجموعه                                                    |
+| **SettlementItem**        | `settlement_items`                         | آیتم‌های تسویه (ارتباط با رزروها)                                           |
+| **Notification**          | `notifications`                            | اعلان‌های درون برنامه‌ای                                                         |
+| **NotificationDelivery**  | `notification_deliveries`                  | وضعیت ارسال اعلان‌ها                                                                 |
+| **BankCard**              | `bank_cards`                               | کارت بانکی کاربران (شماره رمزگذاری شده)                                |
+| **Favorite**              | `favorites`                                | علاقه‌مندی‌های کاربران                                                            |
+| **RefreshToken**          | `refresh_tokens`                           | توکن‌های رفرش با چرخش امن                                                         |
+| **VendorImage**           | `vendor_images`                            | تصاویر مجموعه‌ها                                                                        |
+| **WeeklyScheduleVersion** | `weekly_schedule_versions`                 | نسخه‌های برنامه هفتگی سانس‌ها                                                |
+| **SlotCancellation**      | `slot_cancellations`                       | لغو سانس توسط مدیر مجموعه                                                         |
+| **Replacement**           | `replacement_requests` / `booking_holds` | درخواست جایگزینی رزرو                                                               |
+| **ManagerRequest**        | `manager_requests`                         | درخواست‌های مدیریتی (ثبت نام مدیر)                                         |
+| **Log**                   | `logs`                                     | لاگ ممیزی (audit log)                                                                          |
+| **Setting**               | `settings`                                 | تنظیمات سیستم                                                                              |
+| **Contact**               | `contact_messages`                         | پیام‌های تماس                                                                              |
 
 ### ۴.۲. روابط کلیدی (ER)
 
@@ -220,6 +218,7 @@ Vendor (N) ─── (1) User (Manager)
 **الف. لایه مسیریابی (Routes) — `backend/app/api/v1/*.py`**
 
 ۱۸ روتر نازک (Thin Router) که هیچ منطق کسب و کاری ندارند. فقط:
+
 - دریافت درخواست HTTP
 - تزریق وابستگی‌ها (Auth Dependencies)
 - فراخوانی سرویس‌ها
@@ -229,26 +228,27 @@ Vendor (N) ─── (1) User (Manager)
 
 ۱۳ سرویس اصلی که منطق کسب و کار را پیاده‌سازی می‌کنند:
 
-| سرویس | مسئولیت |
-|--------|----------|
-| `AuthService` | ثبت‌نام، ورود رمزعبور، ورود OTP، خروج، مدیریت نشست |
-| `OTPService` | ارسال کد تأیید (شبیه‌سازی‌شده) |
-| `BookingService` | رزرو، پرداخت، لغو، محاسبه جریمه، جایگزینی |
-| `FinanceService` | استرداد وجه، ثبت کارت بانکی، درخواست تسویه، مدیریت جریمه‌ها |
-| `PaymentService` | شبیه‌سازی درگاه پرداخت (موفق، مردود، تقلب) |
-| `VendorService` | CRUD مجموعه‌ها، مدیریت تصاویر، مدیریت سانس‌ها |
-| `TimeSlotService` | تولید خودکار سانس‌ها از برنامه هفتگی |
-| `DashboardService` | آمار و گزارش‌های داشبورد (کاربر/مدیر/ادمین) |
-| `ReviewService` | ثبت و مدیریت نظرات |
-| `ReplacementService` | جایگزینی رزرو (تعویض سانس) |
-| `FavoriteService` | مدیریت علاقه‌مندی‌ها |
-| `BankCardService` | افزودن/تأیید کارت بانکی |
-| `CacheService` | حافظه‌گذاری Redis |
-| `UserService` | مدیریت کاربران (ادمین) |
+| سرویس             | مسئولیت                                                                                                 |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `AuthService`        | ثبت‌نام، ورود رمزعبور، ورود OTP، خروج، مدیریت نشست                     |
+| `OTPService`         | ارسال کد تأیید (شبیه‌سازی‌شده)                                                        |
+| `BookingService`     | رزرو، پرداخت، لغو، محاسبه جریمه، جایگزینی                                  |
+| `FinanceService`     | استرداد وجه، ثبت کارت بانکی، درخواست تسویه، مدیریت جریمه‌ها |
+| `PaymentService`     | شبیه‌سازی درگاه پرداخت (موفق، مردود، تقلب)                                  |
+| `VendorService`      | CRUD مجموعه‌ها، مدیریت تصاویر، مدیریت سانس‌ها                              |
+| `TimeSlotService`    | تولید خودکار سانس‌ها از برنامه هفتگی                                            |
+| `DashboardService`   | آمار و گزارش‌های داشبورد (کاربر/مدیر/ادمین)                                 |
+| `ReviewService`      | ثبت و مدیریت نظرات                                                                              |
+| `ReplacementService` | جایگزینی رزرو (تعویض سانس)                                                                |
+| `FavoriteService`    | مدیریت علاقه‌مندی‌ها                                                                        |
+| `BankCardService`    | افزودن/تأیید کارت بانکی                                                                    |
+| `CacheService`       | حافظه‌گذاری Redis                                                                                   |
+| `UserService`        | مدیریت کاربران (ادمین)                                                                       |
 
 **ج. لایه مخازن (Repositories) — `backend/app/repositories/*.py`**
 
 ۱۵ مخزن که CRUD ناهمگام با SQLAlchemy 2.0 را پیاده‌سازی می‌کنند:
+
 - **یک کلاس به ازای هر مدل**
 - عدم دسترسی مستقیم سرویس‌ها به نشست دیتابیس — فقط از طریق مخازن
 - استفاده از `selectinload` برای بارگذاری روابط
@@ -260,6 +260,7 @@ Vendor (N) ─── (1) User (Manager)
 **ه. لایه اعتبارسنجی (Schemas) — `backend/app/schemas/*.py`**
 
 ۲۰ مجموعه Pydantic v2 مدل برای:
+
 - درخواست‌های ورودی (Request Schemas)
 - پاسخ‌های خروجی (Response Schemas)
 - خطاها (Error Schemas)
@@ -298,12 +299,12 @@ frontend/components/
 
 ### ۶.۱. چهار سطح احراز هویت
 
-| سطح | دیپ (Dependency) | توضیح |
-|------|------------------|-------|
-| ۱ | `get_current_user_optional` | کاربر می‌تواند مهمان باشد (برای صفحات عمومی) |
-| ۲ | `get_current_user` | کاربر باید وارد شده باشد |
-| ۳ | `get_current_manager` | فقط مدیران مجموعه |
-| ۴ | `require_admin` | فقط مدیر سیستم (ادمین) |
+| سطح | دیپ (Dependency)           | توضیح                                                                       |
+| ------ | ----------------------------- | -------------------------------------------------------------------------------- |
+| ۱     | `get_current_user_optional` | کاربر می‌تواند مهمان باشد (برای صفحات عمومی) |
+| ۲     | `get_current_user`          | کاربر باید وارد شده باشد                                     |
+| ۳     | `get_current_manager`       | فقط مدیران مجموعه                                                 |
+| ۴     | `require_admin`             | فقط مدیر سیستم (ادمین)                                          |
 
 ### ۶.۲. JWT با چرخش کلید
 
@@ -581,77 +582,77 @@ External Integrations:
 
 ### ۱۰.۱. نقاط قوت
 
-| جنبه | تحلیل |
-|------|--------|
-| **جداسازی لایه‌ها** | معماری Repository Pattern باعث تست‌پذیری، نگهداری آسان و تغییرپذیری مستقل لایه‌ها می‌شود |
-| **امنیت** | احراز هویت چندلایه، چرخش کلید JWT، چرخش توکن رفرش، Token Versioning برای خروج اجباری |
-| **بین‌المللی‌سازی** | RTL کامل، اعداد فارسی، گاهشماری جلالی، فونت اختصاصی ایران‌یکان |
-| **مقیاس‌پذیری** | Cursor-based pagination، حافظه‌گذاری Redis، connection pooling |
-| **زیرساخت** | CI کامل، Docker چندمرحله‌ای، مانیتورینگ جامع (Prometheus + Grafana + OTEL) |
-| **پوشش تست** | ۲۴۸ تست backend + تست‌های frontend با Vitest |
-| **مدیریت هم‌روندی** | Lock خوش‌بینانه در سانس‌ها، unique constraint شرطی روی رزروهای فعال |
-| **شفافیت مالی** | ثبت کامل تمام تراکنش‌ها، استردادها، جریمه‌ها و تسویه‌ها با audit log |
+| جنبه                                 | تحلیل                                                                                                                                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **جداسازی لایه‌ها**  | معماری Repository Pattern باعث تست‌پذیری، نگهداری آسان و تغییرپذیری مستقل لایه‌ها می‌شود |
+| **امنیت**                     | احراز هویت چندلایه، چرخش کلید JWT، چرخش توکن رفرش، Token Versioning برای خروج اجباری            |
+| **بین‌المللی‌سازی** | RTL کامل، اعداد فارسی، گاهشماری جلالی، فونت اختصاصی ایران‌یکان                                    |
+| **مقیاس‌پذیری**         | Cursor-based pagination، حافظه‌گذاری Redis، connection pooling                                                                          |
+| **زیرساخت**                 | CI کامل، Docker چندمرحله‌ای، مانیتورینگ جامع (Prometheus + Grafana + OTEL)                                            |
+| **پوشش تست**                | ۲۴۸ تست backend + تست‌های frontend با Vitest                                                                                          |
+| **مدیریت هم‌روندی**  | Lock خوش‌بینانه در سانس‌ها، unique constraint شرطی روی رزروهای فعال                                            |
+| **شفافیت مالی**          | ثبت کامل تمام تراکنش‌ها، استردادها، جریمه‌ها و تسویه‌ها با audit log                               |
 
 ### ۱۰.۲. نقاط ضعف و فرصت‌های بهبود
 
-| مورد | وضعیت فعلی | پیشنهاد |
-|------|------------|---------|
-| **درگاه پرداخت واقعی** | شبیه‌سازی (mock) | اتصال به درگاه بانکی (زرین‌پال، به‌پرداخت) |
-| **ارسال SMS واقعی** | شبیه‌سازی (چاپ در کنسول) | اتصال به Kavenegar یا پیامک‌وب |
-| **SSL/TLS** | نظر (commented) در compose.prod.yml | فعال‌سازی Caddy یا Nginx |
-| **مدیریت خطا** | HTTPException با پیام فارسی در هر سرویس | الگوی Error Handling متمرکز با Error Codes |
-| **لاگ ممیزی** | `log_action` عمومی | جدول اختصاصی برای رخدادهای مالی |
-| **One-Time Password** | ذخیره placeholder `OTP_PLACEHOLDER_HASH` | تکمیل کامل اعتبارسنجی OTP |
-| **وضعیت PWA** | Service Worker + Manifest | فعال‌سازی کامل Offline Support |
-| **آزمون بار** | ندارد | تست Load با Locust یا k6 |
-| **Cache Invalidation** | اساسی | استراتژی جامع‌تر Tag-based Cache Invalidation |
+| مورد                                     | وضعیت فعلی                                         | پیشنهاد                                                                |
+| -------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **درگاه پرداخت واقعی** | شبیه‌سازی (mock)                                   | اتصال به درگاه بانکی (زرین‌پال، به‌پرداخت) |
+| **ارسال SMS واقعی**          | شبیه‌سازی (چاپ در کنسول)                 | اتصال به Kavenegar یا پیامک‌وب                               |
+| **SSL/TLS**                            | نظر (commented) در compose.prod.yml                    | فعال‌سازی Caddy یا Nginx                                           |
+| **مدیریت خطا**                | HTTPException با پیام فارسی در هر سرویس | الگوی Error Handling متمرکز با Error Codes                       |
+| **لاگ ممیزی**                  | `log_action` عمومی                                   | جدول اختصاصی برای رخدادهای مالی                    |
+| **One-Time Password**                  | ذخیره placeholder`OTP_PLACEHOLDER_HASH`              | تکمیل کامل اعتبارسنجی OTP                                  |
+| **وضعیت PWA**                     | Service Worker + Manifest                                   | فعال‌سازی کامل Offline Support                                   |
+| **آزمون بار**                  | ندارد                                                  | تست Load با Locust یا k6                                               |
+| **Cache Invalidation**                 | اساسی                                                  | استراتژی جامع‌تر Tag-based Cache Invalidation                  |
 
 ### ۱۰.۳. انطباق با اصول SOLID
 
-| اصل | وضعیت | شواهد |
-|-----|--------|--------|
-| **S** — Single Responsibility | ✅ | هر سرویس یک مسئولیت مشخص دارد (Booking, Finance, Auth, ...) |
-| **O** — Open/Closed | ✅ | مخازن و سرویس‌ها برای توسعه باز، برای تغییر بسته |
-| **L** — Liskov Substitution | ✅ | Dependency Injection با Interfaceهای ضمنی (Protocol-based) |
-| **I** — Interface Segregation | ✅ | دیپ‌های احراز هویت مجزا (۴ سطح) |
-| **D** — Dependency Injection | ✅ | تزریق وابستگی در سازنده سرویس‌ها و روترها |
+| اصل                               | وضعیت | شواهد                                                                               |
+| ------------------------------------ | ---------- | ---------------------------------------------------------------------------------------- |
+| **S** — Single Responsibility | ✅         | هر سرویس یک مسئولیت مشخص دارد (Booking, Finance, Auth, ...)      |
+| **O** — Open/Closed           | ✅         | مخازن و سرویس‌ها برای توسعه باز، برای تغییر بسته |
+| **L** — Liskov Substitution   | ✅         | Dependency Injection با Interfaceهای ضمنی (Protocol-based)                      |
+| **I** — Interface Segregation | ✅         | دیپ‌های احراز هویت مجزا (۴ سطح)                                  |
+| **D** — Dependency Injection  | ✅         | تزریق وابستگی در سازنده سرویس‌ها و روترها             |
 
 ### ۱۰.۴. انطباق با الگوهای معماری
 
-| الگو | سطح | توضیح |
-|------|--------|-------|
-| **Repository Pattern** | ✅ کامل | جدا کردن کامل دسترسی به داده از منطق کسب و کار |
-| **Service Layer** | ✅ کامل | منطق کسب و کار در سرویس‌ها، نه در روترها |
-| **Dependency Injection** | ✅ کامل | استفاده از FastAPI Depends برای تزریق |
-| **DTO (Data Transfer Object)** | ✅ کامل | Pydantic schemas برای اعتبارسنجی و تبدیل |
-| **Unit of Work** | ✅ نسبی | مدیریت session در `get_db()` با commit/rollback خودکار |
-| **Strategy** | ✅ نسبی | PaymentService/SMSProvider با حالت mock |
-| **Observer** | ✅ نسبی | NotificationService برای اعلان‌ها |
-| **Singleton** | ✅ کامل | Redis client, Settings |
+| الگو                             | سطح      | توضیح                                                                         |
+| ------------------------------------ | ----------- | ---------------------------------------------------------------------------------- |
+| **Repository Pattern**         | ✅ کامل | جدا کردن کامل دسترسی به داده از منطق کسب و کار |
+| **Service Layer**              | ✅ کامل | منطق کسب و کار در سرویس‌ها، نه در روترها           |
+| **Dependency Injection**       | ✅ کامل | استفاده از FastAPI Depends برای تزریق                            |
+| **DTO (Data Transfer Object)** | ✅ کامل | Pydantic schemas برای اعتبارسنجی و تبدیل                       |
+| **Unit of Work**               | ✅ نسبی | مدیریت session در`get_db()` با commit/rollback خودکار            |
+| **Strategy**                   | ✅ نسبی | PaymentService/SMSProvider با حالت mock                                      |
+| **Observer**                   | ✅ نسبی | NotificationService برای اعلان‌ها                                      |
+| **Singleton**                  | ✅ کامل | Redis client, Settings                                                             |
 
 ---
 
 ## پیوست: پیمایش سریع پروژه
 
-| مسیر | محتوا |
-|------|--------|
-| `backend/app/` | کد اصلی backend |
-| `backend/app/core/config.py` | تنظیمات و validation |
-| `backend/app/core/database.py` | اتصال دیتابیس، engine، session |
-| `backend/app/core/security.py` | JWT, bcrypt, hashing |
-| `backend/app/models/*.py` | ۲۴ مدل ORM |
-| `backend/app/services/*.py` | ۱۷ سرویس |
-| `backend/app/repositories/*.py` | ۱۵ مخزن |
-| `backend/app/api/v1/*.py` | ۱۸ روتر |
-| `backend/app/schemas/*.py` | ۲۰ مجموعه Pydantic |
-| `backend/migrations/versions/` | ۳۰ فایل مهاجرت Alembic |
-| `backend/tests/` | ۲۴۸ تست pytest |
-| `frontend/app/` | صفحات Next.js App Router |
-| `frontend/components/` | کامپوننت‌های React |
-| `frontend/lib/` | API client, utilities, i18n |
-| `docs/` | مستندات و نمودارها |
-| `compose.yml` | Docker compose توسعه |
-| `Makefile` | دستورات گردش کار توسعه |
+| مسیر                          | محتوا                                   |
+| --------------------------------- | -------------------------------------------- |
+| `backend/app/`                  | کد اصلی backend                        |
+| `backend/app/core/config.py`    | تنظیمات و validation                 |
+| `backend/app/core/database.py`  | اتصال دیتابیس، engine، session |
+| `backend/app/core/security.py`  | JWT, bcrypt, hashing                         |
+| `backend/app/models/*.py`       | ۲۴ مدل ORM                              |
+| `backend/app/services/*.py`     | ۱۷ سرویس                              |
+| `backend/app/repositories/*.py` | ۱۵ مخزن                                |
+| `backend/app/api/v1/*.py`       | ۱۸ روتر                                |
+| `backend/app/schemas/*.py`      | ۲۰ مجموعه Pydantic                   |
+| `backend/migrations/versions/`  | ۳۰ فایل مهاجرت Alembic           |
+| `backend/tests/`                | ۲۴۸ تست pytest                         |
+| `frontend/app/`                 | صفحات Next.js App Router                |
+| `frontend/components/`          | کامپوننت‌های React               |
+| `frontend/lib/`                 | API client, utilities, i18n                  |
+| `docs/`                         | مستندات و نمودارها           |
+| `compose.yml`                   | Docker compose توسعه                    |
+| `Makefile`                      | دستورات گردش کار توسعه    |
 
 ---
 

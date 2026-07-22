@@ -1,9 +1,13 @@
 "use client"
 
-import { Toaster } from "sonner"
+import dynamic from "next/dynamic"
 import { DirectionProvider } from "@/components/ui/direction"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ErrorProvider } from "@/lib/error-context"
+
+const Toaster = dynamic(() => import("sonner").then((m) => m.Toaster), {
+  ssr: false,
+})
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

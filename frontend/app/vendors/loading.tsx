@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="h-16 animate-pulse border-b bg-muted/20" />
-      <main className="relative flex-1 pt-16">
+      <main id="main-content" className="relative flex-1 pt-16">
         <section className="px-4 py-12 md:py-24">
           <div className="mx-auto max-w-7xl px-4">
             <div className="mb-10 text-center">

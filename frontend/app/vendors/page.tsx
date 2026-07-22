@@ -250,27 +250,27 @@ function VendorsPageContent() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
 
-      <main className="relative flex-1 pt-16">
+      <main id="main-content" className="relative flex-1 pt-16">
         {/* Search & Filters */}
-        <section className="relative overflow-hidden px-4 py-12 md:py-24">
+        <section className="relative overflow-hidden px-4 py-6 md:py-8">
           <div className="relative z-10 mx-auto max-w-7xl px-4">
-            <div className="mb-10 text-center">
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
                 جستجوی <span className="text-primary">سالن‌ها</span>
               </h2>
-              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+              <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground max-sm:hidden">
                 مجموعه ورزشی مورد نظر خود را پیدا کنید
               </p>
             </div>
 
             <div
-              className={`rounded-xl border bg-card p-4 md:p-6 ${
+              className={`rounded-xl border bg-card p-3 md:p-4 ${
                 hasActiveFilters ? "" : ""
               }`}
             >
               {/* Row 1: Search + Sort + Near Me */}
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="min-w-0 flex-1 max-sm:basis-full">
                   <div className="relative">
                     <Search className="absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -285,7 +285,7 @@ function VendorsPageContent() {
                   </div>
                 </div>
 
-                <div>
+                <div className="flex items-center gap-2">
                   <Select
                     value={sortBy}
                     onValueChange={(v) => {
@@ -293,7 +293,7 @@ function VendorsPageContent() {
                       setPage(0)
                     }}
                   >
-                    <SelectTrigger className="w-35">
+                    <SelectTrigger className="w-32 sm:w-35">
                       <SelectValue placeholder="مرتب‌سازی" />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,7 +316,7 @@ function VendorsPageContent() {
                 <Button
                   variant={userLocation ? "default" : "outline"}
                   size="sm"
-                  className="gap-1.5"
+                  className="gap-1.5 max-sm:px-2"
                   onClick={() => {
                     setLocating(true)
                     setSortBy("distance")
@@ -329,22 +329,24 @@ function VendorsPageContent() {
                   <Navigation
                     className={`size-4 ${locating ? "animate-spin" : ""}`}
                   />
-                  {userLocation ? "نزدیک به من" : "موقعیت من"}
+                  <span className="max-sm:hidden">
+                    {userLocation ? "نزدیک به من" : "موقعیت من"}
+                  </span>
                 </Button>
 
                 <Button
                   variant={showMap ? "default" : "outline"}
                   size="sm"
-                  className="gap-1.5"
+                  className="max-sm:px-2"
                   onClick={() => setShowMap((v) => !v)}
                 >
                   <Map className="size-4" />
-                  {showMap ? "مخفی کردن نقشه" : "نمایش نقشه"}
+                  <span>{showMap ? "مخفی کردن نقشه" : "نمایش نقشه"}</span>
                 </Button>
               </div>
 
               {/* Row 2: Sport type pills */}
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2 max-sm:mt-2 max-sm:flex-nowrap max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:pb-1">
                 {(
                   [
                     "all",
@@ -372,7 +374,7 @@ function VendorsPageContent() {
                       }
                       setPage(0)
                     }}
-                    className={`rounded-full px-4 ${
+                    className={`rounded-full px-4 max-sm:shrink-0 ${
                       type === "all"
                         ? selectedSports.length === 0
                           ? "bg-primary text-primary-foreground"
@@ -389,7 +391,7 @@ function VendorsPageContent() {
 
               {/* ── Collapsible map panel ── */}
               {showMap && (
-                <div className="mt-4 overflow-hidden rounded-xl border">
+                <div className="mt-2 overflow-hidden rounded-xl border">
                   <VendorsMap
                     vendors={mapVendors}
                     height="400px"
@@ -400,7 +402,7 @@ function VendorsPageContent() {
 
               {/* Geo status — moved from old map section */}
               {(geo.loading || geo.error) && (
-                <div className="mt-3">
+                <div className="mt-2 max-sm:mt-1.5">
                   {geo.loading && (
                     <div className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
                       <div className="size-2 animate-pulse rounded-full bg-blue-500" />
@@ -428,9 +430,9 @@ function VendorsPageContent() {
 
               {/* Filter chips */}
               {hasActiveFilters && (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-3">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
                   {searchText && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs">
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs">
                       <Search className="size-3" />
                       {searchText}
                       <Button
@@ -447,19 +449,18 @@ function VendorsPageContent() {
                   {selectedSports.map((st) => (
                     <span
                       key={st}
-                      className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs"
+                      className="inline-flex items-center gap-1 rounded-full border bg-muted/50 pr-4 text-xs"
                     >
                       {sportLabels[st] || st}
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-xs"
                         onClick={() =>
                           setSelectedSports((prev) =>
                             prev.filter((t) => t !== st)
                           )
                         }
-                        className="text-muted-foreground hover:text-foreground"
+                        className="rounded-full text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
                       </Button>
@@ -467,7 +468,6 @@ function VendorsPageContent() {
                   ))}
 
                   {/* Clear all */}
-                  <span className="mx-0.5 h-4 w-px bg-border" />
                   <Button
                     variant="destructive"
                     size="sm"
@@ -482,9 +482,9 @@ function VendorsPageContent() {
             </div>
 
             {/* ── Results grid ── */}
-            <div className="mt-6">
+            <div className="mt-4">
               {/* Results count */}
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   {toPersianDigits(total)} مجموعه پیدا شد
                   {hasActiveFilters && (
@@ -557,7 +557,7 @@ function VendorsPageContent() {
                               </div>
 
                               {/* Name */}
-                              <CardTitle className="mt-1.5 text-base leading-snug transition-colors duration-150 group-hover:text-primary">
+                              <CardTitle className="mt-1.5 text-base leading-snug font-semibold transition-colors duration-150 group-hover:text-primary">
                                 {vendor.name}
                               </CardTitle>
 

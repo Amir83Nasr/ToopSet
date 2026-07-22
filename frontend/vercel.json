@@ -1,0 +1,12 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "regions": ["cdg1"],
+  "devCommand": "pnpm dev",
+  "github": {
+    "silent": true,
+    "autoAlias": true
+  }
+}
