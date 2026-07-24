@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -7,6 +8,14 @@
   font-family: "IranYekanX";
   src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.woff2") format("woff2");
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IranYekanX";
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.woff2") format("woff2");
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
@@ -234,19 +243,10 @@
       background-color 0.3s ease,
       color 0.3s ease;
   }
-  @media (hover: hover) {
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.025;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-repeat: repeat;
-      background-size: 300px 300px;
-    }
-  }
+  /* Noise texture lives on #toopset-root so it scrolls with content and
+     stays out of the fixed header's backdrop-filter sampling chain.
+     body::before at z-index: -1 still composited above body's bg-layer
+     and caused a dark artifact through backdrop-filter: blur(24px). */
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
@@ -328,6 +328,20 @@
 
 .pt-safe {
   padding-top: env(safe-area-inset-top);
+}
+/* Header safe-area top guard: backdrop-filter in the notch/sensor-housing
+   area on devices with viewport-fit=cover can produce a blurry halo artifact
+   on real hardware (iOS Safari, Android Chrome). A ::before pseudo-element
+   with solid background intercepts the compositing at the very top edge,
+   while the rest of the header keeps its glassmorphism. */
+.header-safe-top::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  height: env(safe-area-inset-top, 0px);
+  background-color: var(--color-background);
+  pointer-events: none;
+  z-index: -1;
 }
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
@@ -468,11 +482,24 @@
   --grid-line: rgba(255, 255, 255, 0.05);
 }
 
-/* ── Grid background (reusable utility + default targets) ── */
+/* ── Grid background (single source: scroll container) ── */
+/* The grid lives on #toopset-root so it scrolls with content. The
+   .bg-grid-pattern utility exists for sections outside #toopset-root
+   (e.g. dashboard sidebar). */
 
 .bg-grid-pattern,
-body,
 [data-slot="sidebar-inset"] {
+  background-color: var(--color-background);
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+#toopset-root {
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
   background-color: var(--color-background);
   background-image:
     linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
@@ -483,6 +510,7 @@ body,
 body {
   overflow: hidden;
   height: 100dvh;
+  background-color: var(--color-background);
 }
 
 /* react-remove-scroll-bar injects margin-right: <gap>px on body[data-scroll-locked],
@@ -492,15 +520,6 @@ body {
 html body[data-scroll-locked] {
   margin-right: 0 !important;
   margin-inline-end: var(--removed-body-scroll-bar-size, 0px) !important;
-}
-
-/* Scroll container — #toopset-root handles all scrolling so html/body stay
-   fixed and only content scrolls. Dashboard layouts opt out with overflow-hidden
-   on their own wrapper. */
-#toopset-root {
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 /* ── Leaflet popup theming ── */

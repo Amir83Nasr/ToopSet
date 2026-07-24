@@ -7,7 +7,7 @@ import L, {
   DEFAULT_ZOOM,
   createDefaultPinIcon,
 } from "@/lib/neshan-map"
-import "@neshan-maps-platform/leaflet/dist/leaflet.css"
+import "leaflet/dist/leaflet.css"
 
 interface VendorLocationMapProps {
   latitude: number

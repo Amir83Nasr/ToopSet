@@ -43,21 +43,6 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <head>
-        {/* Preload body font (Regular = FCP text) + LCP font (ExtraBold = hero heading) */}
-        <link
-          rel="preload"
-          href="/fonts/iran-yekan-x/IRANYekanX-Regular.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/iran-yekan-x/IRANYekanX-ExtraBold.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
         <link rel="preconnect" href={API_BASE} crossOrigin="anonymous" />
       </head>
       <body>

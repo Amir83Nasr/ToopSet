@@ -1,20 +1,20 @@
 /**
  * Neshan map SDK integration utilities.
  *
- * Provides a shared L namespace from the Neshan SDK and a helper to create
- * a map configured with the project's API key and preferred map type.
+ * Provides a shared L namespace from the standard leaflet SDK and a helper to create
+ * a map configured with the project's API key and preferred map type using Neshan tiles.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import L from "@neshan-maps-platform/leaflet"
+import L from "leaflet"
 
 export default L
 
 /* ── Config ── */
 
 const API_KEY = process.env.NEXT_PUBLIC_NESHAN_API_KEY
-const MAP_TYPE = "standard-day"
+// const MAP_TYPE = "standard-day"
 
 /** Qom bounds — restrict panning */
 export const QOM_BOUNDS = [
@@ -28,71 +28,9 @@ export const CLOSE_ZOOM = 15
 
 /* ── Helpers ── */
 
-/** Strip Neshan watermark + leaflet attribution — uses MutationObserver to catch async injection. */
-function removeNeshanWatermark(el: HTMLElement, _map: any) {
-  function strip() {
-    // Remove Neshan-branded links anywhere in the map container
-    el.querySelectorAll(
-      'a[href*="neshan"], a[href*="nsh"], a[href*="Neshan"]'
-    ).forEach((a) => a.remove())
-    // Remove Neshan-branded images
-    el.querySelectorAll(
-      'img[src*="neshan"], img[src*="nsh"], img[src*="Neshan"]'
-    ).forEach((img) => img.remove())
-    // Remove attribution flag icon (OSM / Neshan)
-    el.querySelectorAll(".leaflet-attribution-flag").forEach((flag) =>
-      flag.remove()
-    )
-    // Remove any attribution or watermark node
-    el.querySelectorAll(
-      ".leaflet-control-attribution, .leaflet-bottom a, .leaflet-bottom"
-    ).forEach((node) => {
-      if (node instanceof HTMLElement) {
-        node.remove()
-      }
-    })
-    // Text-based sweep: the Neshan SDK injects the credit as a plain DOM
-    // string ("&copy; OpenStreetMap contributors") that the class-based rules
-    // above can miss. Scan every small text node inside the map container and
-    // remove any that mention OSM / OpenStreetMap / CARTO / contributors.
-    // Nodes that contain map imagery or panes are skipped so we never nuke the
-    // map itself.
-    const CREDIT_RE = /openstreetmap|contributors|carto|\bosm\b/i
-    el.querySelectorAll("a, span, div").forEach((node) => {
-      if (!(node instanceof HTMLElement)) return
-      if (node.querySelector("img, canvas, .leaflet-tile, .leaflet-pane"))
-        return
-      const text = node.textContent || ""
-      if (text.length <= 80 && CREDIT_RE.test(text)) {
-        node.remove()
-      }
-    })
-  }
-
-  strip()
-
-  // Watch for async injections (watermark loads long after map init)
-  const observer = new MutationObserver(() => strip())
-  observer.observe(el, { childList: true, subtree: true })
-
-  // Cleanup observer when map is destroyed
-  _map.once("unload", () => observer.disconnect())
-
-  // Extra safety: keep polling for a few seconds in case the observer misses something
-  let attempts = 0
-  const interval = setInterval(() => {
-    strip()
-    attempts++
-    if (attempts > 20) clearInterval(interval) // ~10 seconds
-  }, 500)
-  _map.once("unload", () => clearInterval(interval))
-}
-
 /** Create a Neshan map on the given DOM element. */
 export function createNeshanMap(el: HTMLElement, extra?: any): any {
   const map = new L.Map(el, {
-    key: API_KEY,
-    maptype: MAP_TYPE,
     center: QOM_CENTER,
     zoom: DEFAULT_ZOOM,
     maxBounds: QOM_BOUNDS,
@@ -103,7 +41,15 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
     ...extra,
   })
 
-  removeNeshanWatermark(el, map)
+  // Neshan raster tile layer
+  const neshanTiles = L.tileLayer(
+    `https://api.neshan.org/v2/raster?key=${API_KEY}&x={x}&y={y}&z={z}`,
+    {
+      minZoom: 10,
+      maxZoom: 18,
+      attribution: "",
+    }
+  ).addTo(map)
 
   // Neshan tiles may return 204 (no content) if the API key is invalid or
   // expired. Monitor for tile failures and fall back to a styled tile layer.
@@ -111,6 +57,7 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
   let checkCount = 0
   const TILE_CHECK_INTERVAL = 200
   const TILE_MAX_CHECKS = 5
+
   const checkInterval = setInterval(() => {
     checkCount++
     const tiles = el.querySelectorAll("img.leaflet-tile")
@@ -127,6 +74,7 @@ export function createNeshanMap(el: HTMLElement, extra?: any): any {
       clearInterval(checkInterval)
       if (!fallbackAdded) {
         fallbackAdded = true
+        map.removeLayer(neshanTiles)
         L.tileLayer(
           "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
           {

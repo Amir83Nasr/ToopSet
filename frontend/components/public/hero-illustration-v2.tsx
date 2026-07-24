@@ -1,15 +1,9 @@
 export function HeroAnimatedIllustration() {
   return (
-    <div
-      className="dark:invert"
-      style={{
-        opacity: 0,
-        animation: "fade-in-up 0.6s ease-out 0.2s forwards",
-      }}
-    >
+    <div className="dark:invert">
       <svg
         viewBox="0 0 664.06 649.67"
-        className="ml-6 h-auto w-full max-w-xs md:max-w-sm lg:max-w-md"
+        className="mx-auto h-auto w-full max-w-xs md:max-w-sm lg:mr-auto lg:max-w-md"
         aria-hidden="true"
       >
         {/* ── Background bodies (faint pulse) ── */}

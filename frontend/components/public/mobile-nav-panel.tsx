@@ -6,13 +6,13 @@ import Image from "next/image"
 import type { User } from "@/types/auth"
 import { Button } from "@/components/ui/button"
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 import {
   ResponsiveAlertDialog,
   ResponsiveAlertDialogAction,
@@ -112,8 +112,8 @@ export function MobileNavPanel({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetTrigger asChild>
+      <Drawer open={open} onOpenChange={onOpenChange} direction="right">
+        <DrawerTrigger asChild>
           <Button variant="ghost" size="icon" className="max-sm:size-11">
             <span className="sr-only">منو</span>
             <svg
@@ -130,10 +130,10 @@ export function MobileNavPanel({
               />
             </svg>
           </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="flex w-76 flex-col gap-0 p-0">
-          <SheetHeader className="border-b p-4">
-            <SheetTitle className="flex items-center gap-2 text-lg font-bold">
+        </DrawerTrigger>
+        <DrawerContent className="flex w-76 flex-col gap-0 p-0 sm:max-w-76">
+          <DrawerHeader className="flex h-16 justify-center border-b p-4">
+            <DrawerTitle className="flex items-center gap-2 text-lg font-bold">
               <span className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
                 <Image
                   src="/icons/logo-180.webp"
@@ -144,8 +144,8 @@ export function MobileNavPanel({
                 />
               </span>
               توپ‌سِت
-            </SheetTitle>
-          </SheetHeader>
+            </DrawerTitle>
+          </DrawerHeader>
 
           <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
             {isAuthenticated && user && (
@@ -238,14 +238,11 @@ export function MobileNavPanel({
                 )}
           </div>
 
-          <SheetFooter className="border-t p-4">
+          <DrawerFooter className="mt-auto border-t p-4">
             {isAuthenticated && user ? (
               <Button
                 variant="destructive"
-                onClick={() => {
-                  closeMobile()
-                  setLogoutDialogOpen(true)
-                }}
+                onClick={() => setLogoutDialogOpen(true)}
                 className="w-full"
               >
                 <LogOut className="me-2 size-4" />
@@ -256,9 +253,9 @@ export function MobileNavPanel({
                 <Button className="w-full">ورود / ثبت‌نام</Button>
               </Link>
             )}
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       <ResponsiveAlertDialog
         open={logoutDialogOpen}
@@ -280,6 +277,7 @@ export function MobileNavPanel({
               onClick={() => {
                 onLogout()
                 setLogoutDialogOpen(false)
+                closeMobile()
               }}
             >
               خروج

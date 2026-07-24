@@ -9,7 +9,7 @@ import L, {
   QOM_CENTER,
   createDefaultPinIcon,
 } from "@/lib/neshan-map"
-import "@neshan-maps-platform/leaflet/dist/leaflet.css"
+import "leaflet/dist/leaflet.css"
 import { Loader2, MapPin, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 

@@ -149,8 +149,6 @@ export function OtpForm({
     }
   }, [step, phone, verifyForm])
 
-  const codeValue = verifyForm.watch("code")
-
   async function onVerifyOtp(data: VerifyOtpInput) {
     setVerifying(true)
     setOtpError("")
@@ -206,7 +204,10 @@ export function OtpForm({
         {/* ── Step 1: Phone input ─────────────────────────────────── */}
         {step === "phone" && (
           <form
-            onSubmit={phoneForm.handleSubmit(onSendOtp)}
+            onSubmit={(e) => {
+              e.preventDefault()
+              phoneForm.handleSubmit(onSendOtp)(e)
+            }}
             className="flex flex-col gap-6"
           >
             <Field>
@@ -350,18 +351,24 @@ export function OtpForm({
             </Field>
 
             <Field>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={verifying || (codeValue?.length ?? 0) < 6}
-              >
-                {verifying ? <Spinner data-icon="inline-start" /> : null}
-                {verifying
-                  ? "در حال تأیید..."
-                  : purpose === "password_reset"
-                    ? "تأیید و ادامه"
-                    : "تأیید و ورود"}
-              </Button>
+              <Controller
+                name="code"
+                control={verifyForm.control}
+                render={({ field: { value } }) => (
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={verifying || (value?.length ?? 0) < 6}
+                  >
+                    {verifying ? <Spinner data-icon="inline-start" /> : null}
+                    {verifying
+                      ? "در حال تأیید..."
+                      : purpose === "password_reset"
+                        ? "تأیید و ادامه"
+                        : "تأیید و ورود"}
+                  </Button>
+                )}
+              />
             </Field>
 
             <div className="flex items-center justify-between">

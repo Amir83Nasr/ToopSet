@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Building2, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import dynamic from "next/dynamic"
 import { useAuth } from "@/hooks/use-auth"
+import { useState } from "react"
+import dynamic from "next/dynamic"
 
-const DynamicHeroIllustration = dynamic(
+const HeroAnimatedIllustration = dynamic(
   () =>
     import("@/components/public/hero-illustration-v2").then((m) => ({
       default: m.HeroAnimatedIllustration,
@@ -45,7 +45,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative overflow-hidden py-12 md:py-24">
+    <section className="relative overflow-hidden py-6 md:py-12">
       <div className="relative z-10 mx-auto max-w-7xl px-4 text-right">
         {/* Split layout */}
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
@@ -97,9 +97,9 @@ export function HeroSection() {
           </div>
 
           {/* Left side illustration */}
-          <div className="me-0 hidden justify-self-end lg:block">
-            <div className="scale-125">
-              <DynamicHeroIllustration />
+          <div className="hidden w-full lg:flex lg:justify-end">
+            <div className="scale-110 lg:origin-left lg:scale-[1.35]">
+              <HeroAnimatedIllustration />
             </div>
           </div>
         </div>

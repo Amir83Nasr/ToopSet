@@ -59,7 +59,6 @@ export function LoginForm({
     mode: "onChange",
     defaultValues: { phone: initialPhone, password: "" },
   })
-  const phoneValue = phoneForm.watch("phone")
 
   useEffect(() => {
     passwordForm.setValue("phone", phone)
@@ -160,18 +159,24 @@ export function LoginForm({
             </Field>
 
             <Field>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={
-                  checking ||
-                  !phoneForm.formState.isValid ||
-                  (phoneValue?.length ?? 0) !== 11
-                }
-              >
-                {checking ? <Spinner data-icon="inline-start" /> : null}
-                {checking ? "در حال بررسی..." : "ادامه"}
-              </Button>
+              <Controller
+                name="phone"
+                control={phoneForm.control}
+                render={({ field: { value } }) => (
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      checking ||
+                      !phoneForm.formState.isValid ||
+                      (value?.length ?? 0) !== 11
+                    }
+                  >
+                    {checking ? <Spinner data-icon="inline-start" /> : null}
+                    {checking ? "در حال بررسی..." : "ادامه"}
+                  </Button>
+                )}
+              />
             </Field>
           </form>
         ) : (

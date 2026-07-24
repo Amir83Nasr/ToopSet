@@ -87,7 +87,7 @@ async function withPwa(config) {
   return config
 }
 
-export default async function () {
+export default async function nextConfigFunction() {
   let config = nextConfig
   config = analyzer(config)
   if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
