@@ -13,12 +13,14 @@ output:
   - execution
 
 pre-commit:
-  parallel: true
+  # Several fixers use stage_fixed (git add) and may touch the same files.
+  # Keep them serial to avoid races while updating the working tree and index.
+  parallel: false
   commands:
     # ── General hygiene ────────────────────────────────────────────────────────
     trailing-whitespace:
       glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
-      run: for f in {staged_files}; do sed -i '' 's/[[:space:]]*$//' "$f"; done
+      run: for f in {staged_files}; do sed -i.bak 's/[[:space:]]*$//' "$f" && rm -f "$f.bak"; done
       stage_fixed: true
 
     eof-newline:
@@ -32,7 +34,7 @@ pre-commit:
     merge-conflict:
       glob: "*"
       run: |
-        conflicts=$(grep -lP '^<<<<<<< |^=======$|^>>>>>>> ' {staged_files} 2>/dev/null || true)
+        conflicts=$(grep -El '^<<<<<<< |^=======$|^>>>>>>> ' {staged_files} 2>/dev/null || true)
         if [ -n "$conflicts" ]; then
           echo "✗ Merge conflict markers in: $conflicts"
           exit 1
@@ -41,7 +43,7 @@ pre-commit:
     detect-private-key:
       glob: "*"
       run: |
-        keys=$(grep -lP 'BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY' {staged_files} 2>/dev/null || true)
+        keys=$(grep -El 'BEGIN[[:space:]]+(RSA|DSA|EC|OPENSSH)[[:space:]]+PRIVATE[[:space:]]+KEY' {staged_files} 2>/dev/null || true)
         if [ -n "$keys" ]; then
           echo "✗ Private key detected in: $keys"
           exit 1
@@ -51,7 +53,7 @@ pre-commit:
       glob: "*"
       run: |
         for f in {staged_files}; do
-          grep -lP '\r\n' "$f" 2>/dev/null && sed -i '' 's/\r$//' "$f" || true
+          grep -l "$(printf '\r')" "$f" 2>/dev/null && sed -i.bak 's/\r$//' "$f" && rm -f "$f.bak" || true
         done
       stage_fixed: true
 
