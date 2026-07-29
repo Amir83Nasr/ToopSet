@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { EnamadTrustSeal } from "@/components/public/enamad-trust-seal"
 import { FooterContact } from "@/components/public/footer-contact"
 import { FooterScrollButton } from "@/components/public/footer-scroll-button"
 
@@ -85,7 +86,10 @@ export function SiteFooter() {
           <p className="text-xs text-muted-foreground">
             تمامی حقوق مادی و معنوی این وبسایت متعلق به توپ‌سِت می‌باشد.
           </p>
-          <FooterScrollButton />
+          <div className="flex items-center gap-3">
+            <EnamadTrustSeal />
+            <FooterScrollButton />
+          </div>
         </div>
       </div>
     </footer>
