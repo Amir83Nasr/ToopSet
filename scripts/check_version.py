@@ -55,7 +55,11 @@ def read_version(file: str) -> str:
 
 def _resolve_attr(base: Path, attr_path: list[str]) -> str:
     """Resolve a dotted attribute like 'app.__version__' from a base directory."""
-    if len(attr_path) == 2 and attr_path[1].startswith("__") and attr_path[1].endswith("__"):
+    if (
+        len(attr_path) == 2
+        and attr_path[1].startswith("__")
+        and attr_path[1].endswith("__")
+    ):
         # Standard pattern: module.__version__
         module_file = base / attr_path[0] / "__init__.py"
         if module_file.exists():
