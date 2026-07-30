@@ -59,6 +59,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 # Skips migration run when AUTO_MIGRATE=false (env var).
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
-# Graceful shutdown: uvicorn traps SIGTERM, drains in-flight requests
-# $PORT is injected by Railway at runtime (defaults to 8000 for local Docker).
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-graceful-shutdown 30
+# Graceful shutdown: the shell expands $PORT, then exec hands PID 1 to uvicorn
+# so SIGTERM is delivered directly (Railway injects PORT at runtime).
+CMD ["/bin/sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --timeout-graceful-shutdown 30"]

@@ -242,6 +242,9 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 | `CORS_ORIGINS`                | Frontend URL       |
 | `PAYMENT_GATEWAY`             | Your choice        |
 | `SMS_PROVIDER`                | Your choice        |
+| `SMS_API_URL`                 | SMS.ir Verify URL  |
+| `SMS_API_KEY`                 | SMS.ir secret      |
+| `SMS_TEMPLATE_ID`             | Verify template ID |
 
 **Railway Staging:** Same variables, different values (separate DB, separate Redis).
 
