@@ -6,7 +6,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.woff2") format("woff2");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -14,7 +14,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.woff2") format("woff2");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -22,7 +22,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-DemiBold.woff2") format("woff2");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-DemiBold.ttf") format("truetype");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -30,15 +30,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Bold.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-ExtraBold.woff2") format("woff2");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Bold.ttf") format("truetype");
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -255,6 +247,8 @@
   }
   html {
     @apply font-sans;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
   }
   ::-webkit-scrollbar {
     width: 6px;
@@ -331,9 +325,9 @@
 }
 /* Header safe-area top guard: backdrop-filter in the notch/sensor-housing
    area on devices with viewport-fit=cover can produce a blurry halo artifact
-   on real hardware (iOS Safari, Android Chrome). A ::before pseudo-element
-   with solid background intercepts the compositing at the very top edge,
-   while the rest of the header keeps its glassmorphism. */
+   on real hardware. A ::before pseudo-element with solid background at the
+   normal z-index covers the notch region opaquely, preventing the compositing
+   artifact, while the rest of the header keeps its glassmorphism. */
 .header-safe-top::before {
   content: "";
   position: absolute;
@@ -341,7 +335,6 @@
   height: env(safe-area-inset-top, 0px);
   background-color: var(--color-background);
   pointer-events: none;
-  z-index: -1;
 }
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
@@ -497,9 +490,7 @@
 }
 
 #toopset-root {
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 100dvh;
   background-color: var(--color-background);
   background-image:
     linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
@@ -508,8 +499,6 @@
 }
 
 body {
-  overflow: hidden;
-  height: 100dvh;
   background-color: var(--color-background);
 }
 
@@ -520,6 +509,13 @@ body {
 html body[data-scroll-locked] {
   margin-right: 0 !important;
   margin-inline-end: var(--removed-body-scroll-bar-size, 0px) !important;
+}
+
+/* react-remove-scroll sets overflow:hidden on body when dialog/sheet opens, but our
+   scroll container is html (not body). Propagate the lock so the page behind the
+   overlay cannot be scrolled. */
+html:has(body[data-scroll-locked]) {
+  overflow: hidden !important;
 }
 
 /* ── Leaflet popup theming ── */
