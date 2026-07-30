@@ -42,9 +42,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
-      <head>
-        <link rel="preconnect" href={API_BASE} crossOrigin="anonymous" />
-      </head>
       <body>
         <SkipNav />
         <ThemeProvider>

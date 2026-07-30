@@ -9,8 +9,13 @@ export function FooterScrollButton() {
       variant="ghost"
       size="sm"
       onClick={() => {
-        const root = document.getElementById("toopset-root")
-        root?.scrollTo({ top: 0, behavior: "smooth" })
+        const prefersReducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches
+        window.scrollTo({
+          top: 0,
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+        })
       }}
       aria-label="بازگشت به بالا"
       className="text-xs text-muted-foreground hover:gap-2 hover:text-foreground"

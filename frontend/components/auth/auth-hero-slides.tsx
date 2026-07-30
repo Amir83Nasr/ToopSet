@@ -46,7 +46,19 @@ export function AuthHeroSlides({ fallback }: AuthHeroSlidesProps) {
   }, [images.length])
 
   if (images.length === 0) {
-    return <>{fallback}</>
+    return (
+      fallback || (
+        <div className="relative size-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/futsal.svg"
+            alt="ورزش"
+            className="size-full object-cover"
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
+        </div>
+      )
+    )
   }
 
   return (
@@ -70,7 +82,7 @@ export function AuthHeroSlides({ fallback }: AuthHeroSlidesProps) {
           />
 
           {/* Gradient overlay for readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
         </div>
       ))}
 

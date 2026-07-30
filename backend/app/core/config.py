@@ -1,5 +1,6 @@
 import re
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 __all__ = ["Settings", "settings", "validate_env", "EnvValidationError"]
@@ -7,7 +8,7 @@ __all__ = ["Settings", "settings", "validate_env", "EnvValidationError"]
 _VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 _SECRET_KEY_MIN_LENGTH = 32
 _SUPPORTED_PAYMENT_GATEWAYS = {"mock"}
-_SUPPORTED_SMS_PROVIDERS = {"mock"}
+_SUPPORTED_SMS_PROVIDERS = {"mock", "smsir"}
 
 
 class EnvValidationError(RuntimeError):
@@ -60,6 +61,9 @@ class Settings(BaseSettings):
 
     # SMS
     sms_provider: str = "mock"
+    sms_api_url: str = ""
+    sms_api_key: SecretStr = SecretStr("")
+    sms_template_id: int = 0
 
     # Monitoring
     sentry_dsn: str = ""
@@ -227,6 +231,13 @@ def validate_env(settings: Settings | None = None) -> None:
         errors.append(
             f"SMS_PROVIDER={settings.sms_provider!r} has no implementation in this build."
         )
+    elif settings.sms_provider == "smsir":
+        if not settings.sms_api_url:
+            errors.append("SMS_API_URL must be set when SMS_PROVIDER='smsir'.")
+        if not settings.sms_api_key.get_secret_value():
+            errors.append("SMS_API_KEY must be set when SMS_PROVIDER='smsir'.")
+        if settings.sms_template_id <= 0:
+            errors.append("SMS_TEMPLATE_ID must be a positive integer when SMS_PROVIDER='smsir'.")
 
     if is_production:
         if not settings.refresh_cookie_secure:
