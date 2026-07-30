@@ -1,7 +1,7 @@
 """OTP-based authentication service.
 
 Flow:
-    1. User enters phone → send_otp() stores 6-digit code in Redis (90s TTL),
+    1. User enters phone → send_otp() stores 6-digit code in Redis (120s TTL),
        sends via SMS provider, returns is_new_user and has_password flags
     2. User enters code → verify_otp() checks Redis, creates user if new,
        returns JWT tokens
@@ -21,12 +21,12 @@ from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.services.sms_provider import SmsProvider, get_sms_provider
 
-OTP_TTL = 90  # 90 seconds
+OTP_TTL = 120  # 120 seconds
 OTP_PREFIX = "otp:"
 OTP_PLACEHOLDER_HASH = "__otp_user__"
 
 # Per-phone OTP send rate limiting
-OTP_SEND_COOLDOWN = 90  # one OTP send per 90 seconds
+OTP_SEND_COOLDOWN = 120  # one OTP send per 120 seconds
 OTP_SEND_PREFIX = "otp_send:"
 
 # OTP failed-attempt lockout
@@ -75,7 +75,7 @@ class OtpService:
     async def send_otp(self, phone: str) -> dict:
         """Generate a 6-digit code, store in Redis, send via SMS.
 
-        Rate-limited per phone number (one send every 90 seconds).
+        Rate-limited per phone number (one send every 120 seconds).
         Returns {"message": ..., "is_new_user": bool, "has_password": bool}.
         """
         phone = normalize_phone(phone)
@@ -102,12 +102,17 @@ class OtpService:
         if send_blocked is not None:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="کد تأیید قبلاً ارسال شده است. لطفاً ۹۰ ثانیه بعد دوباره تلاش کنید.",
+                detail="کد تأیید قبلاً ارسال شده است. لطفاً ۱۲۰ ثانیه بعد دوباره تلاش کنید.",
             )
 
         code = self._generate_code()
         await self._store_code(phone, code)
-        await self.sms.send_otp(phone, code, ttl=OTP_TTL)
+        try:
+            await self.sms.send_otp(phone, code, ttl=OTP_TTL)
+        except Exception:
+            # Do not retain an undelivered code; the user must be able to retry.
+            await self._delete_code(phone)
+            raise
 
         await self.redis.set(send_key, "1", ex=OTP_SEND_COOLDOWN)
 

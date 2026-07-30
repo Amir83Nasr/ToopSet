@@ -27,6 +27,7 @@ _app_limiter.enabled = False
 settings.refresh_cookie_secure = False
 settings.bootstrap_admin_secret = "test-bootstrap-secret"
 settings.allow_audit_log_deletion = True
+settings.sms_provider = "mock"
 
 # ── Strip PrometheusMiddleware for tests ──────────────────────────────
 # BaseHTTPMiddleware wraps requests in an anyio TaskGroup whose tasks can

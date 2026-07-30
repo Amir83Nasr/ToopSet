@@ -19,6 +19,7 @@ from app.services.otp_service import (
     _CONSUME_OTP_SCRIPT,
     OTP_FAIL_PREFIX,
     OTP_PREFIX,
+    OTP_SEND_COOLDOWN,
     OTP_SEND_PREFIX,
     OTP_TTL,
 )
@@ -81,7 +82,7 @@ class TestSendOtp:
         assert data["dev_code"].isdigit()
         await _clean_otp(phone)
 
-    async def test_send_stores_code_for_ninety_seconds(self, client: AsyncClient) -> None:
+    async def test_send_stores_code_for_two_minutes(self, client: AsyncClient) -> None:
         phone = "09120000101"
         resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
         assert resp.status_code == 200
@@ -89,12 +90,10 @@ class TestSendOtp:
         r = await get_redis()
         ttl = await r.ttl(f"{OTP_PREFIX}{phone}")
         assert 0 < ttl <= OTP_TTL
-        assert OTP_TTL == 90
+        assert OTP_TTL == 120
         await _clean_otp(phone)
 
-    async def test_send_same_phone_is_limited_to_once_per_ninety_seconds(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_send_same_phone_is_limited_until_code_expires(self, client: AsyncClient) -> None:
         phone = "09120000102"
         resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
         assert resp.status_code == 200
@@ -111,7 +110,7 @@ class TestSendOtp:
         phone = "09120000109"
         r = await get_redis()
         await r.set(f"{OTP_PREFIX}{phone}", TEST_CODE, ex=47)
-        await r.set(f"{OTP_SEND_PREFIX}{phone}", "1", ex=90)
+        await r.set(f"{OTP_SEND_PREFIX}{phone}", "1", ex=OTP_SEND_COOLDOWN)
 
         resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
 
