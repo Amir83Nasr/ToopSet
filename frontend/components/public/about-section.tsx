@@ -14,7 +14,7 @@ const features = [
   {
     icon: Search,
     title: "جستجوی هوشمند",
-    description: "مقایسه قیمت، موقعیت و امکانات سالن‌ها در یک نگاه",
+    description: "مقایسه قیمت، موقعیت و امکانات مجموعه‌ها در یک نگاه",
   },
   {
     icon: Camera,
@@ -112,7 +112,7 @@ export function AboutSection() {
                 <Link href="/login">ثبت‌نام رایگان</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/vendors">مشاهده سالن‌ها</Link>
+                <Link href="/vendors">مشاهده مجموعه‌ها</Link>
               </Button>
             </div>
           </div>

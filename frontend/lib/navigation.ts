@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Calendar,
   Undo2,
+  ClipboardCheck,
 } from "lucide-react"
 
 export interface NavItem {
@@ -110,6 +111,11 @@ export const navGroups: NavGroup[] = [
       },
       { title: "کاربران", url: "/dashboard/users", icon: Users },
       {
+        title: "درخواست‌های مدیریت مجموعه",
+        url: "/dashboard/admin/manager-requests",
+        icon: ClipboardCheck,
+      },
+      {
         title: "پرداخت‌ها",
         url: "/dashboard/admin/payments",
         icon: CreditCard,
@@ -169,6 +175,19 @@ export const navGroups: NavGroup[] = [
     ],
   },
 
+  // ── Personal (user) ──
+  {
+    label: "شخصی",
+    roles: ["user"],
+    items: [
+      {
+        title: "پروفایل",
+        url: "/dashboard/settings",
+        icon: UserCircle,
+      },
+    ],
+  },
+
   // ── Bookings (user) ──
   {
     label: "رزروها",
@@ -188,19 +207,6 @@ export const navGroups: NavGroup[] = [
         title: "بازگشت وجه‌ها",
         url: "/dashboard/refunds",
         icon: Undo2,
-      },
-    ],
-  },
-
-  // ── Personal (user) ──
-  {
-    label: "شخصی",
-    roles: ["user"],
-    items: [
-      {
-        title: "پروفایل",
-        url: "/dashboard/settings",
-        icon: UserCircle,
       },
     ],
   },

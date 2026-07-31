@@ -152,8 +152,9 @@ class WeeklyScheduleItem(BaseModel):
 
 class WeeklyScheduleApply(BaseModel):
     effective_from: date
-    duration_months: Literal[6, 12]
+    duration_months: Literal[1, 3, 6, 12]
     items: list[WeeklyScheduleItem] = Field(default_factory=list, max_length=70)
+    confirm_manager_booking_deletions: bool = False
 
     @model_validator(mode="after")
     def validate_no_template_overlap(self) -> "WeeklyScheduleApply":
@@ -173,6 +174,8 @@ class WeeklyScheduleTemplateResponse(BaseModel):
     version_id: int | None = None
     effective_from: date | None = None
     effective_until: date | None = None
+    minimum_effective_date: date
+    last_online_booking_date: date | None = None
     items: list[WeeklyScheduleItem] = Field(default_factory=list)
 
 
@@ -194,4 +197,5 @@ class WeeklyScheduleApplyResponse(BaseModel):
     deleted: int
     unchanged: int
     preserved_reserved: int
+    deleted_manager_reservations: int = 0
     conflicts: list[WeeklyScheduleConflict] = Field(default_factory=list)

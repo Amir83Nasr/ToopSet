@@ -5,7 +5,7 @@ import { FooterScrollButton } from "@/components/public/footer-scroll-button"
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
-  { href: "/vendors", label: "جستجوی سالن‌ها" },
+  { href: "/vendors", label: "جستجوی مجموعه‌ها" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
@@ -28,8 +28,8 @@ export function SiteFooter() {
               <span>توپ‌سِت</span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی. به راحتی سالن مورد نظر
-              خود را پیدا کنید و سانس دلخواه را رزرو نمایید.
+              سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی. به راحتی مجموعه مورد
+              نظر خود را پیدا کنید و سانس دلخواه را رزرو نمایید.
             </p>
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground/60">
               <span className="relative flex size-1.5">

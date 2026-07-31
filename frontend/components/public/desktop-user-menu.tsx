@@ -14,6 +14,7 @@ import {
   MessageSquare,
   UserCircle,
   Calendar,
+  ClipboardCheck,
 } from "lucide-react"
 import type { User } from "@/types/auth"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ import {
   ResponsiveAlertDialogTitle,
 } from "@/components/ui/responsive-alert-dialog"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { buildAvatarUrl } from "@/lib/api"
 import { getInitials, toPersianDigits } from "@/lib/utils"
 import { useState } from "react"
@@ -62,6 +64,8 @@ export function DesktopUserMenu({
   onLogout,
 }: DesktopUserMenuProps) {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const [registerComplexDialogOpen, setRegisterComplexDialogOpen] =
+    useState(false)
   const isRtl = true
 
   return (
@@ -209,6 +213,15 @@ export function DesktopUserMenu({
                   کاربران
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onSelect={() =>
+                    router.push("/dashboard/admin/manager-requests")
+                  }
+                  className="cursor-pointer"
+                >
+                  <ClipboardCheck className="me-2 size-4" />
+                  درخواست‌های مدیریت مجموعه
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onSelect={() => router.push("/dashboard/admin/payments")}
                   className="cursor-pointer"
                 >
@@ -292,6 +305,15 @@ export function DesktopUserMenu({
             {user.role === "user" && (
               <>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => router.push("/dashboard/settings")}
+                  className="cursor-pointer"
+                >
+                  <UserCircle className="me-2 size-4" />
+                  پروفایل
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel>رزروها</DropdownMenuLabel>
                 <DropdownMenuItem
                   onSelect={() => router.push("/dashboard/bookings")}
@@ -309,16 +331,6 @@ export function DesktopUserMenu({
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>شخصی</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/settings")}
-                  className="cursor-pointer"
-                >
-                  <UserCircle className="me-2 size-4" />
-                  پروفایل
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
                 <DropdownMenuLabel>سیستم</DropdownMenuLabel>
                 <DropdownMenuItem
                   onSelect={() => router.push("/dashboard/notifications")}
@@ -326,6 +338,15 @@ export function DesktopUserMenu({
                 >
                   <Bell className="me-2 size-4" />
                   اعلان‌ها
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => setRegisterComplexDialogOpen(true)}
+                  className="cursor-pointer text-blue-600 focus:bg-blue-50 focus:text-blue-700 dark:text-blue-400 dark:focus:bg-blue-950/40 dark:focus:text-blue-300"
+                >
+                  <Building2 className="me-2 size-4" />
+                  ثبت مجموعه ورزشی
                 </DropdownMenuItem>
               </>
             )}
@@ -346,6 +367,11 @@ export function DesktopUserMenu({
           <Button className="px-4">ورود / ثبت‌نام</Button>
         </Link>
       )}
+
+      <RegisterComplexDialog
+        open={registerComplexDialogOpen}
+        onOpenChange={setRegisterComplexDialogOpen}
+      />
 
       <ResponsiveAlertDialog
         open={logoutDialogOpen}

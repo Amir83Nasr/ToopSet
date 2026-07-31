@@ -5,16 +5,16 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
 from app.core.timezone import iran_to_utc, now_iran, now_utc, utc_to_iran
-from app.models.booking import Booking, BookingStatus
+from app.models.booking import BookingSource
 from app.models.time_slot import SlotStatus
 from app.models.user import User
 from app.models.vendor import Vendor
+from app.repositories.booking_repo import BookingRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.repositories.vendor_repo import VendorRepo
 from app.repositories.weekly_schedule_repo import WeeklyScheduleRepo
@@ -42,12 +42,6 @@ from app.services.cache_service import (
 # Python weekday(): Mon=0 … Sun=6
 _WEEKDAY_MAP = [5, 6, 0, 1, 2, 3, 4]
 PUBLIC_SLOT_VISIBILITY_DAYS = 14
-WEEKLY_SCHEDULE_MIN_LEAD_DAYS = 14
-_ACTIVE_BOOKING_STATUSES = (
-    BookingStatus.PENDING_PAYMENT,
-    BookingStatus.CONFIRMED,
-    BookingStatus.PENDING_CANCELLATION,
-)
 
 
 def _add_months(value: date, months: int) -> date:
@@ -67,6 +61,7 @@ def _next_complete_week_start(value: date) -> date:
 
 class TimeSlotService:
     def __init__(self, db: AsyncSession, current_user: User | None) -> None:
+        self.booking_repo = BookingRepo(db)
         self.repo = TimeSlotRepo(db)
         self.vendor_repo = VendorRepo(db)
         self.weekly_schedule_repo = WeeklyScheduleRepo(db)
@@ -95,6 +90,17 @@ class TimeSlotService:
     def _public_slot_window(self) -> tuple[datetime, datetime]:
         start = now_utc()
         return start, start + timedelta(days=PUBLIC_SLOT_VISIBILITY_DAYS)
+
+    async def _weekly_schedule_minimum_date(self, vendor_id: int) -> tuple[date, date | None]:
+        today = now_iran().date()
+        latest_start = await self.booking_repo.get_latest_active_online_slot_start(
+            vendor_id, now=now_utc()
+        )
+        last_booking_date = utc_to_iran(latest_start).date() if latest_start else None
+        minimum_date = today + timedelta(days=1)
+        if last_booking_date:
+            minimum_date = max(minimum_date, last_booking_date + timedelta(days=1))
+        return minimum_date, last_booking_date
 
     @staticmethod
     def _to_response(slot, vendor: Vendor | None = None) -> TimeSlotResponse:
@@ -412,6 +418,8 @@ class TimeSlotService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         self._require_vendor_manager(vendor)
 
+        minimum_date, last_booking_date = await self._weekly_schedule_minimum_date(vendor_id)
+
         latest = await self.weekly_schedule_repo.get_latest(vendor_id)
         if latest:
             return WeeklyScheduleTemplateResponse(
@@ -419,6 +427,8 @@ class TimeSlotService:
                 version_id=latest.id,
                 effective_from=latest.effective_from,
                 effective_until=latest.effective_until,
+                minimum_effective_date=minimum_date,
+                last_online_booking_date=last_booking_date,
                 items=[
                     WeeklyScheduleItem(
                         day_of_week=item.day_of_week,
@@ -443,6 +453,8 @@ class TimeSlotService:
         )
         return WeeklyScheduleTemplateResponse(
             source="upcoming_week",
+            minimum_effective_date=minimum_date,
+            last_online_booking_date=last_booking_date,
             items=[
                 WeeklyScheduleItem(
                     day_of_week=_WEEKDAY_MAP.index(utc_to_iran(slot.start_time).weekday()),
@@ -466,20 +478,26 @@ class TimeSlotService:
 
         await self.repo.lock_vendor_schedule(vendor_id)
 
-        minimum_date = now_iran().date() + timedelta(days=WEEKLY_SCHEDULE_MIN_LEAD_DAYS)
-        if data.effective_from < minimum_date:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail={
-                    "message": "تاریخ شروع برنامه باید حداقل ۱۴ روز بعد از امروز باشد",
-                    "minimum_date": minimum_date.isoformat(),
-                },
-            )
-
         effective_until = _add_months(data.effective_from, data.duration_months)
         range_start = iran_to_utc(datetime.combine(data.effective_from, datetime.min.time()))
         range_end = iran_to_utc(datetime.combine(effective_until, datetime.min.time()))
         existing = await self.repo.list_range_for_update(vendor_id, range_start, range_end)
+
+        # Recalculate after locking the affected slots. If a user completed a
+        # reservation while the editor was open, the new booking is included.
+        minimum_date, last_booking_date = await self._weekly_schedule_minimum_date(vendor_id)
+        if data.effective_from < minimum_date:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "schedule_before_last_online_booking",
+                    "message": "تاریخ شروع باید بعد از آخرین رزرو کاربر عادی باشد",
+                    "minimum_date": minimum_date.isoformat(),
+                    "last_online_booking_date": (
+                        last_booking_date.isoformat() if last_booking_date else None
+                    ),
+                },
+            )
 
         desired: dict[tuple[datetime, datetime], dict] = {}
         current = data.effective_from
@@ -504,26 +522,15 @@ class TimeSlotService:
                 }
             current += timedelta(days=1)
 
-        active_bookings = (
-            list(
-                (
-                    await self.repo.db.execute(
-                        select(Booking).where(
-                            Booking.slot_id.in_([slot.id for slot in existing]),
-                            Booking.status.in_(_ACTIVE_BOOKING_STATUSES),
-                        )
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            if existing
-            else []
+        active_bookings = await self.booking_repo.list_active_by_slot_ids(
+            [slot.id for slot in existing], for_update=True
         )
         booking_by_slot = {booking.slot_id: booking for booking in active_bookings}
 
         blocking_conflicts: list[WeeklyScheduleConflict] = []
+        manager_confirmation_conflicts: list[WeeklyScheduleConflict] = []
         preserved_conflicts: list[WeeklyScheduleConflict] = []
+        manager_bookings_to_delete = []
         update_plan: list[tuple] = []
         delete_plan: list = []
         unchanged = 0
@@ -538,23 +545,27 @@ class TimeSlotService:
 
             if is_protected:
                 if target is None:
-                    blocking_conflicts.append(
-                        WeeklyScheduleConflict(
-                            slot_id=slot.id,
-                            date=local_start.date(),
-                            start_time=slot.start_time,
-                            end_time=slot.end_time,
-                            booking_id=booking.id if booking else None,
-                            booking_source=(
-                                booking.source.value if booking and booking.source else None
-                            ),
-                            reason=(
-                                "این سانس رزرو فعال دارد؛ ابتدا رزرو را لغو کنید"
-                                if booking and booking.created_by_manager_id
-                                else "این سانس توسط کاربر رزرو شده و قابل حذف یا جابه‌جایی نیست"
-                            ),
-                        )
+                    conflict = WeeklyScheduleConflict(
+                        slot_id=slot.id,
+                        date=local_start.date(),
+                        start_time=slot.start_time,
+                        end_time=slot.end_time,
+                        booking_id=booking.id if booking else None,
+                        booking_source=booking.source.value if booking and booking.source else None,
+                        reason=(
+                            "این رزرو دستی سالن‌دار با تأیید شما حذف می‌شود"
+                            if booking and booking.source == BookingSource.MANAGER_MANUAL
+                            else "این سانس توسط کاربر رزرو شده و قابل حذف یا جابه‌جایی نیست"
+                        ),
                     )
+                    if booking and booking.source == BookingSource.MANAGER_MANUAL:
+                        if data.confirm_manager_booking_deletions:
+                            manager_bookings_to_delete.append(booking)
+                            delete_plan.append(slot)
+                        else:
+                            manager_confirmation_conflicts.append(conflict)
+                    else:
+                        blocking_conflicts.append(conflict)
                 else:
                     preserved_reserved += 1
                     if (
@@ -591,11 +602,28 @@ class TimeSlotService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
-                    "message": "برنامه جدید با رزروهای فعال تداخل دارد",
+                    "code": "protected_booking_conflict",
+                    "message": "برنامه جدید با رزرو کاربر یا یک سانس قفل‌شده تداخل دارد",
                     "conflicts": [item.model_dump(mode="json") for item in blocking_conflicts],
                 },
             )
 
+        if manager_confirmation_conflicts:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "manager_booking_deletion_confirmation_required",
+                    "message": "تغییر ساعت‌ها باعث حذف رزروهای دستی سالن‌دار می‌شود",
+                    "manager_booking_count": len(manager_confirmation_conflicts),
+                    "conflicts": [
+                        item.model_dump(mode="json") for item in manager_confirmation_conflicts
+                    ],
+                },
+            )
+
+        await self.booking_repo.delete_by_ids(
+            [booking.id for booking in manager_bookings_to_delete]
+        )
         for slot in delete_plan:
             await self.repo.delete(slot)
         for slot, target in update_plan:
@@ -625,6 +653,7 @@ class TimeSlotService:
             deleted=len(delete_plan),
             unchanged=unchanged,
             preserved_reserved=preserved_reserved,
+            deleted_manager_reservations=len(manager_bookings_to_delete),
             conflicts=preserved_conflicts,
         )
 

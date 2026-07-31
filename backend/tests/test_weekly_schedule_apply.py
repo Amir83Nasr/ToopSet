@@ -62,17 +62,28 @@ def _payload(effective_from, *, price: int = 100_000, items=None) -> dict:
     }
 
 
-async def test_rejects_effective_date_before_fourteen_days(
+async def test_without_future_online_booking_allows_starting_tomorrow(
     client: AsyncClient, session: AsyncSession, manager_token: dict
 ) -> None:
     vendor_id = await _vendor(client, session, manager_token)
+    today = now_iran().date()
     response = await client.post(
         f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
-        json=_payload(now_iran().date() + timedelta(days=13)),
+        json=_payload(today),
         headers={"Authorization": f"Bearer {manager_token['access_token']}"},
     )
     assert response.status_code == 422
-    assert "۱۴ روز" in response.text
+    detail = response.json()["detail"]
+    assert detail["code"] == "schedule_before_last_online_booking"
+    assert detail["minimum_date"] == (today + timedelta(days=1)).isoformat()
+    assert detail["last_online_booking_date"] is None
+
+    template = await client.get(
+        f"/api/v1/vendors/{vendor_id}/slots/weekly-schedule-template",
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert template.status_code == 200, template.text
+    assert template.json()["minimum_effective_date"] == (today + timedelta(days=1)).isoformat()
 
 
 async def test_template_bootstraps_from_next_complete_week_not_current_partial_week(
@@ -211,7 +222,7 @@ async def test_updates_unreserved_prices_and_preserves_slot_ids(
 
 
 async def test_reserved_exact_slot_is_preserved_when_price_changes(
-    client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+    client: AsyncClient, session: AsyncSession, manager_token: dict
 ) -> None:
     vendor_id = await _vendor(client, session, manager_token)
     effective = now_iran().date() + timedelta(days=14)
@@ -232,13 +243,15 @@ async def test_reserved_exact_slot_is_preserved_when_price_changes(
         text(
             """
             INSERT INTO bookings
-                (user_id, slot_id, status, source, settlement_status, price_paid,
-                 slot_price, ball_price, with_ball, participants_count)
-            VALUES (:user_id, :slot_id, 'confirmed', 'online', 'not_settled',
-                    100000, 100000, 0, false, 1)
+                (user_id, slot_id, status, source, settlement_status,
+                 created_by_manager_id, price_paid, slot_price, ball_price,
+                 with_ball, participants_count)
+            VALUES (:manager_id, :slot_id, 'confirmed', 'manager_manual',
+                    'excluded_due_to_cancellation', :manager_id,
+                    0, 100000, 0, false, 1)
             """
         ),
-        {"user_id": user_token["user"]["id"], "slot_id": slot_id},
+        {"manager_id": manager_token["user"]["id"], "slot_id": slot_id},
     )
     await session.flush()
 
@@ -256,7 +269,7 @@ async def test_reserved_exact_slot_is_preserved_when_price_changes(
     assert float(price) == 100_000
 
 
-async def test_removing_reserved_slot_aborts_entire_schedule_transaction(
+async def test_schedule_must_start_after_latest_online_booking(
     client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
 ) -> None:
     vendor_id = await _vendor(client, session, manager_token)
@@ -288,25 +301,36 @@ async def test_removing_reserved_slot_aborts_entire_schedule_transaction(
     )
     await session.flush()
 
-    response = await client.post(
-        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
-        json=_payload(
-            effective,
-            items=[
-                {
-                    "day_of_week": _persian_weekday(effective),
-                    "start_time": "14:00",
-                    "end_time": "16:00",
-                    "base_price": 120_000,
-                }
-            ],
-        ),
+    template = await client.get(
+        f"/api/v1/vendors/{vendor_id}/slots/weekly-schedule-template",
         headers={"Authorization": f"Bearer {manager_token['access_token']}"},
     )
-    assert response.status_code == 409
+    assert template.status_code == 200, template.text
+    assert template.json()["last_online_booking_date"] == effective.isoformat()
+    assert template.json()["minimum_effective_date"] == (effective + timedelta(days=1)).isoformat()
+
+    removal_payload = _payload(
+        effective,
+        items=[
+            {
+                "day_of_week": _persian_weekday(effective),
+                "start_time": "14:00",
+                "end_time": "16:00",
+                "base_price": 120_000,
+            }
+        ],
+    )
+    removal_payload["confirm_manager_booking_deletions"] = True
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=removal_payload,
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert response.status_code == 422
     detail = response.json()["detail"]
-    assert detail["conflicts"][0]["slot_id"] == slot_id
-    assert "رزرو" in detail["conflicts"][0]["reason"]
+    assert detail["code"] == "schedule_before_last_online_booking"
+    assert detail["last_online_booking_date"] == effective.isoformat()
+    assert detail["minimum_date"] == (effective + timedelta(days=1)).isoformat()
     assert (
         await session.scalar(
             text("SELECT count(*) FROM time_slots WHERE vendor_id = :id"), {"id": vendor_id}
@@ -322,7 +346,7 @@ async def test_removing_reserved_slot_aborts_entire_schedule_transaction(
     )
 
 
-async def test_manager_owned_reservation_must_be_cancelled_before_template_removal(
+async def test_manager_owned_reservation_requires_confirmation_then_is_deleted(
     client: AsyncClient, session: AsyncSession, manager_token: dict
 ) -> None:
     vendor_id = await _vendor(client, session, manager_token)
@@ -360,12 +384,60 @@ async def test_manager_owned_reservation_must_be_cancelled_before_template_remov
         headers={"Authorization": f"Bearer {manager_token['access_token']}"},
     )
     assert response.status_code == 409
-    conflict = response.json()["detail"]["conflicts"][0]
+    detail = response.json()["detail"]
+    assert detail["code"] == "manager_booking_deletion_confirmation_required"
+    assert detail["manager_booking_count"] == 1
+    conflict = detail["conflicts"][0]
     assert conflict["booking_source"] == "manager_manual"
-    assert "ابتدا رزرو را لغو کنید" in conflict["reason"]
+    assert "تأیید" in conflict["reason"]
     assert (
         await session.scalar(
             text("SELECT count(*) FROM time_slots WHERE id = :id"), {"id": slot_id}
         )
         == 1
     )
+
+    confirmed_payload = _payload(effective, items=[])
+    confirmed_payload["confirm_manager_booking_deletions"] = True
+    confirmed = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=confirmed_payload,
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+
+    assert confirmed.status_code == 200, confirmed.text
+    assert confirmed.json()["deleted"] == 1
+    assert confirmed.json()["deleted_manager_reservations"] == 1
+    assert (
+        await session.scalar(
+            text("SELECT count(*) FROM time_slots WHERE id = :id"), {"id": slot_id}
+        )
+        == 0
+    )
+    assert (
+        await session.scalar(
+            text("SELECT count(*) FROM bookings WHERE id = :id"), {"id": conflict["booking_id"]}
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize("duration_months", [1, 3, 6, 12])
+async def test_accepts_all_supported_schedule_durations(
+    client: AsyncClient,
+    session: AsyncSession,
+    manager_token: dict,
+    duration_months: int,
+) -> None:
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    payload = _payload(effective)
+    payload["duration_months"] = duration_months
+
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=payload,
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+
+    assert response.status_code == 200, response.text

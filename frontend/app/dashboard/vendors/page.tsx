@@ -164,6 +164,14 @@ export default function VendorsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {user?.role === "manager" && (
+            <Button asChild>
+              <Link href="/dashboard/vendors/create">
+                <Plus className="me-1.5 size-4" />
+                ثبت مجموعه جدید
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => fetchVendors()}>
             <RefreshCw className="me-1.5 size-4" />
             بروزرسانی

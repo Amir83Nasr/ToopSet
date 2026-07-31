@@ -41,6 +41,7 @@ const breadcrumbLabels: Record<string, string> = {
   logs: "لاگ‌ها",
   settings: "تنظیمات",
   profile: "پروفایل",
+  "manager-requests": "درخواست‌های مدیریت مجموعه",
 }
 
 function getLabel(seg: string): string {

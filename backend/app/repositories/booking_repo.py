@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.booking import Booking, BookingStatus
+from app.models.booking import Booking, BookingSource, BookingStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -166,6 +166,40 @@ class BookingRepo:
             stmt = stmt.with_for_update()
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def list_active_by_slot_ids(
+        self, slot_ids: list[int], *, for_update: bool = False
+    ) -> list[Booking]:
+        if not slot_ids:
+            return []
+        stmt = select(Booking).where(
+            Booking.slot_id.in_(slot_ids), Booking.status.in_(ACTIVE_SLOT_STATUSES)
+        )
+        if for_update:
+            stmt = stmt.with_for_update()
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_latest_active_online_slot_start(
+        self, vendor_id: int, *, now: datetime
+    ) -> datetime | None:
+        stmt = (
+            select(func.max(TimeSlot.start_time))
+            .join(Booking, Booking.slot_id == TimeSlot.id)
+            .where(
+                TimeSlot.vendor_id == vendor_id,
+                TimeSlot.start_time >= now,
+                Booking.source == BookingSource.ONLINE,
+                Booking.status.in_(ACTIVE_SLOT_STATUSES),
+            )
+        )
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def delete_by_ids(self, booking_ids: list[int]) -> None:
+        if not booking_ids:
+            return
+        await self.db.execute(delete(Booking).where(Booking.id.in_(booking_ids)))
+        await self.db.flush()
 
     async def create(self, data: dict) -> Booking:
         booking = Booking(**data)

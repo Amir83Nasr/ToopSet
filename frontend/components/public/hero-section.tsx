@@ -1,10 +1,8 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Building2, Map } from "lucide-react"
+import { Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/use-auth"
-import { useState } from "react"
 import dynamic from "next/dynamic"
 
 const HeroAnimatedIllustration = dynamic(
@@ -15,34 +13,8 @@ const HeroAnimatedIllustration = dynamic(
   { ssr: false }
 )
 
-const RegisterComplexDialog = dynamic(
-  () =>
-    import("@/components/public/register-complex-dialog").then((m) => ({
-      default: m.RegisterComplexDialog,
-    })),
-  { ssr: false }
-)
-
 export function HeroSection() {
   const router = useRouter()
-  const { user, isAuthenticated, loading } = useAuth()
-  const [dialogOpen, setDialogOpen] = useState(false)
-
-  function handleRegisterClick() {
-    if (loading) return
-
-    if (!isAuthenticated) {
-      router.push("/login?reason=login_required&redirect=/")
-      return
-    }
-
-    if (user?.role === "manager" || user?.role === "admin") {
-      router.push("/dashboard/vendors/create")
-      return
-    }
-
-    setDialogOpen(true)
-  }
 
   return (
     <section className="relative overflow-hidden py-6 md:py-12">
@@ -63,14 +35,14 @@ export function HeroSection() {
               پلتفرم هوشمند رزرو
               <br />
               <span className="font-extrabold text-primary">
-                سالن‌های ورزشی
+                مجموعه‌های ورزشی
               </span>
             </h1>
 
             <p className="max-w-2xl text-sm leading-relaxed font-medium text-muted-foreground sm:text-base sm:leading-8">
               سامانه هوشمند{" "}
               <strong className="font-extrabold text-primary">توپ‌سِت</strong>{" "}
-              پلتفرم جامع رزرو آنلاین مجموعه‌های ورزشی. به راحتی سالن مورد نظر
+              پلتفرم جامع رزرو آنلاین مجموعه‌های ورزشی. به راحتی مجموعه مورد نظر
               خود را پیدا کنید، قیمت‌ها را مقایسه کنید و سانس دلخواه را رزرو
               نمایید.
             </p>
@@ -78,20 +50,12 @@ export function HeroSection() {
             {/* Action buttons */}
             <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
               <Button
-                onClick={handleRegisterClick}
-                className="w-full px-3 font-semibold sm:w-auto"
-              >
-                <Building2 className="size-4 shrink-0" />
-                <span>ثبت مجموعه جدید</span>
-              </Button>
-
-              <Button
                 variant="outline"
                 onClick={() => router.push("/vendors")}
                 className="w-full px-3 font-semibold sm:w-auto"
               >
                 <Map className="size-4 shrink-0" />
-                <span>مشاهده سالن‌های ورزشی</span>
+                <span>مشاهده مجموعه‌های ورزشی</span>
               </Button>
             </div>
           </div>
@@ -104,8 +68,6 @@ export function HeroSection() {
           </div>
         </div>
       </div>
-
-      <RegisterComplexDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </section>
   )
 }

@@ -23,10 +23,18 @@ import {
   ResponsiveAlertDialogHeader,
   ResponsiveAlertDialogTitle,
 } from "@/components/ui/responsive-alert-dialog"
+import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { buildAvatarUrl } from "@/lib/api"
 import { cn, getInitials, toPersianDigits } from "@/lib/utils"
 import { navGroups } from "@/lib/navigation"
-import { Home, Search, MessageCircle, Calendar, LogOut } from "lucide-react"
+import {
+  Home,
+  Search,
+  MessageCircle,
+  Calendar,
+  LogOut,
+  Building2,
+} from "lucide-react"
 import type { ComponentType } from "react"
 import { usePathname } from "next/navigation"
 
@@ -102,6 +110,8 @@ export function MobileNavPanel({
 }: MobileNavPanelProps) {
   const pathname = usePathname()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const [registerComplexDialogOpen, setRegisterComplexDialogOpen] =
+    useState(false)
 
   const isActivePath = (href: string) =>
     href === "/"
@@ -131,7 +141,10 @@ export function MobileNavPanel({
             </svg>
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="flex w-[19rem] flex-col gap-0 p-0">
+        <SheetContent
+          side="right"
+          className="flex w-[19rem] flex-col gap-0 p-0"
+        >
           <SheetHeader className="flex h-16 justify-center border-b p-4">
             <SheetTitle className="flex items-center gap-2 text-lg font-bold">
               <span className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
@@ -236,6 +249,25 @@ export function MobileNavPanel({
                     onNavigate={closeMobile}
                   />
                 )}
+            {isAuthenticated && user?.role === "user" && (
+              <button
+                type="button"
+                onClick={() => {
+                  closeMobile()
+                  window.setTimeout(() => {
+                    setRegisterComplexDialogOpen(true)
+                  }, 550)
+                }}
+                className="group mt-3 flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700 active:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
+                  <Building2 className="size-4.5" />
+                </span>
+                <span className="flex-1 truncate text-right">
+                  ثبت مجموعه ورزشی
+                </span>
+              </button>
+            )}
           </div>
 
           <SheetFooter className="mt-auto border-t p-4">
@@ -256,6 +288,11 @@ export function MobileNavPanel({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <RegisterComplexDialog
+        open={registerComplexDialogOpen}
+        onOpenChange={setRegisterComplexDialogOpen}
+      />
 
       <ResponsiveAlertDialog
         open={logoutDialogOpen}
