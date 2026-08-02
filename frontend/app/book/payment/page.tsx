@@ -72,6 +72,19 @@ function PaymentPageContent() {
   const [booking, setBooking] = useState<BookingDetail | null>(null)
   const [error, setError] = useState<string>("")
   const [paying, setPaying] = useState(false)
+  const [clock, setClock] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const remainingSeconds = booking?.expires_at
+    ? Math.max(
+        0,
+        Math.ceil((new Date(booking.expires_at).getTime() - clock) / 1000)
+      )
+    : 0
 
   // Redirect to login only if we're sure there's no auth (no token cookie)
   useEffect(() => {
@@ -297,6 +310,23 @@ function PaymentPageContent() {
                   منتظر پرداخت
                 </Badge>
               </div>
+              {booking.expires_at && (
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-muted-foreground">مهلت پرداخت</span>
+                  <span
+                    className={
+                      remainingSeconds > 0
+                        ? "font-mono font-medium text-amber-600"
+                        : "font-medium text-destructive"
+                    }
+                    dir="ltr"
+                  >
+                    {remainingSeconds > 0
+                      ? `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`
+                      : "منقضی شده"}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -304,7 +334,7 @@ function PaymentPageContent() {
           <div className="mt-6 flex flex-col gap-3">
             <Button
               className="w-full"
-              disabled={paying}
+              disabled={paying || remainingSeconds === 0}
               onClick={handlePayment}
             >
               {paying ? "در حال پردازش پرداخت…" : "پرداخت و نهایی‌سازی رزرو"}

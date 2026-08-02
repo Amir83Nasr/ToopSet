@@ -49,6 +49,12 @@ class Booking(Base):
                 "status IN ('pending_payment', 'confirmed', 'pending_cancellation')"
             ),
         ),
+        Index(
+            "uq_bookings_one_pending_payment_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("status = 'pending_payment'"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -56,17 +56,18 @@ class BankCardService:
         self.db = db
         self.current_user = current_user
         self.repo = BankCardRepo(db)
-        if provider is not None:
-            self.provider = provider
-        elif settings.is_development_or_bootstrap:
-            self.provider = MockBankCardVerificationProvider()
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="سرویس واقعی استعلام کارت در این نسخه پیکربندی نشده است",
-            )
+        # Reading/confirming an already looked-up card must keep working even
+        # before a production lookup provider is wired. Only lookup requires it.
+        self.provider = provider or (
+            MockBankCardVerificationProvider() if settings.is_development_or_bootstrap else None
+        )
 
     async def lookup_card(self, card_number: str) -> BankCard:
+        if self.provider is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="سرویس استعلام کارت بانکی هنوز پیکربندی نشده است",
+            )
         normalized = normalize_card_number(card_number)
         if len(normalized) != 16:
             raise HTTPException(

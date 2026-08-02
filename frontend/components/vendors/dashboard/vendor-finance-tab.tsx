@@ -176,16 +176,25 @@ export function VendorFinanceTab({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-250 table-fixed">
+                <colgroup>
+                  <col className="w-48" />
+                  <col className="w-32" />
+                  <col className="w-24" />
+                  <col className="w-36" />
+                  <col className="w-32" />
+                  <col className="w-32" />
+                  <col className="w-40" />
+                </colgroup>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">مشتری</TableHead>
-                    <TableHead className="text-right">تاریخ سانس</TableHead>
-                    <TableHead className="text-right">روز</TableHead>
-                    <TableHead className="text-right">ساعت</TableHead>
-                    <TableHead className="text-right">مبلغ</TableHead>
-                    <TableHead className="text-right">نوع رزرو</TableHead>
-                    <TableHead className="text-right">وضعیت تسویه</TableHead>
+                    <TableHead>مشتری</TableHead>
+                    <TableHead className="text-center">تاریخ سانس</TableHead>
+                    <TableHead className="text-center">روز</TableHead>
+                    <TableHead className="text-center">ساعت</TableHead>
+                    <TableHead className="text-center">مبلغ</TableHead>
+                    <TableHead className="text-center">نوع رزرو</TableHead>
+                    <TableHead className="text-center">وضعیت تسویه</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -197,7 +206,7 @@ export function VendorFinanceTab({
                         : "آنلاین"
                     return (
                       <TableRow key={booking.id}>
-                        <TableCell className="min-w-40 font-medium">
+                        <TableCell className="font-medium">
                           <div>
                             {booking.user_name ||
                               booking.customer_full_name ||
@@ -213,30 +222,32 @@ export function VendorFinanceTab({
                               : "بدون شماره"}
                           </div>
                         </TableCell>
-                        <TableCell className="min-w-28">
+                        <TableCell className="text-center">
                           {booking.slot_start_time
                             ? formatBookingDate(booking.slot_start_time)
                             : "-"}
                         </TableCell>
-                        <TableCell className="min-w-24">
+                        <TableCell className="text-center">
                           {booking.slot_start_time
                             ? formatBookingWeekday(booking.slot_start_time)
                             : "-"}
                         </TableCell>
-                        <TableCell className="min-w-32">
-                          {booking.slot_start_time && booking.slot_end_time
-                            ? `${formatBookingTime(
-                                booking.slot_start_time
-                              )} - ${formatBookingTime(booking.slot_end_time)}`
-                            : "-"}
+                        <TableCell className="text-center">
+                          <span dir="ltr" className="inline-block">
+                            {booking.slot_start_time && booking.slot_end_time
+                              ? `${formatBookingTime(
+                                  booking.slot_start_time
+                                )} - ${formatBookingTime(booking.slot_end_time)}`
+                              : "-"}
+                          </span>
                         </TableCell>
-                        <TableCell className="min-w-28">
+                        <TableCell className="text-center">
                           {formatMoney(booking.price_paid)}
                         </TableCell>
-                        <TableCell className="min-w-28">
+                        <TableCell className="text-center">
                           {sourceLabel}
                         </TableCell>
-                        <TableCell className="min-w-40">
+                        <TableCell className="text-center">
                           <Badge variant={state.variant}>{state.label}</Badge>
                         </TableCell>
                       </TableRow>

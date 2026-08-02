@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { api, ApiError } from "@/lib/api"
+import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
@@ -24,29 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  ResponsiveAlertDialog,
-  ResponsiveAlertDialogAction,
-  ResponsiveAlertDialogCancel,
-  ResponsiveAlertDialogContent,
-  ResponsiveAlertDialogDescription,
-  ResponsiveAlertDialogFooter,
-  ResponsiveAlertDialogHeader,
-  ResponsiveAlertDialogTitle,
-} from "@/components/ui/responsive-alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "@/lib/toast"
 import {
   SearchInput,
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
-import {
-  Loader2,
-  ShieldX,
-  XCircle,
-  CalendarCheck,
-  RefreshCw,
-} from "lucide-react"
+import { ShieldX, CalendarCheck, RefreshCw } from "lucide-react"
 import { TablePagination } from "@/components/ui/pagination"
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_STYLES } from "@/lib/constants"
 
@@ -101,9 +84,6 @@ export default function AdminBookingsPage() {
     }, 400)
     return () => clearTimeout(timer)
   }, [search])
-  const [cancellingBooking, setCancellingBooking] =
-    useState<AdminBooking | null>(null)
-  const [cancellingLoading, setCancellingLoading] = useState(false)
   const limit = usePaginationLimit()
 
   const fetchBookings = useCallback(async () => {
@@ -131,27 +111,6 @@ export default function AdminBookingsPage() {
     const timer = setTimeout(() => fetchBookings(), 0)
     return () => clearTimeout(timer)
   }, [fetchBookings])
-
-  async function handleCancelBooking(bookingId: number) {
-    setCancellingLoading(true)
-    try {
-      await api(`/api/v1/manager/bookings/${bookingId}/cancel`, {
-        method: "POST",
-        body: JSON.stringify({
-          release_slot: true,
-          reason: "لغو رزرو توسط مدیر سامانه",
-        }),
-      })
-      toast.success("رزرو لغو شد")
-      setCancellingBooking(null)
-      fetchBookings()
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
-      toast.error(msg)
-    } finally {
-      setCancellingLoading(false)
-    }
-  }
 
   const totalPages = Math.ceil(total / limit)
 
@@ -215,26 +174,37 @@ export default function AdminBookingsPage() {
 
       {loading ? (
         <div>
-          <Table>
+          <Table className="min-w-285 table-fixed">
+            <colgroup>
+              <col className="w-44" />
+              <col className="w-36" />
+              <col className="w-52" />
+              <col className="w-28" />
+              <col className="w-24" />
+              <col className="w-36" />
+              <col className="w-36" />
+              <col className="w-28" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-44">کاربر</TableHead>
-                <TableHead className="w-28 text-right">شماره تماس</TableHead>
+                <TableHead>کاربر</TableHead>
+                <TableHead className="text-center">شماره تماس</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>روز</TableHead>
-                <TableHead>ساعت</TableHead>
-                <TableHead>مبلغ</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead className="text-right">عملیات</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
+                <TableHead className="text-center">روز</TableHead>
+                <TableHead className="text-center">ساعت</TableHead>
+                <TableHead className="text-center">مبلغ</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 9 }).map((_, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-20" />
+                  {Array.from({ length: 8 }).map((_, j) => (
+                    <TableCell key={j} className={j > 2 ? "text-center" : ""}>
+                      <Skeleton
+                        className={j > 2 ? "mx-auto h-4 w-20" : "h-4 w-20"}
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -256,18 +226,27 @@ export default function AdminBookingsPage() {
         </Card>
       ) : (
         <div>
-          <Table>
+          <Table className="min-w-285 table-fixed">
+            <colgroup>
+              <col className="w-44" />
+              <col className="w-36" />
+              <col className="w-52" />
+              <col className="w-28" />
+              <col className="w-24" />
+              <col className="w-36" />
+              <col className="w-36" />
+              <col className="w-28" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-44">کاربر</TableHead>
-                <TableHead className="w-36 text-right">شماره تماس</TableHead>
+                <TableHead>کاربر</TableHead>
+                <TableHead className="text-center">شماره تماس</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead className="w-24">تاریخ</TableHead>
-                <TableHead className="w-20">روز</TableHead>
-                <TableHead className="w-28">ساعت</TableHead>
-                <TableHead className="w-28">مبلغ</TableHead>
-                <TableHead className="w-20">وضعیت</TableHead>
-                <TableHead className="w-32 text-right">عملیات</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
+                <TableHead className="text-center">روز</TableHead>
+                <TableHead className="text-center">ساعت</TableHead>
+                <TableHead className="text-center">مبلغ</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,47 +255,34 @@ export default function AdminBookingsPage() {
                   <TableCell>
                     <span className="text-sm font-medium">{b.user_name}</span>
                   </TableCell>
-                  <TableCell
-                    dir="ltr"
-                    className="text-right text-sm text-muted-foreground"
-                  >
-                    {toPersianDigits(b.user_phone)}
+                  <TableCell className="text-center text-sm text-muted-foreground">
+                    <span dir="ltr" className="inline-block">
+                      {toPersianDigits(b.user_phone)}
+                    </span>
                   </TableCell>
-                  <TableCell className="max-w-48 truncate">
-                    {b.vendor_name}
-                  </TableCell>
-                  <TableCell>
+                  <TableCell className="truncate">{b.vendor_name}</TableCell>
+                  <TableCell className="text-center">
                     {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
                   </TableCell>
-                  <TableCell>
-                    {b.slot_start_time && b.slot_end_time
-                      ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
-                      : "-"}
+                  <TableCell className="text-center">
+                    <span dir="ltr" className="inline-block">
+                      {b.slot_start_time && b.slot_end_time
+                        ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
+                        : "-"}
+                    </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <span
                       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${BOOKING_STATUS_STYLES[b.status] || ""}`}
                     >
                       {BOOKING_STATUS_LABELS[b.status]?.label || b.status}
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    {b.status !== "cancelled" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCancellingBooking(b)}
-                      >
-                        <XCircle className="me-1 size-4" />
-                        لغو
-                      </Button>
-                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -329,42 +295,6 @@ export default function AdminBookingsPage() {
           />
         </div>
       )}
-
-      {/* Cancel dialog */}
-      <ResponsiveAlertDialog
-        open={!!cancellingBooking}
-        onOpenChange={(o) => {
-          if (!o) setCancellingBooking(null)
-        }}
-      >
-        <ResponsiveAlertDialogContent>
-          <ResponsiveAlertDialogHeader>
-            <ResponsiveAlertDialogTitle>لغو رزرو</ResponsiveAlertDialogTitle>
-            <ResponsiveAlertDialogDescription>
-              آیا از لغو رزرو {cancellingBooking?.vendor_name} توسط{" "}
-              {cancellingBooking?.user_name} مطمئن هستید؟
-            </ResponsiveAlertDialogDescription>
-          </ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogFooter>
-            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
-            <ResponsiveAlertDialogAction
-              variant="destructive"
-              disabled={cancellingLoading}
-              onClick={() =>
-                cancellingBooking && handleCancelBooking(cancellingBooking.id)
-              }
-            >
-              {cancellingLoading ? (
-                <>
-                  <Loader2 className="me-1 size-4 animate-spin" /> در حال لغو...
-                </>
-              ) : (
-                "تأیید لغو"
-              )}
-            </ResponsiveAlertDialogAction>
-          </ResponsiveAlertDialogFooter>
-        </ResponsiveAlertDialogContent>
-      </ResponsiveAlertDialog>
     </div>
   )
 }

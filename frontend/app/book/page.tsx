@@ -8,6 +8,7 @@ import { toast } from "@/lib/toast"
 import { useAuth } from "@/hooks/use-auth"
 import { getCookie } from "@/lib/cookies"
 import { isSlotBookable } from "@/components/vendors/vendor-shared"
+import { BookingBallOption } from "@/components/bookings/booking-ball-option"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -85,7 +86,7 @@ function formatDate(iso: string): string {
 function BookPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
 
   const slotId = Number(searchParams.get("slot_id"))
   const vendorId = Number(searchParams.get("vendor_id"))
@@ -116,6 +117,15 @@ function BookPageContent() {
       `/login?reason=login_required&redirect=${encodeURIComponent(`/book?slot_id=${slotId}&vendor_id=${vendorId}`)}`
     )
   }, [authLoading, isAuthenticated, router, slotId, vendorId])
+
+  useEffect(() => {
+    if (authLoading || !user || user.role !== "user" || user.phone_verified_at)
+      return
+    const redirect = `/book?slot_id=${slotId}&vendor_id=${vendorId}`
+    router.replace(
+      `/otp?reason=phone_verification_required&phone=${encodeURIComponent(user.phone)}&redirect=${encodeURIComponent(redirect)}`
+    )
+  }, [authLoading, router, slotId, user, vendorId])
 
   // Fetch slot + vendor details
   useEffect(() => {
@@ -281,27 +291,13 @@ function BookPageContent() {
                       {formatPrice(slot.base_price)}
                     </span>
                   </div>
-                  {slot.ball_available && (
-                    <button
-                      type="button"
-                      onClick={() => setWithBall((current) => !current)}
-                      className={`flex w-full items-center justify-between rounded-lg border p-3 text-right transition-colors ${
-                        withBall
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40"
-                      }`}
-                    >
-                      <span>
-                        <span className="block font-medium">رزرو توپ</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatPrice(slot.ball_price)}
-                        </span>
-                      </span>
-                      <Badge variant={withBall ? "default" : "outline"}>
-                        {withBall ? "انتخاب شد" : "اختیاری"}
-                      </Badge>
-                    </button>
-                  )}
+                  <BookingBallOption
+                    available={slot.ball_available}
+                    price={slot.ball_price}
+                    selected={withBall}
+                    onToggle={() => setWithBall((current) => !current)}
+                    formatPrice={formatPrice}
+                  />
                   <div className="flex items-center justify-between border-t pt-3">
                     <span className="text-muted-foreground">مبلغ نهایی</span>
                     <span className="text-lg font-bold text-primary">

@@ -158,6 +158,47 @@ async def test_template_uses_latest_saved_version_after_apply(
     )
 
 
+async def test_schedule_editor_does_not_change_vendor_ball_settings(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+    configured = await client.patch(
+        f"/api/v1/vendors/{vendor_id}",
+        json={"ball_available": True, "ball_price": 75_000},
+        headers=headers,
+    )
+    assert configured.status_code == 200, configured.text
+    payload = _payload(effective)
+    # Stale clients may still send these old schedule fields. They must not
+    # overwrite configuration owned by the vendor details form.
+    payload.update({"ball_available": False, "ball_price": 0})
+
+    applied = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=payload,
+        headers=headers,
+    )
+    assert applied.status_code == 200, applied.text
+
+    template = await client.get(
+        f"/api/v1/vendors/{vendor_id}/slots/weekly-schedule-template",
+        headers=headers,
+    )
+    assert template.status_code == 200
+    assert template.json()["ball_available"] is True
+    assert Decimal(template.json()["ball_price"]) == Decimal("75000")
+    row = (
+        await session.execute(
+            text("SELECT ball_available, ball_price FROM vendors WHERE id = :id"),
+            {"id": vendor_id},
+        )
+    ).one()
+    assert row.ball_available is True
+    assert Decimal(row.ball_price) == Decimal("75000")
+
+
 async def test_creates_weekly_slots_for_six_months_without_duplicates(
     client: AsyncClient, session: AsyncSession, manager_token: dict
 ) -> None:

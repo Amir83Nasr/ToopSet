@@ -129,6 +129,23 @@ async def _cancel_expired_pending():
         await asyncio.sleep(60)
 
 
+async def _expire_replacement_work_periodically():
+    """Release expired replacement holds and restore the original reservation."""
+    while True:
+        try:
+            async with async_session_factory() as db:
+                from app.services.replacement_service import expire_replacement_work
+
+                result = await expire_replacement_work(db, now_utc())
+                if result["expired_requests"] or result["expired_holds"]:
+                    await db.commit()
+        except Exception:
+            import logging
+
+            logging.exception("_expire_replacement_work_periodically failed")
+        await asyncio.sleep(60)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -199,9 +216,11 @@ async def lifespan(app: FastAPI):
 
     metrics_task = asyncio.create_task(_refresh_metrics_periodically())
     cancel_task = asyncio.create_task(_cancel_expired_pending())
+    replacement_task = asyncio.create_task(_expire_replacement_work_periodically())
     yield
     metrics_task.cancel()
     cancel_task.cancel()
+    replacement_task.cancel()
     await close_redis()
     await engine.dispose()
 

@@ -9,10 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.timezone import now_utc
 from app.models.booking import BookingSource, BookingStatus, SettlementStatus
+from app.models.payment import PaymentStatus
 from app.models.refund import Refund, RefundType
 from app.models.replacement import (
     BookingHold,
@@ -125,6 +127,77 @@ class BookingService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
             )
         return booking
+
+    async def _ensure_single_live_checkout(self) -> None:
+        """Serialize checkout creation per user and reject a second live hold."""
+        await self.db.execute(select(User).where(User.id == self.current_user.id).with_for_update())
+        pending = await self.booking_repo.get_pending_payment_by_user(
+            self.current_user.id, for_update=True
+        )
+        if pending:
+            if pending.expires_at and pending.expires_at <= now_utc():
+                await self.booking_repo.update(
+                    pending,
+                    {
+                        "status": BookingStatus.EXPIRED,
+                        "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                    },
+                )
+                old_slot = await self.slot_repo.get_by_id(pending.slot_id, for_update=True)
+                if old_slot and old_slot.status == SlotStatus.RESERVING:
+                    await self.slot_repo.update(
+                        old_slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                    )
+                    await invalidate_slot_list(old_slot.vendor_id)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "code": "pending_booking_limit_reached",
+                        "message": "یک رزرو قبلاً در انتظار پرداخت دارید؛ ابتدا آن را پرداخت یا لغو کنید",
+                        "booking_id": pending.id,
+                        "expires_at": pending.expires_at.isoformat()
+                        if pending.expires_at
+                        else None,
+                    },
+                )
+
+        hold = await self.replacement_repo.get_live_hold_for_user(
+            self.current_user.id, for_update=True
+        )
+        if hold:
+            if hold.expires_at <= now_utc() and hold.status == BookingHoldStatus.ACTIVE:
+                request = await self.replacement_repo.get_request(
+                    hold.replacement_request_id, for_update=True
+                )
+                await self.replacement_repo.update_hold(
+                    hold,
+                    {
+                        "status": BookingHoldStatus.EXPIRED,
+                        "processing_token": None,
+                        "failure_code": "hold_expired",
+                    },
+                )
+                if request and request.deadline > now_utc():
+                    await self.replacement_repo.update_request(
+                        request, {"status": ReplacementRequestStatus.OPEN}
+                    )
+                    if hold.slot.status == SlotStatus.RESERVING:
+                        await self.slot_repo.update(
+                            hold.slot,
+                            {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
+                        )
+                        await invalidate_slot_list(hold.slot.vendor_id)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "code": "pending_booking_limit_reached",
+                        "message": "ابتدا فرایند رزرو قبلی را پرداخت یا لغو کنید",
+                        "hold_id": hold.id,
+                        "expires_at": hold.expires_at.isoformat(),
+                    },
+                )
 
     async def get_cancellation_terms(self, booking_id: int) -> BookingCancellationTermsResponse:
         booking = await self._get_owned_booking_for_cancel(booking_id)
@@ -395,6 +468,19 @@ class BookingService:
         )
 
     async def create_booking(self, data: BookingCreate) -> BookingCreateResponse:
+        if (
+            self.current_user.role == "user"
+            and not settings.is_development_or_bootstrap
+            and not self.current_user.phone_verified_at
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "phone_verification_required",
+                    "message": "برای رزرو سانس ابتدا شماره موبایل خود را با کد پیامکی تأیید کنید",
+                },
+            )
+        await self._ensure_single_live_checkout()
         slot = await self.slot_repo.get_by_id(data.slot_id, for_update=True)
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
@@ -694,48 +780,121 @@ class BookingService:
             )
         vendor = slot.vendor
 
-        # Process mock payment
+        latest_payment = await self.payment_repo.get_by_booking(booking_id)
+        if latest_payment and latest_payment.status == PaymentStatus.PENDING:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="نتیجه پرداخت قبلی هنوز مشخص نشده است؛ برای جلوگیری از برداشت تکراری دوباره پرداخت نکنید",
+            )
+
+        # Persist a unique processing attempt and release database locks before
+        # calling the external gateway. A timeout remains pending for manual or
+        # provider-driven reconciliation and cannot be charged a second time.
+        processing_token = uuid4().hex
+        payment = await self.payment_repo.create(
+            {
+                "booking_id": booking_id,
+                "amount": booking.price_paid,
+                "status": "pending",
+                "idempotency_key": f"booking:{booking_id}:{processing_token}",
+                "processing_token": processing_token,
+            }
+        )
+        payment_id = payment.id
+        await self.db.commit()
+
         payment_service = PaymentService()
         try:
             result = await payment_service.process_payment(float(booking.price_paid))
         except InsufficientFundsError:
-            await self._record_failed_payment(
-                booking_id, float(booking.price_paid), "موجودی ناکافی"
-            )
+            payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+            if payment and payment.processing_token == processing_token:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "status": "failed",
+                        "processing_token": None,
+                        "failure_code": "insufficient_funds",
+                    },
+                )
+                await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="موجودی حساب کافی نیست. لطفاً از کارت دیگری استفاده کنید.",
             )
         except GatewayTimeoutError:
-            await self._record_failed_payment(
-                booking_id, float(booking.price_paid), "خطای درگاه پرداخت"
-            )
+            payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+            if payment and payment.processing_token == processing_token:
+                await self.payment_repo.update(
+                    payment, {"failure_code": "gateway_timeout_uncertain"}
+                )
+                await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="درگاه پرداخت پاسخگو نیست. لطفاً مجدداً تلاش کنید.",
+                detail="وضعیت پرداخت از درگاه مشخص نیست؛ برای جلوگیری از برداشت تکراری دوباره پرداخت نکنید",
             )
         except FraudDetectionError:
-            await self._record_failed_payment(
-                booking_id, float(booking.price_paid), "مسدود شدن توسط سیستم امنیتی"
-            )
+            payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+            if payment and payment.processing_token == processing_token:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "status": "failed",
+                        "processing_token": None,
+                        "failure_code": "fraud_detected",
+                    },
+                )
+                await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="تراکنش توسط سیستم امنیتی مسدود شد. لطفاً با پشتیبانی تماس بگیرید.",
             )
-        except PaymentError:
-            # Generic / unknown failure
-            await self._record_failed_payment(
-                booking_id, float(booking.price_paid), "خطای ناشناخته"
-            )
+        except PaymentError as exc:
+            payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+            if payment and payment.processing_token == processing_token:
+                await self.payment_repo.update(
+                    payment,
+                    {"status": "failed", "processing_token": None, "failure_code": exc.code},
+                )
+                await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="پرداخت ناموفق بود. لطفاً مجدداً تلاش کنید.",
             )
 
-        payment = await self.payment_repo.create(
+        booking = await self.booking_repo.get_by_id(booking_id, for_update=True)
+        payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+        if (
+            not booking
+            or not payment
+            or payment.processing_token != processing_token
+            or booking.status != BookingStatus.PENDING_PAYMENT
+        ):
+            if payment and payment.processing_token == processing_token:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "status": "success",
+                        "processing_token": None,
+                        "failure_code": "paid_but_booking_conflicted",
+                        "gateway_transaction_id": result.transaction_id,
+                        "gateway_name": result.gateway_name,
+                        "card_number": result.card_number,
+                        "ref_id": result.ref_id,
+                        "gateway_fee": result.fee,
+                        "paid_at": result.paid_at,
+                    },
+                )
+            await self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="پرداخت ثبت شد اما نهایی‌سازی رزرو نیازمند بررسی پشتیبانی است",
+            )
+        slot = booking.slot
+        vendor = slot.vendor if slot else None
+        payment = await self.payment_repo.update(
+            payment,
             {
-                "booking_id": booking_id,
-                "amount": float(booking.price_paid),
                 "gateway_transaction_id": result.transaction_id,
                 "gateway_name": result.gateway_name,
                 "card_number": result.card_number,
@@ -743,7 +902,9 @@ class BookingService:
                 "gateway_fee": result.fee,
                 "paid_at": result.paid_at,
                 "status": "success",
-            }
+                "processing_token": None,
+                "failure_code": None,
+            },
         )
 
         if is_replacement:
@@ -1321,6 +1482,19 @@ class BookingService:
 
         now = now_utc()
         time_until_slot = slot.start_time - now
+        actual_mode = (
+            "pending_replacement"
+            if time_until_slot <= timedelta(hours=48)
+            else "refund_with_penalty"
+        )
+        if data.expected_mode and data.expected_mode != actual_mode:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "cancellation_terms_changed",
+                    "message": "شرایط لغو به دلیل نزدیک‌شدن زمان سانس تغییر کرده است؛ لطفاً دوباره بررسی کنید",
+                },
+            )
 
         if not data.accepted_terms:
             raise HTTPException(
@@ -1458,6 +1632,70 @@ class BookingService:
             slot_end_time=slot.end_time if slot else None,
             payment=PaymentResponse.model_validate(payment) if payment else None,
         )
+
+    async def withdraw_cancellation(self, booking_id: int) -> BookingDetailResponse:
+        """Return a pending-cancellation booking to its original owner."""
+        booking = await self._get_owned_booking_for_cancel(booking_id)
+        if booking.status != BookingStatus.PENDING_CANCELLATION:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="این رزرو در وضعیت انتظار برای لغو نیست",
+            )
+        slot = booking.slot
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if slot.start_time <= now_utc():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="پس از شروع سانس امکان انصراف از لغو وجود ندارد",
+            )
+
+        # The slot row serializes this transition with a new replacement hold.
+        slot = await self.slot_repo.get_by_id(slot.id, for_update=True)
+        booking = await self._get_owned_booking_for_cancel(booking_id, for_update=True)
+        if booking.status != BookingStatus.PENDING_CANCELLATION:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="وضعیت رزرو تغییر کرده است؛ لطفاً صفحه را به‌روز کنید",
+            )
+        request = await self.replacement_repo.get_request_by_original(booking.id, for_update=True)
+        if not request:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="درخواست جایگزینی این رزرو یافت نشد",
+            )
+        if request.status == ReplacementRequestStatus.HELD:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="کاربر جایگزین در حال تکمیل رزرو است؛ فعلاً امکان انصراف وجود ندارد",
+            )
+        if request.status != ReplacementRequestStatus.OPEN:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="درخواست جایگزینی دیگر قابل پس‌گرفتن نیست",
+            )
+
+        await self.replacement_repo.update_request(
+            request, {"status": ReplacementRequestStatus.REVOKED}
+        )
+        await self.booking_repo.update(
+            booking, {"status": BookingStatus.CONFIRMED, "penalty_amount": None}
+        )
+        if slot:
+            await self.slot_repo.update(slot, {"status": SlotStatus.RESERVED, "is_reserved": True})
+            await invalidate_slot_list(slot.vendor_id)
+        await self.notify_repo.create(
+            user_id=booking.user_id,
+            type_="cancellation_withdrawn",
+            message="درخواست لغو پس گرفته شد و سانس دوباره برای شما قطعی است.",
+        )
+        await log_action(
+            self.db,
+            self.current_user.id,
+            "booking_cancellation_withdrawn",
+            f"انصراف از لغو رزرو | رزرو {booking.id}",
+        )
+        return await self.get_booking(booking.id)
 
     async def list_all_bookings(
         self,

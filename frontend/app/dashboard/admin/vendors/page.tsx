@@ -253,15 +253,26 @@ export default function AdminPendingVendorsPage() {
           <div className="flex min-h-0 flex-1 flex-col gap-6">
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
-                <Table tableWrapperClassName="overflow-visible rounded-none border-0">
+                <Table
+                  className="min-w-270 table-fixed"
+                  tableWrapperClassName="overflow-visible rounded-none border-0"
+                >
+                  <colgroup>
+                    <col className="w-52" />
+                    <col className="w-40" />
+                    <col className="w-48" />
+                    <col className="w-24" />
+                    <col className="w-28" />
+                    <col className="w-60" />
+                  </colgroup>
                   <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
                       <TableHead>نام مجموعه</TableHead>
-                      <TableHead className="w-36">مدیر</TableHead>
-                      <TableHead className="w-40">ورزش‌ها</TableHead>
-                      <TableHead className="w-16">ظرفیت</TableHead>
-                      <TableHead className="w-24">تاریخ ثبت</TableHead>
-                      <TableHead className="w-44">عملیات</TableHead>
+                      <TableHead>مدیر</TableHead>
+                      <TableHead>ورزش‌ها</TableHead>
+                      <TableHead className="text-center">ظرفیت</TableHead>
+                      <TableHead className="text-center">تاریخ ثبت</TableHead>
+                      <TableHead className="text-center">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -280,7 +291,7 @@ export default function AdminPendingVendorsPage() {
                           </div>
                         </TableCell>
                         <TableCell>{vendor.manager_name}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <div className="flex flex-wrap gap-1">
                             {vendor.sport_types.map((sport) => (
                               <Badge
@@ -296,13 +307,16 @@ export default function AdminPendingVendorsPage() {
                         <TableCell>
                           {formatPersianNumber(vendor.capacity)}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell className="text-center text-muted-foreground">
                           {vendor.created_at
                             ? formatDate(vendor.created_at)
                             : "-"}
                         </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <div className="flex gap-2">
+                        <TableCell
+                          className="text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-center gap-2">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

@@ -176,6 +176,8 @@ class WeeklyScheduleTemplateResponse(BaseModel):
     effective_until: date | None = None
     minimum_effective_date: date
     last_online_booking_date: date | None = None
+    ball_available: bool = False
+    ball_price: Decimal = Decimal("0")
     items: list[WeeklyScheduleItem] = Field(default_factory=list)
 
 

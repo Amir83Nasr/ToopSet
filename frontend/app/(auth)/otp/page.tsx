@@ -26,6 +26,8 @@ function OtpPageContent() {
   const reasonMessages: Record<string, string> = {
     session_expired: "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",
     login_required: "برای دسترسی به این بخش باید وارد شوید.",
+    phone_verification_required:
+      "برای رزرو سانس، شماره موبایل خود را با کد پیامکی تأیید کنید.",
   }
   const reasonMessage = reason ? reasonMessages[reason] : null
 

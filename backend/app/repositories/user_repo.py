@@ -1,6 +1,7 @@
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.timezone import now_utc
 from app.models.user import User, UserRole
 
 # Placeholder hash for OTP-only users (no password-based login)
@@ -20,13 +21,19 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def create(
-        self, phone: str, password_hash: str, full_name: str, role: str = "user"
+        self,
+        phone: str,
+        password_hash: str,
+        full_name: str,
+        role: str = "user",
+        phone_verified_at=None,
     ) -> User:
         user = User(
             phone=phone,
             password_hash=password_hash,
             full_name=full_name,
             role=UserRole(role),
+            phone_verified_at=phone_verified_at,
         )
         self.db.add(user)
         await self.db.flush()
@@ -97,6 +104,7 @@ class UserRepository:
             password_hash=OTP_PLACEHOLDER_HASH,
             full_name=full_name,
             role=UserRole(role),
+            phone_verified_at=now_utc(),
         )
         self.db.add(user)
         await self.db.flush()

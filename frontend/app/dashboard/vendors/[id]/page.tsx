@@ -98,6 +98,8 @@ export default function DashboardVendorEditPage() {
       longitude: undefined,
       capacity: 10,
       amenities: {},
+      ball_available: false,
+      ball_price: 0,
     },
   })
   const watchSportTypes =
@@ -154,8 +156,11 @@ export default function DashboardVendorEditPage() {
         longitude: vendorRes.longitude,
         capacity: vendorRes.capacity,
         amenities: vendorRes.amenities || {},
+        ball_available: vendorRes.ball_available,
+        ball_price: vendorRes.ball_available ? vendorRes.ball_price : 0,
       })
       setVendorImages(vendorRes.images || [])
+      setImageTempIds(Array(vendorRes.images?.length || 0).fill(""))
       api<{ slots: TimeSlot[]; total: number }>(
         `/api/v1/vendors/${vendorId}/slots?limit=500`
       )
@@ -230,7 +235,7 @@ export default function DashboardVendorEditPage() {
         body: JSON.stringify({
           ...data,
           images: vendorImages,
-          temp_ids: imageTempIds,
+          temp_ids: imageTempIds.filter(Boolean),
         }),
       })
       toast.success("تغییرات با موفقیت ذخیره شد")

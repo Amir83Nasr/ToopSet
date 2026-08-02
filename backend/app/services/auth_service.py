@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.logger import log_action
 from app.core.phone import normalize_phone
 from app.core.security import (
@@ -15,6 +16,7 @@ from app.core.security import (
     tokens_for_user,
     verify_password,
 )
+from app.core.timezone import now_utc
 from app.models.user import User
 from app.repositories.refresh_token_repo import RefreshTokenRepo
 from app.repositories.user_repo import OTP_PLACEHOLDER_HASH, UserRepository
@@ -64,7 +66,12 @@ class AuthService:
             )
 
         password_hash = hash_password(password)
-        user = await self.repo.create(phone=phone, password_hash=password_hash, full_name=full_name)
+        user = await self.repo.create(
+            phone=phone,
+            password_hash=password_hash,
+            full_name=full_name,
+            phone_verified_at=now_utc() if settings.is_development_or_bootstrap else None,
+        )
 
         access_token, refresh_token = tokens_for_user(user.id, user.role, user.token_version)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, time
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -11,6 +12,7 @@ from app.core.database import get_db
 from app.core.date_utils import parse_date_filter, parse_date_filter_end
 from app.core.pagination import decode_cursor
 from app.core.redis_client import get_redis
+from app.core.timezone import iran_to_utc, now_iran, now_utc
 from app.core.upload import delete_upload
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
@@ -45,6 +47,7 @@ async def list_vendors(
     is_active: bool | None = None,
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
+    available_today: bool = Query(False),
     price_min: float | None = None,
     price_max: float | None = None,
     ref_lat: float | None = None,
@@ -78,6 +81,7 @@ async def list_vendors(
         "is_active": is_active,
         "date_from": date_from,
         "date_to": date_to,
+        "available_today": available_today,
         "price_min": price_min,
         "price_max": price_max,
         "ref_lat": ref_lat,
@@ -96,6 +100,12 @@ async def list_vendors(
 
     effective_sport_types = sport_types or ([sport_type] if sport_type else None)
 
+    effective_date_from = parse_date_filter(date_from) if date_from else None
+    effective_date_to = parse_date_filter_end(date_to) if date_to else None
+    if available_today:
+        effective_date_from = now_utc()
+        effective_date_to = iran_to_utc(datetime.combine(now_iran().date(), time.max))
+
     result = await service.list_vendors(
         after_id=cursor_id,
         skip=skip,
@@ -103,8 +113,8 @@ async def list_vendors(
         sport_types=effective_sport_types,
         search=search,
         is_active=is_active,
-        date_from=parse_date_filter(date_from) if date_from else None,
-        date_to=parse_date_filter_end(date_to) if date_to else None,
+        date_from=effective_date_from,
+        date_to=effective_date_to,
         price_min=price_min,
         price_max=price_max,
         ref_lat=ref_lat,

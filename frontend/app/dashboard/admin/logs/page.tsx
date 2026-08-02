@@ -376,23 +376,42 @@ export default function AdminLogsPage() {
 
       {loading ? (
         <div>
-          <Table>
+          <Table className="min-w-270 table-fixed">
+            <colgroup>
+              <col className="w-28" />
+              <col className="w-24" />
+              <col className="w-40" />
+              <col className="w-44" />
+              <col className="w-72" />
+              <col className="w-20" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">تاریخ</TableHead>
-                <TableHead className="text-right">ساعت</TableHead>
-                <TableHead className="text-right">کاربر</TableHead>
-                <TableHead className="text-right">عملیات</TableHead>
-                <TableHead className="text-right">جزئیات</TableHead>
-                <TableHead className="text-right">عملیات</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
+                <TableHead className="text-center">ساعت</TableHead>
+                <TableHead>کاربر</TableHead>
+                <TableHead className="text-center">رویداد</TableHead>
+                <TableHead>جزئیات</TableHead>
+                <TableHead className="text-center">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 6 }).map((_, j) => (
-                    <TableCell key={j} className="text-right">
-                      <Skeleton className="h-4 w-24" />
+                    <TableCell
+                      key={j}
+                      className={
+                        j < 2 || j === 3 || j === 5 ? "text-center" : ""
+                      }
+                    >
+                      <Skeleton
+                        className={
+                          j < 2 || j === 3 || j === 5
+                            ? "mx-auto h-4 w-24"
+                            : "h-4 w-24"
+                        }
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -419,42 +438,49 @@ export default function AdminLogsPage() {
       ) : (
         <div className="overflow-hidden">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-270 table-fixed">
+              <colgroup>
+                <col className="w-28" />
+                <col className="w-24" />
+                <col className="w-40" />
+                <col className="w-44" />
+                <col className="w-72" />
+                <col className="w-20" />
+              </colgroup>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24 text-right">تاریخ</TableHead>
-                  <TableHead className="w-20 text-right">ساعت</TableHead>
-                  <TableHead className="w-32 text-right">کاربر</TableHead>
-                  <TableHead className="w-36 text-right">عملیات</TableHead>
-                  <TableHead className="text-right">جزئیات</TableHead>
-                  <TableHead className="w-16 text-right">عملیات</TableHead>
+                  <TableHead className="text-center">تاریخ</TableHead>
+                  <TableHead className="text-center">ساعت</TableHead>
+                  <TableHead>کاربر</TableHead>
+                  <TableHead className="text-center">رویداد</TableHead>
+                  <TableHead>جزئیات</TableHead>
+                  <TableHead className="text-center">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground">
+                    <TableCell className="text-center text-sm whitespace-nowrap text-muted-foreground">
                       {formatDate(log.created_at)}
                     </TableCell>
-                    <TableCell
-                      className="text-right text-sm whitespace-nowrap text-muted-foreground"
-                      dir="ltr"
-                    >
-                      {formatTime(log.created_at)}
+                    <TableCell className="text-center text-sm whitespace-nowrap text-muted-foreground">
+                      <span dir="ltr" className="inline-block">
+                        {formatTime(log.created_at)}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       {log.user_name ||
                         (log.user_id ? toPersianDigits(log.user_id) : "سیستم")}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                         {actionLabels[log.action] || log.action}
                       </span>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate text-right text-sm text-muted-foreground">
+                    <TableCell className="truncate text-sm text-muted-foreground">
                       {log.details ? toPersianDigits(log.details) : "-"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button

@@ -11,37 +11,45 @@ import {
 export function NotificationTableSkeleton() {
   return (
     <div>
-      <Table>
+      <Table className="min-w-220 table-fixed">
+        <colgroup>
+          <col className="w-32" />
+          <col className="w-72" />
+          <col className="w-28" />
+          <col className="w-24" />
+          <col className="w-28" />
+          <col className="w-20" />
+        </colgroup>
         <TableHeader>
           <TableRow>
-            <TableHead>نوع</TableHead>
+            <TableHead className="text-center">نوع</TableHead>
             <TableHead>پیام</TableHead>
-            <TableHead>تاریخ</TableHead>
-            <TableHead>ساعت</TableHead>
-            <TableHead>وضعیت</TableHead>
-            <TableHead className="text-right">عملیات</TableHead>
+            <TableHead className="text-center">تاریخ</TableHead>
+            <TableHead className="text-center">ساعت</TableHead>
+            <TableHead className="text-center">وضعیت</TableHead>
+            <TableHead className="text-center">عملیات</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {Array.from({ length: 5 }).map((_, i) => (
             <TableRow key={i}>
               <TableCell>
-                <Skeleton className="h-4 w-20" />
+                <Skeleton className="mx-auto h-4 w-20" />
               </TableCell>
               <TableCell>
                 <Skeleton className="h-4 w-60" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-4 w-20" />
+                <Skeleton className="mx-auto h-4 w-20" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-4 w-14" />
+                <Skeleton className="mx-auto h-4 w-14" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="mx-auto h-5 w-16 rounded-full" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-8 w-16 rounded-md" />
+                <Skeleton className="mx-auto h-8 w-16 rounded-md" />
               </TableCell>
             </TableRow>
           ))}

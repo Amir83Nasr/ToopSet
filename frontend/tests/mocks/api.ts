@@ -6,12 +6,14 @@ const mocks = vi.hoisted(() => ({
   mockSetTokens: vi.fn(),
   mockClearTokens: vi.fn(),
   mockGetCookie: vi.fn(),
+  mockUploadFile: vi.fn(),
 }))
 
 export const mockApi = mocks.mockApi
 export const mockSetTokens = mocks.mockSetTokens
 export const mockClearTokens = mocks.mockClearTokens
 export const mockGetCookie = mocks.mockGetCookie
+export const mockUploadFile = mocks.mockUploadFile
 
 export class ApiError extends Error {
   status: number
@@ -29,4 +31,6 @@ vi.mock("@/lib/api", () => ({
   clearTokens: mocks.mockClearTokens,
   getCookie: mocks.mockGetCookie,
   buildAvatarUrl: (url?: string | null) => url ?? null,
+  buildVendorImageUrl: (url?: string | null) => url ?? "",
+  uploadFile: mocks.mockUploadFile,
 }))

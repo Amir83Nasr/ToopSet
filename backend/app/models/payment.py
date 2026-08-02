@@ -34,6 +34,12 @@ class Payment(Base):
             unique=True,
             postgresql_where=text("gateway_transaction_id IS NOT NULL"),
         ),
+        Index(
+            "uq_payments_idempotency_key",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("idempotency_key IS NOT NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -46,6 +52,9 @@ class Payment(Base):
     card_number: Mapped[str | None] = mapped_column(String(32), default=None)
     ref_id: Mapped[str | None] = mapped_column(String(64), default=None)
     gateway_fee: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    processing_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     paid_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None, nullable=True
     )

@@ -14,7 +14,7 @@ from app.core.logger import log_action
 from app.core.redis_client import get_redis
 from app.core.upload import delete_upload as delete_file
 from app.models.booking import Booking
-from app.models.time_slot import TimeSlot
+from app.models.time_slot import SlotGender, TimeSlot
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
@@ -105,14 +105,23 @@ class VendorService:
             ref_lon=ref_lon,
             max_distance_km=max_distance_km,
         )
-        prices = await self.repo.get_min_prices([c.id for c in vendors])
+        vendor_ids = [vendor.id for vendor in vendors]
+        prices = await self.repo.get_min_prices(vendor_ids)
+        slot_genders = await self.repo.get_upcoming_slot_genders(vendor_ids)
         next_cursor = None
         if vendors and len(vendors) == limit:
             from app.core.pagination import encode_cursor
 
             next_cursor = encode_cursor(vendors[-1].id)
         return VendorListResponse(
-            vendors=[self._to_response(c, min_price=prices.get(c.id)) for c in vendors],
+            vendors=[
+                self._to_response(
+                    vendor,
+                    min_price=prices.get(vendor.id),
+                    slot_genders=slot_genders.get(vendor.id, []),
+                )
+                for vendor in vendors
+            ],
             total=total,
             next_cursor=next_cursor,
         )
@@ -128,7 +137,12 @@ class VendorService:
         if not vendor.is_active and not can_view_inactive:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         prices = await self.repo.get_min_prices([vendor_id])
-        return self._to_response(vendor, min_price=prices.get(vendor_id))
+        slot_genders = await self.repo.get_upcoming_slot_genders([vendor_id])
+        return self._to_response(
+            vendor,
+            min_price=prices.get(vendor_id),
+            slot_genders=slot_genders.get(vendor_id, []),
+        )
 
     async def create_vendor(self, data: VendorCreate) -> VendorResponse:
         if self.current_user.role != "manager":
@@ -188,8 +202,15 @@ class VendorService:
             exclude_none=True,
             exclude={"images", "temp_ids", "image_ids_to_remove"},
         )
-        if update_data.get("ball_available") is False:
+        ball_available = update_data.get("ball_available", vendor.ball_available)
+        ball_price = update_data.get("ball_price", vendor.ball_price)
+        if not ball_available:
             update_data["ball_price"] = Decimal("0")
+        elif ball_price is None or Decimal(str(ball_price)) <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="برای مجموعه دارای توپ، هزینه توپ باید بیشتر از صفر باشد",
+            )
         if self.current_user.role != "admin" and "is_active" in update_data:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -324,8 +345,15 @@ class VendorService:
         prices = await self.repo.get_min_prices([vendor_id])
         return self._to_response(updated, min_price=prices.get(vendor_id))
 
-    def _to_response(self, vendor: Vendor, min_price: Decimal | None = None) -> VendorResponse:
+    def _to_response(
+        self,
+        vendor: Vendor,
+        min_price: Decimal | None = None,
+        slot_genders: list[SlotGender] | None = None,
+    ) -> VendorResponse:
         resp = VendorResponse.model_validate(vendor)
+        if slot_genders is not None:
+            resp.slot_genders = slot_genders
         if min_price is not None:
             resp.base_price = min_price
         if vendor.manager:
@@ -334,6 +362,7 @@ class VendorService:
         if vendor.vendor_images:
             ordered = sorted(vendor.vendor_images, key=lambda x: x.order)
             resp.images = [img.url for img in ordered]
+            resp.main_image = ordered[0].url
             resp.vendor_images = [VendorImageResponse.model_validate(img) for img in ordered]
         return resp
 

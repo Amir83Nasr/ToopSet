@@ -98,7 +98,7 @@ interface MobileNavPanelProps {
   onOpenChange: (open: boolean) => void
   user: User | null
   isAuthenticated: boolean
-  onLogout: () => void
+  onLogout: () => void | Promise<void>
 }
 
 export function MobileNavPanel({
@@ -110,6 +110,7 @@ export function MobileNavPanel({
 }: MobileNavPanelProps) {
   const pathname = usePathname()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [registerComplexDialogOpen, setRegisterComplexDialogOpen] =
     useState(false)
 
@@ -274,7 +275,10 @@ export function MobileNavPanel({
             {isAuthenticated && user ? (
               <Button
                 variant="destructive"
-                onClick={() => setLogoutDialogOpen(true)}
+                onClick={() => {
+                  closeMobile()
+                  window.setTimeout(() => setLogoutDialogOpen(true), 550)
+                }}
                 className="w-full"
               >
                 <LogOut className="me-2 size-4" />
@@ -311,13 +315,18 @@ export function MobileNavPanel({
             <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
             <ResponsiveAlertDialogAction
               variant="destructive"
-              onClick={() => {
-                onLogout()
-                setLogoutDialogOpen(false)
-                closeMobile()
+              disabled={loggingOut}
+              onClick={async () => {
+                setLoggingOut(true)
+                try {
+                  await onLogout()
+                  setLogoutDialogOpen(false)
+                } finally {
+                  setLoggingOut(false)
+                }
               }}
             >
-              خروج
+              {loggingOut ? "در حال خروج..." : "خروج"}
             </ResponsiveAlertDialogAction>
           </ResponsiveAlertDialogFooter>
         </ResponsiveAlertDialogContent>

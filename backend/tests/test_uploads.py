@@ -119,6 +119,7 @@ class TestUploadVendorImage:
         accepted = await client.post("/api/v1/vendors", json=vendor_body, headers=owner_headers)
         assert accepted.status_code == 201, accepted.text
         assert accepted.json()["images"][0].startswith("/uploads/vendors/")
+        assert accepted.json()["main_image"] == accepted.json()["images"][0]
 
 
 async def test_delete_upload_rejects_directory_traversal(

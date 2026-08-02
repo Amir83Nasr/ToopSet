@@ -11,7 +11,7 @@ import {
 } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ImagePlus, Loader2, Trash2 } from "lucide-react"
+import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react"
 
 interface ImageUploadProps {
   images: string[]
@@ -72,6 +72,21 @@ export function ImageUpload({
     [images, onChange, tempIds, onTempIdsChange]
   )
 
+  const setMainImage = useCallback(
+    (index: number) => {
+      if (index === 0) return
+      const nextImages = [...images]
+      const [selectedImage] = nextImages.splice(index, 1)
+      onChange([selectedImage, ...nextImages])
+      if (onTempIdsChange && tempIds?.length === images.length) {
+        const nextTempIds = [...tempIds]
+        const [selectedTempId] = nextTempIds.splice(index, 1)
+        onTempIdsChange([selectedTempId, ...nextTempIds])
+      }
+    },
+    [images, onChange, tempIds, onTempIdsChange]
+  )
+
   const canUpload = images.length < maxImages
 
   return (
@@ -102,14 +117,31 @@ export function ImageUpload({
                   }}
                 />
               )}
+              {index === 0 ? (
+                <span className="absolute inset-x-1 bottom-1 flex h-6 items-center justify-center gap-1 rounded-md bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground shadow-sm">
+                  <Star className="size-3 fill-current" />
+                  عکس اصلی
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={`انتخاب تصویر ${toPersianDigits(index + 1)} به عنوان عکس اصلی`}
+                  onClick={() => setMainImage(index)}
+                  className="absolute inset-x-1 bottom-1 flex h-6 cursor-pointer items-center justify-center gap-1 rounded-md bg-black/65 px-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-primary"
+                >
+                  <Star className="size-3" />
+                  انتخاب اصلی
+                </button>
+              )}
               <Button
                 type="button"
                 variant="destructive"
-                size="icon"
+                size="icon-xs"
+                aria-label={`حذف تصویر ${toPersianDigits(index + 1)}`}
                 onClick={() => removeImage(index)}
-                className="absolute inset-0 flex size-full items-center justify-center rounded-none bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute end-1 top-1 z-10 rounded-md bg-black/65 text-white opacity-100 hover:bg-destructive sm:opacity-0 sm:group-hover:opacity-100"
               >
-                <Trash2 className="size-5 text-white" />
+                <Trash2 className="size-3.5" />
               </Button>
             </div>
           )

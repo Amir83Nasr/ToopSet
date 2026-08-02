@@ -10,11 +10,12 @@ import {
 } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ManIcon, WomanIcon } from "@hugeicons/core-free-icons"
 import { useGeolocation } from "@/hooks/use-geolocation"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { api } from "@/lib/api"
+import { api, buildVendorImageUrl } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -59,10 +60,10 @@ import {
   Star,
   MapPin,
   Search,
-  Users,
   X,
   Navigation,
   Map,
+  CalendarCheck,
 } from "lucide-react"
 
 interface Vendor {
@@ -76,6 +77,9 @@ interface Vendor {
   is_active: boolean
   average_rating: number
   base_price: number | null
+  images?: string[]
+  main_image?: string | null
+  slot_genders?: ("male" | "female")[]
 }
 
 const sportLabels: Record<string, string> = {
@@ -111,16 +115,12 @@ function VendorsPageContent() {
     searchParams.get("sports")?.split(",").filter(Boolean) || []
   )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
+  const [availableToday, setAvailableToday] = useState(
+    searchParams.get("available_today") === "1"
+  )
 
-  // Map panel visibility toggle — hidden by default on mobile
-  const isMobile = useIsMobile()
+  // Map panel visibility toggle — hidden by default
   const [showMap, setShowMap] = useState(false)
-
-  // After hydration: show map on desktop by default, keep hidden on mobile
-  useEffect(() => {
-    const id = setTimeout(() => setShowMap(!isMobile), 0)
-    return () => clearTimeout(id)
-  }, [isMobile])
 
   // User geolocation for nearby vendors
   const geo = useGeolocation()
@@ -142,6 +142,7 @@ function VendorsPageContent() {
         searchParams.get("sports")?.split(",").filter(Boolean) || []
       )
       setSortBy(searchParams.get("sort") || "default")
+      setAvailableToday(searchParams.get("available_today") === "1")
       initialized.current = true
     }
   }, [searchParams])
@@ -154,6 +155,7 @@ function VendorsPageContent() {
     params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
     selectedSports.forEach((st) => params.append("sport_types", st))
+    if (availableToday) params.set("available_today", "true")
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
@@ -170,6 +172,7 @@ function VendorsPageContent() {
     limit,
     searchText,
     selectedSports,
+    availableToday,
     sortBy,
     userLocation,
     maxDistance,
@@ -182,6 +185,7 @@ function VendorsPageContent() {
     params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
     selectedSports.forEach((st) => params.append("sport_types", st))
+    if (availableToday) params.set("available_today", "true")
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
@@ -192,18 +196,26 @@ function VendorsPageContent() {
       if (maxDistance) params.set("max_distance_km", maxDistance)
     }
     return params.toString()
-  }, [searchText, selectedSports, sortBy, userLocation, maxDistance])
+  }, [
+    searchText,
+    selectedSports,
+    availableToday,
+    sortBy,
+    userLocation,
+    maxDistance,
+  ])
 
   // Sync filters to URL
   useEffect(() => {
     const params = new URLSearchParams()
     if (searchText) params.set("q", searchText)
     if (selectedSports.length) params.set("sports", selectedSports.join(","))
+    if (availableToday) params.set("available_today", "1")
     if (sortBy !== "default") params.set("sort", sortBy)
     const qs = params.toString()
     const url = qs ? `/vendors?${qs}` : "/vendors"
     router.replace(url, { scroll: false })
-  }, [searchText, selectedSports, sortBy, router])
+  }, [searchText, selectedSports, availableToday, sortBy, router])
 
   const fetchVendors = useCallback(async () => {
     setVendorsLoading(true)
@@ -232,16 +244,21 @@ function VendorsPageContent() {
   function clearFilters() {
     setSearchText("")
     setSelectedSports([])
+    setAvailableToday(false)
     setSortBy("default")
     setPage(0)
   }
 
   const hasActiveFilters =
-    searchText || selectedSports.length > 0 || sortBy !== "default"
+    searchText ||
+    selectedSports.length > 0 ||
+    availableToday ||
+    sortBy !== "default"
 
   const activeFilterCount =
     (searchText ? 1 : 0) +
     selectedSports.length +
+    (availableToday ? 1 : 0) +
     (sortBy !== "default" ? 1 : 0)
 
   const totalPages = Math.ceil(total / limit)
@@ -387,6 +404,23 @@ function VendorsPageContent() {
                     {type === "all" ? "همه" : sportLabels[type]}
                   </Button>
                 ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setAvailableToday((current) => !current)
+                    setPage(0)
+                  }}
+                  className={`rounded-full px-4 max-sm:shrink-0 ${
+                    availableToday
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  }`}
+                >
+                  <CalendarCheck className="size-4" />
+                  سانس خالی امروز
+                </Button>
               </div>
 
               {/* ── Collapsible map panel ── */}
@@ -466,6 +500,22 @@ function VendorsPageContent() {
                       </Button>
                     </span>
                   ))}
+                  {availableToday && (
+                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs">
+                      <CalendarCheck className="size-3" />
+                      سانس خالی امروز
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setAvailableToday(false)}
+                        aria-label="حذف فیلتر سانس خالی امروز"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </span>
+                  )}
 
                   {/* Clear all */}
                   <Button
@@ -496,16 +546,17 @@ function VendorsPageContent() {
               </div>
 
               {vendorsLoading ? (
-                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i}>
                       <CardHeader>
-                        <div className="flex gap-1.5">
-                          <Skeleton className="h-5 w-14 rounded-full" />
-                          <Skeleton className="h-5 w-16 rounded-full" />
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            <Skeleton className="h-5 w-36" />
+                            <Skeleton className="mt-2 h-3 w-full" />
+                          </div>
+                          <Skeleton className="size-25 shrink-0 rounded-lg" />
                         </div>
-                        <Skeleton className="mt-1 h-5 w-44" />
-                        <Skeleton className="mt-1 h-3 w-52" />
                       </CardHeader>
                       <CardFooter>
                         <div className="flex w-full items-center justify-between">
@@ -533,82 +584,122 @@ function VendorsPageContent() {
                   <ScrollReveal
                     stagger={0.04}
                     animation="fade-in-up"
-                    className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+                    className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3"
                   >
-                    {featuredVendors.map((vendor) => (
-                      <div key={vendor.id}>
-                        <Link
-                          href={`/vendors/${vendor.id}`}
-                          className="group block"
-                        >
-                          <Card className="transition-shadow duration-150 hover:shadow-md">
-                            <CardHeader>
-                              {/* Sport badges */}
-                              <div className="flex flex-wrap gap-1.5">
-                                {vendor.sport_types?.map((st) => (
-                                  <Badge
-                                    key={st}
-                                    className="shrink-0 bg-muted-foreground/10 text-[10px] text-muted-foreground"
-                                    variant="secondary"
-                                  >
-                                    {sportLabels[st]}
-                                  </Badge>
-                                ))}
-                              </div>
+                    {featuredVendors.map((vendor) => {
+                      const mainImage =
+                        vendor.main_image || vendor.images?.[0] || null
+                      const hasMaleSlots = vendor.slot_genders?.includes("male")
+                      const hasFemaleSlots =
+                        vendor.slot_genders?.includes("female")
 
-                              {/* Name */}
-                              <CardTitle className="mt-1.5 text-base leading-snug font-semibold transition-colors duration-150 group-hover:text-primary">
-                                {vendor.name}
-                              </CardTitle>
+                      return (
+                        <div key={vendor.id}>
+                          <Link
+                            href={`/vendors/${vendor.id}`}
+                            className="group block"
+                          >
+                            <Card className="transition-shadow duration-150 hover:shadow-md">
+                              <CardHeader>
+                                <div className="flex items-start gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    {/* Name */}
+                                    <CardTitle className="text-base leading-snug font-semibold transition-colors duration-150 group-hover:text-primary">
+                                      {vendor.name}
+                                    </CardTitle>
 
-                              {/* Address */}
-                              <p className="mt-0.5 flex items-start gap-1.5 text-xs text-muted-foreground">
-                                <MapPin className="mt-0.5 size-3.5 shrink-0" />
-                                <span className="line-clamp-1">
-                                  {vendor.address}
-                                </span>
-                              </p>
-                            </CardHeader>
+                                    {/* Address */}
+                                    <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                                      <MapPin className="mt-0.5 size-3.5 shrink-0" />
+                                      <span className="line-clamp-1">
+                                        {vendor.address}
+                                      </span>
+                                    </p>
+                                  </div>
 
-                            {/* Info row: capacity + rating */}
-                            <CardContent className="py-0">
-                              <div className="flex items-center justify-between gap-2 pt-3">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Users className="size-3.5" />
-                                  <span>
-                                    ظرفیت {toPersianDigits(vendor.capacity)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1 text-xs font-semibold">
-                                  <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-                                  <span className="tabular-nums">
-                                    {toPersianDigits(
-                                      vendor.average_rating.toFixed(1)
+                                  <div className="relative size-25 shrink-0 overflow-hidden rounded-lg bg-muted">
+                                    {mainImage ? (
+                                      <Image
+                                        src={buildVendorImageUrl(mainImage)}
+                                        alt={`عکس اصلی ${vendor.name}`}
+                                        fill
+                                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                        sizes="100px"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div className="flex size-full items-center justify-center">
+                                        <Building2 className="size-7 text-muted-foreground/35" />
+                                      </div>
                                     )}
-                                  </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
+                              </CardHeader>
 
-                            {/* Price — minimum slot price */}
-                            {vendor.base_price != null && (
-                              <CardFooter>
-                                <div className="w-full rounded-lg bg-primary/5 px-3 py-2.5">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <span className="inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-[11px] leading-none font-semibold text-primary">
-                                      شروع قیمت از
-                                    </span>
-                                    <span className="text-sm font-bold text-primary">
-                                      {formatPrice(vendor.base_price)}
+                              {/* Info row: slot gender + rating */}
+                              <CardContent className="py-0">
+                                <div className="flex items-center justify-between gap-2 pt-3">
+                                  <div
+                                    className="flex min-h-5 items-center gap-1"
+                                    role="img"
+                                    aria-label={
+                                      hasMaleSlots && hasFemaleSlots
+                                        ? "سانس آقایان و بانوان"
+                                        : hasFemaleSlots
+                                          ? "سانس بانوان"
+                                          : hasMaleSlots
+                                            ? "سانس آقایان"
+                                            : "بدون سانس فعال"
+                                    }
+                                  >
+                                    {hasMaleSlots && (
+                                      <HugeiconsIcon
+                                        icon={ManIcon}
+                                        className="size-5 text-blue-600"
+                                        strokeWidth={2}
+                                        aria-hidden="true"
+                                      />
+                                    )}
+                                    {hasFemaleSlots && (
+                                      <HugeiconsIcon
+                                        icon={WomanIcon}
+                                        className="size-5 text-pink-500"
+                                        strokeWidth={2}
+                                        aria-hidden="true"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs font-semibold">
+                                    <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                                    <span className="tabular-nums">
+                                      {toPersianDigits(
+                                        vendor.average_rating.toFixed(1)
+                                      )}
                                     </span>
                                   </div>
                                 </div>
-                              </CardFooter>
-                            )}
-                          </Card>
-                        </Link>
-                      </div>
-                    ))}
+                              </CardContent>
+
+                              {/* Price — minimum slot price */}
+                              {vendor.base_price != null && (
+                                <CardFooter>
+                                  <div className="w-full rounded-lg bg-primary/5 px-3 py-2.5">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <span className="inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-[11px] leading-none font-semibold text-primary">
+                                        شروع قیمت از
+                                      </span>
+                                      <span className="text-sm font-bold text-primary">
+                                        {formatPrice(vendor.base_price)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </CardFooter>
+                              )}
+                            </Card>
+                          </Link>
+                        </div>
+                      )
+                    })}
                   </ScrollReveal>
 
                   <TablePagination

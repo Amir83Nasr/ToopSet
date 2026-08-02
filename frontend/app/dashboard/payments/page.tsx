@@ -106,15 +106,23 @@ function SkeletonRow() {
 function LoadingSkeleton() {
   return (
     <div>
-      <Table>
+      <Table className="min-w-215 table-fixed">
+        <colgroup>
+          <col className="w-28" />
+          <col className="w-52" />
+          <col className="w-28" />
+          <col className="w-24" />
+          <col className="w-44" />
+          <col className="w-36" />
+        </colgroup>
         <TableHeader>
           <TableRow>
-            <TableHead>تاریخ</TableHead>
+            <TableHead className="text-center">تاریخ</TableHead>
             <TableHead>مجموعه</TableHead>
-            <TableHead>مبلغ</TableHead>
-            <TableHead>وضعیت</TableHead>
-            <TableHead>درگاه</TableHead>
-            <TableHead>کد پیگیری</TableHead>
+            <TableHead className="text-center">مبلغ</TableHead>
+            <TableHead className="text-center">وضعیت</TableHead>
+            <TableHead className="text-center">درگاه</TableHead>
+            <TableHead className="text-center">کد پیگیری</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -289,15 +297,26 @@ export default function PaymentsPage() {
         </div>
 
         {/* Desktop / tablet: full table */}
-        <Table tableWrapperClassName="hidden md:block">
+        <Table
+          className="min-w-215 table-fixed"
+          tableWrapperClassName="hidden md:block"
+        >
+          <colgroup>
+            <col className="w-28" />
+            <col className="w-52" />
+            <col className="w-28" />
+            <col className="w-24" />
+            <col className="w-44" />
+            <col className="w-36" />
+          </colgroup>
           <TableHeader>
             <TableRow>
-              <TableHead>تاریخ</TableHead>
+              <TableHead className="text-center">تاریخ</TableHead>
               <TableHead>مجموعه</TableHead>
-              <TableHead>مبلغ</TableHead>
-              <TableHead>وضعیت</TableHead>
-              <TableHead>درگاه</TableHead>
-              <TableHead>کد پیگیری</TableHead>
+              <TableHead className="text-center">مبلغ</TableHead>
+              <TableHead className="text-center">وضعیت</TableHead>
+              <TableHead className="text-center">درگاه</TableHead>
+              <TableHead className="text-center">کد پیگیری</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -308,17 +327,19 @@ export default function PaymentsPage() {
               }
               return (
                 <TableRow key={p.id}>
-                  <TableCell className="text-xs whitespace-nowrap">
+                  <TableCell className="text-center text-xs whitespace-nowrap">
                     {formatDate(p.created_at)}
                   </TableCell>
                   <TableCell className="font-medium">{p.vendor_name}</TableCell>
-                  <TableCell>{formatAmount(p.amount)}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    {formatAmount(p.amount)}
+                  </TableCell>
+                  <TableCell className="text-center">
                     <Badge variant={status.variant}>{status.label}</Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-center text-xs text-muted-foreground">
                     {p.gateway_name ? (
-                      <span className="flex flex-col">
+                      <span className="flex flex-col items-center">
                         <span>{p.gateway_name}</span>
                         {p.card_number && (
                           <span className="font-mono text-[10px]" dir="ltr">
@@ -330,7 +351,7 @@ export default function PaymentsPage() {
                       "-"
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="text-center font-mono text-xs text-muted-foreground">
                     {p.gateway_transaction_id
                       ? toPersianDigits(p.gateway_transaction_id)
                       : "-"}

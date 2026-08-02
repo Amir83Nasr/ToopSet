@@ -30,6 +30,7 @@ import {
   Users,
   Settings2,
   ArrowRight,
+  Volleyball,
 } from "lucide-react"
 import { PersianInput } from "@/components/ui/persian-input"
 
@@ -64,6 +65,8 @@ export default function CreateVendorPage() {
       longitude: undefined,
       capacity: 10,
       amenities: {},
+      ball_available: false,
+      ball_price: 0,
       images: [],
     },
   })
@@ -72,6 +75,7 @@ export default function CreateVendorPage() {
   const amenitiesValue = useWatch({ control, name: "amenities" }) || {}
   const latitudeWatch = useWatch({ control, name: "latitude" })
   const longitudeWatch = useWatch({ control, name: "longitude" })
+  const ballAvailable = useWatch({ control, name: "ball_available" }) === true
 
   async function onSubmit(data: VendorCreateInput) {
     try {
@@ -85,7 +89,10 @@ export default function CreateVendorPage() {
           longitude: data.longitude,
           capacity: data.capacity,
           amenities: data.amenities || {},
-          temp_ids: tempIds,
+          ball_available: data.ball_available === true,
+          ball_price: data.ball_available ? data.ball_price : 0,
+          images: data.images,
+          temp_ids: tempIds.filter(Boolean),
         }),
       })
       toast.success("مجموعه ورزشی با موفقیت ایجاد شد", {
@@ -284,6 +291,80 @@ export default function CreateVendorPage() {
                 {String(errors.capacity.message)}
               </p>
             )}
+          </div>
+        </div>
+
+        {/* Ball rental */}
+        <div className="rounded-xl border bg-card p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Volleyball className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold">توپ مجموعه</h2>
+              <p className="text-xs text-muted-foreground">
+                وضعیت ارائه توپ و هزینه آن هنگام رزرو
+              </p>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <Controller
+              name="ball_available"
+              control={control}
+              render={({ field }) => (
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-4">
+                  <Checkbox
+                    checked={field.value === true}
+                    onCheckedChange={(checked) => {
+                      const enabled = checked === true
+                      field.onChange(enabled)
+                      if (!enabled) {
+                        setValue("ball_price", 0, { shouldValidate: true })
+                      }
+                    }}
+                    aria-label="مجموعه توپ برای رزرو دارد"
+                  />
+                  <span className="space-y-1">
+                    <span className="block text-sm font-medium">
+                      مجموعه توپ برای رزرو دارد
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      کاربر می‌تواند توپ را هنگام رزرو به سانس اضافه کند.
+                    </span>
+                  </span>
+                </label>
+              )}
+            />
+            <Controller
+              name="ball_price"
+              control={control}
+              render={({ field }) => (
+                <div className="max-w-sm space-y-1.5">
+                  <Label htmlFor="ball-price">هزینه توپ (تومان)</Label>
+                  <PersianInput
+                    id="ball-price"
+                    value={field.value ?? 0}
+                    formatThousands
+                    disabled={!ballAvailable}
+                    placeholder="مثلاً ۵۰٬۰۰۰"
+                    onChange={(event) =>
+                      field.onChange(Number(event.target.value) || 0)
+                    }
+                    onBlur={field.onBlur}
+                  />
+                  {errors.ball_price?.message && (
+                    <p className="text-xs text-destructive">
+                      {String(errors.ball_price.message)}
+                    </p>
+                  )}
+                  {!ballAvailable && (
+                    <p className="text-xs text-muted-foreground">
+                      برای مجموعه بدون توپ، هزینه صفر ثبت می‌شود.
+                    </p>
+                  )}
+                </div>
+              )}
+            />
           </div>
         </div>
 

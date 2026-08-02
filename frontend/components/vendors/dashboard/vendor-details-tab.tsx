@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { PersianInput } from "@/components/ui/persian-input"
 import { AmenityCheckboxes } from "@/components/vendors/amenity-checkboxes"
 import { ImageUpload } from "@/components/vendors/image-upload"
-import { MapPin, Phone, User } from "lucide-react"
+import { MapPin, Phone, User, Volleyball } from "lucide-react"
 import dynamic from "next/dynamic"
 
 const LocationPicker = dynamic(
@@ -72,6 +73,7 @@ export function VendorDetailsTab({
     setValue,
     formState: { errors },
   } = form
+  const ballAvailable = form.watch("ball_available") === true
 
   function toggleSportType(value: string) {
     const next = watchSportTypes.includes(value)
@@ -208,6 +210,80 @@ export function VendorDetailsTab({
               )
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ── توپ مجموعه ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <SectionTitle title="توپ مجموعه" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <Controller
+            name="ball_available"
+            control={control}
+            render={({ field }) => (
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-4">
+                <Checkbox
+                  checked={field.value === true}
+                  onCheckedChange={(checked) => {
+                    const enabled = checked === true
+                    field.onChange(enabled)
+                    if (!enabled) {
+                      setValue("ball_price", 0, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  }}
+                  aria-label="مجموعه توپ برای رزرو دارد"
+                />
+                <Volleyball className="size-5 shrink-0 text-primary" />
+                <span className="space-y-1">
+                  <span className="block text-sm font-medium">
+                    مجموعه توپ برای رزرو دارد
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    در صورت فعال بودن، کاربر می‌تواند هنگام رزرو سانس توپ را با
+                    هزینه جداگانه اضافه کند.
+                  </span>
+                </span>
+              </label>
+            )}
+          />
+
+          <Controller
+            name="ball_price"
+            control={control}
+            render={({ field }) => (
+              <div className="max-w-sm space-y-2">
+                <Label htmlFor="vendor-ball-price">هزینه توپ (تومان)</Label>
+                <PersianInput
+                  id="vendor-ball-price"
+                  value={field.value ?? 0}
+                  formatThousands
+                  disabled={!ballAvailable}
+                  placeholder="مثلاً ۵۰٬۰۰۰"
+                  onChange={(event) =>
+                    field.onChange(Number(event.target.value) || 0)
+                  }
+                  onBlur={field.onBlur}
+                />
+                {errors.ball_price?.message && (
+                  <p className="text-xs text-destructive">
+                    {String(errors.ball_price.message)}
+                  </p>
+                )}
+                {!ballAvailable && (
+                  <p className="text-xs text-muted-foreground">
+                    برای مجموعه بدون توپ، هزینه صفر در نظر گرفته می‌شود.
+                  </p>
+                )}
+              </div>
+            )}
+          />
         </CardContent>
       </Card>
 

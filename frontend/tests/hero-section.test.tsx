@@ -9,16 +9,21 @@ describe("HeroSection", () => {
     mockRouter.push.mockReset()
   })
 
-  it("renders the title and description", () => {
+  it("renders the title without the old description", () => {
     render(<HeroSection />)
     expect(screen.getByText("پلتفرم هوشمند رزرو")).toBeInTheDocument()
     expect(screen.getByText("مجموعه‌های ورزشی")).toBeInTheDocument()
-    expect(screen.getByText("توپ‌سِت")).toBeInTheDocument()
+    expect(
+      screen.queryByText(/پلتفرم جامع رزرو آنلاین مجموعه‌های ورزشی/)
+    ).not.toBeInTheDocument()
   })
 
-  it("renders only the venue search action", () => {
+  it("renders the venue search action and its helper text", () => {
     render(<HeroSection />)
     expect(screen.getByText("مشاهده مجموعه‌های ورزشی")).toBeInTheDocument()
+    expect(
+      screen.getByText("برای دیدن مجموعه های ورزشی و رزرو سانس کلیک کن")
+    ).toBeInTheDocument()
     expect(screen.queryByText("ثبت مجموعه جدید")).not.toBeInTheDocument()
   })
 

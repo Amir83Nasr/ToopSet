@@ -39,24 +39,19 @@ export function HeroSection() {
               </span>
             </h1>
 
-            <p className="max-w-2xl text-sm leading-relaxed font-medium text-muted-foreground sm:text-base sm:leading-8">
-              سامانه هوشمند{" "}
-              <strong className="font-extrabold text-primary">توپ‌سِت</strong>{" "}
-              پلتفرم جامع رزرو آنلاین مجموعه‌های ورزشی. به راحتی مجموعه مورد نظر
-              خود را پیدا کنید، قیمت‌ها را مقایسه کنید و سانس دلخواه را رزرو
-              نمایید.
-            </p>
-
             {/* Action buttons */}
             <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
               <Button
-                variant="outline"
+                size="lg"
                 onClick={() => router.push("/vendors")}
-                className="w-full px-3 font-semibold sm:w-auto"
+                className="h-12 w-full rounded-lg px-6 text-base font-semibold shadow-sm sm:w-auto"
               >
-                <Map className="size-4 shrink-0" />
+                <Map className="size-5 shrink-0" />
                 <span>مشاهده مجموعه‌های ورزشی</span>
               </Button>
+              <p className="text-sm font-semibold text-foreground sm:text-base">
+                برای دیدن مجموعه های ورزشی و رزرو سانس کلیک کن
+              </p>
             </div>
           </div>
 

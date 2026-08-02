@@ -52,6 +52,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     avatar_url: str | None = None
+    phone_verified_at: datetime | None = None
     created_at: datetime | None = None
     password_hash: str | None = Field(None, exclude=True)
 

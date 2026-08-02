@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.core.pagination import decode_cursor
+from app.core.rate_limiter import limiter
 from app.models.user import User
 from app.schemas.booking import (
     AdminBookingListResponse,
@@ -156,7 +157,9 @@ async def get_booking(
     status_code=status.HTTP_201_CREATED,
     summary="Create booking",
 )
+@limiter.limit("12/minute")
 async def create_booking(
+    request: Request,
     data: BookingCreate,
     service: BookingService = Depends(get_booking_service),
 ):
@@ -168,7 +171,9 @@ async def create_booking(
 
 
 @router.post("/{booking_id}/pay", response_model=BookingDetailResponse, summary="Pay booking")
+@limiter.limit("10/minute")
 async def pay_booking(
+    request: Request,
     booking_id: int,
     service: BookingService = Depends(get_booking_service),
 ):
@@ -181,7 +186,9 @@ async def pay_booking(
 
 
 @router.post("/{booking_id}/cancel", response_model=BookingDetailResponse, summary="Cancel booking")
+@limiter.limit("10/minute")
 async def cancel_booking(
+    request: Request,
     booking_id: int,
     data: BookingCancelRequest | None = None,
     service: BookingService = Depends(get_booking_service),
@@ -189,6 +196,24 @@ async def cancel_booking(
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.cancel_booking(data or BookingCancelRequest(), booking_id)
+    await invalidate_admin_list_cache("bookings")
+    return result
+
+
+@router.post(
+    "/{booking_id}/withdraw-cancellation",
+    response_model=BookingDetailResponse,
+    summary="Withdraw a pending cancellation",
+)
+@limiter.limit("10/minute")
+async def withdraw_cancellation(
+    request: Request,
+    booking_id: int,
+    service: BookingService = Depends(get_booking_service),
+):
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.withdraw_cancellation(booking_id)
     await invalidate_admin_list_cache("bookings")
     return result
 

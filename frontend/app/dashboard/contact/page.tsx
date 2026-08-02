@@ -235,14 +235,21 @@ export default function ContactMessagesPage() {
         <>
           {/* Messages table */}
           <div>
-            <Table>
+            <Table className="min-w-220 table-fixed">
+              <colgroup>
+                <col className="w-40" />
+                <col className="w-52" />
+                <col className="w-56" />
+                <col className="w-32" />
+                <col className="w-24" />
+              </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead>فرستنده</TableHead>
-                  <TableHead className="w-44">ایمیل</TableHead>
+                  <TableHead className="text-center">ایمیل</TableHead>
                   <TableHead>موضوع</TableHead>
-                  <TableHead>تاریخ</TableHead>
-                  <TableHead className="text-right">عملیات</TableHead>
+                  <TableHead className="text-center">تاریخ</TableHead>
+                  <TableHead className="text-center">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -257,21 +264,20 @@ export default function ContactMessagesPage() {
                         <p className="font-medium">{msg.name}</p>
                       </div>
                     </TableCell>
-                    <TableCell
-                      className="text-right text-xs text-muted-foreground"
-                      dir="ltr"
-                    >
-                      {msg.email || "—"}
-                    </TableCell>
-                    <TableCell className="max-w-50">
-                      <p className="truncate">{msg.subject}</p>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(msg.created_at)}
+                    <TableCell className="text-center text-xs text-muted-foreground">
+                      <span dir="ltr" className="inline-block">
+                        {msg.email || "—"}
+                      </span>
                     </TableCell>
                     <TableCell>
+                      <p className="truncate">{msg.subject}</p>
+                    </TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">
+                      {formatDate(msg.created_at)}
+                    </TableCell>
+                    <TableCell className="text-center">
                       <div
-                        className="flex items-center gap-2"
+                        className="flex items-center justify-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Tooltip>

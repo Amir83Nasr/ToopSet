@@ -30,6 +30,7 @@ type CurrentUserResponse = {
   is_active: boolean
   has_password: boolean
   avatar_url?: string | null
+  phone_verified_at?: string | null
   created_at: string
 }
 

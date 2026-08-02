@@ -293,6 +293,39 @@ async def test_near_term_cancellation_waits_for_replacement_without_refund(
     )
 
 
+async def test_user_can_withdraw_open_near_term_cancellation(
+    client, session: AsyncSession, manager_token: dict, user_token: dict
+) -> None:
+    _, slot_id = await _api_vendor_and_slot(client, session, manager_token, hours=24)
+    booking_id = await _create_and_pay_online(client, user_token, slot_id)
+    user = await session.get(User, user_token["user"]["id"])
+    assert user is not None
+    service = BookingService(session, user)
+    with patch.object(service, "_ensure_verified_bank_card", new=AsyncMock()):
+        await service.cancel_booking(BookingCancelRequest(accepted_terms=True), booking_id)
+
+    restored = await service.withdraw_cancellation(booking_id)
+    assert restored.status == BookingStatus.CONFIRMED
+    slot_row = (
+        (
+            await session.execute(
+                text("SELECT status, is_reserved FROM time_slots WHERE id = :id"),
+                {"id": slot_id},
+            )
+        )
+        .mappings()
+        .one()
+    )
+    assert slot_row == {"status": "reserved", "is_reserved": True}
+    assert (
+        await session.scalar(
+            text("SELECT status FROM replacement_requests WHERE original_booking_id = :id"),
+            {"id": booking_id},
+        )
+        == "revoked"
+    )
+
+
 async def test_early_user_cancellation_creates_exact_penalty_and_refund(
     client, session: AsyncSession, manager_token: dict, user_token: dict
 ) -> None:

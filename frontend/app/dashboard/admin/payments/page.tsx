@@ -168,21 +168,31 @@ export default function AdminPaymentsPage() {
 
       {loading ? (
         <div className="max-h-full min-h-0 overflow-auto">
-          <Table tableWrapperClassName="overflow-visible rounded-none border-0">
+          <Table
+            className="min-w-220 table-fixed"
+            tableWrapperClassName="overflow-visible rounded-none border-0"
+          >
+            <colgroup>
+              <col className="w-28" />
+              <col className="w-48" />
+              <col className="w-56" />
+              <col className="w-36" />
+              <col className="w-28" />
+            </colgroup>
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableHead>تاریخ</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
                 <TableHead>کاربر</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead>مبلغ</TableHead>
-                <TableHead>وضعیت</TableHead>
+                <TableHead className="text-center">مبلغ</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell>
-                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="mx-auto h-4 w-20" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-4 w-24" />
@@ -191,10 +201,10 @@ export default function AdminPaymentsPage() {
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
                   <TableCell>
-                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="mx-auto h-4 w-20" />
                   </TableCell>
                   <TableCell>
-                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="mx-auto h-4 w-16" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -210,32 +220,35 @@ export default function AdminPaymentsPage() {
         </Card>
       ) : (
         <div>
-          <Table>
+          <Table className="min-w-220 table-fixed">
+            <colgroup>
+              <col className="w-28" />
+              <col className="w-48" />
+              <col className="w-56" />
+              <col className="w-36" />
+              <col className="w-28" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-28">تاریخ</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
                 <TableHead>کاربر</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead className="w-48">مبلغ</TableHead>
-                <TableHead className="w-20">وضعیت</TableHead>
+                <TableHead className="text-center">مبلغ</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {payments.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="w-28">
+                  <TableCell className="text-center">
                     {formatDate(p.created_at)}
                   </TableCell>
-                  <TableCell className="max-w-40 truncate">
-                    {p.user_name}
-                  </TableCell>
-                  <TableCell className="max-w-48 truncate">
-                    {p.vendor_name}
-                  </TableCell>
-                  <TableCell className="w-36">
+                  <TableCell className="truncate">{p.user_name}</TableCell>
+                  <TableCell className="truncate">{p.vendor_name}</TableCell>
+                  <TableCell className="text-center">
                     {formatAmount(p.amount)}
                   </TableCell>
-                  <TableCell className="w-20">
+                  <TableCell className="text-center">
                     <span
                       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${PAYMENT_STATUS_STYLES[p.status] || ""}`}
                     >

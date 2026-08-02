@@ -101,6 +101,23 @@ class ReplacementRepo:
             stmt = stmt.with_for_update()
         return (await self.db.execute(stmt)).scalar_one_or_none()
 
+    async def get_live_hold_for_user(
+        self, user_id: int, *, for_update: bool = False
+    ) -> BookingHold | None:
+        stmt = (
+            select(BookingHold)
+            .options(selectinload(BookingHold.slot).selectinload(TimeSlot.vendor))
+            .where(
+                BookingHold.user_id == user_id,
+                BookingHold.status.in_((BookingHoldStatus.ACTIVE, BookingHoldStatus.PROCESSING)),
+            )
+            .order_by(BookingHold.created_at.desc())
+            .limit(1)
+        )
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
     async def update_hold(self, hold: BookingHold, data: dict) -> BookingHold:
         for key, value in data.items():
             setattr(hold, key, value)

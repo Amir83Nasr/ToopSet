@@ -256,18 +256,30 @@ export default function VendorsPage() {
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
-            <Table tableWrapperClassName="overflow-visible rounded-none border-0">
+            <Table
+              className="min-w-280 table-fixed"
+              tableWrapperClassName="overflow-visible rounded-none border-0"
+            >
+              <colgroup>
+                <col className="w-52" />
+                <col className="w-48" />
+                <col className="w-64" />
+                <col className="w-24" />
+                <col className="w-28" />
+                {user?.role === "admin" && <col className="w-40" />}
+                {user?.role === "admin" && <col className="w-56" />}
+              </colgroup>
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                  <TableHead className="text-right">نام</TableHead>
-                  <TableHead className="text-right">ورزش</TableHead>
-                  <TableHead className="text-right">آدرس</TableHead>
-                  <TableHead className="text-right">امتیاز</TableHead>
-                  <TableHead className="text-right">وضعیت</TableHead>
+                  <TableHead>نام</TableHead>
+                  <TableHead>ورزش</TableHead>
+                  <TableHead>آدرس</TableHead>
+                  <TableHead className="text-center">امتیاز</TableHead>
+                  <TableHead className="text-center">وضعیت</TableHead>
+                  {user?.role === "admin" && <TableHead>مدیر</TableHead>}
                   {user?.role === "admin" && (
-                    <TableHead className="text-right">مدیر</TableHead>
+                    <TableHead className="text-center">عملیات</TableHead>
                   )}
-                  <TableHead className="text-right">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -279,13 +291,13 @@ export default function VendorsPage() {
                       router.push(`/dashboard/vendors/${vendor.id}`)
                     }
                   >
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Building2 className="size-4 shrink-0 text-muted-foreground" />
                         {vendor.name}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {vendor.sport_types?.map((st) => (
                           <Badge
@@ -298,14 +310,14 @@ export default function VendorsPage() {
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-50 truncate text-right">
+                    <TableCell>
                       <div className="flex items-center gap-1">
                         <MapPin className="size-3 shrink-0 text-muted-foreground" />
                         <span className="truncate">{vendor.address}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center gap-1">
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
                         <Star className="size-3.5 fill-amber-400 text-amber-400" />
                         <span>
                           {toPersianDigits(
@@ -314,7 +326,7 @@ export default function VendorsPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <span
                         className={
                           vendor.is_active
@@ -333,36 +345,32 @@ export default function VendorsPage() {
                       </span>
                     </TableCell>
                     {user?.role === "admin" && (
-                      <TableCell className="text-right">
-                        {vendor.manager_name || "—"}
+                      <TableCell>{vendor.manager_name || "—"}</TableCell>
+                    )}
+                    {user?.role === "admin" && (
+                      <TableCell className="text-center">
+                        <div
+                          className="flex items-center justify-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleActive(vendor)}
+                          >
+                            <ToggleRight data-icon="inline-start" />
+                            {vendor.is_active ? "غیرفعال کردن" : "فعال کردن"}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon-sm"
+                            onClick={() => setDeleteVendor(vendor)}
+                          >
+                            <Trash2 size={4} />
+                          </Button>
+                        </div>
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
-                      <div
-                        className="flex items-center gap-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {user?.role === "admin" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggleActive(vendor)}
-                            >
-                              <ToggleRight data-icon="inline-start" />
-                              {vendor.is_active ? "غیرفعال کردن" : "فعال کردن"}
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon-sm"
-                              onClick={() => setDeleteVendor(vendor)}
-                            >
-                              <Trash2 size={4} />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

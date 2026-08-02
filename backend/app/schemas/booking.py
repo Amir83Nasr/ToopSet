@@ -21,6 +21,9 @@ class BookingCreate(BaseModel):
 class BookingCancelRequest(BaseModel):
     accepted_terms: bool = False
     card_number: str | None = Field(None, min_length=16, max_length=24)
+    expected_mode: (
+        Literal["pending_payment", "pending_replacement", "refund_with_penalty"] | None
+    ) = None
 
 
 class BookingCancellationTermsResponse(BaseModel):

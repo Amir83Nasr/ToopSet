@@ -221,16 +221,28 @@ export default function UserRefundsPage() {
             })}
           </div>
 
-          <Table tableWrapperClassName="hidden md:block">
+          <Table
+            className="min-w-260 table-fixed"
+            tableWrapperClassName="hidden md:block"
+          >
+            <colgroup>
+              <col className="w-60" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-44" />
+              <col className="w-28" />
+              <col className="w-52" />
+            </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead>مجموعه / سانس</TableHead>
-                <TableHead>پرداختی</TableHead>
-                <TableHead>جریمه</TableHead>
-                <TableHead>بازگشتی</TableHead>
-                <TableHead>کارت مقصد</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead>واریز / رهگیری</TableHead>
+                <TableHead className="text-center">پرداختی</TableHead>
+                <TableHead className="text-center">جریمه</TableHead>
+                <TableHead className="text-center">بازگشتی</TableHead>
+                <TableHead className="text-center">کارت مقصد</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
+                <TableHead className="text-center">واریز / رهگیری</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -245,20 +257,26 @@ export default function UserRefundsPage() {
                         {toPersianDigits(refund.booking_id)}
                       </div>
                     </TableCell>
-                    <TableCell>{formatMoney(refund.total_paid)}</TableCell>
-                    <TableCell>{formatMoney(refund.penalty_amount)}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="text-center">
+                      {formatMoney(refund.total_paid)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {formatMoney(refund.penalty_amount)}
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
                       {formatMoney(refund.refund_amount)}
                     </TableCell>
-                    <TableCell dir="ltr">
-                      {refund.destination_card_masked
-                        ? toPersianDigits(refund.destination_card_masked)
-                        : "ثبت نشده"}
+                    <TableCell className="text-center">
+                      <span dir="ltr" className="inline-block">
+                        {refund.destination_card_masked
+                          ? toPersianDigits(refund.destination_card_masked)
+                          : "ثبت نشده"}
+                      </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant={state.variant}>{state.label}</Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <div>{dateTime(refund.paid_at)}</div>
                       <div className="text-xs text-muted-foreground">
                         {refund.payment_tracking_code

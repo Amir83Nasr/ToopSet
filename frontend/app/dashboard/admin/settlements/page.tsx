@@ -213,15 +213,23 @@ export default function AdminSettlementsPage() {
         </Card>
       ) : (
         <div>
-          <Table>
+          <Table className="min-w-250 table-fixed">
+            <colgroup>
+              <col className="w-44" />
+              <col className="w-52" />
+              <col className="w-36" />
+              <col className="w-24" />
+              <col className="w-32" />
+              <col className="w-40" />
+            </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead>سالندار</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead>مبلغ درخواست</TableHead>
-                <TableHead>رزروها</TableHead>
-                <TableHead>تاریخ</TableHead>
-                <TableHead>وضعیت</TableHead>
+                <TableHead className="text-center">مبلغ درخواست</TableHead>
+                <TableHead className="text-center">رزروها</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -229,17 +237,21 @@ export default function AdminSettlementsPage() {
                 <TableRow key={s.id}>
                   <TableCell>{s.manager_name}</TableCell>
                   <TableCell>{s.vendor_name}</TableCell>
-                  <TableCell>{money(s.requested_amount)}</TableCell>
-                  <TableCell>{toPersianDigits(s.bookings_count)}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    {money(s.requested_amount)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {toPersianDigits(s.bookings_count)}
+                  </TableCell>
+                  <TableCell className="text-center">
                     {new Date(s.requested_at).toLocaleDateString("fa-IR")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Select
                       value={s.status}
                       onValueChange={(v) => updateStatus(s.id, v)}
                     >
-                      <SelectTrigger className="w-32">
+                      <SelectTrigger className="mx-auto w-32">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

@@ -35,6 +35,7 @@ from app.schemas.time_slot import (
 from app.services.cache_service import (
     cache_slot_list,
     get_cached_slot_list,
+    invalidate_admin_list_cache,
     invalidate_slot_list,
 )
 
@@ -237,6 +238,7 @@ class TimeSlotService:
 
         slot = await self.repo.create(slot_data)
         await invalidate_slot_list(data.vendor_id)
+        await invalidate_admin_list_cache("vendors")
         return self._to_response(slot, vendor)
 
     async def update_slot(self, slot_id: int, data: TimeSlotUpdate) -> TimeSlotResponse:
@@ -283,6 +285,7 @@ class TimeSlotService:
             update_data["is_reserved"] = False
         updated = await self.repo.update(slot, update_data)
         await invalidate_slot_list(updated.vendor_id)
+        await invalidate_admin_list_cache("vendors")
         return self._to_response(updated, slot.vendor)
 
     async def update_vendor_slot(
@@ -333,6 +336,7 @@ class TimeSlotService:
             update_data["is_reserved"] = False
         updated = await self.repo.update(slot, update_data)
         await invalidate_slot_list(updated.vendor_id)
+        await invalidate_admin_list_cache("vendors")
         return self._to_response(updated, slot.vendor)
 
     async def generate_slots(
@@ -404,6 +408,7 @@ class TimeSlotService:
 
         created_slots = await self.repo.create_batch(to_create)
         await invalidate_slot_list(vendor_id)
+        await invalidate_admin_list_cache("vendors")
 
         return TimeSlotGenerateResponse(
             created=len(created_slots),
@@ -429,6 +434,8 @@ class TimeSlotService:
                 effective_until=latest.effective_until,
                 minimum_effective_date=minimum_date,
                 last_online_booking_date=last_booking_date,
+                ball_available=vendor.ball_available,
+                ball_price=vendor.ball_price,
                 items=[
                     WeeklyScheduleItem(
                         day_of_week=item.day_of_week,
@@ -455,6 +462,8 @@ class TimeSlotService:
             source="upcoming_week",
             minimum_effective_date=minimum_date,
             last_online_booking_date=last_booking_date,
+            ball_available=vendor.ball_available,
+            ball_price=vendor.ball_price,
             items=[
                 WeeklyScheduleItem(
                     day_of_week=_WEEKDAY_MAP.index(utc_to_iran(slot.start_time).weekday()),
@@ -644,6 +653,7 @@ class TimeSlotService:
             created_by_id=self.current_user.id if self.current_user else None,
         )
         await invalidate_slot_list(vendor_id)
+        await invalidate_admin_list_cache("vendors")
 
         return WeeklyScheduleApplyResponse(
             effective_from=data.effective_from,

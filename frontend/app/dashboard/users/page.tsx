@@ -299,29 +299,37 @@ export default function UsersPage() {
       ) : (
         /* Users table */
         <div>
-          <Table>
+          <Table className="min-w-250 table-fixed">
+            <colgroup>
+              <col className="w-44" />
+              <col className="w-36" />
+              <col className="w-36" />
+              <col className="w-24" />
+              <col className="w-28" />
+              <col className="w-56" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">نام</TableHead>
-                <TableHead className="w-36 text-right">تلفن</TableHead>
-                <TableHead className="w-32 text-right">نقش</TableHead>
-                <TableHead className="w-20 text-right">وضعیت</TableHead>
-                <TableHead className="w-24 text-right">تاریخ ثبت‌نام</TableHead>
-                <TableHead className="w-48 text-right">عملیات</TableHead>
+                <TableHead>نام</TableHead>
+                <TableHead className="text-center">تلفن</TableHead>
+                <TableHead className="text-center">نقش</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
+                <TableHead className="text-center">تاریخ ثبت‌نام</TableHead>
+                <TableHead className="text-center">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((u) => {
                 return (
                   <TableRow key={u.id}>
-                    <TableCell className="text-right font-medium">
-                      {u.full_name}
-                    </TableCell>
-                    <TableCell dir="ltr" className="text-right">
-                      {toPersianDigits(u.phone)}
+                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell className="text-center">
+                      <span dir="ltr" className="inline-block">
+                        {toPersianDigits(u.phone)}
+                      </span>
                     </TableCell>
                     {/* Role change select */}
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <Select
                         value={u.role}
                         onValueChange={(newRole) =>
@@ -329,7 +337,7 @@ export default function UsersPage() {
                         }
                         disabled={updatingId === u.id}
                       >
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="mx-auto w-32">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -345,18 +353,18 @@ export default function UsersPage() {
                       </Select>
                     </TableCell>
                     {/* Status badge */}
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <Badge variant={u.is_active ? "default" : "secondary"}>
                         {u.is_active ? "فعال" : "غیرفعال"}
                       </Badge>
                     </TableCell>
                     {/* Registration date */}
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="text-center text-muted-foreground">
                       {u.created_at ? formatDate(u.created_at) : "-"}
                     </TableCell>
                     {/* Actions */}
-                    <TableCell className="text-right">
-                      <div className="flex items-center gap-2">
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"

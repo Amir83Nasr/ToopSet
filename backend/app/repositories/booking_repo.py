@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking, BookingSource, BookingStatus
+from app.models.payment import Payment, PaymentStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -137,6 +138,7 @@ class BookingRepo:
                 selectinload(Booking.user),
             )
             .where(Booking.id == booking_id)
+            .execution_options(populate_existing=True)
         )
         if for_update:
             stmt = stmt.with_for_update()
@@ -166,6 +168,22 @@ class BookingRepo:
             stmt = stmt.with_for_update()
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_pending_payment_by_user(
+        self, user_id: int, *, for_update: bool = False
+    ) -> Booking | None:
+        stmt = (
+            select(Booking)
+            .where(
+                Booking.user_id == user_id,
+                Booking.status == BookingStatus.PENDING_PAYMENT,
+            )
+            .order_by(Booking.created_at.desc())
+            .limit(1)
+        )
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self.db.execute(stmt)).scalar_one_or_none()
 
     async def list_active_by_slot_ids(
         self, slot_ids: list[int], *, for_update: bool = False
@@ -268,6 +286,12 @@ class BookingRepo:
                 Booking.status == BookingStatus.PENDING_PAYMENT,
                 Booking.expires_at.isnot(None),
                 Booking.expires_at < now,
+                ~select(Payment.id)
+                .where(
+                    Payment.booking_id == Booking.id,
+                    Payment.status == PaymentStatus.PENDING,
+                )
+                .exists(),
             )
             .with_for_update(skip_locked=True)
         )

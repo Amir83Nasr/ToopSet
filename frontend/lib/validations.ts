@@ -37,7 +37,7 @@ export const sportTypes = [
   "football",
 ] as const
 
-export const vendorCreateSchema = z.object({
+const vendorFields = {
   name: z
     .string()
     .min(1, "نام مجموعه الزامی است")
@@ -68,9 +68,29 @@ export const vendorCreateSchema = z.object({
     .nonnegative("قیمت توپ نمی‌تواند منفی باشد")
     .optional(),
   images: z.array(z.string()).min(3, "حداقل ۳ تصویر از مجموعه الزامی است"),
-})
+}
 
-export const vendorUpdateSchema = vendorCreateSchema.partial()
+function validateBallConfiguration(
+  data: { ball_available?: boolean; ball_price?: number },
+  context: z.RefinementCtx
+) {
+  if (data.ball_available && (!data.ball_price || data.ball_price <= 0)) {
+    context.addIssue({
+      code: "custom",
+      path: ["ball_price"],
+      message: "برای مجموعه دارای توپ، هزینه توپ را وارد کنید",
+    })
+  }
+}
+
+export const vendorCreateSchema = z
+  .object(vendorFields)
+  .superRefine(validateBallConfiguration)
+
+export const vendorUpdateSchema = z
+  .object(vendorFields)
+  .partial()
+  .superRefine(validateBallConfiguration)
 
 // ---------------------------------------------------------------------------
 // Types

@@ -116,21 +116,32 @@ export function NotificationTable({
       </div>
 
       {/* Desktop / tablet: full data table */}
-      <Table tableWrapperClassName="hidden md:block">
+      <Table
+        className="min-w-220 table-fixed"
+        tableWrapperClassName="hidden md:block"
+      >
+        <colgroup>
+          <col className="w-32" />
+          <col className="w-72" />
+          <col className="w-28" />
+          <col className="w-24" />
+          <col className="w-28" />
+          <col className="w-20" />
+        </colgroup>
         <TableHeader>
           <TableRow>
-            <TableHead>نوع</TableHead>
+            <TableHead className="text-center">نوع</TableHead>
             <TableHead>پیام</TableHead>
-            <TableHead>تاریخ</TableHead>
-            <TableHead>ساعت</TableHead>
-            <TableHead>وضعیت</TableHead>
-            <TableHead className="text-right">عملیات</TableHead>
+            <TableHead className="text-center">تاریخ</TableHead>
+            <TableHead className="text-center">ساعت</TableHead>
+            <TableHead className="text-center">وضعیت</TableHead>
+            <TableHead className="text-center">عملیات</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {notifications.map((n) => (
             <TableRow key={n.id} className={n.is_read ? "" : "bg-muted/30"}>
-              <TableCell>
+              <TableCell className="text-center">
                 <Badge
                   className={notificationColors[n.type] || ""}
                   variant="secondary"
@@ -138,21 +149,23 @@ export function NotificationTable({
                   {notificationLabels[n.type] || n.type}
                 </Badge>
               </TableCell>
-              <TableCell className="max-w-60">
+              <TableCell>
                 <p className="truncate">{n.message}</p>
               </TableCell>
-              <TableCell className="text-xs whitespace-nowrap">
+              <TableCell className="text-center text-xs whitespace-nowrap">
                 {formatDate(n.created_at)}
               </TableCell>
-              <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                {formatTime(n.created_at)}
+              <TableCell className="text-center text-xs whitespace-nowrap text-muted-foreground">
+                <span dir="ltr" className="inline-block">
+                  {formatTime(n.created_at)}
+                </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <Badge variant={n.is_read ? "outline" : "default"}>
                   {n.is_read ? "خوانده شده" : "جدید"}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 {!n.is_read && (
                   <Button
                     variant="ghost"

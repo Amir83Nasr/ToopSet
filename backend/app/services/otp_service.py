@@ -17,6 +17,7 @@ from redis import asyncio as aioredis
 from app.core.logger import log_action
 from app.core.phone import normalize_phone
 from app.core.security import tokens_for_user
+from app.core.timezone import now_utc
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.services.sms_provider import SmsProvider, get_sms_provider
@@ -221,7 +222,10 @@ class OtpService:
                 )
 
             user.token_version += 1
-            await self.repo.update_user(user.id, {"token_version": user.token_version})
+            await self.repo.update_user(
+                user.id,
+                {"token_version": user.token_version, "phone_verified_at": now_utc()},
+            )
 
             await log_action(
                 self.repo.db,

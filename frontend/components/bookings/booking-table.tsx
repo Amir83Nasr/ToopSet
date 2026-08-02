@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { TablePagination } from "@/components/ui/pagination"
-import { CreditCard, XCircle, Loader2 } from "lucide-react"
+import { CreditCard, Loader2, Undo2 } from "lucide-react"
 import type { BookingDetail } from "@/components/bookings/types"
 
 /* ── Helpers ── */
@@ -68,6 +68,8 @@ interface BookingTableProps {
   payingId: number | null
   onPay: (bookingId: number) => void
   onCancelClick: (booking: BookingDetail) => void
+  withdrawingId: number | null
+  onWithdrawCancellation: (bookingId: number) => void
   showRefundStatus?: boolean
 }
 
@@ -79,6 +81,8 @@ export function BookingTable({
   payingId,
   onPay,
   onCancelClick,
+  withdrawingId,
+  onWithdrawCancellation,
   showRefundStatus = false,
 }: BookingTableProps) {
   return (
@@ -99,44 +103,53 @@ export function BookingTable({
           return (
             <div
               key={b.id}
-              className="flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10"
+              className="overflow-hidden rounded-2xl border bg-card shadow-xs"
             >
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-medium">{b.vendor_name}</span>
+              <div className="flex items-start justify-between gap-3 border-b bg-muted/20 px-4 py-3.5">
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate font-semibold">{b.vendor_name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {b.vendor_address || `شماره رزرو ${toPersianDigits(b.id)}`}
+                  </p>
+                </div>
                 <Badge variant={st.variant}>{st.label}</Badge>
               </div>
 
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div className="flex flex-col gap-0.5">
+              <dl className="grid grid-cols-2 gap-px bg-border text-sm">
+                <div className="flex min-h-16 flex-col justify-center gap-1 bg-card px-4 py-3">
                   <dt className="text-xs text-muted-foreground">تاریخ</dt>
-                  <dd>
+                  <dd className="font-medium tabular-nums">
                     {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
                     {b.slot_start_time && (
-                      <span className="text-muted-foreground">
+                      <span className="ms-1 text-xs font-normal text-muted-foreground">
                         {" "}
-                        · {formatWeekday(b.slot_start_time)}
+                        {formatWeekday(b.slot_start_time)}
                       </span>
                     )}
                   </dd>
                 </div>
-                <div className="flex flex-col gap-0.5">
+                <div className="flex min-h-16 flex-col justify-center gap-1 bg-card px-4 py-3">
                   <dt className="text-xs text-muted-foreground">ساعت</dt>
-                  <dd dir="ltr" className="text-right">
+                  <dd dir="ltr" className="text-right font-medium tabular-nums">
                     {b.slot_start_time && b.slot_end_time
                       ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
                       : "-"}
                   </dd>
                 </div>
-                <div className="flex flex-col gap-0.5">
+                <div className="flex min-h-16 flex-col justify-center gap-1 bg-card px-4 py-3">
                   <dt className="text-xs text-muted-foreground">مبلغ</dt>
-                  <dd>{formatMoney(b.price_paid)}</dd>
+                  <dd className="font-medium tabular-nums">
+                    {formatMoney(b.price_paid)}
+                  </dd>
                 </div>
-                <div className="flex flex-col gap-0.5">
+                <div className="flex min-h-16 flex-col justify-center gap-1 bg-card px-4 py-3">
                   <dt className="text-xs text-muted-foreground">تعداد نفرات</dt>
-                  <dd>{toPersianDigits(b.participants_count)}</dd>
+                  <dd className="font-medium">
+                    {toPersianDigits(b.participants_count)} نفر
+                  </dd>
                 </div>
                 {showRefundStatus && (
-                  <div className="col-span-2 flex flex-col gap-1">
+                  <div className="col-span-2 flex flex-col gap-2 bg-card px-4 py-3">
                     <dt className="text-xs text-muted-foreground">
                       وضعیت عودت
                     </dt>
@@ -170,7 +183,7 @@ export function BookingTable({
                   </div>
                 )}
                 {b.status === "pending_cancellation" && (
-                  <div className="col-span-2 rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                  <div className="col-span-2 bg-status-pending-bg px-4 py-3 text-xs leading-5 text-status-pending">
                     رزرو هنوز لغو قطعی نشده است. در صورت پرداخت توسط جایگزین،
                     مبلغ بازگشت وجه با کسر ۱۰٪ ثبت می‌شود.
                   </div>
@@ -178,8 +191,9 @@ export function BookingTable({
               </dl>
 
               {(b.status === "pending_payment" ||
+                b.status === "pending_cancellation" ||
                 (canCancel && b.status === "confirmed")) && (
-                <div className="flex gap-2 border-t pt-3">
+                <div className="flex gap-2 border-t bg-muted/10 p-3">
                   {b.status === "pending_payment" && (
                     <>
                       <Button
@@ -196,25 +210,39 @@ export function BookingTable({
                         پرداخت
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         size="lg"
                         className="flex-1"
                         onClick={() => onCancelClick(b)}
                       >
-                        <XCircle className="me-1 size-4" />
-                        لغو
+                        لغو رزرو
                       </Button>
                     </>
                   )}
                   {canCancel && b.status === "confirmed" && (
                     <Button
-                      variant="outline"
+                      variant="destructive"
                       size="lg"
                       className="flex-1"
                       onClick={() => onCancelClick(b)}
                     >
-                      <XCircle className="me-1 size-4" />
-                      لغو سانس
+                      لغو رزرو
+                    </Button>
+                  )}
+                  {b.status === "pending_cancellation" && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex-1"
+                      disabled={withdrawingId === b.id}
+                      onClick={() => onWithdrawCancellation(b.id)}
+                    >
+                      {withdrawingId === b.id ? (
+                        <Loader2 className="me-1 size-4 animate-spin" />
+                      ) : (
+                        <Undo2 className="me-1 size-4" />
+                      )}
+                      انصراف از لغو
                     </Button>
                   )}
                 </div>
@@ -225,20 +253,42 @@ export function BookingTable({
       </div>
 
       {/* Desktop / tablet: full data table */}
-      <Table tableWrapperClassName="hidden md:block">
+      <Table
+        className={
+          showRefundStatus
+            ? "min-w-[1180px] table-fixed"
+            : "min-w-[980px] table-fixed"
+        }
+        tableWrapperClassName="hidden md:block shadow-xs"
+      >
+        <colgroup>
+          <col className="w-[210px]" />
+          <col className="w-[135px]" />
+          <col className="w-[90px]" />
+          <col className="w-[135px]" />
+          <col className="w-[145px]" />
+          <col className="w-[80px]" />
+          <col className="w-[175px]" />
+          {showRefundStatus && <col className="w-[220px]" />}
+          <col className="w-[220px]" />
+        </colgroup>
         <TableHeader>
-          <TableRow>
-            <TableHead>مجموعه</TableHead>
-            <TableHead className="w-24">تاریخ</TableHead>
-            <TableHead className="w-20">روز</TableHead>
-            <TableHead className="w-28">ساعت</TableHead>
-            <TableHead className="w-28">مبلغ</TableHead>
-            <TableHead className="w-16">تعداد</TableHead>
-            <TableHead className="w-20">وضعیت</TableHead>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="h-12 px-4">مجموعه</TableHead>
+            <TableHead className="h-12 px-4 text-center">تاریخ</TableHead>
+            <TableHead className="h-12 px-4 text-center">روز</TableHead>
+            <TableHead className="h-12 px-4 text-center">ساعت</TableHead>
+            <TableHead className="h-12 px-4 text-center">
+              مبلغ پرداختی
+            </TableHead>
+            <TableHead className="h-12 px-4 text-center">نفرات</TableHead>
+            <TableHead className="h-12 px-4 text-center">وضعیت</TableHead>
             {showRefundStatus && (
-              <TableHead className="w-44">وضعیت عودت</TableHead>
+              <TableHead className="h-12 px-4 text-center">
+                وضعیت عودت
+              </TableHead>
             )}
-            <TableHead className="w-40 text-right">عملیات</TableHead>
+            <TableHead className="h-12 px-4 text-center">عملیات</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -254,38 +304,52 @@ export function BookingTable({
                 new Date(b.slot_start_time) > new Date())
             const refund = refundBadge(b)
             return (
-              <TableRow key={b.id}>
-                <TableCell className="max-w-48 truncate font-medium">
-                  {b.vendor_name}
+              <TableRow key={b.id} className="group h-[76px]">
+                <TableCell className="px-4 py-3 whitespace-normal">
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate font-semibold">{b.vendor_name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {b.vendor_address || `رزرو ${toPersianDigits(b.id)}`}
+                    </p>
+                  </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
                   {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-4 py-3 text-center text-muted-foreground">
                   {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
                 </TableCell>
-                <TableCell>
-                  {b.slot_start_time && b.slot_end_time
-                    ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
-                    : "-"}
+                <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
+                  <span dir="ltr" className="inline-block text-center">
+                    {b.slot_start_time && b.slot_end_time
+                      ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
+                      : "-"}
+                  </span>
                 </TableCell>
-                <TableCell>
-                  {new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان
+                <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
+                  <span>
+                    {new Intl.NumberFormat("fa-IR").format(b.price_paid)}
+                  </span>
+                  <span className="ms-1 text-xs font-normal text-muted-foreground">
+                    تومان
+                  </span>
                 </TableCell>
-                <TableCell>{toPersianDigits(b.participants_count)}</TableCell>
-                <TableCell>
-                  <div className="space-y-1">
+                <TableCell className="px-4 py-3 text-center font-medium">
+                  {toPersianDigits(b.participants_count)}
+                </TableCell>
+                <TableCell className="px-4 py-3 text-center whitespace-normal">
+                  <div className="flex flex-col items-center gap-1.5">
                     <Badge variant={st.variant}>{st.label}</Badge>
                     {b.status === "pending_cancellation" && (
-                      <div className="max-w-44 text-xs text-muted-foreground">
+                      <div className="text-xs leading-5 text-muted-foreground">
                         لغو پس از پرداخت جایگزین قطعی می‌شود.
                       </div>
                     )}
                   </div>
                 </TableCell>
                 {showRefundStatus && (
-                  <TableCell>
-                    <div className="space-y-1">
+                  <TableCell className="px-4 py-3 text-center whitespace-normal">
+                    <div className="flex flex-col items-center gap-1">
                       <Badge variant={refund.variant}>{refund.label}</Badge>
                       {b.refund_amount !== null && (
                         <div className="text-xs text-muted-foreground">
@@ -314,8 +378,8 @@ export function BookingTable({
                     </div>
                   </TableCell>
                 )}
-                <TableCell>
-                  <div className="flex gap-2">
+                <TableCell className="px-4 py-3 text-center">
+                  <div className="flex min-w-max items-center justify-center gap-2">
                     {b.status === "pending_payment" && (
                       <>
                         <Button
@@ -331,23 +395,36 @@ export function BookingTable({
                           پرداخت
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="destructive"
                           size="sm"
                           onClick={() => onCancelClick(b)}
                         >
-                          <XCircle className="me-1 size-4" />
-                          لغو
+                          لغو رزرو
                         </Button>
                       </>
                     )}
                     {canCancel && b.status === "confirmed" && (
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
                         onClick={() => onCancelClick(b)}
                       >
-                        <XCircle className="me-1 size-4" />
-                        لغو
+                        لغو رزرو
+                      </Button>
+                    )}
+                    {b.status === "pending_cancellation" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={withdrawingId === b.id}
+                        onClick={() => onWithdrawCancellation(b.id)}
+                      >
+                        {withdrawingId === b.id ? (
+                          <Loader2 className="me-1 size-4 animate-spin" />
+                        ) : (
+                          <Undo2 className="me-1 size-4" />
+                        )}
+                        انصراف از لغو
                       </Button>
                     )}
                   </div>

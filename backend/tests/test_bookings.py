@@ -111,6 +111,39 @@ class TestCreateBooking:
         assert resp2.status_code == 409
         assert "قبلاً" in resp2.text
 
+    async def test_user_cannot_hold_two_different_slots(
+        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+    ):
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        first_slot_id = await _create_slot(client, session, vendor_id, offset_hours=4)
+        second_slot_id = await _create_slot(client, session, vendor_id, offset_hours=8)
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+
+        first = await client.post(
+            "/api/v1/bookings",
+            json={
+                "slot_id": first_slot_id,
+                "version": await _get_slot_version(client, first_slot_id),
+                "participants_count": 1,
+            },
+            headers=user_headers,
+        )
+        assert first.status_code == 201, first.text
+
+        second = await client.post(
+            "/api/v1/bookings",
+            json={
+                "slot_id": second_slot_id,
+                "version": await _get_slot_version(client, second_slot_id),
+                "participants_count": 1,
+            },
+            headers=user_headers,
+        )
+        assert second.status_code == 409
+        assert "pending_booking_limit_reached" in second.text
+
     async def test_create_booking_version_conflict(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):

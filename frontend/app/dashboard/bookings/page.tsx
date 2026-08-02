@@ -53,6 +53,7 @@ export default function BookingsPage() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<number | null>(null)
+  const [withdrawingId, setWithdrawingId] = useState<number | null>(null)
   const [cancellingBooking, setCancellingBooking] =
     useState<BookingDetail | null>(null)
   const [cancelTerms, setCancelTerms] =
@@ -139,6 +140,23 @@ export default function BookingsPage() {
     }
   }
 
+  async function handleWithdrawCancellation(bookingId: number) {
+    setWithdrawingId(bookingId)
+    try {
+      await api(`/api/v1/bookings/${bookingId}/withdraw-cancellation`, {
+        method: "POST",
+      })
+      toast.success("درخواست لغو پس گرفته شد؛ سانس دوباره برای شما قطعی است")
+      await fetchBookings()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "خطا در انصراف از لغو رزرو"
+      )
+    } finally {
+      setWithdrawingId(null)
+    }
+  }
+
   async function handleConfirmCancel() {
     if (!cancellingBooking) return
     setCancellingLoading(true)
@@ -149,6 +167,7 @@ export default function BookingsPage() {
           method: "POST",
           body: JSON.stringify({
             accepted_terms: acceptedCancelTerms,
+            expected_mode: cancelTerms?.mode,
             ...(cancelTerms?.requires_bank_card &&
             !cancelTerms.has_verified_bank_card
               ? { card_number: cancelCardNumber.replace(/\D/g, "") }
@@ -239,6 +258,8 @@ export default function BookingsPage() {
                 payingId={payingId}
                 onPay={handlePay}
                 onCancelClick={handleCancelClick}
+                withdrawingId={withdrawingId}
+                onWithdrawCancellation={handleWithdrawCancellation}
                 showRefundStatus={activeTab === "cancelled"}
               />
             )}

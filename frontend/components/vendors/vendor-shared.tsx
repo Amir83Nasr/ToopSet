@@ -14,6 +14,8 @@ export interface VendorData {
   ball_price: number
   amenities?: Record<string, boolean>
   images?: string[]
+  main_image?: string | null
+  slot_genders?: ("male" | "female")[]
   manager_name?: string
   manager_phone?: string
 }

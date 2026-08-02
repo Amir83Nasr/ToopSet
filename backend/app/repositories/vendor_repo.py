@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from math import asin, cos, radians, sin, sqrt
 
@@ -8,7 +8,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.time_slot import SlotGender, SlotStatus, TimeSlot
 from app.models.vendor import SportType, Vendor
 
 
@@ -63,23 +63,23 @@ class VendorRepo:
         if after_id is not None:
             query = query.where(Vendor.id < after_id)
 
-        # Date/price filters: join with time_slots to find vendors with available slots
+        available_slot_filter = None
         if date_from or date_to or price_min is not None or price_max is not None:
-            query = query.join(Vendor.time_slots).where(
+            slot_conditions = [
+                TimeSlot.vendor_id == Vendor.id,
                 TimeSlot.is_reserved == False,
                 TimeSlot.status == SlotStatus.OPEN,
-            )
-
+            ]
             if date_from:
-                query = query.where(TimeSlot.start_time >= date_from)
+                slot_conditions.append(TimeSlot.start_time >= date_from)
             if date_to:
-                query = query.where(TimeSlot.end_time <= date_to)
+                slot_conditions.append(TimeSlot.end_time <= date_to)
             if price_min is not None:
-                query = query.where(TimeSlot.base_price >= price_min)
+                slot_conditions.append(TimeSlot.base_price >= price_min)
             if price_max is not None:
-                query = query.where(TimeSlot.base_price <= price_max)
-
-            query = query.distinct()
+                slot_conditions.append(TimeSlot.base_price <= price_max)
+            available_slot_filter = select(TimeSlot.id).where(*slot_conditions).exists()
+            query = query.where(available_slot_filter)
 
         count_q = select(func.count(func.distinct(Vendor.id))).select_from(Vendor)
         if sport_types:
@@ -92,19 +92,8 @@ class VendorRepo:
         if search:
             count_q = count_q.where(Vendor.name.ilike(f"%{search}%"))
 
-        if date_from or date_to or price_min is not None or price_max is not None:
-            count_q = count_q.join(Vendor.time_slots).where(
-                TimeSlot.is_reserved == False,
-                TimeSlot.status == SlotStatus.OPEN,
-            )
-            if date_from:
-                count_q = count_q.where(TimeSlot.start_time >= date_from)
-            if date_to:
-                count_q = count_q.where(TimeSlot.end_time <= date_to)
-            if price_min is not None:
-                count_q = count_q.where(TimeSlot.base_price >= price_min)
-            if price_max is not None:
-                count_q = count_q.where(TimeSlot.base_price <= price_max)
+        if available_slot_filter is not None:
+            count_q = count_q.where(available_slot_filter)
 
         total = (await self.db.execute(count_q)).scalar_one()
 
@@ -217,3 +206,28 @@ class VendorRepo:
             .group_by(TimeSlot.vendor_id)
         )
         return {row[0]: row[1] for row in result.all()}
+
+    async def get_upcoming_slot_genders(self, vendor_ids: list[int]) -> dict[int, list[SlotGender]]:
+        if not vendor_ids:
+            return {}
+
+        result = await self.db.execute(
+            select(TimeSlot.vendor_id, TimeSlot.gender)
+            .where(
+                TimeSlot.vendor_id.in_(vendor_ids),
+                TimeSlot.end_time >= datetime.now(timezone.utc),
+                TimeSlot.status.notin_(
+                    (SlotStatus.BLOCKED, SlotStatus.DISABLED, SlotStatus.CLOSED)
+                ),
+            )
+            .distinct()
+        )
+        genders_by_vendor: dict[int, set[SlotGender]] = {}
+        for vendor_id, gender in result.all():
+            genders_by_vendor.setdefault(vendor_id, set()).add(gender)
+
+        gender_order = (SlotGender.MALE, SlotGender.FEMALE)
+        return {
+            vendor_id: [gender for gender in gender_order if gender in genders]
+            for vendor_id, genders in genders_by_vendor.items()
+        }

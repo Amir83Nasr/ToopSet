@@ -196,17 +196,27 @@ export default function AdminManagerCancellationsPage() {
         </Card>
       ) : (
         <div>
-          <Table>
+          <Table className="min-w-330 table-fixed">
+            <colgroup>
+              <col className="w-48" />
+              <col className="w-40" />
+              <col className="w-48" />
+              <col className="w-36" />
+              <col className="w-36" />
+              <col className="w-32" />
+              <col className="w-32" />
+              <col className="w-36" />
+            </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead>مجموعه</TableHead>
                 <TableHead>سالندار</TableHead>
                 <TableHead>کاربر/تماس</TableHead>
-                <TableHead>مبلغ آنلاین</TableHead>
-                <TableHead>هزینه سایت</TableHead>
-                <TableHead>پیامک</TableHead>
-                <TableHead>اعلان</TableHead>
-                <TableHead>وضعیت سانس</TableHead>
+                <TableHead className="text-center">مبلغ آنلاین</TableHead>
+                <TableHead className="text-center">هزینه سایت</TableHead>
+                <TableHead className="text-center">پیامک</TableHead>
+                <TableHead className="text-center">اعلان</TableHead>
+                <TableHead className="text-center">وضعیت سانس</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -220,13 +230,19 @@ export default function AdminManagerCancellationsPage() {
                       {toPersianDigits(r.affected_phone || "-")}
                     </div>
                   </TableCell>
-                  <TableCell>{money(r.online_paid_amount)}</TableCell>
-                  <TableCell>{money(r.site_cost_amount)}</TableCell>
-                  <TableCell>{translateSmsStatus(r.sms_status)}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    {money(r.online_paid_amount)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {money(r.site_cost_amount)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {translateSmsStatus(r.sms_status)}
+                  </TableCell>
+                  <TableCell className="text-center">
                     {translateNotificationStatus(r.notification_status)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {r.release_slot ? "آزاد شده" : "بلاک شده"}
                   </TableCell>
                 </TableRow>

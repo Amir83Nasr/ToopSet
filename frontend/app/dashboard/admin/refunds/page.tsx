@@ -303,25 +303,37 @@ export default function AdminRefundsPage() {
         </Card>
       ) : (
         <div>
-          <Table>
+          <Table className="min-w-400 table-fixed">
+            <colgroup>
+              <col className="w-48" />
+              <col className="w-52" />
+              <col className="w-44" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-48" />
+              <col className="w-60" />
+            </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead>کاربر</TableHead>
                 <TableHead>مجموعه</TableHead>
-                <TableHead>سانس</TableHead>
-                <TableHead>پرداختی</TableHead>
-                <TableHead>جریمه</TableHead>
-                <TableHead>عودت</TableHead>
-                <TableHead>نوع</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead>کارت مقصد</TableHead>
-                <TableHead>عملیات</TableHead>
+                <TableHead className="text-center">سانس</TableHead>
+                <TableHead className="text-center">پرداختی</TableHead>
+                <TableHead className="text-center">جریمه</TableHead>
+                <TableHead className="text-center">عودت</TableHead>
+                <TableHead className="text-center">نوع</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
+                <TableHead className="text-center">کارت مقصد</TableHead>
+                <TableHead className="text-center">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRefunds.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div>{r.user_name}</div>
                     <div className="text-xs text-muted-foreground">
                       {toPersianDigits(r.user_phone)}
@@ -331,11 +343,19 @@ export default function AdminRefundsPage() {
                   <TableCell>
                     {new Date(r.slot_start_time).toLocaleString("fa-IR")}
                   </TableCell>
-                  <TableCell>{money(r.total_paid)}</TableCell>
-                  <TableCell>{money(r.penalty_amount)}</TableCell>
-                  <TableCell>{money(r.refund_amount)}</TableCell>
-                  <TableCell>{refundType[r.type] || r.type}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    {money(r.total_paid)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {money(r.penalty_amount)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {money(r.refund_amount)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {refundType[r.type] || r.type}
+                  </TableCell>
+                  <TableCell className="text-center">
                     <Badge
                       variant={
                         r.status === "paid"
@@ -348,8 +368,8 @@ export default function AdminRefundsPage() {
                       {refundStatus[r.status] || r.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div dir="ltr" className="text-right text-xs">
+                  <TableCell className="text-center">
+                    <div dir="ltr" className="text-center text-xs">
                       {r.destination_card_masked
                         ? toPersianDigits(r.destination_card_masked)
                         : "ثبت نشده"}
@@ -360,8 +380,8 @@ export default function AdminRefundsPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1.5">
+                  <TableCell className="text-center">
+                    <div className="flex flex-wrap justify-center gap-1.5">
                       {r.status === "pending" && (
                         <>
                           <Button

@@ -22,6 +22,27 @@ class PaymentRepo:
         await self.db.refresh(payment)
         return payment
 
+    async def get_by_idempotency_key(self, key: str) -> Payment | None:
+        result = await self.db.execute(select(Payment).where(Payment.idempotency_key == key))
+        return result.scalar_one_or_none()
+
+    async def get_by_id(self, payment_id: int, *, for_update: bool = False) -> Payment | None:
+        stmt = (
+            select(Payment)
+            .where(Payment.id == payment_id)
+            .execution_options(populate_existing=True)
+        )
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def update(self, payment: Payment, data: dict) -> Payment:
+        for key, value in data.items():
+            setattr(payment, key, value)
+        await self.db.flush()
+        await self.db.refresh(payment)
+        return payment
+
     async def list_by_user(
         self,
         user_id: int,

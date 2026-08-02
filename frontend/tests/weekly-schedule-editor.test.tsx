@@ -29,6 +29,8 @@ describe("WeeklyScheduleEditor", () => {
         version_id: 1,
         minimum_effective_date: toLocalDateStr(minimumEffectiveDate),
         last_online_booking_date: toLocalDateStr(lastOnlineBooking),
+        ball_available: false,
+        ball_price: 0,
         items: [
           {
             day_of_week: 0,
@@ -94,6 +96,9 @@ describe("WeeklyScheduleEditor", () => {
     await user.clear(priceInput)
     await user.type(priceInput, "1234567")
     expect(priceInput).toHaveValue("۱٬۲۳۴٬۵۶۷")
+    expect(
+      screen.queryByRole("checkbox", { name: /امکان رزرو توپ همراه سانس/ })
+    ).not.toBeInTheDocument()
 
     const persianMinimumDate = minimumEffectiveDate.toLocaleDateString(
       "fa-IR-u-ca-persian",
@@ -122,6 +127,8 @@ describe("WeeklyScheduleEditor", () => {
     )
     expect(confirmedBody.items[0].base_price).toBe(1234567)
     expect(confirmedBody.items[0].gender).toBe("female")
+    expect(confirmedBody).not.toHaveProperty("ball_available")
+    expect(confirmedBody).not.toHaveProperty("ball_price")
   })
 })
 
@@ -137,6 +144,8 @@ describe("VendorScheduleTab", () => {
       version_id: 3,
       minimum_effective_date: toLocalDateStr(new Date()),
       last_online_booking_date: null,
+      ball_available: true,
+      ball_price: 50000,
       items: [
         {
           day_of_week: 0,

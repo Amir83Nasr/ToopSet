@@ -258,15 +258,23 @@ export default function AdminManagerRequestsPage() {
         </Card>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
-          <Table>
+          <Table className="min-w-300 table-fixed">
+            <colgroup>
+              <col className="w-52" />
+              <col className="w-44" />
+              <col className="w-72" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-56" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">مجموعه پیشنهادی</TableHead>
-                <TableHead className="text-right">کاربر</TableHead>
-                <TableHead className="text-right">توضیحات کاربر</TableHead>
-                <TableHead className="text-right">تاریخ</TableHead>
-                <TableHead className="text-right">وضعیت</TableHead>
-                <TableHead className="text-right">عملیات</TableHead>
+                <TableHead>مجموعه پیشنهادی</TableHead>
+                <TableHead>کاربر</TableHead>
+                <TableHead>توضیحات کاربر</TableHead>
+                <TableHead className="text-center">تاریخ</TableHead>
+                <TableHead className="text-center">وضعیت</TableHead>
+                <TableHead className="text-center">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,14 +284,16 @@ export default function AdminManagerRequestsPage() {
                     {request.vendor_name}
                   </TableCell>
                   <TableCell>
-                    <div dir="ltr" className="text-right">
-                      {toPersianDigits(request.phone)}
+                    <div>
+                      <span dir="ltr" className="inline-block">
+                        {toPersianDigits(request.phone)}
+                      </span>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       شناسه کاربر: {toPersianDigits(request.user_id)}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-72">
+                  <TableCell>
                     <p className="line-clamp-3 text-sm whitespace-pre-wrap text-muted-foreground">
                       {request.message || "—"}
                     </p>
@@ -293,10 +303,10 @@ export default function AdminManagerRequestsPage() {
                       </p>
                     )}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="text-center whitespace-nowrap">
                     {formatDate(request.created_at)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Badge
                       variant="outline"
                       className={statusClasses[request.status]}
@@ -304,9 +314,9 @@ export default function AdminManagerRequestsPage() {
                       {statusLabels[request.status]}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {request.status === "pending" ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <Button
                           size="sm"
                           onClick={() => openDecision(request, "approved")}
