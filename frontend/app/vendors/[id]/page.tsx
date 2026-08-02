@@ -195,7 +195,7 @@ const NOW = Date.now()
 
 // ── Memoized slot row ──────────────────────────────────────────────────────
 
-const SlotRow = memo(function SlotRow({
+export const SlotRow = memo(function SlotRow({
   slot,
   selectedSlot,
   onSelect,
@@ -216,7 +216,7 @@ const SlotRow = memo(function SlotRow({
     <button
       onClick={() => !disabled && onSelect(slot)}
       disabled={disabled}
-      className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 border-b px-4 py-3.5 text-right transition-colors sm:flex ${
+      className={`grid w-full grid-cols-2 items-center gap-x-3 gap-y-3 border-b px-4 py-3.5 text-right transition-colors sm:grid-cols-[6rem_minmax(11rem,1fr)_8.75rem_7rem] sm:gap-0 sm:text-center ${
         disabled
           ? "cursor-not-allowed opacity-35"
           : isSelected
@@ -224,10 +224,10 @@ const SlotRow = memo(function SlotRow({
             : "cursor-pointer hover:bg-muted/20"
       }`}
     >
-      <div className="order-3 text-xs font-medium text-muted-foreground sm:order-none sm:w-20">
+      <div className="order-1 text-xs font-medium text-muted-foreground sm:order-none sm:text-center">
         {slotDay}
       </div>
-      <div className="order-1 col-span-2 flex flex-1 items-center gap-3 sm:order-none sm:col-span-1">
+      <div className="order-3 flex items-center gap-3 sm:order-none sm:justify-center">
         <div
           className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
             disabled
@@ -239,13 +239,16 @@ const SlotRow = memo(function SlotRow({
         >
           <Clock className="size-4" />
         </div>
-        <p className="text-sm font-semibold text-foreground">
+        <p
+          dir="ltr"
+          className="text-sm font-semibold whitespace-nowrap text-foreground"
+        >
           {formatTime(slot.start_time)}
-          <span className="mx-1.5 text-muted-foreground/20">—</span>
+          <span className="mx-1.5 text-muted-foreground/30">—</span>
           {formatTime(slot.end_time)}
         </p>
       </div>
-      <div className="order-4 text-left sm:order-none sm:w-28 sm:text-center">
+      <div className="order-4 text-left sm:order-none sm:text-center">
         <span
           className={`text-sm font-bold ${
             disabled ? "text-muted-foreground" : "text-primary"
@@ -254,14 +257,14 @@ const SlotRow = memo(function SlotRow({
           {formatPrice(slot.base_price)}
         </span>
       </div>
-      <div className="order-2 flex justify-end sm:order-none sm:w-24 sm:justify-center">
+      <div className="order-2 flex justify-end sm:order-none sm:justify-center">
         {isPast ? (
           <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
             گذشته
           </span>
-        ) : slot.is_reserved ? (
-          <span className="inline-flex h-6 items-center rounded-full border border-emerald-200 bg-emerald-50/60 px-2.5 text-[10px] font-semibold text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
-            آزاد
+        ) : !bookable ? (
+          <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
+            رزرو شده
           </span>
         ) : isSelected ? (
           <span className="inline-flex h-6 items-center rounded-full bg-primary px-2.5 text-[10px] font-semibold text-primary-foreground">
@@ -726,17 +729,17 @@ export default function PublicVendorDetailPage() {
                     {/* Table */}
                     <div>
                       {/* Header row — hidden on mobile (card layout is self-describing) */}
-                      <div className="hidden items-center border-b bg-muted/30 px-4 py-2.5 sm:flex">
-                        <span className="w-20 text-xs font-medium text-muted-foreground">
+                      <div className="hidden grid-cols-[6rem_minmax(11rem,1fr)_8.75rem_7rem] items-center border-b bg-muted/30 px-4 py-2.5 text-center sm:grid">
+                        <span className="text-xs font-medium text-muted-foreground">
                           روز
                         </span>
-                        <span className="flex-1 text-xs font-medium text-muted-foreground">
+                        <span className="text-xs font-medium text-muted-foreground">
                           زمان
                         </span>
-                        <span className="w-28 text-center text-xs font-medium text-muted-foreground">
+                        <span className="text-xs font-medium text-muted-foreground">
                           قیمت
                         </span>
-                        <span className="w-24 text-center text-xs font-medium text-muted-foreground">
+                        <span className="text-xs font-medium text-muted-foreground">
                           وضعیت
                         </span>
                       </div>
