@@ -90,7 +90,7 @@ export function VendorDetailsTab({
     <form
       id="edit-form"
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6"
+      className="min-w-0 space-y-4 sm:space-y-6"
     >
       {/* ── اطلاعات اصلی ── */}
       <Card>
@@ -169,7 +169,7 @@ export function VendorDetailsTab({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-4">
             {sportTypes.map((sport) => {
               const checked = watchSportTypes.includes(sport.value)
               return (
@@ -178,7 +178,7 @@ export function VendorDetailsTab({
                   key={sport.value}
                   aria-pressed={checked}
                   onClick={() => toggleSportType(sport.value)}
-                  className={`group flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 text-sm transition-all ${
+                  className={`group flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border-2 p-3 text-sm transition-all sm:gap-3 sm:p-4 ${
                     checked
                       ? "border-primary bg-primary/4 shadow-sm ring-1 ring-primary/20"
                       : "border-border hover:border-primary/30 hover:bg-accent/30"
@@ -203,7 +203,7 @@ export function VendorDetailsTab({
                       </svg>
                     )}
                   </div>
-                  <span className="font-medium text-foreground/90">
+                  <span className="min-w-0 truncate font-medium text-foreground/90">
                     {sport.label}
                   </span>
                 </button>
@@ -225,7 +225,7 @@ export function VendorDetailsTab({
             name="ball_available"
             control={control}
             render={({ field }) => (
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-4">
+              <label className="flex min-w-0 cursor-pointer items-start gap-2.5 rounded-xl border p-3 sm:gap-3 sm:p-4">
                 <Checkbox
                   checked={field.value === true}
                   onCheckedChange={(checked) => {
@@ -241,7 +241,7 @@ export function VendorDetailsTab({
                   aria-label="مجموعه توپ برای رزرو دارد"
                 />
                 <Volleyball className="size-5 shrink-0 text-primary" />
-                <span className="space-y-1">
+                <span className="min-w-0 space-y-1">
                   <span className="block text-sm font-medium">
                     مجموعه توپ برای رزرو دارد
                   </span>
@@ -346,9 +346,9 @@ export function VendorDetailsTab({
             )}
           </div>
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="size-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
+            <div className="flex items-start gap-2">
+              <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 text-sm text-muted-foreground">
                 موقعیت روی نقشه — کلیک کنید یا نشانگر را بکشید
               </span>
             </div>

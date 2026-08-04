@@ -685,7 +685,6 @@ class Booking(Base):
 class BookingCreate(BaseModel):
     slot_id: int
     version: int
-    participants_count: int = 1
     with_ball: bool = False
 ```
 
@@ -981,33 +980,33 @@ SVG sanitization در upload وجود دارد. اما پذیرش URL خام ب�
 
 ## ماتریس انطباق با Requirements
 
-| بخش | وضعیت | توضیح |
-| --- | --- | --- |
-| ثبت‌نام کاربر | قابل قبول | طبق تصمیم محصول `full_name` کافی است |
-| OTP login | پیاده‌سازی شده | با Redis و rate limit داخلی |
-| password login | پیاده‌سازی شده | وجود دارد |
-| مشاهده سانس آزاد | ناقص | status واقعی slot و فعال بودن venue لحاظ نمی‌شود |
-| رزرو سانس | ناقص | race condition و نبود lock |
-| جلوگیری از double booking | ناقص | unique هست، اما پرداخت/atomicity امن نیست |
-| کنسلی بالای ۴۸ ساعت با ۱۰٪ جریمه | پیاده‌سازی نشده | منطق فعلی ۲۴ ساعت و ۰/۵۰٪ است |
-| pending cancellation | پیاده‌سازی نشده | status و flow وجود ندارد |
-| transfer reservation | پیاده‌سازی نشده | وجود ندارد |
-| refund بدون double refund | ناقص | lock و refund entity نیست |
-| کارت بانکی قبل از refund | پیاده‌سازی نشده | `BankCard` وجود ندارد |
-| تأیید مالک کارت | پیاده‌سازی نشده | سرویس خارجی وجود ندارد |
-| ذخیره امن کارت | پیاده‌سازی نشده | کارت کاربر ذخیره نمی‌شود |
-| چند مجموعه برای Manager | پیاده‌سازی نشده | محدود به یک مجموعه است |
-| approval flow مجموعه | ناقص | فقط `is_active` و قابل دور زدن |
-| جلوگیری از slot برای pending venue | پیاده‌سازی نشده | check وجود ندارد |
-| اطلاعات کامل venue | ناقص | contact و description نیست |
-| multiple images | پیاده‌سازی شده با نقص | URL خام validation را دور می‌زند |
-| SportType entity | پیاده‌سازی نشده | enum/array است |
-| Facility entity | پیاده‌سازی نشده | JSON است |
-| گزینه توپ | پیاده‌سازی نشده | هیچ فیلدی ندارد |
-| vendor free reservation | پیاده‌سازی نشده | وجود ندارد |
-| long-term reservation | پیاده‌سازی نشده | وجود ندارد |
-| vendor close slot | پیاده‌سازی نشده | status closed نیست |
-| admin role-based access | ناقص | برخی مسیرها owner check ندارند |
+| بخش                                | وضعیت                 | توضیح                                            |
+| ---------------------------------- | --------------------- | ------------------------------------------------ |
+| ثبت‌نام کاربر                      | قابل قبول             | طبق تصمیم محصول `full_name` کافی است             |
+| OTP login                          | پیاده‌سازی شده        | با Redis و rate limit داخلی                      |
+| password login                     | پیاده‌سازی شده        | وجود دارد                                        |
+| مشاهده سانس آزاد                   | ناقص                  | status واقعی slot و فعال بودن venue لحاظ نمی‌شود |
+| رزرو سانس                          | ناقص                  | race condition و نبود lock                       |
+| جلوگیری از double booking          | ناقص                  | unique هست، اما پرداخت/atomicity امن نیست        |
+| کنسلی بالای ۴۸ ساعت با ۱۰٪ جریمه   | پیاده‌سازی نشده       | منطق فعلی ۲۴ ساعت و ۰/۵۰٪ است                    |
+| pending cancellation               | پیاده‌سازی نشده       | status و flow وجود ندارد                         |
+| transfer reservation               | پیاده‌سازی نشده       | وجود ندارد                                       |
+| refund بدون double refund          | ناقص                  | lock و refund entity نیست                        |
+| کارت بانکی قبل از refund           | پیاده‌سازی نشده       | `BankCard` وجود ندارد                            |
+| تأیید مالک کارت                    | پیاده‌سازی نشده       | سرویس خارجی وجود ندارد                           |
+| ذخیره امن کارت                     | پیاده‌سازی نشده       | کارت کاربر ذخیره نمی‌شود                         |
+| چند مجموعه برای Manager            | پیاده‌سازی نشده       | محدود به یک مجموعه است                           |
+| approval flow مجموعه               | ناقص                  | فقط `is_active` و قابل دور زدن                   |
+| جلوگیری از slot برای pending venue | پیاده‌سازی نشده       | check وجود ندارد                                 |
+| اطلاعات کامل venue                 | ناقص                  | contact و description نیست                       |
+| multiple images                    | پیاده‌سازی شده با نقص | URL خام validation را دور می‌زند                 |
+| SportType entity                   | پیاده‌سازی نشده       | enum/array است                                   |
+| Facility entity                    | پیاده‌سازی نشده       | JSON است                                         |
+| گزینه توپ                          | پیاده‌سازی نشده       | هیچ فیلدی ندارد                                  |
+| vendor free reservation            | پیاده‌سازی نشده       | وجود ندارد                                       |
+| long-term reservation              | پیاده‌سازی نشده       | وجود ندارد                                       |
+| vendor close slot                  | پیاده‌سازی نشده       | status closed نیست                               |
+| admin role-based access            | ناقص                  | برخی مسیرها owner check ندارند                   |
 
 ## تست‌های پیشنهادی
 

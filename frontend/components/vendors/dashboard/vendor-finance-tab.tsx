@@ -52,15 +52,15 @@ export function VendorFinanceTab({
   return (
     <div className="space-y-4">
       {/* Finance toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
-        <div>
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h2 className="text-base font-semibold">داشبورد مالی مجموعه</h2>
           <p className="text-sm text-muted-foreground">
             تسویه فقط برای رزروهای آنلاین تاییدشده‌ای فعال است که موعد سانس
             آن‌ها گذشته باشد.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid w-full gap-2 min-[400px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -91,7 +91,7 @@ export function VendorFinanceTab({
       </div>
 
       {/* Stats cards */}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 min-[400px]:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>رزرو آنلاین موفق</CardDescription>
@@ -162,7 +162,7 @@ export function VendorFinanceTab({
             زمان پایان سانس نمایش داده می‌شود.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-4">
           {bookingsLoading || financeLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -175,7 +175,7 @@ export function VendorFinanceTab({
               رزروی برای این مجموعه ثبت نشده است.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
               <Table className="min-w-250 table-fixed">
                 <colgroup>
                   <col className="w-48" />

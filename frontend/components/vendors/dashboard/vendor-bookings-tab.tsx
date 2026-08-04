@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toPersianDigits, toLocalDateStr } from "@/lib/utils"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
@@ -9,6 +9,7 @@ import {
   type ManagerBooking,
   formatBookingDate,
   formatBookingTime,
+  formatBookingWeekday,
   formatMoney,
   getPersianDayIndex,
   getTimeInputValue,
@@ -70,6 +71,7 @@ export function VendorBookingsTab({
   const [selectedBookedSlot, setSelectedBookedSlot] = useState<TimeSlot | null>(
     null
   )
+  const [selectedSlotHasStarted, setSelectedSlotHasStarted] = useState(false)
   const [cancellingBooking, setCancellingBooking] =
     useState<ManagerBooking | null>(null)
   const [cancellingLoading, setCancellingLoading] = useState(false)
@@ -81,6 +83,12 @@ export function VendorBookingsTab({
   const [managerBookingPhone, setManagerBookingPhone] = useState("")
   const [managerBookingWeeks, setManagerBookingWeeks] = useState("1")
   const [manualBookingLoading, setManualBookingLoading] = useState(false)
+  const [clock, setClock] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const bookingsBySlot = useMemo(() => {
     const map = new Map<number, ManagerBooking>()
@@ -113,6 +121,7 @@ export function VendorBookingsTab({
     const booking = bookingsBySlot.get(slot.id)
     if (booking || slot.is_reserved || slot.status === "reserved") {
       setSelectedBookedSlot(slot)
+      setSelectedSlotHasStarted(new Date(slot.start_time).getTime() <= clock)
       setCancellingBooking(booking ?? null)
       return
     }
@@ -190,20 +199,30 @@ export function VendorBookingsTab({
   return (
     <div className="space-y-4">
       {/* Week navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Button variant="outline" size="icon-sm" onClick={onPrevWeek}>
             <ChevronRight className="size-4" />
           </Button>
-          <Button variant="outline" onClick={onThisWeek}>
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none"
+            onClick={onThisWeek}
+          >
             این هفته
           </Button>
           <Button variant="outline" size="icon-sm" onClick={onNextWeek}>
             <ChevronLeft className="size-4" />
           </Button>
         </div>
-        <div className="text-sm font-medium">{weekLabel}</div>
-        <Button variant="outline" onClick={onRefresh}>
+        <div className="text-center text-sm font-medium sm:text-start">
+          {weekLabel}
+        </div>
+        <Button
+          className="w-full sm:w-auto"
+          variant="outline"
+          onClick={onRefresh}
+        >
           <RefreshCw className="me-1.5 size-4" />
           بروزرسانی
         </Button>
@@ -218,7 +237,7 @@ export function VendorBookingsTab({
             برای ثبت رزرو چند هفته‌ای کلیک کنید.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-4">
           {bookingsLoading ? (
             <div className="grid gap-3 md:grid-cols-7">
               {Array.from({ length: 7 }).map((_, i) => (
@@ -226,8 +245,8 @@ export function VendorBookingsTab({
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-[1120px] grid-cols-7 gap-3">
+            <div className="-mx-2 overflow-x-auto px-2 pb-2 sm:mx-0 sm:px-0">
+              <div className="grid snap-x snap-mandatory auto-cols-[minmax(16rem,88%)] grid-flow-col gap-3 md:min-w-280 md:grid-flow-row md:grid-cols-7">
                 {weekDays.map((day) => {
                   const dayKey = toLocalDateStr(day)
                   const daySlots = weekSlotsByDay.get(dayKey) ?? []
@@ -235,7 +254,7 @@ export function VendorBookingsTab({
                   return (
                     <section
                       key={dayKey}
-                      className="flex min-h-[420px] flex-col rounded-lg border bg-muted/10"
+                      className="flex min-h-105 snap-center flex-col rounded-lg border bg-muted/10"
                     >
                       <div className="border-b bg-card px-3 py-2">
                         <div className="text-sm font-semibold">
@@ -366,6 +385,7 @@ export function VendorBookingsTab({
       {/* Booking detail / cancel dialog */}
       <ResponsiveDialog
         open={!!selectedBookedSlot}
+        mobileAsSheet={false}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedBookedSlot(null)
@@ -374,7 +394,7 @@ export function VendorBookingsTab({
           }
         }}
       >
-        <ResponsiveDialogContent>
+        <ResponsiveDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>جزئیات رزرو سانس</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -432,6 +452,11 @@ export function VendorBookingsTab({
                   placeholder="مثلاً تعمیرات، مشکل مجموعه، تعطیلی..."
                 />
               </div>
+              {selectedSlotHasStarted && (
+                <p className="text-sm text-destructive">
+                  زمان این سانس شروع شده یا گذشته است و دیگر قابل لغو نیست.
+                </p>
+              )}
             </div>
           )}
           <ResponsiveDialogFooter className="gap-2 sm:justify-between">
@@ -444,10 +469,14 @@ export function VendorBookingsTab({
             >
               بستن
             </Button>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
               <Button
                 variant="outline"
-                disabled={!cancellingBooking || cancellingLoading}
+                disabled={
+                  !cancellingBooking ||
+                  cancellingLoading ||
+                  selectedSlotHasStarted
+                }
                 onClick={() =>
                   cancellingBooking &&
                   handleCancelBooking(cancellingBooking.id, false)
@@ -460,7 +489,11 @@ export function VendorBookingsTab({
               </Button>
               <Button
                 variant="destructive"
-                disabled={!cancellingBooking || cancellingLoading}
+                disabled={
+                  !cancellingBooking ||
+                  cancellingLoading ||
+                  selectedSlotHasStarted
+                }
                 onClick={() =>
                   cancellingBooking &&
                   handleCancelBooking(cancellingBooking.id, true)
@@ -479,11 +512,12 @@ export function VendorBookingsTab({
       {/* Manual booking dialog */}
       <ResponsiveDialog
         open={!!manualBookingSlot}
+        mobileAsSheet={false}
         onOpenChange={(open) => {
           if (!open) setManualBookingSlot(null)
         }}
       >
-        <ResponsiveDialogContent>
+        <ResponsiveDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>رزرو سانس آزاد</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -493,10 +527,17 @@ export function VendorBookingsTab({
           {manualBookingSlot && (
             <div className="space-y-4">
               <div className="rounded-lg border p-3 text-sm">
-                <div>
-                  {formatBookingDate(manualBookingSlot.start_time)}،{" "}
-                  {formatBookingTime(manualBookingSlot.start_time)} -{" "}
-                  {formatBookingTime(manualBookingSlot.end_time)}
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <span className="font-medium">
+                    {formatBookingWeekday(manualBookingSlot.start_time)}
+                  </span>
+                  <span className="text-muted-foreground">،</span>
+                  <span>{formatBookingDate(manualBookingSlot.start_time)}</span>
+                  <span className="text-muted-foreground">، ساعت</span>
+                  <span dir="ltr">
+                    {formatBookingTime(manualBookingSlot.start_time)} -{" "}
+                    {formatBookingTime(manualBookingSlot.end_time)}
+                  </span>
                 </div>
                 {(() => {
                   const weeks = Math.max(1, Number(managerBookingWeeks) || 1)

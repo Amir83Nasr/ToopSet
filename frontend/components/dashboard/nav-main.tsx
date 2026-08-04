@@ -10,24 +10,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import {
-  ResponsiveAlertDialog,
-  ResponsiveAlertDialogAction,
-  ResponsiveAlertDialogCancel,
-  ResponsiveAlertDialogContent,
-  ResponsiveAlertDialogDescription,
-  ResponsiveAlertDialogFooter,
-  ResponsiveAlertDialogHeader,
-  ResponsiveAlertDialogMedia,
-  ResponsiveAlertDialogTitle,
-  ResponsiveAlertDialogTrigger,
-} from "@/components/ui/responsive-alert-dialog"
 import { LogOut } from "lucide-react"
 import { navGroups } from "@/lib/navigation"
 
-export function NavMain() {
+export function NavMain({ onLogoutRequest }: { onLogoutRequest: () => void }) {
   const pathname = usePathname()
-  const { user, loading, logout } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -89,38 +77,14 @@ export function NavMain() {
       <SidebarGroup>
         <SidebarMenu>
           <SidebarMenuItem>
-            <ResponsiveAlertDialog>
-              <ResponsiveAlertDialogTrigger asChild>
-                <SidebarMenuButton tooltip="خروج" variant="destructive">
-                  <LogOut />
-                  <span>خروج</span>
-                </SidebarMenuButton>
-              </ResponsiveAlertDialogTrigger>
-              <ResponsiveAlertDialogContent>
-                <ResponsiveAlertDialogHeader>
-                  <ResponsiveAlertDialogMedia className="bg-destructive/10 dark:bg-destructive/20">
-                    <LogOut className="text-destructive" />
-                  </ResponsiveAlertDialogMedia>
-                  <ResponsiveAlertDialogTitle>
-                    خروج از حساب
-                  </ResponsiveAlertDialogTitle>
-                  <ResponsiveAlertDialogDescription>
-                    آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
-                  </ResponsiveAlertDialogDescription>
-                </ResponsiveAlertDialogHeader>
-                <ResponsiveAlertDialogFooter>
-                  <ResponsiveAlertDialogCancel>
-                    انصراف
-                  </ResponsiveAlertDialogCancel>
-                  <ResponsiveAlertDialogAction
-                    variant="destructive"
-                    onClick={() => logout()}
-                  >
-                    خروج
-                  </ResponsiveAlertDialogAction>
-                </ResponsiveAlertDialogFooter>
-              </ResponsiveAlertDialogContent>
-            </ResponsiveAlertDialog>
+            <SidebarMenuButton
+              tooltip="خروج"
+              variant="destructive"
+              onClick={onLogoutRequest}
+            >
+              <LogOut />
+              <span>خروج</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>

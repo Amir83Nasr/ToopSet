@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, SmallInteger, String, func, text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -93,7 +93,6 @@ class Booking(Base):
     ball_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     with_ball: Mapped[bool] = mapped_column(default=False, server_default="false")
     penalty_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), default=None)
-    participants_count: Mapped[int] = mapped_column(SmallInteger, default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

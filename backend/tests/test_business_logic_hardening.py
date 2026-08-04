@@ -177,7 +177,7 @@ class TestRefundAndBallLogic:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         created = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=headers,
         )
         booking_id = created.json()["id"]
@@ -255,7 +255,6 @@ class TestRefundAndBallLogic:
             json={
                 "slot_id": slot_id,
                 "version": version,
-                "participants_count": 1,
                 "with_ball": True,
             },
             headers=headers,

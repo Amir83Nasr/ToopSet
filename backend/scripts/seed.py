@@ -424,19 +424,6 @@ VENDOR_IMAGE_FILES = [
 ]
 
 
-def assign_participants(sport_types: list[str]) -> int:
-    """Return a realistic participants count based on sport type."""
-    sport = sport_types[0] if sport_types else "futsal"
-    counts = {
-        SportType.FUTSAL.value: random.randint(8, 12),
-        SportType.VOLLEYBALL.value: random.randint(10, 14),
-        SportType.BASKETBALL.value: random.randint(8, 12),
-        SportType.HANDBALL.value: random.randint(12, 16),
-        SportType.FOOTBALL.value: random.randint(18, 24),
-    }
-    return counts.get(sport, 10)
-
-
 def assign_gender(vendor_index: int) -> SlotGender:
     """Assign FEMALE to vendors at even indices for gender diversity."""
     return SlotGender.FEMALE if vendor_index % 3 == 0 else SlotGender.MALE
@@ -670,8 +657,6 @@ async def seed():
             with_ball = vendor.ball_available and random.random() < 0.4
             ball_price = vendor.ball_price if with_ball else Decimal("0")
             total_price = slot.base_price + ball_price
-            participants = assign_participants(vendor.sport_types)
-
             if status == "confirmed":
                 b = Booking(
                     user_id=user.id,
@@ -683,7 +668,6 @@ async def seed():
                     slot_price=slot.base_price,
                     ball_price=ball_price,
                     with_ball=with_ball,
-                    participants_count=participants,
                 )
                 bookings.append(b)
             elif status == "pending_payment":
@@ -697,7 +681,6 @@ async def seed():
                     slot_price=slot.base_price,
                     ball_price=ball_price,
                     with_ball=with_ball,
-                    participants_count=participants,
                     expires_at=iran_to_utc(now + timedelta(minutes=15)),
                 )
                 bookings.append(b)
@@ -714,7 +697,6 @@ async def seed():
                     ball_price=ball_price,
                     with_ball=with_ball,
                     penalty_amount=penalty_amount,
-                    participants_count=participants,
                 )
                 bookings.append(b)
 
@@ -808,7 +790,6 @@ async def seed():
             slot_price=manual_slot.base_price,
             ball_price=Decimal("0"),
             with_ball=False,
-            participants_count=10,
         )
         bookings.append(manual_booking)
         manual_slot.is_reserved = True
@@ -830,7 +811,6 @@ async def seed():
                 slot_price=slot.base_price,
                 ball_price=Decimal("0"),
                 with_ball=False,
-                participants_count=12,
             )
             bookings.append(recurring_booking)
             slot.is_reserved = True
@@ -851,7 +831,6 @@ async def seed():
             ball_price=Decimal("0"),
             with_ball=False,
             penalty_amount=Decimal("0"),
-            participants_count=10,
         )
         bookings.append(manager_cancel_booking)
         manager_cancel_slot.is_reserved = False

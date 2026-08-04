@@ -64,7 +64,6 @@ async def _create_booking(client: AsyncClient, slot_id: int, version: int, token
         json={
             "slot_id": slot_id,
             "version": version,
-            "participants_count": 1,
         },
         headers=headers,
     )

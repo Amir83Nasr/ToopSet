@@ -26,22 +26,26 @@ export function VendorHeader({
   onDeleteClick,
 }: VendorHeaderProps) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{vendorName}</h1>
-        <p className="text-muted-foreground">مدیریت اطلاعات مجموعه</p>
+    <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">
+          {vendorName}
+        </h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
+          مدیریت اطلاعات مجموعه
+        </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" asChild>
+      <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+        <Button variant="outline" size="sm" className="w-full" asChild>
           <Link href="/dashboard/vendors">
-            <ArrowRight className="me-1.5 size-4" />
+            <ArrowRight className="size-4 shrink-0 sm:me-1.5" />
             بازگشت
           </Link>
         </Button>
-        <Button variant="outline" asChild>
+        <Button variant="outline" size="sm" className="w-full" asChild>
           <Link href={`/vendors/${vendorId}`}>
-            <Eye className="me-1.5 size-4" />
+            <Eye className="size-4 shrink-0 sm:me-1.5" />
             صفحه عمومی
           </Link>
         </Button>
@@ -50,24 +54,30 @@ export function VendorHeader({
             type="submit"
             form="edit-form"
             size="sm"
+            className="w-full"
             disabled={!isFormValid || isSubmitting || saving}
           >
             {saving || isSubmitting ? (
               <>
-                <Loader2 className="me-1.5 size-4 animate-spin" />
+                <Loader2 className="size-4 shrink-0 animate-spin sm:me-1.5" />
                 در حال ذخیره...
               </>
             ) : (
               <>
-                <Save className="me-1.5 size-4" />
+                <Save className="size-4 shrink-0 sm:me-1.5" />
                 ذخیره
               </>
             )}
           </Button>
         )}
         {canManage && (
-          <Button variant="destructive" onClick={onDeleteClick}>
-            <Trash2 className="me-1.5 size-4" />
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            onClick={onDeleteClick}
+          >
+            <Trash2 className="size-4 shrink-0 sm:me-1.5" />
             حذف
           </Button>
         )}

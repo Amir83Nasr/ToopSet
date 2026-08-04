@@ -376,6 +376,7 @@ export function DesktopUserMenu({
       <ResponsiveAlertDialog
         open={logoutDialogOpen}
         onOpenChange={setLogoutDialogOpen}
+        mobileAsSheet={false}
       >
         <ResponsiveAlertDialogContent>
           <ResponsiveAlertDialogHeader>

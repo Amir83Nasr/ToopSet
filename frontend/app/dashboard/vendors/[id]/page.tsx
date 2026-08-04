@@ -317,7 +317,7 @@ export default function DashboardVendorEditPage() {
   const isFormValid = watchSportTypes.length > 0
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 sm:gap-6">
       <VendorHeader
         vendorId={vendorId}
         vendorName={vendor.name}
@@ -332,38 +332,44 @@ export default function DashboardVendorEditPage() {
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="flex flex-1 flex-col"
+        className="min-w-0 flex-1"
       >
-        <TabsList className="w-fit self-start">
-          <TabsTrigger value="basic" className="gap-2.5 px-6 py-3 text-base">
-            <Building2 className="size-5" />
+        <TabsList className="grid h-auto! w-full grid-cols-2 gap-1 self-start sm:inline-flex sm:w-fit sm:grid-cols-none">
+          <TabsTrigger
+            value="basic"
+            className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
+          >
+            <Building2 className="size-4 sm:size-5" />
             مشخصات
           </TabsTrigger>
-          <TabsTrigger value="schedule" className="gap-2.5 px-6 py-3 text-base">
-            <CalendarDays className="size-5" />
+          <TabsTrigger
+            value="schedule"
+            className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
+          >
+            <CalendarDays className="size-4 sm:size-5" />
             زمان‌بندی
           </TabsTrigger>
           {canManage && (
             <>
               <TabsTrigger
                 value="bookings"
-                className="gap-2.5 px-6 py-3 text-base"
+                className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
               >
-                <CalendarCheck className="size-5" />
+                <CalendarCheck className="size-4 sm:size-5" />
                 رزروها
               </TabsTrigger>
               <TabsTrigger
                 value="finance"
-                className="gap-2.5 px-6 py-3 text-base"
+                className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
               >
-                <Wallet className="size-5" />
+                <Wallet className="size-4 sm:size-5" />
                 مالی
               </TabsTrigger>
             </>
           )}
         </TabsList>
 
-        <TabsContent value="basic" className="mt-8 flex-1">
+        <TabsContent value="basic" className="mt-4 min-w-0 flex-1 sm:mt-8">
           <VendorDetailsTab
             vendor={vendor}
             form={form}
@@ -378,7 +384,7 @@ export default function DashboardVendorEditPage() {
           />
         </TabsContent>
 
-        <TabsContent value="schedule" className="mt-8 flex-1">
+        <TabsContent value="schedule" className="mt-4 min-w-0 flex-1 sm:mt-8">
           <VendorScheduleTab
             vendorId={vendorId}
             allSlots={allSlots}
@@ -395,7 +401,10 @@ export default function DashboardVendorEditPage() {
 
         {canManage && (
           <>
-            <TabsContent value="bookings" className="mt-8 flex-1">
+            <TabsContent
+              value="bookings"
+              className="mt-4 min-w-0 flex-1 sm:mt-8"
+            >
               <VendorBookingsTab
                 vendorId={vendorId}
                 allSlots={allSlots}
@@ -413,7 +422,10 @@ export default function DashboardVendorEditPage() {
               />
             </TabsContent>
 
-            <TabsContent value="finance" className="mt-8 flex-1">
+            <TabsContent
+              value="finance"
+              className="mt-4 min-w-0 flex-1 sm:mt-8"
+            >
               <VendorFinanceTab
                 bookings={bookings}
                 bookingsLoading={bookingsLoading}

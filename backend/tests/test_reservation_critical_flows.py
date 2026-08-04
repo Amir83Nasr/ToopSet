@@ -124,9 +124,7 @@ async def _attempt_online_booking(user_id: int, slot_id: int) -> str:
         user = await db.get(User, user_id)
         assert user is not None
         try:
-            await BookingService(db, user).create_booking(
-                BookingCreate(slot_id=slot_id, version=1, participants_count=1)
-            )
+            await BookingService(db, user).create_booking(BookingCreate(slot_id=slot_id, version=1))
             await db.commit()
             return "created"
         except HTTPException as exc:
@@ -147,7 +145,6 @@ async def _attempt_manual_booking(actor_id: int, slot_id: int, phone: str) -> st
                 slot_id=slot_id,
                 full_name="مشتری حضوری",
                 phone_number=phone,
-                participants_count=1,
             )
             await db.commit()
             return "created"
@@ -205,7 +202,7 @@ async def test_pending_payment_cancellation_releases_slot_without_financial_reco
     headers = {"Authorization": f"Bearer {user_token['access_token']}"}
     created = await client.post(
         "/api/v1/bookings",
-        json={"slot_id": slot_id, "version": 1, "participants_count": 1},
+        json={"slot_id": slot_id, "version": 1},
         headers=headers,
     )
     assert created.status_code == 201
@@ -244,12 +241,11 @@ async def test_manager_manual_booking_blocks_online_booking(
         slot_id=slot_id,
         full_name="مشتری حضوری",
         phone_number="09123334444",
-        participants_count=2,
     )
     assert manual.status == BookingStatus.CONFIRMED
     online = await client.post(
         "/api/v1/bookings",
-        json={"slot_id": slot_id, "version": 2, "participants_count": 1},
+        json={"slot_id": slot_id, "version": 2},
         headers={"Authorization": f"Bearer {user_token['access_token']}"},
     )
     assert online.status_code == 409
@@ -423,6 +419,56 @@ async def test_manager_cancellation_eager_loads_async_relationships(
     assert cancellation.booking_id == booking_id
 
 
+async def test_manager_cannot_cancel_booking_after_slot_has_started(
+    client, session: AsyncSession, manager_token: dict, user_token: dict
+) -> None:
+    """A started session is immutable through the manager cancellation path."""
+    _, slot_id = await _api_vendor_and_slot(client, session, manager_token, hours=72)
+    booking_id = await _create_and_pay_online(client, user_token, slot_id)
+    now = datetime.now(timezone.utc)
+    await session.execute(
+        text(
+            """
+            UPDATE time_slots
+            SET start_time = :start_time, end_time = :end_time
+            WHERE id = :slot_id
+            """
+        ),
+        {
+            "slot_id": slot_id,
+            "start_time": now - timedelta(hours=2),
+            "end_time": now - timedelta(hours=1),
+        },
+    )
+    session.expire_all()
+
+    response = await client.post(
+        f"/api/v1/manager/bookings/{booking_id}/cancel",
+        json={"reason": "تعطیلی مجموعه", "release_slot": True},
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "زمان این سانس گذشته یا شروع شده و دیگر قابل لغو نیست"
+    assert (
+        await session.scalar(text("SELECT status FROM bookings WHERE id = :id"), {"id": booking_id})
+        == "confirmed"
+    )
+    assert (
+        await session.scalar(
+            text("SELECT count(*) FROM refunds WHERE booking_id = :id"), {"id": booking_id}
+        )
+        == 0
+    )
+    assert (
+        await session.scalar(
+            text("SELECT count(*) FROM slot_cancellations WHERE booking_id = :id"),
+            {"id": booking_id},
+        )
+        == 0
+    )
+
+
 async def test_replacement_booking_completes_transfer_and_financial_records(
     client, session: AsyncSession, manager_token: dict, user_token: dict
 ) -> None:
@@ -448,7 +494,7 @@ async def test_replacement_booking_completes_transfer_and_financial_records(
     )
     held = await client.post(
         "/api/v1/bookings",
-        json={"slot_id": slot_id, "version": version, "participants_count": 2},
+        json={"slot_id": slot_id, "version": version},
         headers=replacement_headers,
     )
     assert held.status_code == 201, held.text
@@ -583,7 +629,7 @@ async def test_expired_replacement_hold_reopens_request_without_touching_origina
         text("SELECT version FROM time_slots WHERE id = :id"), {"id": slot_id}
     )
     hold_response = await BookingService(session, second).create_booking(
-        BookingCreate(slot_id=slot_id, version=version, participants_count=1)
+        BookingCreate(slot_id=slot_id, version=version)
     )
     hold = await session.get(BookingHold, hold_response.id)
     assert hold is not None
@@ -597,7 +643,7 @@ async def test_expired_replacement_hold_reopens_request_without_touching_origina
     await session.flush()
     with pytest.raises(HTTPException) as conflict:
         await BookingService(session, competitor).create_booking(
-            BookingCreate(slot_id=slot_id, version=version, participants_count=1)
+            BookingCreate(slot_id=slot_id, version=version)
         )
     assert conflict.value.status_code == 409
     cancelled_hold = await BookingService(session, second).cancel_replacement_hold(hold.id)
@@ -607,7 +653,7 @@ async def test_expired_replacement_hold_reopens_request_without_touching_origina
     assert request is not None and request.status == ReplacementRequestStatus.OPEN
     assert slot is not None and slot.status == SlotStatus.PENDING_CANCELLATION
     replacement_hold = await BookingService(session, second).create_booking(
-        BookingCreate(slot_id=slot_id, version=slot.version, participants_count=1)
+        BookingCreate(slot_id=slot_id, version=slot.version)
     )
     hold = await session.get(BookingHold, replacement_hold.id)
     assert hold is not None
@@ -626,7 +672,7 @@ async def test_expired_replacement_hold_reopens_request_without_touching_origina
     assert slot is not None and slot.status == SlotStatus.PENDING_CANCELLATION
     next_version = slot.version
     next_hold = await BookingService(session, competitor).create_booking(
-        BookingCreate(slot_id=slot_id, version=next_version, participants_count=1)
+        BookingCreate(slot_id=slot_id, version=next_version)
     )
     assert next_hold.checkout_type == "replacement_hold"
 
@@ -684,7 +730,6 @@ async def test_expired_booking_is_never_refundable() -> None:
                 source=BookingSource.ONLINE,
                 price_paid=Decimal("100000"),
                 slot_price=Decimal("100000"),
-                participants_count=1,
             )
             db.add(expired)
             await db.commit()
@@ -745,7 +790,7 @@ async def _create_and_pay_online(client, user_token: dict, slot_id: int) -> int:
     headers = {"Authorization": f"Bearer {user_token['access_token']}"}
     created = await client.post(
         "/api/v1/bookings",
-        json={"slot_id": slot_id, "version": 1, "participants_count": 1},
+        json={"slot_id": slot_id, "version": 1},
         headers=headers,
     )
     assert created.status_code == 201, created.text

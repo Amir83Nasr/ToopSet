@@ -89,7 +89,6 @@ class BookingHold(Base):
     __tablename__ = "booking_holds"
     __table_args__ = (
         CheckConstraint("price_paid > 0", name="ck_booking_holds_price_positive"),
-        CheckConstraint("participants_count > 0", name="ck_booking_holds_participants_positive"),
         Index(
             "uq_booking_holds_one_live_per_slot",
             "slot_id",
@@ -120,7 +119,6 @@ class BookingHold(Base):
     slot_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     ball_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     with_ball: Mapped[bool] = mapped_column(default=False, server_default="false")
-    participants_count: Mapped[int] = mapped_column(default=1, server_default="1")
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     processing_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     processing_started_at: Mapped[datetime | None] = mapped_column(

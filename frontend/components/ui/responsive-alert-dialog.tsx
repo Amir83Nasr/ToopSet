@@ -48,16 +48,20 @@ function ResponsiveAlertDialog({
   open,
   onOpenChange,
   children,
+  /** Set false to keep the centered alert dialog on mobile. */
+  mobileAsSheet = true,
 }: {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   children?: React.ReactNode
+  mobileAsSheet?: boolean
 }) {
   const isMobile = useIsMobile()
-  const Root = isMobile ? Drawer : AlertDialog
+  const useDrawer = isMobile && mobileAsSheet
+  const Root = useDrawer ? Drawer : AlertDialog
 
   return (
-    <ResponsiveAlertDialogCtx.Provider value={{ isDrawer: isMobile }}>
+    <ResponsiveAlertDialogCtx.Provider value={{ isDrawer: useDrawer }}>
       <Root open={open} onOpenChange={onOpenChange}>
         {children}
       </Root>

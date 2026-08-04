@@ -137,17 +137,12 @@ class FinanceService:
         slot_id: int,
         full_name: str,
         phone_number: str,
-        participants_count: int,
         source: BookingSource = BookingSource.MANAGER_MANUAL,
     ) -> Booking:
         slot = await self._get_slot_for_manager(slot_id)
         vendor = slot.vendor
         if not vendor or not vendor.is_active:
             raise HTTPException(status.HTTP_409_CONFLICT, detail="مجموعه فعال نیست")
-        if participants_count > vendor.capacity:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, detail="تعداد شرکت‌کنندگان بیش از ظرفیت است"
-            )
         if slot.status != SlotStatus.OPEN or slot.is_reserved:
             raise HTTPException(status.HTTP_409_CONFLICT, detail="این سانس آزاد نیست")
         existing = await self.booking_repo.get_active_by_slot(slot.id, for_update=True)
@@ -169,7 +164,6 @@ class FinanceService:
                 "slot_price": slot.base_price,
                 "ball_price": Decimal("0"),
                 "with_ball": False,
-                "participants_count": participants_count,
             }
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
@@ -186,7 +180,6 @@ class FinanceService:
         days_of_week: list[int],
         start_time: str,
         end_time: str,
-        participants_count: int,
         allow_partial: bool,
     ) -> dict:
         vendor = await self._get_vendor_for_manager(vendor_id)
@@ -198,11 +191,6 @@ class FinanceService:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail="رزرو بلندمدت حداکثر تا ۶ ماه مجاز است"
             )
-        if participants_count > vendor.capacity:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, detail="تعداد شرکت‌کنندگان بیش از ظرفیت است"
-            )
-
         target_slots: list[TimeSlot] = []
         conflicts: list[dict] = []
         current = date_from
@@ -256,7 +244,6 @@ class FinanceService:
                 slot_id=slot.id,
                 full_name=full_name,
                 phone_number=phone_number,
-                participants_count=participants_count,
                 source=BookingSource.MANAGER_MANUAL,
             )
             booking_ids.append(booking.id)
@@ -278,6 +265,12 @@ class FinanceService:
         if not slot:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
         vendor = await self._get_vendor_for_manager(slot.vendor_id)
+
+        if slot.start_time <= now_utc():
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="زمان این سانس گذشته یا شروع شده و دیگر قابل لغو نیست",
+            )
 
         if booking.status in (
             BookingStatus.CANCELLED,

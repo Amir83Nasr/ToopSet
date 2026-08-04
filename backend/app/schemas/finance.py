@@ -89,7 +89,6 @@ class ManagerManualBookingCreate(BaseModel):
     slot_id: int
     full_name: str = Field(..., min_length=2, max_length=128)
     phone_number: str = Field(..., min_length=10, max_length=16)
-    participants_count: int = Field(default=1, ge=1)
     source: str = Field(default="manager_manual", pattern="^manager_manual$")
 
 
@@ -102,7 +101,6 @@ class ManagerRecurringBookingCreate(BaseModel):
     days_of_week: list[int] = Field(..., min_length=1)
     start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
     end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
-    participants_count: int = Field(default=1, ge=1)
     allow_partial: bool = False
 
     @field_validator("days_of_week")

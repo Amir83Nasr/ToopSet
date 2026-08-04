@@ -135,14 +135,14 @@ export function VendorScheduleTab({
       ) : (
         <Card className="overflow-hidden border-primary/20">
           <CardHeader className="border-b bg-primary/5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-1">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 space-y-1">
                 <CardTitle
                   role="heading"
                   aria-level={2}
                   className="flex items-center gap-2"
                 >
-                  <CalendarDays className="size-5 text-primary" />
+                  <CalendarDays className="size-5 shrink-0 text-primary" />
                   برنامه هفتگی ثابت سالن
                 </CardTitle>
                 <CardDescription>
@@ -150,7 +150,7 @@ export function VendorScheduleTab({
                   را مشخص کنید.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <Button
                   variant="outline"
                   size="icon-sm"
@@ -162,8 +162,11 @@ export function VendorScheduleTab({
                   />
                 </Button>
                 {canManage && (
-                  <Button onClick={() => setShowWeeklyEditor(true)}>
-                    <Pencil className="me-1.5 size-4" />
+                  <Button
+                    className="min-w-0 flex-1 sm:flex-none"
+                    onClick={() => setShowWeeklyEditor(true)}
+                  >
+                    <Pencil className="size-4 shrink-0 sm:me-1.5" />
                     ویرایش برنامه هفتگی
                   </Button>
                 )}
@@ -251,8 +254,8 @@ export function VendorScheduleTab({
 
       <Card>
         <CardHeader className="border-b">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle role="heading" aria-level={2}>
                 سانس‌های ایجادشده
               </CardTitle>
@@ -260,11 +263,16 @@ export function VendorScheduleTab({
                 نتیجه برنامه هفتگی را در هفته‌های مختلف مشاهده کنید.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <Button variant="outline" size="icon-sm" onClick={onPrevWeek}>
                 <ChevronRight className="size-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={onThisWeek}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none"
+                onClick={onThisWeek}
+              >
                 این هفته
               </Button>
               <Button variant="outline" size="icon-sm" onClick={onNextWeek}>

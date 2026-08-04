@@ -86,7 +86,6 @@ class BookingService:
             slot_price=float(hold.slot_price),
             ball_price=float(hold.ball_price or 0),
             with_ball=hold.with_ball,
-            participants_count=hold.participants_count,
             expires_at=hold.expires_at,
             failure_code=hold.failure_code,
             vendor_name=vendor.name if vendor else "",
@@ -338,7 +337,6 @@ class BookingService:
                     slot_price=float(b.slot_price) if b.slot_price is not None else None,
                     ball_price=float(b.ball_price or 0),
                     with_ball=b.with_ball,
-                    participants_count=b.participants_count,
                     penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
                     created_at=b.created_at,
                     updated_at=b.updated_at,
@@ -447,7 +445,6 @@ class BookingService:
             slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
             ball_price=float(booking.ball_price or 0),
             with_ball=booking.with_ball,
-            participants_count=booking.participants_count,
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -518,12 +515,6 @@ class BookingService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="این سانس تغییر کرده است. لطفاً صفحه را به‌روز کنید.",
-            )
-
-        if data.participants_count > vendor.capacity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="تعداد شرکت‌کنندگان بیش از ظرفیت مجموعه است",
             )
 
         existing = await self.booking_repo.get_active_by_slot(data.slot_id, for_update=True)
@@ -599,7 +590,6 @@ class BookingService:
                     "slot_price": slot_price,
                     "ball_price": ball_price,
                     "with_ball": data.with_ball,
-                    "participants_count": data.participants_count,
                     "expires_at": min(now_utc() + timedelta(minutes=10), request.deadline),
                 }
             )
@@ -638,7 +628,6 @@ class BookingService:
                 "slot_price": slot_price,
                 "ball_price": ball_price,
                 "with_ball": data.with_ball,
-                "participants_count": data.participants_count,
                 "expires_at": now_utc() + timedelta(minutes=10),
             }
         )
@@ -669,7 +658,6 @@ class BookingService:
             slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
             ball_price=float(booking.ball_price or 0),
             with_ball=booking.with_ball,
-            participants_count=booking.participants_count,
             penalty_amount=None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -968,7 +956,6 @@ class BookingService:
             slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
             ball_price=float(booking.ball_price or 0),
             with_ball=booking.with_ball,
-            participants_count=booking.participants_count,
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -1314,7 +1301,6 @@ class BookingService:
                 "slot_price": hold.slot_price,
                 "ball_price": hold.ball_price,
                 "with_ball": hold.with_ball,
-                "participants_count": hold.participants_count,
                 "expires_at": None,
             }
         )
@@ -1468,7 +1454,6 @@ class BookingService:
                 slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
                 ball_price=float(booking.ball_price or 0),
                 with_ball=booking.with_ball,
-                participants_count=booking.participants_count,
                 penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
                 created_at=booking.created_at,
                 updated_at=booking.updated_at,
@@ -1539,7 +1524,6 @@ class BookingService:
                 slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
                 ball_price=float(booking.ball_price or 0),
                 with_ball=booking.with_ball,
-                participants_count=booking.participants_count,
                 penalty_amount=None,
                 created_at=booking.created_at,
                 updated_at=booking.updated_at,
@@ -1621,7 +1605,6 @@ class BookingService:
             slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
             ball_price=float(booking.ball_price or 0),
             with_ball=booking.with_ball,
-            participants_count=booking.participants_count,
             penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
@@ -1725,7 +1708,6 @@ class BookingService:
                     ball_price=float(b.ball_price or 0),
                     with_ball=b.with_ball,
                     penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
-                    participants_count=b.participants_count,
                     created_at=b.created_at,
                     updated_at=b.updated_at,
                     expires_at=b.expires_at,

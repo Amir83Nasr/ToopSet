@@ -142,12 +142,6 @@ export function BookingTable({
                     {formatMoney(b.price_paid)}
                   </dd>
                 </div>
-                <div className="flex min-h-16 flex-col justify-center gap-1 bg-card px-4 py-3">
-                  <dt className="text-xs text-muted-foreground">تعداد نفرات</dt>
-                  <dd className="font-medium">
-                    {toPersianDigits(b.participants_count)} نفر
-                  </dd>
-                </div>
                 {showRefundStatus && (
                   <div className="col-span-2 flex flex-col gap-2 bg-card px-4 py-3">
                     <dt className="text-xs text-muted-foreground">
@@ -267,7 +261,6 @@ export function BookingTable({
           <col className="w-[90px]" />
           <col className="w-[135px]" />
           <col className="w-[145px]" />
-          <col className="w-[80px]" />
           <col className="w-[175px]" />
           {showRefundStatus && <col className="w-[220px]" />}
           <col className="w-[220px]" />
@@ -281,7 +274,6 @@ export function BookingTable({
             <TableHead className="h-12 px-4 text-center">
               مبلغ پرداختی
             </TableHead>
-            <TableHead className="h-12 px-4 text-center">نفرات</TableHead>
             <TableHead className="h-12 px-4 text-center">وضعیت</TableHead>
             {showRefundStatus && (
               <TableHead className="h-12 px-4 text-center">
@@ -333,9 +325,6 @@ export function BookingTable({
                   <span className="ms-1 text-xs font-normal text-muted-foreground">
                     تومان
                   </span>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-center font-medium">
-                  {toPersianDigits(b.participants_count)}
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center whitespace-normal">
                   <div className="flex flex-col items-center gap-1.5">

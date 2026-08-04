@@ -40,7 +40,6 @@ interface AdminBooking {
   status: string
   price_paid: number
   penalty_amount: number | null
-  participants_count: number
   created_at: string
   updated_at: string
   expires_at: string | null

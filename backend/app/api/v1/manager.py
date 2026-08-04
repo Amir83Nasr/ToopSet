@@ -57,7 +57,6 @@ def _booking_detail_response(b: Booking) -> BookingDetailResponse:
         slot_price=float(b.slot_price) if b.slot_price is not None else None,
         ball_price=float(b.ball_price or 0),
         with_ball=b.with_ball,
-        participants_count=b.participants_count,
         penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
         created_at=b.created_at,
         updated_at=b.updated_at,
@@ -145,7 +144,6 @@ async def list_manager_bookings(
                 customer_phone=b.customer_phone,
                 price_paid=float(b.price_paid),
                 penalty_amount=float(b.penalty_amount) if b.penalty_amount else None,
-                participants_count=b.participants_count,
                 created_at=b.created_at,
                 updated_at=b.updated_at,
                 expires_at=b.expires_at,
@@ -179,7 +177,6 @@ async def create_manual_booking(
         slot_id=data.slot_id,
         full_name=data.full_name,
         phone_number=data.phone_number,
-        participants_count=data.participants_count,
         source=BookingSource(data.source),
     )
     return _booking_detail_response(booking)
@@ -206,7 +203,6 @@ async def create_recurring_bookings(
         days_of_week=data.days_of_week,
         start_time=data.start_time,
         end_time=data.end_time,
-        participants_count=data.participants_count,
         allow_partial=data.allow_partial,
     )
 

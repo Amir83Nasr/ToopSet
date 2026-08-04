@@ -301,6 +301,7 @@ export function MobileNavPanel({
       <ResponsiveAlertDialog
         open={logoutDialogOpen}
         onOpenChange={setLogoutDialogOpen}
+        mobileAsSheet={false}
       >
         <ResponsiveAlertDialogContent>
           <ResponsiveAlertDialogHeader>

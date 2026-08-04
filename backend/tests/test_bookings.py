@@ -72,7 +72,7 @@ class TestCreateBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 2},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
 
@@ -80,7 +80,6 @@ class TestCreateBooking:
         assert resp.status_code == 201, resp.text
         data = resp.json()
         assert data["status"] == "pending_payment"
-        assert data["participants_count"] == 2
         assert data["slot_id"] == slot_id
         assert data["user_id"] == user_token["user"]["id"]
 
@@ -98,14 +97,14 @@ class TestCreateBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
 
         # Act: second booking same slot
         resp2 = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         assert resp2.status_code == 409
@@ -126,7 +125,6 @@ class TestCreateBooking:
             json={
                 "slot_id": first_slot_id,
                 "version": await _get_slot_version(client, first_slot_id),
-                "participants_count": 1,
             },
             headers=user_headers,
         )
@@ -137,7 +135,6 @@ class TestCreateBooking:
             json={
                 "slot_id": second_slot_id,
                 "version": await _get_slot_version(client, second_slot_id),
-                "participants_count": 1,
             },
             headers=user_headers,
         )
@@ -156,7 +153,7 @@ class TestCreateBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": 999, "participants_count": 1},
+            json={"slot_id": slot_id, "version": 999},
             headers=user_headers,
         )
         assert resp.status_code == 409
@@ -171,7 +168,7 @@ class TestCreateBooking:
 
         resp = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": 1, "participants_count": 1},
+            json={"slot_id": slot_id, "version": 1},
         )
         assert resp.status_code == 401
 
@@ -189,7 +186,7 @@ class TestListBookings:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
 
@@ -213,7 +210,7 @@ class TestGetBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         create = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         booking_id = create.json()["id"]
@@ -235,7 +232,7 @@ class TestGetBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         create = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         booking_id = create.json()["id"]
@@ -267,7 +264,7 @@ class TestPayBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         create = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         booking_id = create.json()["id"]
@@ -289,7 +286,7 @@ class TestPayBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         create = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         booking_id = create.json()["id"]
@@ -316,7 +313,7 @@ class TestCancelBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         create = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         booking_id = create.json()["id"]
@@ -337,7 +334,7 @@ class TestCancelBooking:
         user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         create = await client.post(
             "/api/v1/bookings",
-            json={"slot_id": slot_id, "version": version, "participants_count": 1},
+            json={"slot_id": slot_id, "version": version},
             headers=user_headers,
         )
         booking_id = create.json()["id"]

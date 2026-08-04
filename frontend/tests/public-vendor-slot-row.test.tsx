@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { SlotRow } from "@/app/vendors/[id]/page"
+import { SlotRow } from "@/components/vendors/public-slot-row"
 import type { TimeSlot } from "@/components/vendors/vendor-shared"
 
 const openSlot: TimeSlot = {

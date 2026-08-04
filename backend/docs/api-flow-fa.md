@@ -361,16 +361,15 @@
 ### `POST /api/v1/bookings`
 
 - دسترسی: کاربر لاگین‌شده.
-- ورودی مهم: `slot_id`، تعداد نفرات، انتخاب توپ.
+- ورودی مهم: `slot_id`، نسخه سانس و انتخاب توپ.
 - فرآیند:
   1. slot با lock مناسب خوانده می‌شود.
   2. آینده بودن slot، آزاد بودن، فعال بودن vendor و پنجره رزرو عمومی کنترل می‌شود.
-  3. تعداد نفرات و ظرفیت بررسی می‌شود.
-  4. قیمت نهایی از قیمت slot و هزینه توپ محاسبه می‌شود.
-  5. برای سانس عادی، booking با status=`pending_payment` و زمان انقضای پرداخت ساخته می‌شود.
-  6. اگر رزرو قبلی `pending_cancellation` باشد، به‌جای booking یک `booking_hold` ده‌دقیقه‌ای ساخته می‌شود؛ مالک سانس همچنان رزرو قبلی است.
-  7. در حالت Hold، `replacement_request` به `held` و slot به `reserving` می‌رود تا خریدار دیگری هم‌زمان وارد پرداخت نشود.
-  8. notification و log مرتبط ثبت می‌شود.
+  3. قیمت نهایی از قیمت slot و هزینه توپ محاسبه می‌شود.
+  4. برای سانس عادی، booking با status=`pending_payment` و زمان انقضای پرداخت ساخته می‌شود.
+  5. اگر رزرو قبلی `pending_cancellation` باشد، به‌جای booking یک `booking_hold` ده‌دقیقه‌ای ساخته می‌شود؛ مالک سانس همچنان رزرو قبلی است.
+  6. در حالت Hold، `replacement_request` به `held` و slot به `reserving` می‌رود تا خریدار دیگری هم‌زمان وارد پرداخت نشود.
+  7. notification و log مرتبط ثبت می‌شود.
 - خروجی: رزرو pending با `checkout_type=booking` یا Hold با `checkout_type=replacement_hold`.
 - خطاهای مهم: slot پر یا نامعتبر `409`، slot ناموجود `404`.
 
@@ -777,11 +776,11 @@
 ### `POST /api/v1/manager/bookings/manual`
 
 - دسترسی: manager مالک vendor یا admin.
-- ورودی مهم: slot، نام/شماره مشتری، تعداد نفرات، قیمت/توپ.
+- ورودی مهم: slot و نام/شماره مشتری.
 - فرآیند:
   1. slot و vendor خوانده می‌شوند.
   2. مالکیت manager بررسی می‌شود.
-  3. آزاد بودن slot و ظرفیت کنترل می‌شود.
+  3. آزاد بودن slot کنترل می‌شود.
   4. booking با source=`manager_manual` و بدون پرداخت آنلاین ساخته می‌شود.
   5. slot reserved می‌شود.
 - خروجی: booking ساخته‌شده.

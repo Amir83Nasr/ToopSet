@@ -14,7 +14,6 @@ from app.models.replacement import BookingHoldStatus
 class BookingCreate(BaseModel):
     slot_id: int
     version: int
-    participants_count: int = Field(default=1, ge=1)
     with_ball: bool = False
 
 
@@ -53,7 +52,6 @@ class BookingResponse(BaseModel):
     ball_price: float = 0
     with_ball: bool = False
     penalty_amount: float | None = None
-    participants_count: int = 1
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None = None
@@ -118,7 +116,6 @@ class ReplacementHoldResponse(BaseModel):
     slot_price: float
     ball_price: float = 0
     with_ball: bool = False
-    participants_count: int = 1
     expires_at: datetime
     failure_code: str | None = None
     vendor_name: str = ""
@@ -146,7 +143,6 @@ class AdminBookingResponse(BaseModel):
     ball_price: float = 0
     with_ball: bool = False
     penalty_amount: float | None = None
-    participants_count: int = 1
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None = None

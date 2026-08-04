@@ -286,10 +286,10 @@ async def test_reserved_exact_slot_is_preserved_when_price_changes(
             INSERT INTO bookings
                 (user_id, slot_id, status, source, settlement_status,
                  created_by_manager_id, price_paid, slot_price, ball_price,
-                 with_ball, participants_count)
+                 with_ball)
             VALUES (:manager_id, :slot_id, 'confirmed', 'manager_manual',
                     'excluded_due_to_cancellation', :manager_id,
-                    0, 100000, 0, false, 1)
+                    0, 100000, 0, false)
             """
         ),
         {"manager_id": manager_token["user"]["id"], "slot_id": slot_id},
@@ -333,9 +333,9 @@ async def test_schedule_must_start_after_latest_online_booking(
             """
             INSERT INTO bookings
                 (user_id, slot_id, status, source, settlement_status, price_paid,
-                 slot_price, ball_price, with_ball, participants_count)
+                 slot_price, ball_price, with_ball)
             VALUES (:user_id, :slot_id, 'confirmed', 'online', 'not_settled',
-                    100000, 100000, 0, false, 1)
+                    100000, 100000, 0, false)
             """
         ),
         {"user_id": user_token["user"]["id"], "slot_id": slot_id},
@@ -410,9 +410,9 @@ async def test_manager_owned_reservation_requires_confirmation_then_is_deleted(
             """
             INSERT INTO bookings
                 (user_id, slot_id, status, source, settlement_status, created_by_manager_id,
-                 price_paid, slot_price, ball_price, with_ball, participants_count)
+                 price_paid, slot_price, ball_price, with_ball)
             VALUES (:manager_id, :slot_id, 'confirmed', 'manager_manual',
-                    'excluded_due_to_cancellation', :manager_id, 0, 150000, 0, false, 1)
+                    'excluded_due_to_cancellation', :manager_id, 0, 150000, 0, false)
             """
         ),
         {"manager_id": manager_token["user"]["id"], "slot_id": slot_id},

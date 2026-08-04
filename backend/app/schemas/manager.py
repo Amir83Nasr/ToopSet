@@ -16,7 +16,6 @@ class ManagerBookingResponse(BaseModel):
     customer_phone: str | None = None
     price_paid: float
     penalty_amount: float | None = None
-    participants_count: int = 1
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None = None
