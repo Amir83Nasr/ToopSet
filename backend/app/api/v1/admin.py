@@ -48,6 +48,9 @@ from app.schemas.finance import (
     RefundListResponse,
     RefundResponse,
     RefundStatusUpdate,
+    SettlementDestinationResponse,
+    SettlementDetailResponse,
+    SettlementItemResponse,
     SettlementListResponse,
     SettlementResponse,
     SettlementStatusUpdate,
@@ -142,6 +145,10 @@ def _settlement_response(s) -> SettlementResponse:
         vendor_id=s.vendor_id,
         requested_amount=float(s.requested_amount),
         approved_amount=float(s.approved_amount) if s.approved_amount is not None else None,
+        gross_amount=float(s.gross_amount),
+        commission_percent=float(s.commission_percent),
+        commission_amount=float(s.commission_amount),
+        gateway_fee=float(s.gateway_fee),
         bookings_count=s.bookings_count,
         period_from=s.period_from,
         period_to=s.period_to,
@@ -149,6 +156,8 @@ def _settlement_response(s) -> SettlementResponse:
         manager_note=s.manager_note,
         admin_note=s.admin_note,
         payment_tracking_code=s.payment_tracking_code,
+        destination_card_masked=s.destination_card_masked,
+        destination_card_holder_name=s.destination_card_holder_name,
         requested_at=s.requested_at,
         approved_at=s.approved_at,
         paid_at=s.paid_at,
@@ -1032,7 +1041,6 @@ async def update_admin_settlement(
     settlement = await FinanceService(db, current_user).update_settlement_status(
         settlement_id,
         new_status=data.status,
-        approved_amount=data.approved_amount,
         admin_note=data.admin_note,
         payment_tracking_code=data.payment_tracking_code,
     )
@@ -1044,6 +1052,74 @@ async def update_admin_settlement(
         f"تغییر وضعیت تسویه | settlement={settlement_id} → {data.status.value}",
     )
     return _settlement_response(settlement)
+
+
+@router.get(
+    "/settlements/{settlement_id}",
+    response_model=SettlementDetailResponse,
+    summary="Get settlement items and accounting details",
+)
+async def get_admin_settlement_detail(
+    settlement_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    from app.services.finance_service import FinanceService
+
+    settlement = await FinanceService(db, current_user).get_settlement_detail(settlement_id)
+    base = _settlement_response(settlement).model_dump()
+    return SettlementDetailResponse(
+        **base,
+        items=[
+            SettlementItemResponse(
+                booking_id=item.booking_id,
+                amount=float(item.amount),
+                booking_status=item.booking.status.value,
+                settlement_status=item.booking.settlement_status.value,
+                slot_start_time=item.booking.slot.start_time,
+                slot_end_time=item.booking.slot.end_time,
+                customer_name=item.booking.customer_full_name
+                or (item.booking.user.full_name if item.booking.user else ""),
+            )
+            for item in settlement.items
+        ],
+    )
+
+
+@router.get(
+    "/settlements/{settlement_id}/destination",
+    response_model=SettlementDestinationResponse,
+    summary="Reveal settlement payout destination for manual transfer",
+)
+async def reveal_settlement_destination(
+    settlement_id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    from app.models.settlement import Settlement
+
+    settlement = await db.get(Settlement, settlement_id)
+    if not settlement:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="تسویه یافت نشد")
+    if not settlement.destination_card_encrypted or not settlement.destination_card_masked:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="کارت مقصد تسویه ثبت نشده است",
+        )
+    await log_action(
+        db,
+        current_user.id,
+        "settlement_destination_revealed",
+        f"مشاهده کارت مقصد تسویه | settlement={settlement_id}",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return SettlementDestinationResponse(
+        settlement_id=settlement.id,
+        card_number=decrypt_card_number(settlement.destination_card_encrypted),
+        masked_card_number=settlement.destination_card_masked,
+        holder_name=settlement.destination_card_holder_name,
+    )
 
 
 # ── Hero image management ──────────────────────────────────────────────

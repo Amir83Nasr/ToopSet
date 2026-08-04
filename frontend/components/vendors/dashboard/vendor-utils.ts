@@ -54,6 +54,16 @@ export interface ManagerBooking {
   slot_end_time: string | null
 }
 
+export type SettlementState =
+  | "settled"
+  | "pending_settlement"
+  | "eligible"
+  | "not_yet_eligible"
+
+export type FinanceBooking = ManagerBooking & {
+  settlement_state: SettlementState
+}
+
 export interface FinanceSummary {
   total_online_revenue: number
   successful_online_bookings: number
@@ -67,25 +77,61 @@ export interface FinanceSummary {
   available_for_settlement: number
 }
 
-export function settlementStateForBooking(booking: ManagerBooking): {
+export interface VendorSettlement {
+  id: number
+  vendor_id: number
+  requested_amount: number
+  gross_amount: number
+  commission_amount: number
+  status: string
+  requested_at: string
+  payment_tracking_code: string | null
+}
+
+export interface VendorSettlementItem {
+  booking_id: number
+  amount: number
+  booking_status: string
+  settlement_status: string
+  slot_start_time: string
+  slot_end_time: string
+  customer_name: string
+}
+
+export interface VendorSettlementDetail extends VendorSettlement {
+  manager_id: number
+  approved_amount: number | null
+  commission_percent: number
+  gateway_fee: number
+  bookings_count: number
+  period_from: string | null
+  period_to: string | null
+  manager_note: string | null
+  admin_note: string | null
+  destination_card_masked: string | null
+  destination_card_holder_name: string | null
+  approved_at: string | null
+  paid_at: string | null
+  vendor_name: string
+  manager_name: string
+  items: VendorSettlementItem[]
+}
+
+export function settlementStateForBooking(booking: FinanceBooking): {
   label: string
   variant: "default" | "secondary" | "outline" | "destructive"
 } {
-  if (booking.source !== "online" || booking.status !== "confirmed") {
-    return { label: "غیرقابل تسویه", variant: "secondary" }
-  }
-  if (booking.slot_end_time && new Date(booking.slot_end_time) > new Date()) {
-    return { label: "هنوز موعد سانس نرسیده", variant: "outline" }
-  }
-  switch (booking.settlement_status) {
+  switch (booking.settlement_state) {
     case "settled":
       return { label: "تسویه شده", variant: "default" }
-    case "settlement_requested":
-    case "included_in_settlement":
-      return { label: "در جریان تسویه", variant: "outline" }
-    case "not_settled":
+    case "pending_settlement":
+      return { label: "در انتظار تسویه", variant: "outline" }
+    case "eligible":
       return { label: "قابل تسویه", variant: "destructive" }
-    default:
-      return { label: "تسویه نشده", variant: "secondary" }
+    case "not_yet_eligible":
+      return {
+        label: "غیرقابل تسویه (سانس هنوز پایان نیافته)",
+        variant: "secondary",
+      }
   }
 }

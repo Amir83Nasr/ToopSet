@@ -11,7 +11,8 @@ from app.api.deps import get_current_manager
 from app.core.database import get_db
 from app.core.date_utils import parse_date_filter, parse_date_filter_end
 from app.core.pagination import decode_cursor, encode_cursor
-from app.models.booking import Booking, BookingSource, BookingStatus
+from app.core.timezone import now_utc
+from app.models.booking import Booking, BookingSource, BookingStatus, SettlementStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -23,6 +24,7 @@ from app.schemas.finance import (
     ManagerRecurringBookingCreate,
     ManagerRecurringBookingResponse,
     SettlementCreateRequest,
+    SettlementDetailResponse,
     SettlementListResponse,
     SettlementResponse,
     SettlementSummaryResponse,
@@ -76,6 +78,10 @@ def _settlement_response(s) -> SettlementResponse:
         vendor_id=s.vendor_id,
         requested_amount=float(s.requested_amount),
         approved_amount=float(s.approved_amount) if s.approved_amount is not None else None,
+        gross_amount=float(s.gross_amount),
+        commission_percent=float(s.commission_percent),
+        commission_amount=float(s.commission_amount),
+        gateway_fee=float(s.gateway_fee),
         bookings_count=s.bookings_count,
         period_from=s.period_from,
         period_to=s.period_to,
@@ -83,12 +89,27 @@ def _settlement_response(s) -> SettlementResponse:
         manager_note=s.manager_note,
         admin_note=s.admin_note,
         payment_tracking_code=s.payment_tracking_code,
+        destination_card_masked=s.destination_card_masked,
+        destination_card_holder_name=s.destination_card_holder_name,
         requested_at=s.requested_at,
         approved_at=s.approved_at,
         paid_at=s.paid_at,
         vendor_name=s.vendor.name if getattr(s, "vendor", None) else "",
         manager_name=s.manager.full_name if getattr(s, "manager", None) else "",
     )
+
+
+def _finance_settlement_state(booking: Booking) -> str:
+    if booking.settlement_status == SettlementStatus.SETTLED:
+        return "settled"
+    if booking.settlement_status in (
+        SettlementStatus.SETTLEMENT_REQUESTED,
+        SettlementStatus.INCLUDED_IN_SETTLEMENT,
+    ):
+        return "pending_settlement"
+    if booking.slot and booking.slot.end_time > now_utc():
+        return "not_yet_eligible"
+    return "eligible"
 
 
 @router.get(
@@ -106,6 +127,10 @@ async def list_manager_bookings(
     date_from: str | None = Query(None, description="Start date (YYYY-MM-DD or ISO datetime)"),
     date_to: str | None = Query(None, description="End date (YYYY-MM-DD or ISO datetime)"),
     search: str | None = None,
+    finance_only: bool = Query(
+        False,
+        description="Only confirmed online bookings with a successful payment",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_manager),
     response: Response = None,
@@ -123,6 +148,7 @@ async def list_manager_bookings(
         date_from=parse_date_filter(date_from) if date_from else None,
         date_to=parse_date_filter_end(date_to) if date_to else None,
         search=search,
+        finance_only=finance_only,
     )
 
     result = []
@@ -140,6 +166,7 @@ async def list_manager_bookings(
                 settlement_status=b.settlement_status.value
                 if hasattr(b.settlement_status, "value")
                 else b.settlement_status,
+                settlement_state=_finance_settlement_state(b) if finance_only else None,
                 customer_full_name=b.customer_full_name,
                 customer_phone=b.customer_phone,
                 price_paid=float(b.price_paid),
@@ -298,6 +325,36 @@ async def list_manager_settlements(
     return SettlementListResponse(
         settlements=[_settlement_response(s) for s in settlements],
         total=total,
+    )
+
+
+@router.get(
+    "/settlements/{settlement_id}",
+    response_model=SettlementDetailResponse,
+    summary="Get manager settlement items and accounting details",
+)
+async def get_manager_settlement_detail(
+    settlement_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_manager),
+):
+    settlement = await FinanceService(db, current_user).get_settlement_detail(settlement_id)
+    base = _settlement_response(settlement).model_dump()
+    return SettlementDetailResponse(
+        **base,
+        items=[
+            {
+                "booking_id": item.booking_id,
+                "amount": float(item.amount),
+                "booking_status": item.booking.status.value,
+                "settlement_status": item.booking.settlement_status.value,
+                "slot_start_time": item.booking.slot.start_time,
+                "slot_end_time": item.booking.slot.end_time,
+                "customer_name": item.booking.customer_full_name
+                or (item.booking.user.full_name if item.booking.user else ""),
+            }
+            for item in settlement.items
+        ],
     )
 
 

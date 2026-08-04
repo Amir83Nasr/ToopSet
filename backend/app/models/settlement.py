@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,6 +27,14 @@ class Settlement(Base):
     vendor_id: Mapped[int] = mapped_column(ForeignKey("vendors.id", ondelete="CASCADE"), index=True)
     requested_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     approved_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    gross_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
+    commission_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=0, server_default="0"
+    )
+    commission_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=0, server_default="0"
+    )
+    gateway_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     bookings_count: Mapped[int] = mapped_column(default=0, server_default="0")
     period_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     period_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -39,6 +47,9 @@ class Settlement(Base):
     manager_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     payment_tracking_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    destination_card_encrypted: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    destination_card_masked: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    destination_card_holder_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     requested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -52,7 +63,6 @@ class Settlement(Base):
 
 class SettlementItem(Base):
     __tablename__ = "settlement_items"
-    __table_args__ = (UniqueConstraint("booking_id", name="uq_settlement_items_booking_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     settlement_id: Mapped[int] = mapped_column(

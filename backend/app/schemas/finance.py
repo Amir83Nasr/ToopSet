@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -74,6 +73,13 @@ class UserRefundListResponse(BaseModel):
 
 class RefundDestinationResponse(BaseModel):
     refund_id: int
+    card_number: str
+    masked_card_number: str
+    holder_name: str | None = None
+
+
+class SettlementDestinationResponse(BaseModel):
+    settlement_id: int
     card_number: str
     masked_card_number: str
     holder_name: str | None = None
@@ -176,6 +182,10 @@ class SettlementSummaryResponse(BaseModel):
     user_cancelled_bookings: int
     pending_cancellations: int
     refunds_amount: float
+    pending_refund_amount: float = 0
+    approved_refund_amount: float = 0
+    paid_refund_amount: float = 0
+    rejected_refund_amount: float = 0
     settlement_requested_amount: float
     settled_amount: float
     available_for_settlement: float
@@ -187,6 +197,12 @@ class SettlementCreateRequest(BaseModel):
     period_to: datetime | None = None
     manager_note: str | None = None
 
+    @model_validator(mode="after")
+    def validate_period(self) -> "SettlementCreateRequest":
+        if self.period_from and self.period_to and self.period_from > self.period_to:
+            raise ValueError("period_from must not be after period_to")
+        return self
+
 
 class SettlementResponse(BaseModel):
     id: int
@@ -194,6 +210,10 @@ class SettlementResponse(BaseModel):
     vendor_id: int
     requested_amount: float
     approved_amount: float | None = None
+    gross_amount: float = 0
+    commission_percent: float = 0
+    commission_amount: float = 0
+    gateway_fee: float = 0
     bookings_count: int
     period_from: datetime | None = None
     period_to: datetime | None = None
@@ -201,6 +221,8 @@ class SettlementResponse(BaseModel):
     manager_note: str | None = None
     admin_note: str | None = None
     payment_tracking_code: str | None = None
+    destination_card_masked: str | None = None
+    destination_card_holder_name: str | None = None
     requested_at: datetime
     approved_at: datetime | None = None
     paid_at: datetime | None = None
@@ -217,6 +239,21 @@ class SettlementListResponse(BaseModel):
 
 class SettlementStatusUpdate(BaseModel):
     status: SettlementRequestStatus
-    approved_amount: Decimal | None = Field(default=None, ge=0)
     admin_note: str | None = None
     payment_tracking_code: str | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+class SettlementItemResponse(BaseModel):
+    booking_id: int
+    amount: float
+    booking_status: str
+    settlement_status: str
+    slot_start_time: datetime
+    slot_end_time: datetime
+    customer_name: str = ""
+
+
+class SettlementDetailResponse(SettlementResponse):
+    items: list[SettlementItemResponse]

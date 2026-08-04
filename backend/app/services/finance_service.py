@@ -14,6 +14,7 @@ from app.models.booking import Booking, BookingSource, BookingStatus, Settlement
 from app.models.notification import NotificationDelivery
 from app.models.payment import Payment, PaymentStatus
 from app.models.refund import Refund, RefundStatus, RefundType
+from app.models.setting import Setting
 from app.models.settlement import Settlement, SettlementItem, SettlementRequestStatus
 from app.models.slot_cancellation import SlotCancellation
 from app.models.time_slot import SlotStatus, TimeSlot
@@ -156,7 +157,7 @@ class FinanceService:
                 "slot_id": slot.id,
                 "status": BookingStatus.CONFIRMED,
                 "source": source,
-                "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                "settlement_status": SettlementStatus.EXCLUDED_MANUAL_BOOKING,
                 "created_by_manager_id": self.current_user.id,
                 "customer_full_name": full_name,
                 "customer_phone": normalize_phone(phone_number),
@@ -389,15 +390,24 @@ class FinanceService:
         if vendor_id:
             base = base.where(Vendor.id == vendor_id)
         if date_from:
-            base = base.where(Booking.created_at >= date_from)
+            base = base.where(TimeSlot.end_time >= date_from)
         if date_to:
-            base = base.where(Booking.created_at <= date_to)
+            base = base.where(TimeSlot.end_time <= date_to)
 
         bookings = list((await self.db.execute(base)).scalars().all())
+        paid_booking_ids = set(
+            (
+                await self.db.execute(
+                    select(Payment.booking_id).where(Payment.status == PaymentStatus.SUCCESS)
+                )
+            ).scalars()
+        )
         successful_online = [
             b
             for b in bookings
-            if b.source == BookingSource.ONLINE and b.status == BookingStatus.CONFIRMED
+            if b.source == BookingSource.ONLINE
+            and b.status == BookingStatus.CONFIRMED
+            and b.id in paid_booking_ids
         ]
         now = now_utc()
         completed_online = [b for b in successful_online if b.slot and b.slot.end_time <= now]
@@ -411,28 +421,35 @@ class FinanceService:
         eligible = [
             b for b in completed_online if b.settlement_status == SettlementStatus.NOT_SETTLED
         ]
-        settlement_requested_amount = sum(
-            Decimal(str(b.price_paid))
-            for b in bookings
-            if b.settlement_status == SettlementStatus.SETTLEMENT_REQUESTED
-        )
-        settled_amount = sum(
-            Decimal(str(b.price_paid))
-            for b in bookings
-            if b.settlement_status == SettlementStatus.SETTLED
-        )
-        refunds_query = (
-            select(func.coalesce(func.sum(Refund.refund_amount), 0))
-            .join(Vendor, Refund.vendor_id == Vendor.id)
-            .where(Vendor.manager_id == manager_id if self.current_user.role != "admin" else True)
-        )
+        settlement_amounts_query = select(
+            Settlement.status, func.coalesce(func.sum(Settlement.requested_amount), 0)
+        ).group_by(Settlement.status)
+        if self.current_user.role != "admin":
+            settlement_amounts_query = settlement_amounts_query.where(
+                Settlement.manager_id == manager_id
+            )
         if vendor_id is not None:
-            refunds_query = refunds_query.where(Refund.vendor_id == vendor_id)
-        if date_from is not None:
-            refunds_query = refunds_query.where(Refund.requested_at >= date_from)
-        if date_to is not None:
-            refunds_query = refunds_query.where(Refund.requested_at <= date_to)
-        refunds_amount = (await self.db.execute(refunds_query)).scalar_one()
+            settlement_amounts_query = settlement_amounts_query.where(
+                Settlement.vendor_id == vendor_id
+            )
+        settlement_amounts = {
+            status_.value: Decimal(str(amount))
+            for status_, amount in await self.db.execute(settlement_amounts_query)
+        }
+        settlement_requested_amount = settlement_amounts.get(
+            SettlementRequestStatus.PENDING.value, Decimal("0")
+        ) + settlement_amounts.get(SettlementRequestStatus.APPROVED.value, Decimal("0"))
+        settled_amount = settlement_amounts.get(SettlementRequestStatus.PAID.value, Decimal("0"))
+        refund_status_amounts = await self._refund_status_amounts(vendor_id, date_from, date_to)
+        manager_cancelled_ids = set(
+            (
+                await self.db.execute(
+                    select(SlotCancellation.booking_id).where(
+                        SlotCancellation.booking_id.in_([b.id for b in bookings])
+                    )
+                )
+            ).scalars()
+        )
 
         return {
             "vendor_id": vendor_id,
@@ -447,33 +464,88 @@ class FinanceService:
                 [
                     b
                     for b in successful_online
-                    if b.settlement_status == SettlementStatus.SETTLEMENT_REQUESTED
+                    if b.settlement_status
+                    in (
+                        SettlementStatus.SETTLEMENT_REQUESTED,
+                        SettlementStatus.INCLUDED_IN_SETTLEMENT,
+                    )
                 ]
             ),
             "available_for_settlement_bookings": len(eligible),
             "not_due_bookings": len(not_due),
             "manual_bookings": len([b for b in bookings if b.source != BookingSource.ONLINE]),
-            "manager_cancelled_bookings": len(
-                [
-                    b
-                    for b in bookings
-                    if b.status == BookingStatus.CANCELLED and b.created_by_manager_id
-                ]
-            ),
+            "manager_cancelled_bookings": len(manager_cancelled_ids),
             "user_cancelled_bookings": len(
                 [
                     b
                     for b in bookings
-                    if b.status == BookingStatus.CANCELLED and not b.created_by_manager_id
+                    if b.status == BookingStatus.CANCELLED and b.id not in manager_cancelled_ids
                 ]
             ),
             "pending_cancellations": len(
                 [b for b in bookings if b.status == BookingStatus.PENDING_CANCELLATION]
             ),
-            "refunds_amount": float(refunds_amount or 0),
+            "refunds_amount": refund_status_amounts["paid_refund_amount"],
+            **refund_status_amounts,
             "settlement_requested_amount": float(settlement_requested_amount),
             "settled_amount": float(settled_amount),
-            "available_for_settlement": float(sum(Decimal(str(b.price_paid)) for b in eligible)),
+            "available_for_settlement": float(await self._net_amount_for_bookings(eligible)),
+        }
+
+    async def _net_amount_for_bookings(self, bookings: list[Booking]) -> Decimal:
+        if not bookings:
+            return Decimal("0")
+        setting = (
+            await self.db.execute(select(Setting).where(Setting.key == "commission_percent"))
+        ).scalar_one_or_none()
+        try:
+            percent = Decimal(setting.value if setting else "10")
+        except Exception:
+            percent = Decimal("10")
+        percent = min(max(percent, Decimal("0")), Decimal("100"))
+        gross = sum(Decimal(str(b.price_paid)) for b in bookings)
+        fees = (
+            await self.db.execute(
+                select(func.coalesce(func.sum(Payment.gateway_fee), 0)).where(
+                    Payment.booking_id.in_([b.id for b in bookings]),
+                    Payment.status == PaymentStatus.SUCCESS,
+                )
+            )
+        ).scalar_one()
+        return max(
+            gross
+            - (gross * percent / Decimal("100")).quantize(Decimal("0.01"))
+            - Decimal(str(fees)),
+            Decimal("0"),
+        )
+
+    async def _refund_status_amounts(
+        self,
+        vendor_id: int | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+    ) -> dict[str, float]:
+        query = select(Refund.status, func.coalesce(func.sum(Refund.refund_amount), 0)).group_by(
+            Refund.status
+        )
+        if self.current_user.role != "admin":
+            query = query.join(Vendor, Refund.vendor_id == Vendor.id).where(
+                Vendor.manager_id == self.current_user.id
+            )
+        if vendor_id is not None:
+            query = query.where(Refund.vendor_id == vendor_id)
+        if date_from is not None:
+            query = query.where(Refund.requested_at >= date_from)
+        if date_to is not None:
+            query = query.where(Refund.requested_at <= date_to)
+        amounts = {
+            status_.value: Decimal(str(amount)) for status_, amount in await self.db.execute(query)
+        }
+        return {
+            "pending_refund_amount": float(amounts.get("pending", 0)),
+            "approved_refund_amount": float(amounts.get("approved", 0)),
+            "paid_refund_amount": float(amounts.get("paid", 0)),
+            "rejected_refund_amount": float(amounts.get("rejected", 0)),
         }
 
     async def _eligible_settlement_bookings(
@@ -496,9 +568,9 @@ class FinanceService:
             .with_for_update()
         )
         if period_from:
-            stmt = stmt.where(Booking.created_at >= period_from)
+            stmt = stmt.where(TimeSlot.end_time >= period_from)
         if period_to:
-            stmt = stmt.where(Booking.created_at <= period_to)
+            stmt = stmt.where(TimeSlot.end_time <= period_to)
         result = await self.db.execute(stmt)
         return list(result.scalars().unique().all())
 
@@ -514,24 +586,73 @@ class FinanceService:
         if not bookings:
             raise HTTPException(status.HTTP_409_CONFLICT, detail="مبلغ قابل تسویه‌ای وجود ندارد")
 
-        amount = sum(Decimal(str(b.price_paid)) for b in bookings)
+        vendor = await self._get_vendor_for_manager(vendor_id)
+        payout_card = await self.bank_card_repo.get_verified_for_user(vendor.manager_id)
+        if payout_card is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="برای درخواست تسویه، ثبت و تأیید کارت بانکی سالندار الزامی است",
+            )
+        setting = (
+            await self.db.execute(select(Setting).where(Setting.key == "commission_percent"))
+        ).scalar_one_or_none()
+        try:
+            commission_percent = Decimal(setting.value if setting else "10")
+        except Exception:
+            commission_percent = Decimal("10")
+        commission_percent = min(max(commission_percent, Decimal("0")), Decimal("100"))
+        gross_amount = sum(Decimal(str(b.price_paid)) for b in bookings)
+        commission_amount = (gross_amount * commission_percent / Decimal("100")).quantize(
+            Decimal("0.01")
+        )
+        payment_rows = list(
+            await self.db.execute(
+                select(Payment.booking_id, Payment.gateway_fee).where(
+                    Payment.booking_id.in_([b.id for b in bookings]),
+                    Payment.status == PaymentStatus.SUCCESS,
+                )
+            )
+        )
+        fee_by_booking = {booking_id: Decimal(str(fee or 0)) for booking_id, fee in payment_rows}
+        gateway_fee = sum(fee_by_booking.values(), Decimal("0"))
+        amount = max(gross_amount - commission_amount - Decimal(str(gateway_fee)), Decimal("0"))
         settlement = Settlement(
-            manager_id=self.current_user.id,
+            manager_id=vendor.manager_id,
             vendor_id=vendor_id,
             requested_amount=amount,
+            gross_amount=gross_amount,
+            commission_percent=commission_percent,
+            commission_amount=commission_amount,
+            gateway_fee=gateway_fee,
             bookings_count=len(bookings),
             period_from=period_from,
             period_to=period_to,
             manager_note=manager_note,
+            destination_card_encrypted=payout_card.encrypted_card_number,
+            destination_card_masked=payout_card.masked_card_number,
+            destination_card_holder_name=payout_card.holder_name,
         )
         self.db.add(settlement)
         await self.db.flush()
-        for booking in bookings:
+        item_amounts = [
+            max(
+                (
+                    Decimal(str(booking.price_paid))
+                    * (Decimal("100") - commission_percent)
+                    / Decimal("100")
+                ).quantize(Decimal("0.01"))
+                - fee_by_booking.get(booking.id, Decimal("0")),
+                Decimal("0"),
+            )
+            for booking in bookings
+        ]
+        item_amounts[-1] += amount - sum(item_amounts, Decimal("0"))
+        for booking, item_amount in zip(bookings, item_amounts, strict=True):
             self.db.add(
                 SettlementItem(
                     settlement_id=settlement.id,
                     booking_id=booking.id,
-                    amount=booking.price_paid,
+                    amount=item_amount,
                 )
             )
             booking.settlement_status = SettlementStatus.SETTLEMENT_REQUESTED
@@ -549,12 +670,34 @@ class FinanceService:
         settlements = list(result.scalars().all())
         return settlements, len(settlements)
 
+    async def get_settlement_detail(self, settlement_id: int) -> Settlement:
+        settlement = (
+            await self.db.execute(
+                select(Settlement)
+                .where(Settlement.id == settlement_id)
+                .options(
+                    selectinload(Settlement.vendor),
+                    selectinload(Settlement.manager),
+                    selectinload(Settlement.items)
+                    .selectinload(SettlementItem.booking)
+                    .selectinload(Booking.slot),
+                    selectinload(Settlement.items)
+                    .selectinload(SettlementItem.booking)
+                    .selectinload(Booking.user),
+                )
+            )
+        ).scalar_one_or_none()
+        if settlement is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="درخواست تسویه یافت نشد")
+        if self.current_user.role != "admin" and settlement.manager_id != self.current_user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="به این تسویه دسترسی ندارید")
+        return settlement
+
     async def update_settlement_status(
         self,
         settlement_id: int,
         *,
         new_status: SettlementRequestStatus,
-        approved_amount: Decimal | None,
         admin_note: str | None,
         payment_tracking_code: str | None,
     ) -> Settlement:
@@ -575,8 +718,8 @@ class FinanceService:
             SettlementRequestStatus.PAID: set(),
         }
         if (
-            new_status != settlement.status
-            and new_status not in allowed_transitions[settlement.status]
+            new_status == settlement.status
+            or new_status not in allowed_transitions[settlement.status]
         ):
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
@@ -592,20 +735,12 @@ class FinanceService:
                 status.HTTP_400_BAD_REQUEST,
                 detail="برای ثبت تسویه پرداخت‌شده، کد رهگیری الزامی است",
             )
-        if approved_amount is not None and approved_amount > settlement.requested_amount:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail="مبلغ تأییدشده نمی‌تواند بیشتر از مبلغ درخواستی باشد",
-            )
-        if (
-            new_status == SettlementRequestStatus.PAID
-            and approved_amount is not None
-            and settlement.approved_amount is not None
-            and approved_amount != settlement.approved_amount
+        if new_status in (SettlementRequestStatus.APPROVED, SettlementRequestStatus.PAID) and not (
+            settlement.destination_card_encrypted and settlement.destination_card_masked
         ):
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
-                detail="مبلغ تسویه پس از تأیید قابل تغییر نیست",
+                detail="درخواست تسویه مقصد بانکی معتبر ندارد؛ درخواست را رد و دوباره ثبت کنید",
             )
         items = list(
             (
@@ -619,11 +754,25 @@ class FinanceService:
             .all()
         )
         now = now_utc()
+        if new_status in (SettlementRequestStatus.APPROVED, SettlementRequestStatus.PAID):
+            invalid = [
+                item
+                for item in items
+                if item.booking.status != BookingStatus.CONFIRMED
+                or item.booking.settlement_status
+                not in (
+                    SettlementStatus.SETTLEMENT_REQUESTED,
+                    SettlementStatus.INCLUDED_IN_SETTLEMENT,
+                )
+            ]
+            if invalid:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    detail="یک یا چند رزرو درخواست دیگر شرایط تسویه را ندارند",
+                )
         settlement.status = new_status
         settlement.admin_note = admin_note
-        if approved_amount is not None:
-            settlement.approved_amount = approved_amount
-        elif new_status in (SettlementRequestStatus.APPROVED, SettlementRequestStatus.PAID):
+        if new_status in (SettlementRequestStatus.APPROVED, SettlementRequestStatus.PAID):
             settlement.approved_amount = settlement.requested_amount
         if payment_tracking_code:
             settlement.payment_tracking_code = payment_tracking_code

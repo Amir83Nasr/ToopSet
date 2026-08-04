@@ -6,7 +6,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.booking import Booking, BookingSource, BookingStatus
+from app.models.booking import Booking, BookingSource, BookingStatus, SettlementStatus
 from app.models.payment import Payment, PaymentStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
@@ -375,6 +375,7 @@ class BookingRepo:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         search: str | None = None,
+        finance_only: bool = False,
     ) -> tuple[list[Booking], int]:
         """List bookings for vendors managed by *manager_id*."""
         query = (
@@ -417,6 +418,28 @@ class BookingRepo:
             pattern = f"%{search}%"
             query = query.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
             count_q = count_q.where(User.full_name.ilike(pattern) | Vendor.name.ilike(pattern))
+
+        if finance_only:
+            finance_conditions = (
+                Booking.source == BookingSource.ONLINE,
+                Booking.status == BookingStatus.CONFIRMED,
+                Booking.settlement_status.in_(
+                    (
+                        SettlementStatus.NOT_SETTLED,
+                        SettlementStatus.SETTLEMENT_REQUESTED,
+                        SettlementStatus.INCLUDED_IN_SETTLEMENT,
+                        SettlementStatus.SETTLED,
+                    )
+                ),
+                select(Payment.id)
+                .where(
+                    Payment.booking_id == Booking.id,
+                    Payment.status == PaymentStatus.SUCCESS,
+                )
+                .exists(),
+            )
+            query = query.where(*finance_conditions)
+            count_q = count_q.where(*finance_conditions)
 
         query = query.order_by(Booking.id.desc())
 

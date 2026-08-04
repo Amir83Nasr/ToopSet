@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -12,6 +13,15 @@ class ManagerBookingResponse(BaseModel):
     status: str
     source: str = "online"
     settlement_status: str = "not_settled"
+    settlement_state: (
+        Literal[
+            "settled",
+            "pending_settlement",
+            "eligible",
+            "not_yet_eligible",
+        ]
+        | None
+    ) = None
     customer_full_name: str | None = None
     customer_phone: str | None = None
     price_paid: float

@@ -27,7 +27,9 @@ import {
 } from "@/components/vendors/vendor-shared"
 import type {
   ManagerBooking,
+  FinanceBooking,
   FinanceSummary,
+  VendorSettlement,
 } from "@/components/vendors/dashboard/vendor-utils"
 import {
   getWeekDays,
@@ -77,11 +79,13 @@ export default function DashboardVendorEditPage() {
   // Bookings + Finance state
   const [bookings, setBookings] = useState<ManagerBooking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [financeBookings, setFinanceBookings] = useState<FinanceBooking[]>([])
   const [financeSummary, setFinanceSummary] = useState<FinanceSummary | null>(
     null
   )
   const [financeLoading, setFinanceLoading] = useState(false)
   const [settlementRequesting, setSettlementRequesting] = useState(false)
+  const [settlements, setSettlements] = useState<VendorSettlement[]>([])
 
   // Image state
   const [vendorImages, setVendorImages] = useState<string[]>([])
@@ -204,10 +208,20 @@ export default function DashboardVendorEditPage() {
     if (!canManage) return
     setFinanceLoading(true)
     try {
-      const summary = await api<FinanceSummary>(
-        `/api/v1/manager/finance/summary?vendor_id=${vendorId}`
-      )
+      const [summary, history, financeBookingResult] = await Promise.all([
+        api<FinanceSummary>(
+          `/api/v1/manager/finance/summary?vendor_id=${vendorId}`
+        ),
+        api<{ settlements: VendorSettlement[] }>("/api/v1/manager/settlements"),
+        api<{ bookings: FinanceBooking[]; total: number }>(
+          `/api/v1/manager/bookings?finance_only=true&vendor_id=${vendorId}&limit=500`
+        ),
+      ])
       setFinanceSummary(summary)
+      setFinanceBookings(financeBookingResult.bookings)
+      setSettlements(
+        history.settlements.filter((item) => item.vendor_id === vendorId)
+      )
     } catch {
       toast.error("خطا در دریافت اطلاعات مالی")
     } finally {
@@ -427,11 +441,12 @@ export default function DashboardVendorEditPage() {
               className="mt-4 min-w-0 flex-1 sm:mt-8"
             >
               <VendorFinanceTab
-                bookings={bookings}
-                bookingsLoading={bookingsLoading}
+                bookings={financeBookings}
+                bookingsLoading={financeLoading}
                 financeSummary={financeSummary}
                 financeLoading={financeLoading}
                 settlementRequesting={settlementRequesting}
+                settlements={settlements}
                 onRefresh={() => {
                   fetchFinance()
                   fetchBookings()

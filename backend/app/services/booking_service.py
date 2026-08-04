@@ -931,7 +931,9 @@ class BookingService:
         await invalidate_slot_list(slot.vendor_id)
 
         # Update booking status
-        booking = await self.booking_repo.update(booking, {"status": BookingStatus.CONFIRMED})
+        booking = await self.booking_repo.update(
+            booking, {"status": BookingStatus.CONFIRMED, "expires_at": None}
+        )
 
         # Notify user about confirmed booking
         await self.notify_repo.create(

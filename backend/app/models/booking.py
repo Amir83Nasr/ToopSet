@@ -33,6 +33,7 @@ class SettlementStatus(str, enum.Enum):
     SETTLED = "settled"
     EXCLUDED_DUE_TO_REFUND = "excluded_due_to_refund"
     EXCLUDED_DUE_TO_CANCELLATION = "excluded_due_to_cancellation"
+    EXCLUDED_MANUAL_BOOKING = "excluded_manual_booking"
 
 
 class Booking(Base):
@@ -108,3 +109,9 @@ class Booking(Base):
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
     penalties: Mapped[list["Penalty"]] = relationship(back_populates="booking")
     refunds: Mapped[list["Refund"]] = relationship(back_populates="booking")
+
+    def is_completed_at(self, at: datetime) -> bool:
+        """Return the canonical derived completion state for this booking."""
+        return bool(
+            self.status == BookingStatus.CONFIRMED and self.slot and self.slot.end_time <= at
+        )

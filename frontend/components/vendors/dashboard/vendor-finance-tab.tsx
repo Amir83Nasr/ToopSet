@@ -1,9 +1,14 @@
 "use client"
 
+import { useState } from "react"
+import { api, ApiError } from "@/lib/api"
+import { toast } from "@/lib/toast"
 import { toPersianDigits } from "@/lib/utils"
 import {
-  type ManagerBooking,
+  type FinanceBooking,
   type FinanceSummary,
+  type VendorSettlementDetail,
+  type VendorSettlement,
   formatBookingDate,
   formatBookingTime,
   formatBookingWeekday,
@@ -28,14 +33,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { RefreshCw, Loader2, Wallet, Receipt } from "lucide-react"
 
+const bookingStatusLabels: Record<string, string> = {
+  confirmed: "تأییدشده",
+  cancelled: "لغوشده",
+  expired: "منقضی‌شده",
+  transferred: "منتقل‌شده",
+}
+
+const settlementStatusLabels: Record<string, string> = {
+  not_settled: "تسویه نشده",
+  settlement_requested: "درخواست تسویه",
+  included_in_settlement: "در تسویه",
+  settled: "تسویه شده",
+  excluded_due_to_cancellation: "خارج شده به‌دلیل لغو",
+  excluded_due_to_refund: "خارج شده به‌دلیل بازگشت وجه",
+  excluded_manual_booking: "رزرو دستی",
+}
+
 interface VendorFinanceTabProps {
-  bookings: ManagerBooking[]
+  bookings: FinanceBooking[]
   bookingsLoading: boolean
   financeSummary: FinanceSummary | null
   financeLoading: boolean
   settlementRequesting: boolean
+  settlements: VendorSettlement[]
   onRefresh: () => void
   onRequestSettlement: () => void
 }
@@ -46,9 +76,35 @@ export function VendorFinanceTab({
   financeSummary,
   financeLoading,
   settlementRequesting,
+  settlements,
   onRefresh,
   onRequestSettlement,
 }: VendorFinanceTabProps) {
+  const [selectedSettlement, setSelectedSettlement] =
+    useState<VendorSettlementDetail | null>(null)
+  const [settlementDetailOpen, setSettlementDetailOpen] = useState(false)
+  const [settlementDetailLoading, setSettlementDetailLoading] = useState(false)
+
+  async function openSettlementDetail(settlementId: number) {
+    setSettlementDetailOpen(true)
+    setSelectedSettlement(null)
+    setSettlementDetailLoading(true)
+    try {
+      const detail = await api<VendorSettlementDetail>(
+        `/api/v1/manager/settlements/${settlementId}`
+      )
+      setSelectedSettlement(detail)
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "خطا در دریافت جزئیات تسویه"
+      )
+      setSelectedSettlement(null)
+      setSettlementDetailOpen(false)
+    } finally {
+      setSettlementDetailLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Finance toolbar */}
@@ -56,8 +112,7 @@ export function VendorFinanceTab({
         <div className="min-w-0">
           <h2 className="text-base font-semibold">داشبورد مالی مجموعه</h2>
           <p className="text-sm text-muted-foreground">
-            تسویه فقط برای رزروهای آنلاین تاییدشده‌ای فعال است که موعد سانس
-            آن‌ها گذشته باشد.
+            فقط رزروهای آنلاین تأییدشده با پرداخت موفق نمایش داده می‌شوند.
           </p>
         </div>
         <div className="grid w-full gap-2 min-[400px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap">
@@ -158,8 +213,8 @@ export function VendorFinanceTab({
         <CardHeader>
           <CardTitle>رکورد رزروها</CardTitle>
           <CardDescription>
-            وضعیت تسویه هر رزرو بر اساس پرداخت آنلاین، تایید رزرو، وضعیت تسویه و
-            زمان پایان سانس نمایش داده می‌شود.
+            وضعیت هر رزرو موفق بر اساس زمان پایان سانس و فرایند تسویه نمایش داده
+            می‌شود.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-2 sm:px-4">
@@ -172,19 +227,18 @@ export function VendorFinanceTab({
           ) : bookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
               <Receipt className="size-10 text-muted-foreground/40" />
-              رزروی برای این مجموعه ثبت نشده است.
+              رزرو آنلاین موفقی برای این مجموعه ثبت نشده است.
             </div>
           ) : (
             <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
-              <Table className="min-w-250 table-fixed">
+              <Table className="min-w-220 table-fixed">
                 <colgroup>
                   <col className="w-48" />
                   <col className="w-32" />
                   <col className="w-24" />
                   <col className="w-36" />
                   <col className="w-32" />
-                  <col className="w-32" />
-                  <col className="w-40" />
+                  <col className="w-56" />
                 </colgroup>
                 <TableHeader>
                   <TableRow>
@@ -193,17 +247,12 @@ export function VendorFinanceTab({
                     <TableHead className="text-center">روز</TableHead>
                     <TableHead className="text-center">ساعت</TableHead>
                     <TableHead className="text-center">مبلغ</TableHead>
-                    <TableHead className="text-center">نوع رزرو</TableHead>
                     <TableHead className="text-center">وضعیت تسویه</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {bookings.map((booking) => {
                     const state = settlementStateForBooking(booking)
-                    const sourceLabel =
-                      booking.source === "manager_manual"
-                        ? "دستی سالندار"
-                        : "آنلاین"
                     return (
                       <TableRow key={booking.id}>
                         <TableCell className="font-medium">
@@ -245,9 +294,6 @@ export function VendorFinanceTab({
                           {formatMoney(booking.price_paid)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {sourceLabel}
-                        </TableCell>
-                        <TableCell className="text-center">
                           <Badge variant={state.variant}>{state.label}</Badge>
                         </TableCell>
                       </TableRow>
@@ -259,6 +305,162 @@ export function VendorFinanceTab({
           )}
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>تاریخچه درخواست‌های تسویه</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {settlements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              هنوز درخواستی ثبت نشده است.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {settlements.map((settlement) => (
+                <div
+                  key={settlement.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+                >
+                  <span>
+                    {new Date(settlement.requested_at).toLocaleDateString(
+                      "fa-IR"
+                    )}
+                  </span>
+                  <span>{formatMoney(settlement.requested_amount)}</span>
+                  <Badge variant="outline">{settlement.status}</Badge>
+                  {settlement.payment_tracking_code && (
+                    <span>
+                      پیگیری:{" "}
+                      {toPersianDigits(settlement.payment_tracking_code)}
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openSettlementDetail(settlement.id)}
+                    disabled={settlementDetailLoading}
+                  >
+                    جزئیات
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <ResponsiveDialog
+        open={settlementDetailOpen}
+        onOpenChange={(open) => {
+          setSettlementDetailOpen(open)
+          if (!open) setSelectedSettlement(null)
+        }}
+      >
+        <ResponsiveDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
+              جزئیات تسویه
+              {selectedSettlement
+                ? ` ${toPersianDigits(selectedSettlement.id)}`
+                : ""}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              آیتم‌های این تسویه و وضعیت کد رهگیری بانکی در همین بخش نمایش داده
+              می‌شود.
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          {settlementDetailLoading ? (
+            <p className="text-sm text-muted-foreground">در حال بارگذاری...</p>
+          ) : selectedSettlement ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm sm:grid-cols-2">
+                <div>
+                  <span className="text-muted-foreground">مبلغ درخواست</span>
+                  <div className="font-medium">
+                    {formatMoney(selectedSettlement.requested_amount)}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">مبلغ ناخالص</span>
+                  <div className="font-medium">
+                    {formatMoney(selectedSettlement.gross_amount)}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">کمیسیون</span>
+                  <div className="font-medium">
+                    {formatMoney(selectedSettlement.commission_amount)} (
+                    {toPersianDigits(selectedSettlement.commission_percent)}٪)
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">کد رهگیری</span>
+                  <div className="font-medium">
+                    {selectedSettlement.payment_tracking_code
+                      ? toPersianDigits(
+                          selectedSettlement.payment_tracking_code
+                        )
+                      : "ثبت نشده"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">وضعیت</span>
+                  <div className="font-medium">{selectedSettlement.status}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">تعداد رزروها</span>
+                  <div className="font-medium">
+                    {toPersianDigits(selectedSettlement.bookings_count)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>رزرو</TableHead>
+                      <TableHead>مشتری</TableHead>
+                      <TableHead>زمان سانس</TableHead>
+                      <TableHead className="text-center">وضعیت رزرو</TableHead>
+                      <TableHead className="text-center">وضعیت تسویه</TableHead>
+                      <TableHead className="text-center">مبلغ خالص</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedSettlement.items.map((item) => (
+                      <TableRow key={item.booking_id}>
+                        <TableCell>
+                          {toPersianDigits(item.booking_id)}
+                        </TableCell>
+                        <TableCell>{item.customer_name}</TableCell>
+                        <TableCell>
+                          {new Date(item.slot_start_time).toLocaleString(
+                            "fa-IR"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {bookingStatusLabels[item.booking_status] ??
+                            item.booking_status}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {settlementStatusLabels[item.settlement_status] ??
+                            item.settlement_status}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatMoney(item.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">در حال بارگذاری...</p>
+          )}
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }
