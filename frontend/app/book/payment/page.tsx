@@ -37,6 +37,18 @@ interface BookingDetail {
   expires_at: string | null
 }
 
+interface ZibalPaymentStartResponse {
+  checkout_type: "booking"
+  payment_gateway: "zibal"
+  booking_id: number
+  payment_id: number
+  amount: number
+  track_id: string
+  start_url: string
+  callback_url: string
+  expires_at: string | null
+}
+
 function formatTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
@@ -127,7 +139,18 @@ function PaymentPageContent() {
         checkoutType === "replacement_hold"
           ? `/api/v1/bookings/replacement-holds/${booking.id}/pay`
           : `/api/v1/bookings/${booking.id}/pay`
-      await api(path, { method: "POST" })
+      const res = await api<BookingDetail | ZibalPaymentStartResponse>(path, {
+        method: "POST",
+      })
+      if (
+        res &&
+        typeof res === "object" &&
+        "payment_gateway" in res &&
+        res.payment_gateway === "zibal"
+      ) {
+        window.location.assign(res.start_url)
+        return
+      }
       toast.success(
         checkoutType === "replacement_hold"
           ? "سانس با موفقیت به شما منتقل شد"
@@ -263,11 +286,11 @@ function PaymentPageContent() {
                 <Construction className="size-12 text-amber-600 dark:text-amber-400" />
               </div>
               <CardTitle className="text-xl text-amber-700 dark:text-amber-400">
-                درگاه پرداخت در حال توسعه
+                آماده‌سازی پرداخت
               </CardTitle>
               <CardDescription className="max-w-sm text-center">
-                درگاه پرداخت این سامانه هنوز به صورت کامل راه‌اندازی نشده است.
-                به زودی امکان پرداخت آنلاین فراهم خواهد شد.
+                پس از ثبت پرداخت، شما به درگاه امن زیبال منتقل می‌شوید و بعد از
+                بازگشت از درگاه، پرداخت نهایی تأیید می‌شود.
               </CardDescription>
             </CardContent>
           </Card>
