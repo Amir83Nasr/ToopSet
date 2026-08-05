@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -52,6 +52,11 @@ from app.services.payment_service import (
     InsufficientFundsError,
     PaymentError,
     PaymentService,
+)
+from app.services.zibal_gateway import (
+    ZibalGatewayError,
+    ZibalGatewayService,
+    ZibalVerificationError,
 )
 
 PUBLIC_BOOKING_WINDOW_DAYS = 14
@@ -695,7 +700,276 @@ class BookingService:
         # rollback. Persist the append-only payment attempt and audit trail first.
         await self.db.commit()
 
+    async def _start_zibal_payment(self, booking_id: int):
+        booking = await self.booking_repo.get_by_id(booking_id, for_update=True)
+        if not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+        if booking.user_id != self.current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
+        if booking.status != BookingStatus.PENDING_PAYMENT:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="این رزرو در وضعیت پرداخت نیست"
+            )
+
+        slot = booking.slot
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        if booking.expires_at and booking.expires_at < now_utc():
+            is_replacement = booking.replaces_booking_id is not None
+            await self.booking_repo.update(
+                booking,
+                {
+                    "status": BookingStatus.EXPIRED,
+                    "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                },
+            )
+            if slot and slot.status == SlotStatus.RESERVING:
+                if is_replacement:
+                    old_booking = await self.booking_repo.get_by_id(
+                        booking.replaces_booking_id, for_update=True
+                    )
+                    if old_booking and old_booking.status == BookingStatus.PENDING_CANCELLATION:
+                        await self.slot_repo.update(
+                            slot,
+                            {"is_reserved": True, "status": SlotStatus.PENDING_CANCELLATION},
+                        )
+                    else:
+                        await self.slot_repo.update(
+                            slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                        )
+                else:
+                    await self.slot_repo.update(
+                        slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                    )
+            if slot:
+                await invalidate_slot_list(slot.vendor_id)
+            await self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="مهلت پرداخت این رزرو تمام شده است",
+            )
+
+        is_replacement = booking.replaces_booking_id is not None
+        if slot.status in (SlotStatus.CLOSED, SlotStatus.BLOCKED, SlotStatus.DISABLED):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="این سانس بسته شده است"
+            )
+        if slot.is_reserved and not is_replacement:
+            active = await self.booking_repo.get_active_by_slot(slot.id, for_update=True)
+            if slot.status == SlotStatus.RESERVING and active and active.id == booking.id:
+                pass
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="این سانس قبلاً رزرو شده است",
+                )
+        if is_replacement and slot.status != SlotStatus.PENDING_CANCELLATION:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="این سانس دیگر در وضعیت جایگزینی نیست",
+            )
+
+        latest_payment = await self.payment_repo.get_by_booking(booking_id)
+        if latest_payment and latest_payment.status == PaymentStatus.PENDING:
+            if latest_payment.gateway_transaction_id:
+                return self._zibal_start_response(
+                    booking_id=booking.id,
+                    payment_id=latest_payment.id,
+                    amount=booking.price_paid,
+                    track_id=latest_payment.gateway_transaction_id,
+                    expires_at=booking.expires_at,
+                )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="نتیجه پرداخت قبلی هنوز مشخص نشده است؛ برای جلوگیری از برداشت تکراری دوباره پرداخت نکنید",
+            )
+
+        processing_token = uuid4().hex
+        payment = await self.payment_repo.create(
+            {
+                "booking_id": booking_id,
+                "amount": booking.price_paid,
+                "status": "pending",
+                "idempotency_key": f"booking:{booking_id}:{processing_token}",
+                "processing_token": processing_token,
+            }
+        )
+        payment_id = payment.id
+        await self.db.commit()
+
+        gateway = ZibalGatewayService()
+        try:
+            result = await gateway.request_payment(
+                amount=booking.price_paid,
+                callback_url=settings.zibal_callback_url,
+                order_id=str(booking_id),
+                mobile=booking.user.phone if booking.user else None,
+            )
+        except ZibalGatewayError as exc:
+            payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+            if payment and payment.processing_token == processing_token:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "status": "failed",
+                        "processing_token": None,
+                        "failure_code": exc.code,
+                    },
+                )
+                await self.db.commit()
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+        payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+        if payment and payment.processing_token == processing_token:
+            await self.payment_repo.update(
+                payment,
+                {
+                    "gateway_transaction_id": result.track_id,
+                    "gateway_name": "zibal",
+                    "processing_token": None,
+                    "failure_code": None,
+                },
+            )
+            await self.db.commit()
+
+        await log_action(
+            self.booking_repo.db,
+            self.current_user.id,
+            "payment_started",
+            f"شروع پرداخت زیبال | رزرو {booking_id} — trackId {result.track_id}",
+        )
+        return self._zibal_start_response(
+            booking_id=booking.id,
+            payment_id=payment_id,
+            amount=booking.price_paid,
+            track_id=result.track_id,
+            expires_at=booking.expires_at,
+        )
+
+    def _zibal_start_response(
+        self,
+        *,
+        booking_id: int,
+        payment_id: int,
+        amount: Decimal,
+        track_id: str,
+        expires_at: datetime | None,
+    ):
+        from app.schemas.payment import PaymentStartResponse
+
+        return PaymentStartResponse(
+            booking_id=booking_id,
+            payment_id=payment_id,
+            amount=float(amount),
+            track_id=str(track_id),
+            start_url=f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}",
+            callback_url=settings.zibal_callback_url,
+            expires_at=expires_at,
+        )
+
+    async def verify_zibal_payment(self, track_id: str) -> BookingDetailResponse:
+        payment = await self.payment_repo.get_by_gateway_transaction_id(track_id)
+        if not payment:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="پرداخت یافت نشد")
+        booking = await self.booking_repo.get_by_id(payment.booking_id, for_update=True)
+        if not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+        if booking.user_id != self.current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
+
+        if payment.status == PaymentStatus.SUCCESS and booking.status == BookingStatus.CONFIRMED:
+            return await self.get_booking(booking.id)
+
+        gateway = ZibalGatewayService()
+        try:
+            result = await gateway.verify_payment(track_id)
+        except ZibalVerificationError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        slot = booking.slot
+        if not slot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+
+        if booking.status != BookingStatus.PENDING_PAYMENT:
+            if payment.status == PaymentStatus.PENDING:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "gateway_name": "zibal",
+                        "ref_id": result.ref_id,
+                        "failure_code": "booking_not_payable",
+                    },
+                )
+                await self.db.commit()
+            return await self.get_booking(booking.id)
+
+        await self.payment_repo.update(
+            payment,
+            {
+                "status": "success",
+                "gateway_name": "zibal",
+                "gateway_transaction_id": track_id,
+                "ref_id": result.ref_id,
+                "paid_at": now_utc(),
+                "failure_code": None,
+            },
+        )
+        await self.booking_repo.update(
+            booking,
+            {
+                "status": BookingStatus.CONFIRMED,
+                "settlement_status": SettlementStatus.NOT_SETTLED,
+            },
+        )
+        await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
+        await invalidate_slot_list(slot.vendor_id)
+        await self.db.commit()
+        await log_action(
+            self.booking_repo.db,
+            self.current_user.id,
+            "payment_verified",
+            f"تأیید پرداخت زیبال | رزرو {booking.id} — trackId {track_id}",
+        )
+        return await self.get_booking(booking.id)
+
+    async def inquiry_zibal_payment(self, track_id: str) -> dict[str, object]:
+        payment = await self.payment_repo.get_by_gateway_transaction_id(track_id)
+        if not payment:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="پرداخت یافت نشد")
+        booking = await self.booking_repo.get_by_id(payment.booking_id)
+        if not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+        if booking.user_id != self.current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
+            )
+
+        gateway = ZibalGatewayService()
+        try:
+            result = await gateway.inquiry_payment(track_id)
+        except ZibalVerificationError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        return {
+            "track_id": track_id,
+            "payment_id": payment.id,
+            "booking_id": booking.id,
+            "result": result.result,
+            "verified": result.verified,
+            "message": result.message,
+            "payment_status": payment.status,
+            "booking_status": booking.status,
+            "ref_id": result.ref_id,
+        }
+
     async def pay_booking(self, booking_id: int) -> BookingDetailResponse:
+        if settings.payment_gateway == "zibal":
+            return await self._start_zibal_payment(booking_id)
+
         booking = await self.booking_repo.get_by_id(booking_id, for_update=True)
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")

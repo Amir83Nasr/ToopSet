@@ -18,6 +18,7 @@ from app.schemas.booking import (
     BookingListResponse,
     ReplacementHoldResponse,
 )
+from app.schemas.payment import PaymentStartResponse
 from app.services.booking_service import BookingService, get_booking_service
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -170,7 +171,11 @@ async def create_booking(
     return result
 
 
-@router.post("/{booking_id}/pay", response_model=BookingDetailResponse, summary="Pay booking")
+@router.post(
+    "/{booking_id}/pay",
+    response_model=BookingDetailResponse | PaymentStartResponse,
+    summary="Pay booking",
+)
 @limiter.limit("10/minute")
 async def pay_booking(
     request: Request,

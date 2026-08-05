@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, field_serializer
 
@@ -38,3 +39,29 @@ class PaymentListResponse(BaseModel):
     payments: list[PaymentDetailResponse]
     total: int
     next_cursor: str | None = None
+
+
+class PaymentStartResponse(BaseModel):
+    checkout_type: Literal["booking"] = "booking"
+    payment_gateway: Literal["zibal"] = "zibal"
+    booking_id: int
+    payment_id: int
+    amount: float
+    track_id: str
+    start_url: str
+    callback_url: str
+    expires_at: datetime | None = None
+
+
+class PaymentVerificationRequest(BaseModel):
+    track_id: str
+    order_id: str | None = None
+
+
+class PaymentVerificationStatusResponse(BaseModel):
+    track_id: str
+    result: int
+    verified: bool
+    payment_id: int | None = None
+    booking_id: int | None = None
+    message: str | None = None

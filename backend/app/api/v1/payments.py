@@ -9,7 +9,14 @@ from app.core.pagination import decode_cursor, encode_cursor
 from app.models.payment import Payment
 from app.models.user import User
 from app.repositories.payment_repo import PaymentRepo
-from app.schemas.payment import PaymentDetailResponse, PaymentListResponse
+from app.schemas.booking import BookingDetailResponse
+from app.schemas.payment import (
+    PaymentDetailResponse,
+    PaymentListResponse,
+    PaymentVerificationRequest,
+    PaymentVerificationStatusResponse,
+)
+from app.services.booking_service import BookingService, get_booking_service
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -115,3 +122,32 @@ async def list_all_payments(
     await cache_admin_list("payments", cache_params, result.model_dump(mode="json"))
     response.headers["X-Cache"] = "MISS"
     return result
+
+
+@router.post(
+    "/zibal/verify",
+    response_model=BookingDetailResponse,
+    summary="Verify a Zibal payment",
+)
+async def verify_zibal_payment(
+    data: PaymentVerificationRequest,
+    service: BookingService = Depends(get_booking_service),
+):
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    result = await service.verify_zibal_payment(data.track_id)
+    await invalidate_admin_list_cache("bookings")
+    await invalidate_admin_list_cache("payments")
+    return result
+
+
+@router.get(
+    "/zibal/inquiry/{track_id}",
+    response_model=PaymentVerificationStatusResponse,
+    summary="Inquiry a Zibal payment",
+)
+async def inquiry_zibal_payment(
+    track_id: str,
+    service: BookingService = Depends(get_booking_service),
+):
+    return await service.inquiry_zibal_payment(track_id)

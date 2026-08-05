@@ -53,6 +53,22 @@ def test_unknown_integrations_fail_validation_instead_of_falling_back_to_mock() 
     assert "has no implementation" in str(exc_info.value)
 
 
+def test_zibal_requires_callback_url_and_merchant() -> None:
+    configured = Settings(
+        app_environment="development",
+        secret_key="s" * 64,
+        cors_origins="https://toopset.example",
+        payment_gateway="zibal",
+    )
+
+    with pytest.raises(EnvValidationError) as exc_info:
+        validate_env(configured)
+
+    message = str(exc_info.value)
+    assert "ZIBAL_MERCHANT" in message
+    assert "ZIBAL_CALLBACK_URL" in message
+
+
 @pytest.mark.asyncio
 async def test_idempotency_indexes_exist(session: AsyncSession) -> None:
     result = await session.execute(

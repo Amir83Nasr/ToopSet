@@ -95,7 +95,7 @@ class PaymentService:
             min_delay: Minimum simulated network delay in seconds.
             max_delay: Maximum simulated network delay in seconds.
         """
-        if settings.payment_gateway != "mock":
+        if settings.payment_gateway not in {"mock", "zibal"}:
             raise RuntimeError(
                 f"Payment gateway {settings.payment_gateway!r} is not implemented in this build"
             )

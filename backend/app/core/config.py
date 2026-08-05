@@ -7,7 +7,7 @@ __all__ = ["Settings", "settings", "validate_env", "EnvValidationError"]
 
 _VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 _SECRET_KEY_MIN_LENGTH = 32
-_SUPPORTED_PAYMENT_GATEWAYS = {"mock"}
+_SUPPORTED_PAYMENT_GATEWAYS = {"mock", "zibal"}
 _SUPPORTED_SMS_PROVIDERS = {"mock", "smsir"}
 
 
@@ -58,6 +58,9 @@ class Settings(BaseSettings):
 
     # Payment
     payment_gateway: str = "mock"
+    zibal_merchant: str = ""
+    zibal_base_url: str = "https://gateway.zibal.ir"
+    zibal_callback_url: str = ""
 
     # SMS
     sms_provider: str = "mock"
@@ -227,6 +230,13 @@ def validate_env(settings: Settings | None = None) -> None:
         errors.append(
             f"PAYMENT_GATEWAY={settings.payment_gateway!r} has no implementation in this build."
         )
+    elif settings.payment_gateway == "zibal":
+        if not settings.zibal_merchant:
+            errors.append("ZIBAL_MERCHANT must be set when PAYMENT_GATEWAY='zibal'.")
+        if not settings.zibal_callback_url:
+            errors.append("ZIBAL_CALLBACK_URL must be set when PAYMENT_GATEWAY='zibal'.")
+        if not settings.zibal_base_url:
+            errors.append("ZIBAL_BASE_URL must be set when PAYMENT_GATEWAY='zibal'.")
     if settings.sms_provider not in _SUPPORTED_SMS_PROVIDERS:
         errors.append(
             f"SMS_PROVIDER={settings.sms_provider!r} has no implementation in this build."

@@ -104,6 +104,12 @@ class PaymentRepo:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_gateway_transaction_id(self, track_id: str) -> Payment | None:
+        result = await self.db.execute(
+            select(Payment).where(Payment.gateway_transaction_id == track_id).limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_booking_ids(self, booking_ids: list[int]) -> dict[int, Payment]:
         """Return a ``{booking_id: Payment}`` map for the given booking IDs.
 
