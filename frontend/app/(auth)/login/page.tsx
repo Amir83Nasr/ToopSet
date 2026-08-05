@@ -1,8 +1,8 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginForm } from "@/components/auth/login-form"
 import { AuthHeroSlides } from "@/components/auth/auth-hero-slides"
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 
 function LoginPageContent() {
-  const { login, checkLoginOptions } = useAuth()
+  const router = useRouter()
+  const { user, loading, login, checkLoginOptions } = useAuth()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || undefined
   const reason = searchParams.get("reason")
@@ -21,6 +22,13 @@ function LoginPageContent() {
     login_required: "برای دسترسی به این بخش باید وارد شوید.",
   }
   const reasonMessage = reason ? reasonMessages[reason] : null
+
+  useEffect(() => {
+    if (loading || !user) return
+    router.replace(
+      redirect && redirect.startsWith("/") ? redirect : "/dashboard"
+    )
+  }, [loading, redirect, router, user])
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">

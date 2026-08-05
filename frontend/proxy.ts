@@ -5,11 +5,6 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get("access_token")?.value
   const { pathname } = request.nextUrl
 
-  // Already logged in → redirect from auth pages to dashboard
-  if (token && (pathname === "/login" || pathname === "/register")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
   // Protected routes → redirect to login if no token
   if (!token && pathname.startsWith("/dashboard")) {
     const loginUrl = new URL("/login", request.url)

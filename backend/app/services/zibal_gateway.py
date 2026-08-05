@@ -120,9 +120,10 @@ class ZibalGatewayService:
         mobile: str | None = None,
         national_code: str | None = None,
     ) -> ZibalPaymentStartResult:
+        rial_amount = int(Decimal(str(amount)) * Decimal("10"))
         payload: dict[str, Any] = {
             "merchant": settings.zibal_merchant,
-            "amount": int(Decimal(str(amount))),
+            "amount": rial_amount,
             "callbackUrl": callback_url,
         }
         if order_id:
