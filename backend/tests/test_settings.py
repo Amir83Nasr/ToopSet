@@ -48,6 +48,17 @@ class TestGetSetting:
         assert resp.status_code == 404
         assert "تنظیمات" in resp.text
 
+    async def test_get_setting_pagination_limit_default(
+        self, client: AsyncClient, user_token: dict
+    ) -> None:
+        """Missing pagination_limit should fall back to the system default."""
+        headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        resp = await client.get("/api/v1/settings/pagination_limit", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["key"] == "pagination_limit"
+        assert data["value"] == "15"
+
     async def test_get_setting_unauthenticated(self, client: AsyncClient) -> None:
         """No auth -> 401."""
         resp = await client.get("/api/v1/settings/any_key")

@@ -71,7 +71,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 <Link href="/" className="text-lg font-bold">
                   <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg">
                     <Image
-                      src="/icons/logo-256.webp"
+                      src="/icons/logo-180.webp"
                       alt="توپ‌سِت"
                       width={32}
                       height={32}

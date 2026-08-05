@@ -12,6 +12,8 @@ export function EnamadTrustSeal() {
         referrerPolicy="origin"
         src={ENAMAD_LOGO_URL}
         alt=""
+        loading="lazy"
+        decoding="async"
         style={{ cursor: "pointer" }}
         {...{ code: ENAMAD_CODE }}
       />

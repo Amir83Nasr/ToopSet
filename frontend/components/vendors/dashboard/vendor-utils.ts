@@ -133,5 +133,12 @@ export function settlementStateForBooking(booking: FinanceBooking): {
         label: "غیرقابل تسویه (سانس هنوز پایان نیافته)",
         variant: "secondary",
       }
+    default:
+      return {
+        label: booking.settlement_state
+          ? `وضعیت نامشخص: ${booking.settlement_state}`
+          : "وضعیت نامشخص",
+        variant: "outline",
+      }
   }
 }

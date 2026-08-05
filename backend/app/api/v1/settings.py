@@ -1,6 +1,7 @@
 """Public settings endpoints — any authenticated user can read settings by key."""
 
 import json
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -16,6 +17,10 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 _PUBLIC_KEYS = {"rules_text", "privacy_text"}
 
 _CONTACT_KEYS = {"support_phone", "support_email", "messenger_id"}
+
+_DEFAULT_SETTING_VALUES = {
+    "pagination_limit": "15",
+}
 
 
 @router.get("/public/hero-slides", summary="Get hero images for auth pages (public)")
@@ -93,6 +98,17 @@ async def get_setting(
     setting = (await db.execute(select(Setting).where(Setting.key == key))).scalar_one_or_none()
 
     if not setting:
+        default_value = _DEFAULT_SETTING_VALUES.get(key)
+        if default_value is not None:
+            now = datetime.now(timezone.utc)
+            return {
+                "id": 0,
+                "key": key,
+                "value": default_value,
+                "description": "تنظیم پیش‌فرض سیستم",
+                "created_at": now,
+                "updated_at": now,
+            }
         raise HTTPException(status_code=404, detail="تنظیمات یافت نشد")
 
     return setting
