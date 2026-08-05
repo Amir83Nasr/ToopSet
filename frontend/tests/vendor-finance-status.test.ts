@@ -21,7 +21,7 @@ describe("settlementStateForBooking", () => {
   it("falls back safely for unexpected settlement states", () => {
     const booking = {
       settlement_state: "excluded_due_to_cancellation",
-    } as FinanceBooking
+    } as unknown as FinanceBooking
 
     expect(settlementStateForBooking(booking)).toEqual({
       label: "وضعیت نامشخص: excluded_due_to_cancellation",

@@ -5,8 +5,6 @@ import type { Metadata, Viewport } from "next"
 import { pwaConfig } from "@/config/pwa"
 import { SkipNav } from "@/components/ui/skip-nav"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-
 export const metadata: Metadata = {
   title: pwaConfig.name,
   description: pwaConfig.description,
