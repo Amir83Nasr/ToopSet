@@ -9,16 +9,6 @@ import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  ResponsiveAlertDialog,
-  ResponsiveAlertDialogAction,
-  ResponsiveAlertDialogCancel,
-  ResponsiveAlertDialogContent,
-  ResponsiveAlertDialogDescription,
-  ResponsiveAlertDialogFooter,
-  ResponsiveAlertDialogHeader,
-  ResponsiveAlertDialogTitle,
-} from "@/components/ui/responsive-alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import {
@@ -64,9 +54,6 @@ export default function DashboardVendorEditPage() {
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
 
   // Delete vendor
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
   // Week navigation (shared between schedule + bookings tabs)
   const [weekStart, setWeekStart] = useState<Date>(() => {
     const today = new Date()
@@ -263,21 +250,6 @@ export default function DashboardVendorEditPage() {
     }
   }
 
-  // ── Delete vendor ──
-
-  const handleDelete = useCallback(async () => {
-    setDeleting(true)
-    try {
-      await api(`/api/v1/vendors/${vendorId}`, { method: "DELETE" })
-      toast.success("مجموعه حذف شد")
-      router.push("/dashboard/vendors")
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "خطا در حذف")
-    } finally {
-      setDeleting(false)
-    }
-  }, [vendorId, router])
-
   // ── Settlement request ──
 
   async function handleRequestSettlement() {
@@ -339,8 +311,6 @@ export default function DashboardVendorEditPage() {
         saving={saving}
         isFormValid={isFormValid}
         isSubmitting={form.formState.isSubmitting}
-        canManage={canManage}
-        onDeleteClick={() => setDeleteDialogOpen(true)}
       />
 
       <Tabs
@@ -457,34 +427,6 @@ export default function DashboardVendorEditPage() {
           </>
         )}
       </Tabs>
-
-      {/* Delete vendor dialog */}
-      <ResponsiveAlertDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-      >
-        <ResponsiveAlertDialogContent>
-          <ResponsiveAlertDialogHeader>
-            <ResponsiveAlertDialogTitle>حذف مجموعه</ResponsiveAlertDialogTitle>
-            <ResponsiveAlertDialogDescription>
-              آیا از حذف مجموعه «{vendor.name}» اطمینان دارید؟ این عمل قابل
-              بازگشت نیست.
-            </ResponsiveAlertDialogDescription>
-          </ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogFooter>
-            <ResponsiveAlertDialogCancel disabled={deleting}>
-              انصراف
-            </ResponsiveAlertDialogCancel>
-            <ResponsiveAlertDialogAction
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "در حال حذف..." : "حذف مجموعه"}
-            </ResponsiveAlertDialogAction>
-          </ResponsiveAlertDialogFooter>
-        </ResponsiveAlertDialogContent>
-      </ResponsiveAlertDialog>
     </div>
   )
 }

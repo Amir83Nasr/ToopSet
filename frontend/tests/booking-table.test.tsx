@@ -42,6 +42,7 @@ describe("BookingTable", () => {
         onCancelClick={vi.fn()}
         withdrawingId={null}
         onWithdrawCancellation={onWithdrawCancellation}
+        category="current"
       />
     )
 

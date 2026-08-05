@@ -423,11 +423,15 @@ export default function AdminRefundsPage() {
 
       <ResponsiveDialog
         open={!!action}
+        mobileAsSheet={false}
         onOpenChange={(open) => {
           if (!open) closeAction()
         }}
       >
-        <ResponsiveDialogContent>
+        <ResponsiveDialogContent
+          className="sm:max-w-md"
+          mobileMaxHeight="calc(100dvh - 2rem)"
+        >
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>
               {action?.status === "approved"

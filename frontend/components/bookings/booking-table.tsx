@@ -71,6 +71,7 @@ interface BookingTableProps {
   withdrawingId: number | null
   onWithdrawCancellation: (bookingId: number) => void
   showRefundStatus?: boolean
+  category: "current" | "past" | "cancelled"
 }
 
 export function BookingTable({
@@ -84,7 +85,14 @@ export function BookingTable({
   withdrawingId,
   onWithdrawCancellation,
   showRefundStatus = false,
+  category,
 }: BookingTableProps) {
+  const categoryLabel: Record<BookingTableProps["category"], string> = {
+    current: "سانس جاری",
+    past: "سانس قبلی",
+    cancelled: "سانس لغوشده",
+  }
+
   return (
     <div>
       {/* Mobile: stacked cards (avoids horizontal table scroll on phones) */}
@@ -105,14 +113,25 @@ export function BookingTable({
               key={b.id}
               className="overflow-hidden rounded-2xl border bg-card shadow-xs"
             >
-              <div className="flex items-start justify-between gap-3 border-b bg-muted/20 px-4 py-3.5">
-                <div className="min-w-0 space-y-1">
-                  <p className="truncate font-semibold">{b.vendor_name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {b.vendor_address || `شماره رزرو ${toPersianDigits(b.id)}`}
-                  </p>
+              <div className="border-b bg-muted/20 px-4 py-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate font-semibold">{b.vendor_name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {b.vendor_address ||
+                        `شماره رزرو ${toPersianDigits(b.id)}`}
+                    </p>
+                  </div>
+                  <Badge variant={st.variant}>{st.label}</Badge>
                 </div>
-                <Badge variant={st.variant}>{st.label}</Badge>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                  <span className="rounded-full bg-background px-2 py-1">
+                    {categoryLabel[category]}
+                  </span>
+                  <span className="rounded-full bg-background px-2 py-1">
+                    #{toPersianDigits(b.id)}
+                  </span>
+                </div>
               </div>
 
               <dl className="grid grid-cols-2 gap-px bg-border text-sm">
@@ -141,6 +160,10 @@ export function BookingTable({
                   <dd className="font-medium tabular-nums">
                     {formatMoney(b.price_paid)}
                   </dd>
+                </div>
+                <div className="flex min-h-16 flex-col justify-center gap-1 bg-card px-4 py-3">
+                  <dt className="text-xs text-muted-foreground">وضعیت رزرو</dt>
+                  <dd className="font-medium">{st.label}</dd>
                 </div>
                 {showRefundStatus && (
                   <div className="col-span-2 flex flex-col gap-2 bg-card px-4 py-3">
@@ -182,17 +205,32 @@ export function BookingTable({
                     مبلغ بازگشت وجه با کسر ۱۰٪ ثبت می‌شود.
                   </div>
                 )}
+                {category === "past" && b.slot_end_time && (
+                  <div className="col-span-2 bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                    این رزرو به پایان رسیده است.
+                  </div>
+                )}
+                {category === "current" && b.slot_start_time && (
+                  <div className="col-span-2 bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                    این رزرو در فهرست جاری نمایش داده می‌شود.
+                  </div>
+                )}
+                {category === "cancelled" && (
+                  <div className="col-span-2 bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                    این رزرو لغوشده یا از چرخه عادی خارج شده است.
+                  </div>
+                )}
               </dl>
 
               {(b.status === "pending_payment" ||
                 b.status === "pending_cancellation" ||
                 (canCancel && b.status === "confirmed")) && (
-                <div className="flex gap-2 border-t bg-muted/10 p-3">
+                <div className="grid gap-2 border-t bg-muted/10 p-3 sm:grid-cols-2">
                   {b.status === "pending_payment" && (
                     <>
                       <Button
                         size="lg"
-                        className="flex-1"
+                        className="w-full"
                         disabled={payingId === b.id}
                         onClick={() => onPay(b.id)}
                       >
@@ -206,7 +244,7 @@ export function BookingTable({
                       <Button
                         variant="destructive"
                         size="lg"
-                        className="flex-1"
+                        className="w-full"
                         onClick={() => onCancelClick(b)}
                       >
                         لغو رزرو
@@ -217,7 +255,7 @@ export function BookingTable({
                     <Button
                       variant="destructive"
                       size="lg"
-                      className="flex-1"
+                      className="w-full"
                       onClick={() => onCancelClick(b)}
                     >
                       لغو رزرو
@@ -227,7 +265,7 @@ export function BookingTable({
                     <Button
                       variant="outline"
                       size="lg"
-                      className="flex-1"
+                      className="w-full"
                       disabled={withdrawingId === b.id}
                       onClick={() => onWithdrawCancellation(b.id)}
                     >
@@ -328,6 +366,9 @@ export function BookingTable({
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center whitespace-normal">
                   <div className="flex flex-col items-center gap-1.5">
+                    <div className="text-xs text-muted-foreground md:hidden">
+                      {categoryLabel[category]}
+                    </div>
                     <Badge variant={st.variant}>{st.label}</Badge>
                     {b.status === "pending_cancellation" && (
                       <div className="text-xs leading-5 text-muted-foreground">

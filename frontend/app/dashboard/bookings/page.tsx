@@ -216,14 +216,23 @@ export default function BookingsPage() {
       <BookingFilters search={search} onSearchChange={setSearch} />
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="w-fit gap-x-2">
-          <TabsTrigger value="current">
+        <TabsList className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-fit sm:gap-x-2">
+          <TabsTrigger
+            value="current"
+            className="text-[11px] leading-4 sm:text-sm"
+          >
             سانس‌های جاری ({tabCounts.current.toLocaleString("fa-IR")})
           </TabsTrigger>
-          <TabsTrigger value="past">
+          <TabsTrigger
+            value="past"
+            className="text-[11px] leading-4 sm:text-sm"
+          >
             سانس‌های قبلی ({tabCounts.past.toLocaleString("fa-IR")})
           </TabsTrigger>
-          <TabsTrigger value="cancelled">
+          <TabsTrigger
+            value="cancelled"
+            className="text-[11px] leading-4 sm:text-sm"
+          >
             سانس‌های لغو شده ({tabCounts.cancelled.toLocaleString("fa-IR")})
           </TabsTrigger>
         </TabsList>
@@ -261,6 +270,7 @@ export default function BookingsPage() {
                 withdrawingId={withdrawingId}
                 onWithdrawCancellation={handleWithdrawCancellation}
                 showRefundStatus={activeTab === "cancelled"}
+                category={activeTab}
               />
             )}
           </TabsContent>

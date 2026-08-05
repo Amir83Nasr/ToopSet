@@ -351,6 +351,7 @@ export function VendorFinanceTab({
 
       <ResponsiveDialog
         open={settlementDetailOpen}
+        mobileAsSheet={false}
         onOpenChange={(open) => {
           setSettlementDetailOpen(open)
           if (!open) setSelectedSettlement(null)

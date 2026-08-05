@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Eye, Save, Loader2, Trash2 } from "lucide-react"
+import { ArrowRight, Eye, Save, Loader2 } from "lucide-react"
 
 interface VendorHeaderProps {
   vendorId: number
@@ -11,8 +11,6 @@ interface VendorHeaderProps {
   saving: boolean
   isFormValid: boolean
   isSubmitting: boolean
-  canManage: boolean
-  onDeleteClick: () => void
 }
 
 export function VendorHeader({
@@ -22,8 +20,6 @@ export function VendorHeader({
   saving,
   isFormValid,
   isSubmitting,
-  canManage,
-  onDeleteClick,
 }: VendorHeaderProps) {
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -68,17 +64,6 @@ export function VendorHeader({
                 ذخیره
               </>
             )}
-          </Button>
-        )}
-        {canManage && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full"
-            onClick={onDeleteClick}
-          >
-            <Trash2 className="size-4 shrink-0 sm:me-1.5" />
-            حذف
           </Button>
         )}
       </div>
