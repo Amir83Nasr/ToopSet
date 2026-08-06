@@ -133,6 +133,7 @@ async def verify_zibal_payment(
     data: PaymentVerificationRequest,
     service: BookingService = Depends(get_booking_service),
 ):
+    """Verify a completed Zibal payment by its track id and finalize the booking."""
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.verify_zibal_payment(data.track_id)
@@ -150,4 +151,5 @@ async def inquiry_zibal_payment(
     track_id: str,
     service: BookingService = Depends(get_booking_service),
 ):
+    """Query the current Zibal verification status for a track id."""
     return await service.inquiry_zibal_payment(track_id)

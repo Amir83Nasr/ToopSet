@@ -338,6 +338,7 @@ async def get_manager_settlement_detail(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_manager),
 ):
+    """Get a settlement's items and accounting details for a manager."""
     settlement = await FinanceService(db, current_user).get_settlement_detail(settlement_id)
     base = _settlement_response(settlement).model_dump()
     return SettlementDetailResponse(

@@ -1056,6 +1056,7 @@ async def get_admin_settlement_detail(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
+    """Get a settlement's items and accounting details for an admin."""
     from app.services.finance_service import FinanceService
 
     settlement = await FinanceService(db, current_user).get_settlement_detail(settlement_id)
@@ -1089,6 +1090,7 @@ async def reveal_settlement_destination(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
+    """Reveal a settlement's payout destination card for manual transfer."""
     from app.models.settlement import Settlement
 
     settlement = await db.get(Settlement, settlement_id)

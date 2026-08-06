@@ -216,6 +216,7 @@ async def withdraw_cancellation(
     booking_id: int,
     service: BookingService = Depends(get_booking_service),
 ):
+    """Cancel a pending cancellation request and keep the booking active."""
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.withdraw_cancellation(booking_id)
