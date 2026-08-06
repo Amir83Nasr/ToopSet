@@ -85,7 +85,6 @@ export function SiteFooter() {
         <div className="pb-safe mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-muted-foreground">
             <EnamadTrustSeal />
-            {" — "}
             تمامی حقوق مادی و معنوی این وبسایت متعلق به توپ‌سِت می‌باشد.
           </p>
           <FooterScrollButton />

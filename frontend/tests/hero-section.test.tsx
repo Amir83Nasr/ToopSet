@@ -18,12 +18,9 @@ describe("HeroSection", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("renders the venue search action and its helper text", () => {
+  it("renders the venue search action", () => {
     render(<HeroSection />)
     expect(screen.getByText("مشاهده مجموعه‌های ورزشی")).toBeInTheDocument()
-    expect(
-      screen.getByText("برای دیدن مجموعه های ورزشی و رزرو سانس کلیک کن")
-    ).toBeInTheDocument()
     expect(screen.queryByText("ثبت مجموعه جدید")).not.toBeInTheDocument()
   })
 

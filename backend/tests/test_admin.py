@@ -209,8 +209,9 @@ class TestSettings:
         settings_resp = await client.get("/api/v1/admin/settings", headers=headers)
         settings_by_key = {item["key"]: item for item in settings_resp.json()}
         assert settings_by_key["cancel_window_hours"]["value"] == "48"
-        assert "۱۰٪" in settings_by_key["rules_text"]["value"]
-        assert "۴۸ ساعت" in settings_by_key["rules_text"]["value"]
+        assert "ماده ۱" in settings_by_key["rules_text"]["value"]
+        assert "بازگشت ۵۰ درصد مبلغ" in settings_by_key["rules_text"]["value"]
+        assert "حریم خصوصی" in settings_by_key["privacy_text"]["value"]
 
     async def test_hero_delete_cannot_escape_upload_directory(self, tmp_path, monkeypatch) -> None:
         upload_dir = tmp_path / "hero"

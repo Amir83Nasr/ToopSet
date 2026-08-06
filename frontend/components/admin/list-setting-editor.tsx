@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import {
@@ -166,11 +166,12 @@ export function ListSettingEditor({
 
             {/* input */}
             <div className="min-w-0 flex-1">
-              <Input
+              <Textarea
                 placeholder={`بند ${toPersianDigits(idx + 1)}...`}
                 value={item}
                 onChange={(e) => updateItem(idx, e.target.value)}
-                className="bg-background"
+                rows={3}
+                className="min-h-20 bg-background"
               />
             </div>
 

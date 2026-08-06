@@ -15,7 +15,6 @@ export interface VendorData {
   amenities?: Record<string, boolean>
   images?: string[]
   main_image?: string | null
-  slot_genders?: ("male" | "female")[]
   manager_name?: string
   manager_phone?: string
 }

@@ -79,6 +79,12 @@ export function AuthHeroSlides({ fallback }: AuthHeroSlidesProps) {
             src={url}
             alt={`تصویر ${idx + 1}`}
             className="size-full object-cover"
+            onError={(e) => {
+              // Dead URL (file deleted) → fall back to default art instead of
+              // rendering a broken image. Guard prevents error-looping on the fallback.
+              if (e.currentTarget.src.endsWith("futsal.svg")) return
+              e.currentTarget.src = "/images/futsal.svg"
+            }}
           />
 
           {/* Gradient overlay for readability */}

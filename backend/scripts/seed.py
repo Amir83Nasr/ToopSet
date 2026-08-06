@@ -8,6 +8,7 @@ from sqlalchemy import text as sa_text
 
 import app.models  # noqa: F401
 from app.core.database import Base, async_session_factory, engine
+from app.core.legal_content import LEGAL_SETTINGS
 from app.core.timezone import iran_to_utc, now_iran
 from app.models.bank_card import BankCard, BankCardStatus
 from app.models.booking import Booking, BookingSource, BookingStatus, SettlementStatus
@@ -396,32 +397,9 @@ def random_price(min_: int = 500, max_: int = 2000) -> Decimal:
     return Decimal(str(random.randint(min_, max_) * 1000))
 
 
-# ── Real uploaded filenames for vendor images ────────────────────────────────
+# ── Vendor images served from frontend/public/images ────────────────────────
 
-VENDOR_IMAGE_FILES = [
-    "082eff1f329f46a4bbc5261b1e907927.jpeg",
-    "46fa6af19d634b0f8484200d5cde0e4f.jpeg",
-    "5a38bfc3ab00439e885ae428d9c72982.jpeg",
-    "5b518ca817834edf8e2f45c2df3b1c0d.jpeg",
-    "5c8d45c9471e470b92337795bb0e1281.jpeg",
-    "677429b5caed476e8a3b867e3892c1c1.jpg",
-    "922131acb6b64cf581607c67e88f857f.jpeg",
-    "9bab887eebcd463586bca8c65a2c64ca.jpeg",
-    "a64da5ecac024a9eb37209f3121b9fe9.jpeg",
-    "ba545dda754c4652aa81d2956fc506d9.jpg",
-    "c386c718f8ba49248dbb0f727b6afe75.jpeg",
-    "c578c51b2e594535a49ab9801af85a55.jpg",
-    "d86126fe7f4b4e12821b4d6f5ff21429.png",
-    "d920e46c57204c58a3290e60f7f0f84b.png",
-    "da1693f5a8ec46e1b38cea8283a25264.jpeg",
-    "db7ccabec4904dd488fdc184b6e2aa0b.jpeg",
-    "de00f2113ed543b29b2caf9f8c735263.jpeg",
-    "debbbb0229124cb4ab3a20c236c763e7.png",
-    "2575658a4a7045508881fcbc16319a3c.jpg",
-    "70f1cda56a7f4cc38aea1cbb14cb5cd5.jpeg",
-    "9e4d856082604c0686aa70f32792be0b.jpeg",
-    "e7bd300ab69d4fca88d823d0b3d8aa68.jpeg",
-]
+VENDOR_IMAGE_FILES = ["01.jpg", "02.jpeg", "03.png"]
 
 
 def assign_gender(vendor_index: int) -> SlotGender:
@@ -477,7 +455,7 @@ async def seed():
                 vendor_images.append(
                     VendorImage(
                         vendor_id=vendor.id,
-                        url=f"/uploads/courts/{filename}",
+                        url=f"/images/{filename}",
                         order=img_idx,
                     )
                 )
@@ -1182,8 +1160,7 @@ async def seed():
             },
             {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
             {"key": "cancel_window_hours", "value": "48", "description": "مهلت کنسل کردن (ساعت)"},
-            {"key": "rules_text", "value": "", "description": "متن قوانین و مقررات"},
-            {"key": "privacy_text", "value": "", "description": "متن حریم خصوصی"},
+            *LEGAL_SETTINGS,
             {
                 "key": "login_hero_slides",
                 "value": "[]",

@@ -26,16 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  ResponsiveAlertDialog,
-  ResponsiveAlertDialogAction,
-  ResponsiveAlertDialogCancel,
-  ResponsiveAlertDialogContent,
-  ResponsiveAlertDialogDescription,
-  ResponsiveAlertDialogFooter,
-  ResponsiveAlertDialogHeader,
-  ResponsiveAlertDialogTitle,
-} from "@/components/ui/responsive-alert-dialog"
+import { LogoutDialog } from "@/components/public/logout-dialog"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { buildAvatarUrl } from "@/lib/api"
@@ -373,34 +364,14 @@ export function DesktopUserMenu({
         onOpenChange={setRegisterComplexDialogOpen}
       />
 
-      <ResponsiveAlertDialog
+      <LogoutDialog
         open={logoutDialogOpen}
         onOpenChange={setLogoutDialogOpen}
-        mobileAsSheet={false}
-      >
-        <ResponsiveAlertDialogContent>
-          <ResponsiveAlertDialogHeader>
-            <ResponsiveAlertDialogTitle>
-              خروج از حساب
-            </ResponsiveAlertDialogTitle>
-            <ResponsiveAlertDialogDescription>
-              آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
-            </ResponsiveAlertDialogDescription>
-          </ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogFooter>
-            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
-            <ResponsiveAlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                onLogout()
-                setLogoutDialogOpen(false)
-              }}
-            >
-              خروج
-            </ResponsiveAlertDialogAction>
-          </ResponsiveAlertDialogFooter>
-        </ResponsiveAlertDialogContent>
-      </ResponsiveAlertDialog>
+        onConfirm={() => {
+          onLogout()
+          setLogoutDialogOpen(false)
+        }}
+      />
     </>
   )
 }

@@ -124,7 +124,7 @@ export function getSportColor(sportType?: string): string {
 export function createVendorIcon(sportType?: string): any {
   const path = sportSvgPaths[sportType || ""] || sportSvgPaths.volleyball
   return L.divIcon({
-    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:var(--color-primary)">
+    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:var(--map-pin, #2563eb)">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0.5">
         <path d="${path}"/>
       </svg>
@@ -151,7 +151,7 @@ export function createUserLocationIcon(): any {
 
 export function createDefaultPinIcon(): any {
   return L.divIcon({
-    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:var(--primary)">
+    html: `<div class="flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white" style="background-color:var(--map-pin, #2563eb)">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0.5">
         <circle cx="12" cy="12" r="6"/>
       </svg>
@@ -165,7 +165,7 @@ export function createDefaultPinIcon(): any {
 
 export function createSearchPinIcon(): any {
   return L.divIcon({
-    html: `<div class="flex items-center justify-center w-11 h-11 rounded-full shadow-xl border-2 border-white" style="background-color:var(--primary)">
+    html: `<div class="flex items-center justify-center w-11 h-11 rounded-full shadow-xl border-2 border-white" style="background-color:var(--map-pin, #2563eb)">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
       </svg>

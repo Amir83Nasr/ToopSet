@@ -37,7 +37,7 @@ export function ImageLightbox({
   }, [onClose])
 
   // Track whether the current effect instance pushed a history entry so
-  // cleanup only replaces what it created — not a stale sibling entry.
+  // closing only pops what it created — not a stale sibling entry.
   const pushedRef = useRef(false)
 
   // ── Mobile back-button: closes the lightbox instead of leaving the page ──
@@ -52,15 +52,20 @@ export function ImageLightbox({
 
     return () => {
       window.removeEventListener("popstate", handlePop)
-      if (pushedRef.current) {
-        // Only replace if the current entry still carries our marker
-        if (window.history.state?.lightbox) {
-          window.history.replaceState({}, "", window.location.href)
-        }
-        pushedRef.current = false
-      }
+      pushedRef.current = false
     }
   }, [open]) // <-- only depends on open, NOT onClose (accessed via ref)
+
+  // ── Explicit close (X / Escape / overlay): pop our own history entry so
+  //    browser back returns to the real previous page instead of landing on a
+  //    stale duplicate of this one. ──
+  const closeLightbox = useCallback(() => {
+    if (pushedRef.current) {
+      pushedRef.current = false
+      window.history.back()
+    }
+    onCloseRef.current()
+  }, [])
 
   const goNext = useCallback(() => {
     setLightboxIndex((prev) => (prev + 1) % images.length)
@@ -85,13 +90,13 @@ export function ImageLightbox({
     <ResponsiveDialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) onCloseRef.current()
+        if (!v) closeLightbox()
       }}
       mobileAsSheet={false}
     >
       <ResponsiveDialogContent
         showCloseButton={false}
-        className="fixed inset-s-0 top-0 z-9999 h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:inset-s-1/2 md:top-1/2 md:h-[85vh] md:w-[90vw] md:max-w-none md:translate-x-1/2 md:-translate-y-1/2 md:rounded-xl"
+        className="fixed inset-s-0 top-0 z-9999 h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none bg-black/95 p-0 ring-0 md:inset-e-0 md:top-1/2 md:mx-auto md:h-[85vh] md:w-[90vw] md:max-w-none md:-translate-y-1/2 md:rounded-xl rtl:translate-x-0"
       >
         <ResponsiveDialogTitle className="sr-only">
           تصاویر {vendorName}
@@ -103,7 +108,7 @@ export function ImageLightbox({
         <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
           {/* Close */}
           <button
-            onClick={() => onCloseRef.current()}
+            onClick={closeLightbox}
             className="absolute inset-s-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 text-white/70 transition-colors hover:bg-black/80 hover:text-white"
             aria-label="بستن"
           >

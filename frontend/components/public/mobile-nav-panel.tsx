@@ -13,16 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import {
-  ResponsiveAlertDialog,
-  ResponsiveAlertDialogAction,
-  ResponsiveAlertDialogCancel,
-  ResponsiveAlertDialogContent,
-  ResponsiveAlertDialogDescription,
-  ResponsiveAlertDialogFooter,
-  ResponsiveAlertDialogHeader,
-  ResponsiveAlertDialogTitle,
-} from "@/components/ui/responsive-alert-dialog"
+import { LogoutDialog } from "@/components/public/logout-dialog"
 import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { buildAvatarUrl } from "@/lib/api"
 import { cn, getInitials, toPersianDigits } from "@/lib/utils"
@@ -110,7 +101,6 @@ export function MobileNavPanel({
 }: MobileNavPanelProps) {
   const pathname = usePathname()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
-  const [loggingOut, setLoggingOut] = useState(false)
   const [registerComplexDialogOpen, setRegisterComplexDialogOpen] =
     useState(false)
 
@@ -298,40 +288,11 @@ export function MobileNavPanel({
         onOpenChange={setRegisterComplexDialogOpen}
       />
 
-      <ResponsiveAlertDialog
+      <LogoutDialog
         open={logoutDialogOpen}
         onOpenChange={setLogoutDialogOpen}
-        mobileAsSheet={false}
-      >
-        <ResponsiveAlertDialogContent>
-          <ResponsiveAlertDialogHeader>
-            <ResponsiveAlertDialogTitle>
-              خروج از حساب
-            </ResponsiveAlertDialogTitle>
-            <ResponsiveAlertDialogDescription>
-              آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
-            </ResponsiveAlertDialogDescription>
-          </ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogFooter>
-            <ResponsiveAlertDialogCancel>انصراف</ResponsiveAlertDialogCancel>
-            <ResponsiveAlertDialogAction
-              variant="destructive"
-              disabled={loggingOut}
-              onClick={async () => {
-                setLoggingOut(true)
-                try {
-                  await onLogout()
-                  setLogoutDialogOpen(false)
-                } finally {
-                  setLoggingOut(false)
-                }
-              }}
-            >
-              {loggingOut ? "در حال خروج..." : "خروج"}
-            </ResponsiveAlertDialogAction>
-          </ResponsiveAlertDialogFooter>
-        </ResponsiveAlertDialogContent>
-      </ResponsiveAlertDialog>
+        onConfirm={onLogout}
+      />
     </>
   )
 }

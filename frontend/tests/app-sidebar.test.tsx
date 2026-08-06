@@ -59,7 +59,7 @@ describe("AppSidebar", () => {
     await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }))
     await user.click(await screen.findByRole("button", { name: "خروج" }))
 
-    const dialog = await screen.findByRole("alertdialog", {}, { timeout: 1500 })
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 1500 })
     expect(
       within(dialog).getByRole("heading", { name: "خروج از حساب" })
     ).toBeInTheDocument()

@@ -67,20 +67,15 @@ function DrawerContent({
       <DrawerOverlay />
       <DrawerPrimitive.Content
         data-slot="drawer-content"
-        aria-describedby={undefined}
-        aria-labelledby={undefined}
         className={cn(
-          "fixed z-50 flex flex-col border bg-popover text-sm text-popover-foreground shadow-lg",
-          "data-[direction=bottom]:inset-x-0 data-[direction=bottom]:bottom-0 data-[direction=bottom]:mt-24 data-[direction=bottom]:h-auto data-[direction=bottom]:rounded-t-xl",
-          "data-[direction=right]:inset-y-0 data-[direction=right]:right-0 data-[direction=right]:h-full data-[direction=right]:w-3/4 data-[direction=right]:sm:max-w-sm",
-          "data-[direction=left]:inset-y-0 data-[direction=left]:left-0 data-[direction=left]:h-full data-[direction=left]:w-3/4 data-[direction=left]:sm:max-w-sm",
+          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-xl border bg-popover text-sm text-popover-foreground shadow-lg",
           "pb-safe",
           className
         )}
         {...props}
       >
         {/* Drag handle + optional close button row */}
-        <div className="relative flex items-center justify-center px-4 pt-1.5 pb-0.5 data-[direction=left]:hidden data-[direction=right]:hidden">
+        <div className="relative flex items-center justify-center px-4 pt-1.5 pb-0.5">
           <div className="h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/20" />
           {showCloseButton && (
             <DrawerPrimitive.Close data-slot="drawer-close" asChild>
@@ -96,9 +91,7 @@ function DrawerContent({
           )}
         </div>
         {/* Content */}
-        <div className="px-4 data-[direction=left]:h-full data-[direction=left]:overflow-y-auto data-[direction=left]:p-0 data-[direction=right]:h-full data-[direction=right]:overflow-y-auto data-[direction=right]:p-0">
-          {children}
-        </div>
+        <div className="px-4">{children}</div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )

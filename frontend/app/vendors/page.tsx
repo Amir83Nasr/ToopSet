@@ -11,8 +11,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ManIcon, WomanIcon } from "@hugeicons/core-free-icons"
 import { useGeolocation } from "@/hooks/use-geolocation"
 import { api, buildVendorImageUrl } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
@@ -27,13 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
@@ -79,7 +71,6 @@ interface Vendor {
   base_price: number | null
   images?: string[]
   main_image?: string | null
-  slot_genders?: ("male" | "female")[]
 }
 
 const sportLabels: Record<string, string> = {
@@ -254,12 +245,6 @@ function VendorsPageContent() {
     selectedSports.length > 0 ||
     availableToday ||
     sortBy !== "default"
-
-  const activeFilterCount =
-    (searchText ? 1 : 0) +
-    selectedSports.length +
-    (availableToday ? 1 : 0) +
-    (sortBy !== "default" ? 1 : 0)
 
   const totalPages = Math.ceil(total / limit)
 
@@ -465,6 +450,16 @@ function VendorsPageContent() {
               {/* Filter chips */}
               {hasActiveFilters && (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
+                  {/* Clear all — always first */}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={clearFilters}
+                    className=""
+                  >
+                    <X />
+                    پاک کردن همه فیلتر‌ها
+                  </Button>
                   {searchText && (
                     <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs">
                       <Search className="size-3" />
@@ -483,18 +478,19 @@ function VendorsPageContent() {
                   {selectedSports.map((st) => (
                     <span
                       key={st}
-                      className="inline-flex items-center gap-1 rounded-full border bg-muted/50 pr-4 text-xs"
+                      className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs"
                     >
                       {sportLabels[st] || st}
                       <Button
                         type="button"
                         variant="ghost"
+                        size="icon-xs"
                         onClick={() =>
                           setSelectedSports((prev) =>
                             prev.filter((t) => t !== st)
                           )
                         }
-                        className="rounded-full text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         <X className="size-3" />
                       </Button>
@@ -516,52 +512,25 @@ function VendorsPageContent() {
                       </Button>
                     </span>
                   )}
-
-                  {/* Clear all */}
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={clearFilters}
-                    className=""
-                  >
-                    <X />
-                    پاک کردن همه فیلتر‌ها
-                  </Button>
                 </div>
               )}
             </div>
 
             {/* ── Results grid ── */}
             <div className="mt-4">
-              {/* Results count */}
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {toPersianDigits(total)} مجموعه پیدا شد
-                  {hasActiveFilters && (
-                    <span className="ms-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                      {toPersianDigits(activeFilterCount)} فیلتر
-                    </span>
-                  )}
-                </p>
-              </div>
-
               {vendorsLoading ? (
-                <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
+                <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <div className="flex items-start gap-3">
-                          <div className="min-w-0 flex-1">
-                            <Skeleton className="h-5 w-36" />
-                            <Skeleton className="mt-2 h-3 w-full" />
-                          </div>
-                          <Skeleton className="size-25 shrink-0 rounded-lg" />
-                        </div>
-                      </CardHeader>
-                      <CardFooter>
+                    <Card key={i} className="gap-0 overflow-hidden p-0">
+                      <Skeleton className="aspect-16/11 w-full rounded-none" />
+                      <CardContent className="space-y-3 px-5 pt-4">
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-3.5 w-4/5" />
+                      </CardContent>
+                      <CardFooter className="border-t px-5 pt-4">
                         <div className="flex w-full items-center justify-between">
-                          <Skeleton className="h-3 w-20" />
-                          <Skeleton className="h-3 w-10" />
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-8 w-28" />
                         </div>
                       </CardFooter>
                     </Card>
@@ -584,14 +553,16 @@ function VendorsPageContent() {
                   <ScrollReveal
                     stagger={0.04}
                     animation="fade-in-up"
-                    className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3"
+                    className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3"
                   >
                     {featuredVendors.map((vendor) => {
                       const mainImage =
                         vendor.main_image || vendor.images?.[0] || null
-                      const hasMaleSlots = vendor.slot_genders?.includes("male")
-                      const hasFemaleSlots =
-                        vendor.slot_genders?.includes("female")
+                      const rating =
+                        vendor.average_rating != null &&
+                        vendor.average_rating > 0
+                          ? vendor.average_rating.toFixed(1)
+                          : null
 
                       return (
                         <div key={vendor.id}>
@@ -599,102 +570,65 @@ function VendorsPageContent() {
                             href={`/vendors/${vendor.id}`}
                             className="group block"
                           >
-                            <Card className="transition-shadow duration-150 hover:shadow-md">
-                              <CardHeader>
-                                <div className="flex items-start gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    {/* Name */}
-                                    <CardTitle className="text-base leading-snug font-semibold transition-colors duration-150 group-hover:text-primary">
-                                      {vendor.name}
-                                    </CardTitle>
-
-                                    {/* Address */}
-                                    <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
-                                      <MapPin className="mt-0.5 size-3.5 shrink-0" />
-                                      <span className="line-clamp-1">
-                                        {vendor.address}
-                                      </span>
-                                    </p>
+                            <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-[transform,box-shadow] duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-xl">
+                              {/* ── Image hero ── */}
+                              <div className="relative aspect-16/11 overflow-hidden bg-muted">
+                                {mainImage ? (
+                                  <Image
+                                    src={buildVendorImageUrl(mainImage)}
+                                    alt={`عکس اصلی ${vendor.name}`}
+                                    fill
+                                    priority
+                                    className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="flex size-full items-center justify-center">
+                                    <Building2 className="size-10 text-muted-foreground/40" />
                                   </div>
+                                )}
 
-                                  <div className="relative size-25 shrink-0 overflow-hidden rounded-lg bg-muted">
-                                    {mainImage ? (
-                                      <Image
-                                        src={buildVendorImageUrl(mainImage)}
-                                        alt={`عکس اصلی ${vendor.name}`}
-                                        fill
-                                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                                        sizes="100px"
-                                        unoptimized
-                                      />
-                                    ) : (
-                                      <div className="flex size-full items-center justify-center">
-                                        <Building2 className="size-7 text-muted-foreground/35" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </CardHeader>
+                                {/* Bottom gradient for text legibility */}
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
 
-                              {/* Info row: slot gender + rating */}
-                              <CardContent className="py-0">
-                                <div className="flex items-center justify-between gap-2 pt-3">
-                                  <div
-                                    className="flex min-h-5 items-center gap-1"
-                                    role="img"
-                                    aria-label={
-                                      hasMaleSlots && hasFemaleSlots
-                                        ? "سانس آقایان و بانوان"
-                                        : hasFemaleSlots
-                                          ? "سانس بانوان"
-                                          : hasMaleSlots
-                                            ? "سانس آقایان"
-                                            : "بدون سانس فعال"
-                                    }
-                                  >
-                                    {hasMaleSlots && (
-                                      <HugeiconsIcon
-                                        icon={ManIcon}
-                                        className="size-5 text-blue-600"
-                                        strokeWidth={2}
-                                        aria-hidden="true"
-                                      />
-                                    )}
-                                    {hasFemaleSlots && (
-                                      <HugeiconsIcon
-                                        icon={WomanIcon}
-                                        className="size-5 text-pink-500"
-                                        strokeWidth={2}
-                                        aria-hidden="true"
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1 text-xs font-semibold">
+                                {/* Rating badge */}
+                                {rating && (
+                                  <div className="absolute start-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white shadow-md backdrop-blur-sm">
                                     <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
                                     <span className="tabular-nums">
-                                      {toPersianDigits(
-                                        vendor.average_rating.toFixed(1)
-                                      )}
+                                      {toPersianDigits(rating)}
                                     </span>
                                   </div>
-                                </div>
-                              </CardContent>
+                                )}
 
-                              {/* Price — minimum slot price */}
-                              {vendor.base_price != null && (
-                                <CardFooter>
-                                  <div className="w-full rounded-lg bg-primary/5 px-3 py-2.5">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <span className="inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-[11px] leading-none font-semibold text-primary">
-                                        شروع قیمت از
-                                      </span>
-                                      <span className="text-sm font-bold text-primary">
-                                        {formatPrice(vendor.base_price)}
-                                      </span>
+                                {/* Name + address + price overlayed on image */}
+                                <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+                                  <h3 className="text-base leading-snug font-bold text-white drop-shadow-sm">
+                                    {vendor.name}
+                                  </h3>
+                                  <p className="mt-1.5 flex items-center gap-1 text-xs text-white/75">
+                                    <MapPin className="size-3.5 shrink-0" />
+                                    <span className="line-clamp-1">
+                                      {vendor.address}
+                                    </span>
+                                  </p>
+
+                                  {/* Price — minimum slot price */}
+                                  {vendor.base_price != null && (
+                                    <div className="mt-3 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2.5 backdrop-blur-md">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span className="inline-flex items-center rounded bg-white/15 px-1 py-0.5 text-[11px] leading-none font-semibold text-white">
+                                          شروع قیمت از
+                                        </span>
+                                        <span className="text-sm font-bold text-white">
+                                          {formatPrice(vendor.base_price)}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
-                                </CardFooter>
-                              )}
+                                  )}
+                                </div>
+                              </div>
                             </Card>
                           </Link>
                         </div>

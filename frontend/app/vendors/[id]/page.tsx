@@ -171,8 +171,8 @@ async function shareLocation(
 ) {
   // geo: URI opens system map-app chooser on Android (Balad, Neshan, Google Maps, etc.)
   const geoUri = `geo:${lat},${lng}`
-  // Google Maps URL as desktop fallback
-  const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+  // Neshan web map as desktop fallback
+  const mapsUrl = `https://neshan.org/maps/@${lat},${lng},15z,1p`
 
   if (typeof navigator !== "undefined" && navigator.share) {
     try {
@@ -755,12 +755,12 @@ export default function PublicVendorDetailPage() {
                         </h3>
                         <div className="flex items-center gap-2">
                           <a
-                            href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
+                            href={`https://neshan.org/maps/@${vendor.latitude},${vendor.longitude},15z,1p`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary hover:underline"
                           >
-                            باز کردن در گوگل مپ
+                            باز کردن در نشان
                           </a>
                           <button
                             onClick={() => setShowMap(false)}
