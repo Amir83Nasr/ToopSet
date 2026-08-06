@@ -123,7 +123,7 @@ pre-push:
     dep-audit:
       run: |
         if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
-          npx --prefix frontend pnpm audit --audit-level=high || true
+          cd frontend && pnpm audit --audit-level=high || true
         else
           echo "  ─ Skipping dep audit on feature branch"
         fi
