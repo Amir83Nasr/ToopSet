@@ -28,7 +28,7 @@ export function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="overflow-x-hidden border-y bg-muted/40"
+      className="overflow-x-hidden border-y bg-muted/50"
     >
       <div className="mx-auto max-w-7xl px-4 py-12 md:py-16">
         <div className="animate-fade-in mb-10 text-center md:mb-12">
@@ -49,7 +49,7 @@ export function HowItWorksSection() {
             >
               <div className="relative mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Icon className="size-7" />
-                <span className="absolute -start-1 -top-1 flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                <span className="absolute -inset-s-1 -top-1 flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   {step}
                 </span>
               </div>

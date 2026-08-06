@@ -68,15 +68,15 @@ function DrawerContent({
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-xl border bg-popover text-sm text-popover-foreground shadow-lg",
+          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-4xl border bg-popover text-sm text-popover-foreground shadow-lg",
           "pb-safe",
           className
         )}
         {...props}
       >
         {/* Drag handle + optional close button row */}
-        <div className="relative flex items-center justify-center px-4 pt-1.5 pb-0.5">
-          <div className="h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/20" />
+        <div className="relative flex items-center justify-center px-4 pt-2 pb-0.5">
+          <div className="mb-2 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/20" />
           {showCloseButton && (
             <DrawerPrimitive.Close data-slot="drawer-close" asChild>
               <Button

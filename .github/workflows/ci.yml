@@ -43,8 +43,8 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: latest
+        # Version read from `packageManager` field in package.json (pnpm@11.15.1)
+        # so CI matches local installs byte-for-byte.
 
       - name: Get pnpm store path
         id: pnpm-cache
@@ -66,6 +66,9 @@ jobs:
 
       - name: Typecheck (TypeScript)
         run: pnpm typecheck
+
+      - name: Test (Vitest)
+        run: pnpm test
 
       - name: Build (Next.js)
         run: pnpm build
@@ -109,7 +112,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip

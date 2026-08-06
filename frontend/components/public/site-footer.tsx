@@ -45,7 +45,7 @@ export function SiteFooter() {
               سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی. به راحتی مجموعه مورد
               نظر خود را پیدا کنید و سانس دلخواه را رزرو نمایید.
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground/60">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground">
               <span className="relative flex size-1.5">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/40" />
                 <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
