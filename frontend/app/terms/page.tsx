@@ -1,6 +1,14 @@
+import type { Metadata } from "next"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
 import { PrivacyTermsContent } from "@/components/public/privacy-terms-content"
+
+export const metadata: Metadata = {
+  title: "قوانین و مقررات",
+  description:
+    "قوانین و مقررات استفاده از سامانه رزرو آنلاین توپ‌سِت (ToopSet)",
+  alternates: { canonical: "/terms" },
+}
 
 export default function TermsPage() {
   return (

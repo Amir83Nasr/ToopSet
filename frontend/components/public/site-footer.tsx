@@ -1,6 +1,13 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { FooterContact } from "@/components/public/footer-contact"
 import { FooterScrollButton } from "@/components/public/footer-scroll-button"
+
+// صفحات عملیاتی/رزرو که در موبایل فوتر لازم ندارند
+const HIDE_FOOTER_ON_MOBILE = [/^\/book($|\/)/, /^\/vendors\/[^/]+/]
 
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -14,8 +21,16 @@ const pageLinks = [
 ]
 
 export function SiteFooter() {
+  const pathname = usePathname()
+  const hideOnMobile = HIDE_FOOTER_ON_MOBILE.some((re) => re.test(pathname))
+
   return (
-    <footer className="pb-safe relative overflow-hidden border-t bg-background max-md:pb-4">
+    <footer
+      className={cn(
+        "pb-safe relative overflow-hidden border-t bg-background max-md:pb-4",
+        hideOnMobile && "max-md:hidden"
+      )}
+    >
       <div className="px-safe relative mx-auto max-w-7xl px-4">
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}

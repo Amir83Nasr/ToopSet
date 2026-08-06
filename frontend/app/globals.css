@@ -327,19 +327,6 @@
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }
-/* Header safe-area top guard: backdrop-filter in the notch/sensor-housing
-   area on devices with viewport-fit=cover can produce a blurry halo artifact
-   on real hardware. A ::before pseudo-element with solid background at the
-   normal z-index covers the notch region opaquely, preventing the compositing
-   artifact, while the rest of the header keeps its glassmorphism. */
-.header-safe-top::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  height: env(safe-area-inset-top, 0px);
-  background-color: var(--color-background);
-  pointer-events: none;
-}
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

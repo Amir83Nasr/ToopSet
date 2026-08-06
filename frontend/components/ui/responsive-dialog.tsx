@@ -111,7 +111,7 @@ function ResponsiveDialogContent({
     return (
       <DrawerContent
         className={cn("overflow-y-auto", className)}
-        showCloseButton={showCloseButton}
+        showCloseButton={false}
         style={{
           ...(sheetSide === "bottom"
             ? { maxHeight: mobileMaxHeight }

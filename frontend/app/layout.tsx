@@ -6,9 +6,13 @@ import { pwaConfig } from "@/config/pwa"
 import { SkipNav } from "@/components/ui/skip-nav"
 
 export const metadata: Metadata = {
-  title: "توپ‌سِت | سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی و سالن",
+  metadataBase: new URL("https://toopset.ir"),
+  title: {
+    default: "توپ‌سِت (ToopSet) | رزرو آنلاین زمین‌های ورزشی",
+    template: "%s | توپ‌سِت (ToopSet)",
+  },
   description:
-    "با توپ‌سِت (Toopset) به راحتی آنلاین سانس‌های ورزشی، سالن فوتسال، زمین چمن مصنوعی و مجموعه‌های ورزشی را رزرو کنید.",
+    "با توپ‌سِت (ToopSet) به راحتی آنلاین سانس‌های ورزشی، سالن فوتسال، زمین چمن مصنوعی و مجموعه‌های ورزشی قم را رزرو کنید.",
   keywords: [
     "توپست",
     "توپ ست",
@@ -20,6 +24,8 @@ export const metadata: Metadata = {
     "رزرو چمن مصنوعی",
     "رزرو سانس فوتبال",
     "رزرو فوتسال",
+    "رزرو زمین ورزشی قم",
+    "رزرو سالن ورزشی قم",
   ],
   manifest: "/manifest.webmanifest",
   icons: {
@@ -32,12 +38,32 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "توپ‌سِت | رزرو آنلاین مجموعه ورزشی و سالن فوتبال",
-    description: "سامانه آنلاین رزرو سالن ورزشی و چمن مصنوعی - توپ‌سِت",
+    title: "توپ‌سِت (ToopSet) | رزرو آنلاین زمین‌های ورزشی",
+    description:
+      "رزرو آنلاین سالن ورزشی، زمین فوتسال و چمن مصنوعی در قم با توپ‌سِت (ToopSet)",
     url: "https://toopset.ir",
-    siteName: "توپ‌سِت",
+    siteName: "توپ‌سِت (ToopSet)",
     locale: "fa_IR",
     type: "website",
+    images: [
+      {
+        url: "/icons/logo-1080.webp",
+        width: 1080,
+        height: 1080,
+        alt: "توپ‌سِت (ToopSet)",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "توپ‌سِت (ToopSet) | رزرو آنلاین زمین‌های ورزشی",
+    description:
+      "رزرو آنلاین سالن ورزشی، زمین فوتسال و چمن مصنوعی در قم با توپ‌سِت (ToopSet)",
+    images: ["/icons/logo-1080.webp"],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 }
 
@@ -52,18 +78,52 @@ export const viewport: Viewport = {
   ],
 }
 
-// اسکیما برای شناسایی هویت برند و خدمات در گوگل
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SportsActivityLocation",
-  name: "توپست",
-  alternateName: ["توپ ست", "Toopset", "Toop Set"],
-  url: "https://toopset.ir",
-  description:
-    "سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی، سالن فوتسال و چمن مصنوعی",
-  telephone: "+989306853363",
-  email: "amirhossein.nasrollahi.main@gmail.com",
-}
+// اسکیما برای شناسایی هویت برند (توپ‌ست/توپ ست/ToopSet) و خدمات در گوگل
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://toopset.ir/#organization",
+    name: "توپ‌ست",
+    alternateName: ["توپ ست", "ToopSet", "Toop Set"],
+    url: "https://toopset.ir",
+    logo: "https://toopset.ir/icons/logo-1080.webp",
+    description:
+      "پلتفرم هوشمند رزرو آنلاین زمین‌های ورزشی، سالن فوتسال و چمن مصنوعی در قم",
+    telephone: "+989306853363",
+    email: "amirhossein.nasrollahi.main@gmail.com",
+    areaServed: "قم",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://toopset.ir/#website",
+    name: "توپ‌ست (ToopSet)",
+    alternateName: ["توپ ست", "Toop Set"],
+    url: "https://toopset.ir",
+    inLanguage: "fa-IR",
+    publisher: { "@id": "https://toopset.ir/#organization" },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://toopset.ir/vendors?search={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SportsActivityLocation",
+    name: "توپ‌ست",
+    alternateName: ["توپ ست", "ToopSet", "Toop Set"],
+    url: "https://toopset.ir",
+    description:
+      "سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی، سالن فوتسال و چمن مصنوعی",
+    telephone: "+989306853363",
+    email: "amirhossein.nasrollahi.main@gmail.com",
+  },
+]
 
 export default function RootLayout({
   children,

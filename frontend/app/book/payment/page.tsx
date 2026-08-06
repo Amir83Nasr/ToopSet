@@ -319,7 +319,7 @@ function PaymentPageContent() {
                   <span
                     className={
                       remainingSeconds > 0
-                        ? "font-mono font-medium text-amber-600"
+                        ? "font-medium text-amber-600"
                         : "font-medium text-destructive"
                     }
                     dir="ltr"

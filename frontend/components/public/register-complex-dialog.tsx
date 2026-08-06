@@ -164,7 +164,7 @@ export function RegisterComplexDialog({
               </ol>
             </div>
 
-            <ResponsiveDialogFooter className="gap-2 sm:gap-0">
+            <ResponsiveDialogFooter className="gap-2">
               <ResponsiveDialogClose asChild>
                 <Button variant="outline">بازگشت</Button>
               </ResponsiveDialogClose>

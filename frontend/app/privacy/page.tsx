@@ -1,6 +1,14 @@
+import type { Metadata } from "next"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
 import { PrivacyTermsContent } from "@/components/public/privacy-terms-content"
+
+export const metadata: Metadata = {
+  title: "حریم خصوصی",
+  description:
+    "حریم خصوصی و نحوه استفاده از اطلاعات در سامانه توپ‌سِت (ToopSet)",
+  alternates: { canonical: "/privacy" },
+}
 
 export default function PrivacyPage() {
   return (

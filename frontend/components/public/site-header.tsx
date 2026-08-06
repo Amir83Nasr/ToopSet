@@ -59,7 +59,7 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <header className="header-safe-top fixed inset-x-0 top-0 z-40 border-b bg-background/80 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-40 border-b bg-background/80 backdrop-blur-xl">
       <div className="px-safe mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">

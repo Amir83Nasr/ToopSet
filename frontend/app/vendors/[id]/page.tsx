@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { api, ApiError, buildVendorImageUrl } from "@/lib/api"
+import { buildNeshanShareUrl } from "@/lib/neshan-share"
 import { toast } from "@/lib/toast"
 import { toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
@@ -43,6 +44,13 @@ import {
   type Review,
 } from "@/components/vendors/vendor-shared"
 import { SlotRow } from "@/components/vendors/public-slot-row"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer"
 
 const VendorLocationMap = dynamic(
   () =>
@@ -93,6 +101,39 @@ function addDays(date: Date, days: number): Date {
   const next = new Date(date)
   next.setDate(date.getDate() + days)
   return next
+}
+
+// Selected slot summary + price — shared by desktop CTA bar and mobile booking drawer
+function SlotInfo({ slot, dateLabel }: { slot: TimeSlot; dateLabel: string }) {
+  return (
+    <div className="rounded-lg bg-primary/5 px-4 py-3.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <Clock className="size-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">
+              {dateLabel}
+            </p>
+            <p className="text-sm font-semibold text-foreground">
+              {formatTime(slot.start_time)}
+              <span className="mx-1.5 text-muted-foreground/30">—</span>
+              {formatTime(slot.end_time)}
+            </p>
+          </div>
+        </div>
+        <div className="text-left">
+          <p className="text-[10px] font-medium text-muted-foreground">
+            مبلغ قابل پرداخت
+          </p>
+          <p className="text-base font-bold text-primary">
+            {formatPrice(slot.base_price)}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── Loading skeleton ──
@@ -169,17 +210,15 @@ async function shareLocation(
   lat: number,
   lng: number
 ) {
-  // geo: URI opens system map-app chooser on Android (Balad, Neshan, Google Maps, etc.)
-  const geoUri = `geo:${lat},${lng}`
-  // Neshan web map as desktop fallback
-  const mapsUrl = `https://neshan.org/maps/@${lat},${lng},15z,1p`
+  // Neshan short link — resolves to the location in the Neshan app/web map
+  const shareUrl = buildNeshanShareUrl(lat, lng)
 
   if (typeof navigator !== "undefined" && navigator.share) {
     try {
       await navigator.share({
         title: name,
         text: `${name}\n${address}`,
-        url: geoUri,
+        url: shareUrl,
       })
       return
     } catch {
@@ -187,7 +226,7 @@ async function shareLocation(
     }
   }
 
-  window.open(mapsUrl, "_blank", "noopener,noreferrer")
+  window.open(shareUrl, "_blank", "noopener,noreferrer")
 }
 
 // Frozen timestamp for render-time expiry checks.
@@ -216,6 +255,7 @@ export default function PublicVendorDetailPage() {
     return `${y}-${m}-${d}`
   })
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
+  const [bookingDrawerOpen, setBookingDrawerOpen] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showMap, setShowMap] = useState(false)
@@ -350,6 +390,7 @@ export default function PublicVendorDetailPage() {
   }, [effectiveDate, vendorId, fetchSlots])
 
   function handleBookSlot(slot: TimeSlot) {
+    setBookingDrawerOpen(false)
     if (new Date(slot.start_time).getTime() <= NOW) {
       toast.error("زمان این سانس گذشته و دیگر قابل رزرو نیست")
       return
@@ -664,64 +705,53 @@ export default function PublicVendorDetailPage() {
                             key={slot.id}
                             slot={slot}
                             selectedSlot={selectedSlot}
-                            onSelect={(s) =>
-                              setSelectedSlot((prev) =>
-                                prev?.id === s.id ? null : s
-                              )
-                            }
+                            onSelect={(s) => {
+                              const isDeselect = selectedSlot?.id === s.id
+                              // Reset drawer on any new selection — reopen via CTA button
+                              setBookingDrawerOpen(false)
+                              setSelectedSlot(isDeselect ? null : s)
+                            }}
                           />
                         ))}
                       </div>
                     </div>
 
-                    {/* Booking CTA */}
+                    {/* Booking CTA — desktop: static bar below table; mobile: opens booking drawer */}
                     {selectedSlot &&
                       isSlotBookable(selectedSlot) &&
                       new Date(selectedSlot.start_time).getTime() > NOW && (
-                        <div className="pb-safe sticky bottom-0 z-20 border-t bg-card/95 backdrop-blur-sm lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none">
-                          <div className="px-5 py-4">
-                            {/* Slot info + pricing combined */}
-                            <div className="rounded-lg bg-primary/5 px-4 py-3.5">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                                    <Clock className="size-5 text-primary" />
-                                  </div>
-                                  <div>
-                                    <p className="text-xs font-medium text-muted-foreground">
-                                      {selectedDayInfo?.fullPersian ||
-                                        selectedDate}
-                                    </p>
-                                    <p className="text-sm font-semibold text-foreground">
-                                      {formatTime(selectedSlot.start_time)}
-                                      <span className="mx-1.5 text-muted-foreground/30">
-                                        —
-                                      </span>
-                                      {formatTime(selectedSlot.end_time)}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-left">
-                                  <p className="text-[10px] font-medium text-muted-foreground">
-                                    مبلغ قابل پرداخت
-                                  </p>
-                                  <p className="text-base font-bold text-primary">
-                                    {formatPrice(selectedSlot.base_price)}
-                                  </p>
-                                </div>
-                              </div>
+                        <>
+                          <div className="hidden border-t lg:block">
+                            <div className="px-5 py-4">
+                              <SlotInfo
+                                slot={selectedSlot}
+                                dateLabel={
+                                  selectedDayInfo?.fullPersian || selectedDate
+                                }
+                              />
+                              <Button
+                                size="md"
+                                className="mt-3 w-full font-semibold shadow-xs"
+                                onClick={() => handleBookSlot(selectedSlot)}
+                              >
+                                <CheckCircle2 className="ms-1.5 size-4" />
+                                {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
+                              </Button>
                             </div>
-
-                            <Button
-                              size="md"
-                              className="mt-3 w-full font-semibold shadow-xs"
-                              onClick={() => handleBookSlot(selectedSlot)}
-                            >
-                              <CheckCircle2 className="ms-1.5 size-4" />
-                              {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
-                            </Button>
                           </div>
-                        </div>
+                          <div className="border-t lg:hidden">
+                            <div className="px-5 py-4">
+                              <Button
+                                size="lg"
+                                className="w-full font-semibold shadow-xs"
+                                onClick={() => setBookingDrawerOpen(true)}
+                              >
+                                <CheckCircle2 className="ms-1.5 size-5" />
+                                تکمیل رزرو
+                              </Button>
+                            </div>
+                          </div>
+                        </>
                       )}
                   </>
                 )}
@@ -911,6 +941,45 @@ export default function PublicVendorDetailPage() {
             lightboxIndex={lightboxIndex}
             setLightboxIndex={setLightboxIndex}
           />
+
+          {/* ═══════════════════════════════════
+               Booking Drawer (mobile)
+               ═══════════════════════════════════ */}
+          <Drawer
+            open={
+              bookingDrawerOpen &&
+              !!selectedSlot &&
+              isSlotBookable(selectedSlot) &&
+              new Date(selectedSlot.start_time).getTime() > NOW
+            }
+            onOpenChange={setBookingDrawerOpen}
+            shouldScaleBackground={false}
+          >
+            <DrawerContent showCloseButton={false}>
+              <DrawerHeader className="text-start">
+                <DrawerTitle>تکمیل رزرو</DrawerTitle>
+                <DrawerDescription>
+                  جزئیات سانس انتخاب‌شده را بررسی کنید
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="pb-6">
+                {selectedSlot && (
+                  <SlotInfo
+                    slot={selectedSlot}
+                    dateLabel={selectedDayInfo?.fullPersian || selectedDate}
+                  />
+                )}
+                <Button
+                  size="lg"
+                  className="mt-4 w-full font-semibold shadow-xs"
+                  onClick={() => selectedSlot && handleBookSlot(selectedSlot)}
+                >
+                  <CheckCircle2 className="ms-1.5 size-5" />
+                  {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
+                </Button>
+              </div>
+            </DrawerContent>
+          </Drawer>
         </div>
       </main>
       <SiteFooter />
