@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Fragment } from "react"
+import { useState, Fragment, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { User } from "@/types/auth"
@@ -103,6 +103,11 @@ export function MobileNavPanel({
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const [registerComplexDialogOpen, setRegisterComplexDialogOpen] =
     useState(false)
+  // When closing the sheet to open a follow-up dialog (logout / register),
+  // stop the sheet from restoring focus to the hamburger trigger. That restore
+  // lands focus inside the page right as the next drawer aria-hides it, which
+  // Chrome blocks with a "Blocked aria-hidden on a focused element" warning.
+  const suppressFocusRestoreRef = useRef(false)
 
   const isActivePath = (href: string) =>
     href === "/"
@@ -135,6 +140,12 @@ export function MobileNavPanel({
         <SheetContent
           side="right"
           className="flex w-[19rem] flex-col gap-0 p-0"
+          onCloseAutoFocus={(event) => {
+            if (suppressFocusRestoreRef.current) {
+              suppressFocusRestoreRef.current = false
+              event.preventDefault()
+            }
+          }}
         >
           <SheetHeader className="flex h-16 justify-center border-b p-4">
             <SheetTitle className="flex items-center gap-2 text-lg font-bold">
@@ -244,8 +255,11 @@ export function MobileNavPanel({
               <button
                 type="button"
                 onClick={() => {
+                  suppressFocusRestoreRef.current = true
                   closeMobile()
                   window.setTimeout(() => {
+                    if (document.activeElement instanceof HTMLElement)
+                      document.activeElement.blur()
                     setRegisterComplexDialogOpen(true)
                   }, 550)
                 }}
@@ -266,8 +280,13 @@ export function MobileNavPanel({
               <Button
                 variant="destructive"
                 onClick={() => {
+                  suppressFocusRestoreRef.current = true
                   closeMobile()
-                  window.setTimeout(() => setLogoutDialogOpen(true), 550)
+                  window.setTimeout(() => {
+                    if (document.activeElement instanceof HTMLElement)
+                      document.activeElement.blur()
+                    setLogoutDialogOpen(true)
+                  }, 550)
                 }}
                 className="w-full"
               >

@@ -65,7 +65,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             )
         else:
             response.headers["Content-Security-Policy"] = (
-                "default-src 'none'; img-src 'self' data:; "
+                "default-src 'none'; "
+                "img-src 'self' data: https://trustseal.enamad.ir; "
                 "style-src 'self' 'unsafe-inline'; font-src 'self'; "
                 "connect-src 'self'; form-action 'none'; frame-ancestors 'none'"
             )

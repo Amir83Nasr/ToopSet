@@ -27,7 +27,17 @@ function toggleThemeWithTransition(
   theme: string,
   setTheme: (t: string) => void
 ) {
-  if (typeof document !== "undefined" && document.startViewTransition) {
+  // Skip the View Transition when a dialog/sheet is open: react-remove-scroll
+  // has aria-hidden the page, and capturing a snapshot of it while the focused
+  // trigger sits inside the hidden subtree throws an a11y focus warning.
+  const modalOpen =
+    typeof document !== "undefined" &&
+    document.querySelector('[role="dialog"], [role="alertdialog"]') !== null
+  if (
+    typeof document !== "undefined" &&
+    document.startViewTransition &&
+    !modalOpen
+  ) {
     document.startViewTransition(() => {
       flushSync(() => setTheme(theme))
     })

@@ -503,22 +503,17 @@ body {
   background-color: var(--color-background);
 }
 
-/* react-remove-scroll-bar injects margin-right: <gap>px on body[data-scroll-locked],
-   to compensate for the disappearing scrollbar. But our scrollbar lives on html
-   (not body), so that margin lands on the wrong element and shifts the page
-   sideways in RTL. Neutralise it — html keeps its `scrollbar-gutter: stable`
-   reservation, so no gap is ever created. */
+/* Scroll-lock shift fix. Our scroll container is html, but react-remove-scroll-bar (used
+   by Radix Dialog/Sheet) targets body: it sets overflow:hidden + a margin-right: <gap>px
+   compensation. With scrollbar-gutter: stable on html the gutter is permanently reserved,
+   so that compensation is wrong here — and worse, toggling overflow on html itself (old
+   `html:has(body[data-scroll-locked])`) drops the reserved gutter and shifts the page
+   sideways. Instead: keep html scrolling (gutter stays put), and on body just null the
+   lib's wrong-direction margin. react-remove-scroll already blocks wheel/touch via
+   preventDefault, so body's own overflow:hidden is harmless — body is not the scroll
+   container and its overflow doesn't touch html's gutter. */
 html body[data-scroll-locked] {
-  margin-right: 0 !important;
-  margin-inline-end: 0 !important;
-}
-
-/* react-remove-scroll sets overflow:hidden on body when dialog/sheet opens, but our
-   scroll container is html (not body). Scroll-lock with `overflow: clip` instead of
-   `hidden`: clip disables scrolling but keeps `scrollbar-gutter: stable` reserved,
-   so no gutter is dropped and the page doesn't shift sideways in RTL. */
-html:has(body[data-scroll-locked]) {
-  overflow: clip !important;
+  margin-inline: 0 !important;
 }
 
 /* ── Leaflet popup theming ── */

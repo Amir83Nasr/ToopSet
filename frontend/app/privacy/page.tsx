@@ -10,10 +10,7 @@ export default function PrivacyPage() {
         id="main-content"
         className="relative flex-1 overflow-x-hidden pt-16"
       >
-        <div className="relative mx-auto max-w-3xl px-4 py-16 md:py-24">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            حریم خصوصی
-          </h1>
+        <div className="mx-auto max-w-3xl px-4 py-16 md:py-24">
           <PrivacyTermsContent settingKey="privacy_text" />
         </div>
       </main>

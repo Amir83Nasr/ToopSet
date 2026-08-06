@@ -83,6 +83,7 @@ function renderBody(body: string) {
   if (!body) return null
   const nodes: ReactNode[] = []
   let paragraph: string[] = []
+  let listItems: string[] = []
   let tableRows: string[][] = []
   let key = 0
 
@@ -96,32 +97,46 @@ function renderBody(body: string) {
       paragraph = []
     }
   }
+  const flushList = () => {
+    if (listItems.length > 0) {
+      nodes.push(
+        <ul
+          key={key++}
+          className="ms-4 list-disc space-y-1.5 text-muted-foreground marker:text-primary"
+        >
+          {listItems.map((li, i) => (
+            <li key={i} className="ps-1 leading-relaxed">
+              {formatInline(li)}
+            </li>
+          ))}
+        </ul>
+      )
+      listItems = []
+    }
+  }
   const flushTable = () => {
     if (tableRows.length > 0) {
       const [head, ...rest] = tableRows
       nodes.push(
-        <div key={key++} className="overflow-x-auto">
+        <div key={key++} className="overflow-x-auto rounded-xl border">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr>
+              <tr className="border-b border-border bg-muted/60">
                 {head.map((cell, i) => (
                   <th
                     key={i}
-                    className="border border-border bg-muted/60 px-3 py-2 font-semibold text-foreground"
+                    className="px-4 py-2.5 text-start font-bold text-foreground"
                   >
                     {formatInline(cell.trim())}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border">
               {rest.map((row, ri) => (
-                <tr key={ri}>
+                <tr key={ri} className={ri % 2 === 1 ? "bg-muted/30" : ""}>
                   {row.map((cell, ci) => (
-                    <td
-                      key={ci}
-                      className="border border-border px-3 py-2 text-muted-foreground"
-                    >
+                    <td key={ci} className="px-4 py-2.5 text-muted-foreground">
                       {formatInline(cell.trim())}
                     </td>
                   ))}
@@ -139,34 +154,39 @@ function renderBody(body: string) {
     const trimmed = line.trim()
     if (trimmed.startsWith("### ")) {
       flushParagraph()
+      flushList()
       flushTable()
       nodes.push(
-        <h3 key={key++} className="font-semibold text-foreground">
+        <h3
+          key={key++}
+          className="flex items-center gap-2 font-bold text-foreground"
+        >
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full bg-primary"
+          />
           {formatInline(trimmed.slice(4))}
         </h3>
       )
     } else if (trimmed.startsWith("- ")) {
       flushParagraph()
       flushTable()
-      nodes.push(
-        <ul
-          key={key++}
-          className="ms-4 list-disc space-y-1 text-muted-foreground"
-        >
-          <li className="leading-relaxed">{formatInline(trimmed.slice(2))}</li>
-        </ul>
-      )
+      listItems.push(trimmed.slice(2))
     } else if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
       flushParagraph()
+      flushList()
       tableRows.push(trimmed.split("|").slice(1, -1))
     } else if (trimmed === "") {
       flushParagraph()
+      flushList()
       flushTable()
     } else {
+      flushList()
       paragraph.push(trimmed)
     }
   }
   flushParagraph()
+  flushList()
   flushTable()
   return nodes
 }
@@ -252,22 +272,35 @@ export function TextListDisplay({
       return (
         <section
           key={i}
-          className="space-y-3 border-s-4 border-primary/40 ps-4"
+          className="animate-fade-in space-y-4"
+          style={{ animationDelay: `${i * 60}ms` }}
         >
-          <h2 className="text-xl font-bold tracking-tight">{block.title}</h2>
+          <h2 className="flex items-center gap-3 text-xl font-bold tracking-tight md:text-2xl">
+            <span
+              aria-hidden
+              className="h-6 w-1.5 shrink-0 rounded-full bg-linear-to-b from-primary to-chart-2"
+            />
+            {block.title}
+          </h2>
           {renderBody(block.body)}
         </section>
       )
     }
     return (
-      <section key={i} className="space-y-3">
-        <h2 className="flex items-center gap-3 text-lg font-semibold">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+      <section
+        key={i}
+        className="animate-fade-in overflow-hidden rounded-2xl border bg-card"
+        style={{ animationDelay: `${i * 60}ms` }}
+      >
+        <div className="flex items-center gap-3 border-b bg-muted/40 px-5 py-4">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/15">
             {toPersianDigits(number)}
           </span>
-          {block.title}
-        </h2>
-        {renderBody(block.body)}
+          <h2 className="text-base font-bold tracking-tight">{block.title}</h2>
+        </div>
+        <div className="space-y-4 px-5 py-5 md:px-6">
+          {renderBody(block.body)}
+        </div>
       </section>
     )
   })
