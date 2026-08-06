@@ -28,10 +28,10 @@ export function HeroSection() {
               <span>سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی</span>
             </div>
 
-            <h1 className="text-3xl leading-tight font-black text-foreground sm:text-4xl sm:leading-snug lg:text-5xl lg:leading-normal">
+            <h1 className="text-3xl leading-tight font-bold text-foreground sm:text-4xl sm:leading-snug lg:text-5xl lg:leading-normal">
               پلتفرم هوشمند رزرو
               <br />
-              <span className="font-black text-primary">مجموعه‌های ورزشی</span>
+              <span className="font-bold text-primary">مجموعه‌های ورزشی</span>
             </h1>
 
             <p className="mx-auto max-w-md text-sm leading-7 text-muted-foreground sm:text-base sm:leading-8">

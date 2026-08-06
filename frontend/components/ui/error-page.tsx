@@ -182,7 +182,7 @@ export function ErrorPage({
 
             {/* Status code */}
             {statusCode && (
-              <h1 className="text-gradient-primary mb-1 text-7xl leading-none font-black sm:text-8xl">
+              <h1 className="text-gradient-primary mb-1 text-7xl leading-none font-bold sm:text-8xl">
                 {statusCode}
               </h1>
             )}
