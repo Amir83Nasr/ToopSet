@@ -26,12 +26,22 @@ class TestPublicContact:
 
 class TestPublicTextSetting:
     async def test_get_rules_text_default(self, client: AsyncClient) -> None:
-        """No rules_text configured -> returns object with default value."""
+        """No rules_text configured -> serves the full default legal content."""
         resp = await client.get("/api/v1/settings/public/text/rules_text")
         assert resp.status_code == 200
         data = resp.json()
         assert data["key"] == "rules_text"
-        assert data["value"] == "[]"
+        assert "ماده ۱" in data["value"]
+        assert "بازگشت ۵۰ درصد مبلغ" in data["value"]
+        assert data["updated_at"] is None
+
+    async def test_get_privacy_text_default(self, client: AsyncClient) -> None:
+        """No privacy_text configured -> serves the full default privacy content."""
+        resp = await client.get("/api/v1/settings/public/text/privacy_text")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["key"] == "privacy_text"
+        assert "حریم خصوصی" in data["value"]
         assert data["updated_at"] is None
 
     async def test_get_text_invalid_key(self, client: AsyncClient) -> None:

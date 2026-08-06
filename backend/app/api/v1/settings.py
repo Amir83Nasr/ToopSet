@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.legal_content import LEGAL_SETTINGS
 from app.models.setting import Setting
 from app.models.user import User
 
@@ -18,8 +19,12 @@ _PUBLIC_KEYS = {"rules_text", "privacy_text"}
 
 _CONTACT_KEYS = {"support_phone", "support_email", "messenger_id"}
 
-_DEFAULT_SETTING_VALUES = {
+# Legal documents live in the DB when present (admin-editable via the settings
+# page); when a row is missing or empty these runtime defaults serve the full
+# terms/privacy text so the public pages never render empty.
+_DEFAULT_SETTING_VALUES: dict[str, str] = {
     "pagination_limit": "15",
+    **{item["key"]: item["value"] for item in LEGAL_SETTINGS},
 }
 
 
@@ -76,6 +81,9 @@ async def get_public_text_setting(
     result = await db.execute(select(Setting).where(Setting.key == key))
     setting = result.scalar_one_or_none()
     if not setting or not setting.value:
+        default_value = _DEFAULT_SETTING_VALUES.get(key)
+        if default_value is not None:
+            return {"key": key, "value": default_value, "updated_at": None}
         return {"key": key, "value": "[]", "updated_at": None}
     return {
         "key": key,
