@@ -19,5 +19,9 @@ jdatetime>=5.0.0
 sentry-sdk>=2.0.0
 
 # ── Dev tooling ───────────────────────────────────────────────────────────────
-ruff>=0.9.0
-mypy>=1.14.0
+# Pinned exact versions so local pre-push hooks match CI byte-for-byte
+# (unpinned ruff/mypy drift broke CI on docs/*.md python blocks).
+ruff==0.15.16
+mypy==2.1.0
+pytest==9.0.3
+pytest-asyncio==1.4.0

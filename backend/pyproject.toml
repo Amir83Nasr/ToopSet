@@ -24,6 +24,9 @@ asyncio_mode = "auto"
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+# docs/*.md embed python snippets as illustration, not formattable code.
+# Excluded so no ruff version ever reformats them (CI runs `ruff format --check .`).
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
