@@ -1,40 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getApiBase } from "@/lib/api"
-
-const API_BASE = getApiBase()
 
 interface AuthHeroSlidesProps {
+  /** Resolved server-side (SSR) so the first image paints immediately. */
+  urls?: string[]
   fallback?: React.ReactNode
 }
 
-export function AuthHeroSlides({ fallback }: AuthHeroSlidesProps) {
-  const [images, setImages] = useState<string[]>([])
+export function AuthHeroSlides({ urls = [], fallback }: AuthHeroSlidesProps) {
+  // Filter to only URL strings (image-based slides)
+  const images = urls.filter(
+    (s) => typeof s === "string" && (s.startsWith("http") || s.startsWith("/"))
+  )
   const [current, setCurrent] = useState(0)
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/v1/settings/public/hero-slides`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          // Filter to only URL strings (image-based slides)
-          const urls = data.filter(
-            (s): s is string =>
-              typeof s === "string" &&
-              (s.startsWith("http") || s.startsWith("/"))
-          )
-          if (urls.length > 0) {
-            setImages(urls)
-          } else {
-            setImages([])
-          }
-        }
-      })
-      .catch(() => {
-        /* swallow */
-      })
-  }, [])
 
   // Auto-slide every 5 seconds
   useEffect(() => {
@@ -79,6 +58,8 @@ export function AuthHeroSlides({ fallback }: AuthHeroSlidesProps) {
             src={url}
             alt={`تصویر ${idx + 1}`}
             className="size-full object-cover"
+            // First image is LCP — prioritize + decode async so it paints ASAP
+            {...(idx === 0 ? { fetchPriority: "high", decoding: "async" } : {})}
             onError={(e) => {
               // Dead URL (file deleted) → fall back to default art instead of
               // rendering a broken image. Guard prevents error-looping on the fallback.
