@@ -24,7 +24,7 @@ pre-commit:
       stage_fixed: true
 
     eof-newline:
-      glob: "*"
+      glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
       run: |
         for f in {staged_files}; do
           [ -s "$f" ] && tail -c1 "$f" | read -r _ || printf '\n' >> "$f"
@@ -50,7 +50,7 @@ pre-commit:
         fi
 
     lf-line-endings:
-      glob: "*"
+      glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
       run: |
         for f in {staged_files}; do
           grep -l "$(printf '\r')" "$f" 2>/dev/null && sed -i.bak 's/\r$//' "$f" && rm -f "$f.bak" || true
