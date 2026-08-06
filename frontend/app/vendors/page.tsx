@@ -519,7 +519,7 @@ function VendorsPageContent() {
             {/* ── Results grid ── */}
             <div className="mt-4">
               {vendorsLoading ? (
-                <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i} className="gap-0 overflow-hidden p-0">
                       <Skeleton className="aspect-16/11 w-full rounded-none" />
@@ -553,7 +553,7 @@ function VendorsPageContent() {
                   <ScrollReveal
                     stagger={0.04}
                     animation="fade-in-up"
-                    className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3"
+                    className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
                   >
                     {featuredVendors.map((vendor) => {
                       const mainImage =
