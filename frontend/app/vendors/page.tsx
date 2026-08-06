@@ -25,10 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { TablePagination } from "@/components/ui/pagination"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { VendorCardSkeleton } from "@/components/vendors/vendor-card-skeleton"
 import dynamic from "next/dynamic"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
@@ -519,23 +519,7 @@ function VendorsPageContent() {
             {/* ── Results grid ── */}
             <div className="mt-4">
               {vendorsLoading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Card key={i} className="gap-0 overflow-hidden p-0">
-                      <Skeleton className="aspect-16/11 w-full rounded-none" />
-                      <CardContent className="space-y-3 px-5 pt-4">
-                        <Skeleton className="h-5 w-2/3" />
-                        <Skeleton className="h-3.5 w-4/5" />
-                      </CardContent>
-                      <CardFooter className="border-t px-5 pt-4">
-                        <div className="flex w-full items-center justify-between">
-                          <Skeleton className="h-3 w-16" />
-                          <Skeleton className="h-8 w-28" />
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
+                <VendorCardSkeleton />
               ) : featuredVendors.length === 0 ? (
                 <div className="flex flex-col items-center gap-4 rounded-xl border bg-card py-20 text-center">
                   <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">

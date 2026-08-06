@@ -6,6 +6,7 @@ import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/hooks/use-auth"
 import { getCookie } from "@/lib/cookies"
+import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -18,12 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
-import {
-  ArrowRight,
-  Construction,
-  LayoutDashboard,
-  AlertTriangle,
-} from "lucide-react"
+import { ArrowRight, LayoutDashboard, AlertTriangle } from "lucide-react"
 import { toast } from "@/lib/toast"
 
 interface BookingDetail {
@@ -279,22 +275,6 @@ function PaymentPageContent() {
       <SiteHeader />
       <main id="main-content" className="relative flex-1 pt-16">
         <div className="mx-auto max-w-lg px-4 py-8">
-          {/* Under Construction Card */}
-          <Card className="border-amber-200 dark:border-amber-800">
-            <CardContent className="flex flex-col items-center gap-4 py-10">
-              <div className="rounded-full bg-amber-100 p-4 dark:bg-amber-900/50">
-                <Construction className="size-12 text-amber-600 dark:text-amber-400" />
-              </div>
-              <CardTitle className="text-xl text-amber-700 dark:text-amber-400">
-                آماده‌سازی پرداخت
-              </CardTitle>
-              <CardDescription className="max-w-sm text-center">
-                پس از ثبت پرداخت، شما به درگاه امن زیبال منتقل می‌شوید و بعد از
-                بازگشت از درگاه، پرداخت نهایی تأیید می‌شود.
-              </CardDescription>
-            </CardContent>
-          </Card>
-
           {/* Booking Summary */}
           <Card className="mt-6">
             <CardHeader>
@@ -345,7 +325,9 @@ function PaymentPageContent() {
                     dir="ltr"
                   >
                     {remainingSeconds > 0
-                      ? `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`
+                      ? toPersianDigits(
+                          `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`
+                        )
                       : "منقضی شده"}
                   </span>
                 </div>

@@ -65,9 +65,9 @@ export function AboutSection() {
         {/* ═══ Features ═══ */}
         <div className="py-12 md:py-16">
           <div className="animate-fade-in mb-10 text-center md:mb-12">
-            <h3 className="text-2xl font-bold tracking-tight md:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
               چرا توپ‌سِت؟
-            </h3>
+            </h2>
             <p className="mt-2 text-muted-foreground">
               امکاناتی که توپ‌سِت را از روش سنتی جدا می‌کند
             </p>
@@ -100,9 +100,9 @@ export function AboutSection() {
         {/* ═══ CTA ═══ */}
         <div className="pb-16 md:pb-20">
           <div className="animate-fade-in mx-auto max-w-2xl text-center">
-            <h3 className="text-2xl font-bold tracking-tight md:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
               آماده شروع هستی؟
-            </h3>
+            </h2>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
               دیگر وقت خود را با تماس‌های تلفنی تلف نکن. در چند کلیک سانس مورد
               نظرت را پیدا کن و رزرو کن.

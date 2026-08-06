@@ -41,7 +41,7 @@ export function SiteFooter() {
 
           {/* Pages */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold">صفحات</h4>
+            <div className="mb-4 text-sm font-semibold">صفحات</div>
             <ul className="space-y-2.5">
               {pageLinks.map((link) => (
                 <li key={link.href}>
@@ -58,7 +58,7 @@ export function SiteFooter() {
 
           {/* Quick links */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold">لینک‌های سریع</h4>
+            <div className="mb-4 text-sm font-semibold">لینک‌های سریع</div>
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
                 <li key={link.href}>
@@ -75,7 +75,7 @@ export function SiteFooter() {
 
           {/* Contact */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold">ارتباط با ما</h4>
+            <div className="mb-4 text-sm font-semibold">ارتباط با ما</div>
             <FooterContact />
           </div>
         </div>

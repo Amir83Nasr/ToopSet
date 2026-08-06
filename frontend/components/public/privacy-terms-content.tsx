@@ -58,7 +58,7 @@ export function PrivacyTermsContent({ settingKey }: Props) {
   return (
     <>
       {/* Header card */}
-      <div className="animate-fade-in mt-8 overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="animate-fade-in mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm md:mt-8">
         <div className="flex items-center gap-4 px-5 py-5 md:px-7">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Icon className="size-6" />

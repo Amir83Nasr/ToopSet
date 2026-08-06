@@ -6,7 +6,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -14,7 +14,7 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -22,16 +22,8 @@
 
 @font-face {
   font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-DemiBold.ttf") format("truetype");
+  src: url("/fonts/iran-yekan-x/IRANYekanX-DemiBold.woff2") format("woff2");
   font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IranYekanX";
-  src: url("/fonts/iran-yekan-x/IRANYekanX-Bold.ttf") format("truetype");
-  font-weight: 800;
   font-style: normal;
   font-display: swap;
 }

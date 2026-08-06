@@ -32,9 +32,9 @@ export function HowItWorksSection() {
     >
       <div className="mx-auto max-w-7xl px-4 py-12 md:py-16">
         <div className="animate-fade-in mb-10 text-center md:mb-12">
-          <h3 className="text-2xl font-bold tracking-tight md:text-3xl">
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
             رزرو در سه قدم
-          </h3>
+          </h2>
           <p className="mt-2 text-muted-foreground">
             از جستجو تا بازی، همه آنلاین و بدون دردسر
           </p>
@@ -53,7 +53,7 @@ export function HowItWorksSection() {
                   {step}
                 </span>
               </div>
-              <h4 className="mb-1.5 text-lg font-semibold">{title}</h4>
+              <h3 className="mb-1.5 text-lg font-semibold">{title}</h3>
               <p className="text-sm leading-6 text-muted-foreground">
                 {description}
               </p>
