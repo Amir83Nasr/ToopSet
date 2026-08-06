@@ -479,10 +479,12 @@
   --grid-line: rgba(255, 255, 255, 0.05);
 }
 
-/* ── Grid background (single source: scroll container) ── */
-/* The grid lives on #toopset-root so it scrolls with content. The
-   .bg-grid-pattern utility exists for sections outside #toopset-root
-   (e.g. dashboard sidebar). */
+/* ── Grid background ── */
+/* The grid lives on a fixed overlay (see layout.tsx) so it stays put while
+   content scrolls. A `position: fixed` overlay is used instead of
+   `background-attachment: fixed`, which is buggy on iOS Safari and forces
+   repaint. .bg-grid-pattern is also used outside #toopset-root (e.g.
+   dashboard sidebar). */
 
 .bg-grid-pattern,
 [data-slot="sidebar-inset"] {
@@ -495,11 +497,6 @@
 
 #toopset-root {
   min-height: 100dvh;
-  background-color: var(--color-background);
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 48px 48px;
 }
 
 body {
@@ -632,123 +629,6 @@ html:has(body[data-scroll-locked]) {
 }
 .animate-scale-in {
   animation: scale-in 0.5s ease-out both;
-}
-
-/* ── Illustration CSS animations (replaces framer-motion JS animations) ── */
-
-@keyframes gentle-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-@keyframes faint-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-@keyframes ball-breath {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.07);
-  }
-}
-@keyframes connector-pulse {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: translateX(0);
-  }
-  50% {
-    opacity: 1;
-    transform: translateX(3px);
-  }
-}
-@keyframes twinkle-x {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-@keyframes twinkle-y {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: translateY(0);
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(-4px);
-  }
-}
-
-.illust-float-1 {
-  animation: gentle-float 4s ease-in-out infinite;
-}
-.illust-float-2 {
-  animation: gentle-float 4s ease-in-out 1.3s infinite;
-}
-.illust-float-3 {
-  animation: gentle-float 4s ease-in-out 2.6s infinite;
-}
-.illust-float-4 {
-  animation: gentle-float 4s ease-in-out 0.6s infinite;
-}
-.illust-pulse-1 {
-  animation: faint-pulse 5s ease-in-out infinite;
-}
-.illust-pulse-2 {
-  animation: faint-pulse 5s ease-in-out 0.8s infinite;
-}
-.illust-ball-1 {
-  animation: ball-breath 3.5s ease-in-out 0.3s infinite;
-  transform-origin: 265px 415px;
-}
-.illust-ball-2 {
-  animation: ball-breath 3.5s ease-in-out 1.2s infinite;
-  transform-origin: 490px 420px;
-}
-.illust-ball-3 {
-  animation: ball-breath 3.5s ease-in-out 2.1s infinite;
-  transform-origin: 248px 35px;
-}
-.illust-ball-4 {
-  animation: ball-breath 3.5s ease-in-out 0.7s infinite;
-  transform-origin: 140px 180px;
-}
-.illust-conn-1 {
-  animation: connector-pulse 3s ease-in-out infinite;
-}
-.illust-conn-2 {
-  animation: connector-pulse 3s ease-in-out 0.6s infinite;
-}
-.illust-conn-3 {
-  animation: connector-pulse 3s ease-in-out 1.2s infinite;
-}
-.illust-conn-4 {
-  animation: connector-pulse 3s ease-in-out 1.8s infinite;
-}
-.illust-twinkle-1 {
-  animation: twinkle-x 3s ease-in-out 1.5s infinite;
-}
-.illust-twinkle-2 {
-  animation: twinkle-y 3.5s ease-in-out 2s infinite;
-}
-.illust-twinkle-3 {
-  animation: twinkle-y 3.5s ease-in-out 0.5s infinite;
 }
 
 /* ── Shimmer text effect for hero heading ── */
