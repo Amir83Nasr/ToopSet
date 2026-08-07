@@ -1,9 +1,19 @@
 # ── ToopSet — Continuous Integration ──────────────────────────────────────────
-# Final safety layer after local pre-commit + pre-push hooks.
-# Runs on every PR and push to main + develop.
-# Both frontend and backend jobs run in parallel for fast feedback.
-# On failure: the failing step exits with non-zero and the job stops immediately
-# (default GitHub behavior: fail-fast). No subsequent steps execute.
+# Orchestrator for the CI pipeline. Detects which subprojects changed and calls
+# the matching reusable workflow (frontend/backend) only for what moved, so a
+# backend-only PR never burns frontend build minutes and vice versa.
+#
+# version-check runs on every change before any build: the VERSION file must
+# stay in sync with backend/app/__init__.py and frontend/package.json.
+#
+# Structure:
+#   .github/workflows/ci.yml            <- this caller
+#   .github/workflows/reusable/frontend.yml
+#   .github/workflows/reusable/backend.yml
+#
+# Reusables live in workflows/reusable/ so they don't show up as top-level
+# workflows. On failure the failing job exits non-zero and the run is marked
+# failed; concurrency cancels redundant runs for the same ref.
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: CI
@@ -19,94 +29,52 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
-  NODE_VERSION: "22"
   PYTHON_VERSION: "3.12"
 
 jobs:
-  frontend:
-    name: Frontend (lint + typecheck + build)
+  # ── Path detection ───────────────────────────────────────────────────────────
+  # Maps each subproject to a boolean output. Needs full history (fetch-depth: 0)
+  # so the diff works for both push and pull_request events.
+  changes:
+    name: Detect changed subprojects
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 5
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v7
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          # Compare against the merge base / target branch for PRs.
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/reusable/frontend.yml'
+            backend:
+              - 'backend/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/reusable/backend.yml'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          # Monorepo: packageManager pin lives in frontend/package.json,
-          # not the repo root (default lookup), so point the action at it.
-          package_json_file: frontend/package.json
-
-      - name: Get pnpm store path
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Cache pnpm store
-        uses: actions/cache@v6
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE }}
-          key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint (ESLint)
-        run: pnpm lint
-
-      - name: Typecheck (TypeScript)
-        run: pnpm typecheck
-
-      - name: Test (Vitest)
-        run: pnpm test
-
-      - name: Build (Next.js)
-        run: pnpm build
-
-  backend:
-    name: Backend (lint + migration + test)
+  # ── Version gate (always runs) ───────────────────────────────────────────────
+  version-check:
+    name: Version consistency check
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: toopset_test
-          POSTGRES_USER: toopset
-          POSTGRES_PASSWORD: toopset_secret
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
-
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -117,42 +85,21 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Version check
+        run: make version-check
 
-      - name: Format check (Ruff)
-        run: ruff format --check .
+  # ── Subproject CI (path-gated) ───────────────────────────────────────────────
+  frontend:
+    name: Frontend CI
+    needs: [changes, version-check]
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/reusable/frontend.yml
+    secrets: inherit
 
-      - name: Lint (Ruff)
-        run: ruff check .
-
-      - name: Typecheck (mypy)
-        run: mypy app
-
-      - name: Static migration revision check (no DB)
-        run: python3 -m scripts.check_revisions --strict
-
-      - name: Run Alembic migrations
-        run: alembic upgrade head
-        env:
-          POSTGRES_DB: toopset_test
-          POSTGRES_USER: toopset
-          POSTGRES_PASSWORD: toopset_secret
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          DATABASE_URL: postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test
-
-      - name: Test (pytest)
-        run: python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
-        env:
-          POSTGRES_DB: toopset_test
-          POSTGRES_USER: toopset
-          POSTGRES_PASSWORD: toopset_secret
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          DATABASE_URL: postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test
+  backend:
+    name: Backend CI
+    needs: [changes, version-check]
+    if: needs.changes.outputs.backend == 'true'
+    uses: ./.github/workflows/reusable/backend.yml
+    secrets: inherit

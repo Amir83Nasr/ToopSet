@@ -1,0 +1,161 @@
+# ── ToopSet — Backend CI (reusable) ──────────────────────────────────────────
+# Called by ci.yml with workflow_call. Static checks (no DB) run parallel to
+# the migration check, which gates the test suite — tests need a migrated DB.
+# Postgres 17 and Redis 7 come from ephemeral container services.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Backend CI
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  # Postgres service credentials (shared by migration + test jobs)
+  POSTGRES_DB: toopset_test
+  POSTGRES_USER: toopset
+  POSTGRES_PASSWORD: toopset_secret
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: "5432"
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  lint:
+    name: Lint (Ruff + mypy + revisions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Format check (Ruff)
+        run: ruff format --check .
+
+      - name: Lint (Ruff)
+        run: ruff check .
+
+      - name: Typecheck (mypy)
+        run: mypy app
+
+      # Static-only — never touches a DB, so it lives in the no-service job.
+      - name: Static migration revision check (no DB)
+        run: python3 -m scripts.check_revisions --strict
+
+  migration-check:
+    name: Apply Alembic migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: toopset_test
+          POSTGRES_USER: toopset
+          POSTGRES_PASSWORD: toopset_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test
+
+  test:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: migration-check
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: toopset_test
+          POSTGRES_USER: toopset
+          POSTGRES_PASSWORD: toopset_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Test (pytest)
+        run: python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
+        env:
+          DATABASE_URL: postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test
