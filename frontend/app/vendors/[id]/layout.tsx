@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { getApiBase } from "@/lib/api"
-
-const BASE = "https://toopset.ir"
+import { SITE_URL } from "@/lib/site"
 
 interface VendorMeta {
   name?: string
@@ -61,19 +60,19 @@ export default async function VendorLayout({
             "@type": "ListItem",
             position: 1,
             name: "خانه",
-            item: `${BASE}/`,
+            item: `${SITE_URL}/`,
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "مجموعه‌های ورزشی",
-            item: `${BASE}/vendors`,
+            item: `${SITE_URL}/vendors`,
           },
           {
             "@type": "ListItem",
             position: 3,
             name,
-            item: `${BASE}/vendors/${id}`,
+            item: `${SITE_URL}/vendors/${id}`,
           },
         ],
       }

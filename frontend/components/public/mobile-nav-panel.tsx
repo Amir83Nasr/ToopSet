@@ -152,7 +152,7 @@ export function MobileNavPanel({
               <span className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
                 <Image
                   src="/icons/logo-180.webp"
-                  alt="toopset"
+                  alt="توپ‌سِت (ToopSet)"
                   width={36}
                   height={36}
                   className="size-9"

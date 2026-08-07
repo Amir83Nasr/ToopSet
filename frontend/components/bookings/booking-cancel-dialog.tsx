@@ -73,7 +73,10 @@ export function BookingCancelDialog({
         if (!open) onOpenChange(false)
       }}
     >
-      <ResponsiveDialogContent>
+      <ResponsiveDialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg"
+        mobileMaxHeight="calc(100dvh - 2rem)"
+      >
         {booking && (
           <>
             <ResponsiveDialogHeader>
@@ -171,7 +174,7 @@ export function BookingCancelDialog({
                   </div>
                 )}
 
-                <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
+                <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
                   <Checkbox
                     checked={acceptedTerms}
                     disabled={!terms.can_cancel}
@@ -192,7 +195,6 @@ export function BookingCancelDialog({
                 disabled={!canSubmit || loading}
                 onClick={onConfirm}
                 variant="destructive"
-                className="hover:bg-destructive/90"
               >
                 {loading ? (
                   <>

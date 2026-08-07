@@ -19,6 +19,9 @@ import { RefreshCw } from "lucide-react"
 
 type BookingTab = "current" | "past" | "cancelled"
 
+const tabTriggerClass =
+  "max-sm:h-full max-sm:flex-col max-sm:justify-center max-sm:gap-0.5 max-sm:py-2 max-sm:leading-4"
+
 const emptyStateByTab: Record<
   BookingTab,
   { title: string; description: string; showAction: boolean }
@@ -45,11 +48,6 @@ const emptyStateByTab: Record<
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingDetail[]>([])
   const [total, setTotal] = useState(0)
-  const [tabCounts, setTabCounts] = useState({
-    current: 0,
-    past: 0,
-    cancelled: 0,
-  })
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<number | null>(null)
@@ -89,7 +87,6 @@ export default function BookingsPage() {
       }>(`/api/v1/bookings?${params}`)
       setBookings(res.bookings)
       setTotal(res.total)
-      if (res.category_counts) setTabCounts(res.category_counts)
     } catch {
       // not authenticated
     } finally {
@@ -216,15 +213,15 @@ export default function BookingsPage() {
       <BookingFilters search={search} onSearchChange={setSearch} />
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="max-sm:w-full max-sm:scrollbar-none">
-          <TabsTrigger value="current">
-            سانس‌های جاری ({tabCounts.current.toLocaleString("fa-IR")})
+        <TabsList className="gap-x-2 max-sm:grid max-sm:w-full max-sm:grid-cols-3 max-sm:gap-1 max-sm:p-1">
+          <TabsTrigger value="current" className={tabTriggerClass}>
+            سانس جاری
           </TabsTrigger>
-          <TabsTrigger value="past">
-            سانس‌های قبلی ({tabCounts.past.toLocaleString("fa-IR")})
+          <TabsTrigger value="past" className={tabTriggerClass}>
+            سانس قبلی
           </TabsTrigger>
-          <TabsTrigger value="cancelled">
-            سانس‌های لغو شده ({tabCounts.cancelled.toLocaleString("fa-IR")})
+          <TabsTrigger value="cancelled" className={tabTriggerClass}>
+            سانس لغوشده
           </TabsTrigger>
         </TabsList>
 

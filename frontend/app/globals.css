@@ -282,7 +282,9 @@
    The .h-10/.h-11/.min-h-11/.size-10/.size-11 exclusions skip elements that are
    already ≥40px so we never shrink an intentionally larger control. */
 @media (max-width: 767px) {
-  button:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10),
+  button:not([data-slot="checkbox"]):not(.size-11):not(.h-11):not(
+      .min-h-11
+    ):not(.size-10):not(.h-10),
   a[data-slot="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(
       .size-10
     ):not(.h-10),
@@ -303,7 +305,9 @@
    stops at 767px. Cover the gap for coarse pointers so tap targets stay ≥44px
    on tablets without forcing larger controls on desktop (fine) pointers. */
 @media (min-width: 768px) and (max-width: 1023px) and (pointer: coarse) {
-  button:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10),
+  button:not([data-slot="checkbox"]):not(.size-11):not(.h-11):not(
+      .min-h-11
+    ):not(.size-10):not(.h-10),
   a[data-slot="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(
       .size-10
     ):not(.h-10),

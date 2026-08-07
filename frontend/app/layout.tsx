@@ -4,9 +4,10 @@ import { Providers } from "./providers"
 import type { Metadata, Viewport } from "next"
 import { pwaConfig } from "@/config/pwa"
 import { SkipNav } from "@/components/ui/skip-nav"
+import { SITE_URL, BRAND } from "@/lib/site"
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://toopset.ir"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "توپ‌سِت (ToopSet) | رزرو آنلاین زمین‌های ورزشی",
     template: "%s | توپ‌سِت (ToopSet)",
@@ -38,25 +39,17 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "توپ‌سِت (ToopSet) | رزرو آنلاین زمین‌های ورزشی",
+    title: `${BRAND} | رزرو آنلاین زمین‌های ورزشی`,
     description:
       "رزرو آنلاین سالن ورزشی، زمین فوتسال و چمن مصنوعی در قم با توپ‌سِت (ToopSet)",
-    url: "https://toopset.ir",
-    siteName: "توپ‌سِت (ToopSet)",
+    url: SITE_URL,
+    siteName: BRAND,
     locale: "fa_IR",
     type: "website",
-    images: [
-      {
-        url: "/icons/logo-1080.webp",
-        width: 1080,
-        height: 1080,
-        alt: "توپ‌سِت (ToopSet)",
-      },
-    ],
   },
   twitter: {
-    card: "summary",
-    title: "توپ‌سِت (ToopSet) | رزرو آنلاین زمین‌های ورزشی",
+    card: "summary_large_image",
+    title: `${BRAND} | رزرو آنلاین زمین‌های ورزشی`,
     description:
       "رزرو آنلاین سالن ورزشی، زمین فوتسال و چمن مصنوعی در قم با توپ‌سِت (ToopSet)",
     images: ["/icons/logo-1080.webp"],
@@ -83,11 +76,11 @@ const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "@id": "https://toopset.ir/#organization",
+    "@id": `${SITE_URL}/#organization`,
     name: "توپ‌ست",
-    alternateName: ["توپ ست", "ToopSet", "Toop Set"],
-    url: "https://toopset.ir",
-    logo: "https://toopset.ir/icons/logo-1080.webp",
+    alternateName: ["توپ‌ست", "توپ‌سِت", "توپ ست", "ToopSet", "Toop Set"],
+    url: SITE_URL,
+    logo: `${SITE_URL}/icons/logo-1080.webp`,
     description:
       "پلتفرم هوشمند رزرو آنلاین زمین‌های ورزشی، سالن فوتسال و چمن مصنوعی در قم",
     telephone: "+989306853363",
@@ -97,17 +90,17 @@ const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "@id": "https://toopset.ir/#website",
+    "@id": `${SITE_URL}/#website`,
     name: "توپ‌ست (ToopSet)",
     alternateName: ["توپ ست", "Toop Set"],
-    url: "https://toopset.ir",
+    url: SITE_URL,
     inLanguage: "fa-IR",
-    publisher: { "@id": "https://toopset.ir/#organization" },
+    publisher: { "@id": `${SITE_URL}/#organization` },
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://toopset.ir/vendors?search={search_term_string}",
+        urlTemplate: `${SITE_URL}/vendors?search={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
@@ -115,13 +108,15 @@ const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "SportsActivityLocation",
+    "@id": `${SITE_URL}/#sports-location`,
     name: "توپ‌ست",
     alternateName: ["توپ ست", "ToopSet", "Toop Set"],
-    url: "https://toopset.ir",
+    url: SITE_URL,
     description:
       "سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی، سالن فوتسال و چمن مصنوعی",
     telephone: "+989306853363",
     email: "amirhossein.nasrollahi.main@gmail.com",
+    areaServed: "قم",
   },
 ]
 
@@ -133,6 +128,20 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <head>
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+          href="/fonts/iran-yekan-x/IRANYekanX-Regular.woff2"
+        />
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+          href="/fonts/iran-yekan-x/IRANYekanX-Bold.woff2"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

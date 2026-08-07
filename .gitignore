@@ -78,3 +78,9 @@ next-env.d.ts
 # ── AI ─────────────────────────────────────────────────────
 *-workspace/
 .claude/
+
+# ── Docs ───────────────────────────────────────────────────
+docs/diagrams/
+docs/proposals/
+docs/scenarios/
+docs/icons/mock/

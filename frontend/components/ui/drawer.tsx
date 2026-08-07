@@ -11,11 +11,26 @@ import { Cancel01Icon } from "@hugeicons/core-free-icons"
 function Drawer({
   shouldScaleBackground = true,
   direction = "bottom",
+  open,
+  defaultOpen = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  // Modal drawers aria-hide the page behind them (Radix's hideOthers). Chrome
+  // blocks aria-hidden on a focused element, and Vaul keeps focus on the
+  // trigger (autoFocus=false), so blur it before the hide lands.
+  const isOpen = open ?? defaultOpen
+
+  React.useLayoutEffect(() => {
+    if (isOpen && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+  }, [isOpen])
+
   return (
     <DrawerPrimitive.Root
       data-slot="drawer"
+      open={open}
+      defaultOpen={defaultOpen}
       shouldScaleBackground={shouldScaleBackground}
       direction={direction}
       {...props}
@@ -68,15 +83,15 @@ function DrawerContent({
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-4xl border bg-popover text-sm text-popover-foreground shadow-lg",
+          "fixed inset-x-0 bottom-0 z-50 flex h-auto flex-col rounded-t-4xl border bg-popover text-sm text-popover-foreground shadow-lg",
           "pb-safe",
           className
         )}
         {...props}
       >
         {/* Drag handle + optional close button row */}
-        <div className="relative flex items-center justify-center px-4 pt-2 pb-0.5">
-          <div className="mb-2 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/20" />
+        <div className="relative flex items-center justify-center">
+          <div className="mt-2 h-1 w-16 shrink-0 rounded-full bg-muted-foreground/20" />
           {showCloseButton && (
             <DrawerPrimitive.Close data-slot="drawer-close" asChild>
               <Button
@@ -91,7 +106,7 @@ function DrawerContent({
           )}
         </div>
         {/* Content */}
-        <div className="px-4">{children}</div>
+        <div className="px-4 py-2">{children}</div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )

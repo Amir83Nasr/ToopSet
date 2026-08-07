@@ -257,9 +257,9 @@ function VendorsPageContent() {
         <section className="relative overflow-hidden px-4 py-6 md:py-8">
           <div className="relative z-10 mx-auto max-w-7xl px-4">
             <div className="mb-6 text-center">
-              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
                 جستجوی <span className="text-primary">سالن‌ها</span>
-              </h2>
+              </h1>
               <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground max-sm:hidden">
                 مجموعه ورزشی مورد نظر خود را پیدا کنید
               </p>
