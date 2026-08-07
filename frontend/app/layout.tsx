@@ -128,20 +128,6 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <head>
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-          href="/fonts/iran-yekan-x/IRANYekanX-Regular.woff2"
-        />
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-          href="/fonts/iran-yekan-x/IRANYekanX-Bold.woff2"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
