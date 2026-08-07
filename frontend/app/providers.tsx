@@ -1,13 +1,15 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import type { ComponentProps } from "react"
+import type { Toaster as SonnerToaster } from "sonner"
 import { DirectionProvider } from "@/components/ui/direction"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ErrorProvider } from "@/lib/error-context"
 
-const Toaster = dynamic(() => import("sonner").then((m) => m.Toaster), {
+const Toaster = dynamic(() => import("@/app/toaster").then((m) => m.Toaster), {
   ssr: false,
-})
+}) as React.ComponentType<ComponentProps<typeof SonnerToaster>>
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
