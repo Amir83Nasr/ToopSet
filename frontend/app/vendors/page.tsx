@@ -554,7 +554,7 @@ function VendorsPageContent() {
                             href={`/vendors/${vendor.id}`}
                             className="group block"
                           >
-                            <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-[transform,box-shadow] duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-xl">
+                            <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-shadow duration-300 ease-out group-hover:shadow-xl">
                               {/* ── Image hero ── */}
                               <div className="relative aspect-16/11 overflow-hidden bg-muted">
                                 {mainImage ? (
