@@ -54,7 +54,7 @@ jobs:
 
       - name: Filter changed paths
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           # Compare against the merge base / target branch for PRs.
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
