@@ -22,6 +22,7 @@ from app.repositories.vendor_repo import VendorRepo
 from app.schemas.vendor import (
     VendorCreate,
     VendorImageResponse,
+    VendorListItemResponse,
     VendorListResponse,
     VendorResponse,
     VendorUpdate,
@@ -107,7 +108,6 @@ class VendorService:
         )
         vendor_ids = [vendor.id for vendor in vendors]
         prices = await self.repo.get_min_prices(vendor_ids)
-        slot_genders = await self.repo.get_upcoming_slot_genders(vendor_ids)
         next_cursor = None
         if vendors and len(vendors) == limit:
             from app.core.pagination import encode_cursor
@@ -115,10 +115,11 @@ class VendorService:
             next_cursor = encode_cursor(vendors[-1].id)
         return VendorListResponse(
             vendors=[
-                self._to_response(
-                    vendor,
-                    min_price=prices.get(vendor.id),
-                    slot_genders=slot_genders.get(vendor.id, []),
+                VendorListItemResponse.model_validate(
+                    self._to_response(
+                        vendor,
+                        min_price=prices.get(vendor.id),
+                    )
                 )
                 for vendor in vendors
             ],

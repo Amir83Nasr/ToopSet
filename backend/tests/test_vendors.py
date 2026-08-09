@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1 import vendors as vendors_api
 from app.models.time_slot import SlotGender, SlotStatus, TimeSlot
+from app.repositories.vendor_repo import VendorRepo
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -102,40 +103,24 @@ class TestListVendors:
         assert data["total"] == 1
         assert data["vendors"][0]["name"] == "زمین شماره ۱"
 
-    async def test_list_includes_upcoming_slot_genders(
+    async def test_list_omits_slot_genders(
         self,
         client: AsyncClient,
         manager_token: dict,
-        session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
     ):
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
-        created = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
-        vendor_id = created.json()["id"]
-        start_time = datetime.now(timezone.utc) + timedelta(days=1)
-        session.add_all(
-            [
-                TimeSlot(
-                    vendor_id=vendor_id,
-                    start_time=start_time,
-                    end_time=start_time + timedelta(hours=1),
-                    base_price=100000,
-                    gender=SlotGender.MALE,
-                ),
-                TimeSlot(
-                    vendor_id=vendor_id,
-                    start_time=start_time + timedelta(hours=1),
-                    end_time=start_time + timedelta(hours=2),
-                    base_price=100000,
-                    gender=SlotGender.FEMALE,
-                ),
-            ]
-        )
-        await session.flush()
+        await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
+
+        async def fail_if_queried(*_args, **_kwargs):
+            pytest.fail("list_vendors must not query upcoming slot genders")
+
+        monkeypatch.setattr(VendorRepo, "get_upcoming_slot_genders", fail_if_queried)
 
         response = await client.get("/api/v1/vendors", headers=headers)
 
         assert response.status_code == 200
-        assert response.json()["vendors"][0]["slot_genders"] == ["male", "female"]
+        assert "slot_genders" not in response.json()["vendors"][0]
 
     async def test_available_today_returns_only_vendors_with_open_slots(
         self,

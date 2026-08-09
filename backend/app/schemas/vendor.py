@@ -83,14 +83,13 @@ class VendorUpdate(BaseModel):
         return self
 
 
-class VendorResponse(VendorBase):
+class VendorListItemResponse(VendorBase):
     id: int
     manager_id: int
     manager_name: str | None = None
     manager_phone: str | None = None
     images: list[str] | None = None
     main_image: str | None = None
-    slot_genders: list[SlotGender] = Field(default_factory=list)
     vendor_images: list[VendorImageResponse] | None = None
     is_active: bool
     average_rating: float
@@ -101,7 +100,11 @@ class VendorResponse(VendorBase):
     model_config = {"from_attributes": True}
 
 
+class VendorResponse(VendorListItemResponse):
+    slot_genders: list[SlotGender] = Field(default_factory=list)
+
+
 class VendorListResponse(BaseModel):
-    vendors: list[VendorResponse]
+    vendors: list[VendorListItemResponse]
     total: int
     next_cursor: str | None = None
