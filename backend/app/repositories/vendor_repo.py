@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from decimal import Decimal
+from collections.abc import Mapping
+from datetime import datetime
 from math import asin, cos, radians, sin, sqrt
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload
 
-from app.models.time_slot import SlotGender, SlotStatus, TimeSlot
+from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.user import User
 from app.models.vendor import SportType, Vendor
+from app.models.vendor_image import VendorImage
 
 
 class VendorRepo:
@@ -43,11 +45,40 @@ class VendorRepo:
         ref_lon: float | None = None,
         max_distance_km: float | None = None,
         sort: str = "default",
-    ) -> tuple[list[Vendor], int]:
-        query = select(Vendor).options(
-            selectinload(Vendor.vendor_images),
-            selectinload(Vendor.manager),
+    ) -> tuple[list[Mapping[str, object]], int]:
+        min_price_subq = (
+            select(func.min(TimeSlot.base_price))
+            .where(
+                TimeSlot.vendor_id == Vendor.id,
+                TimeSlot.is_reserved == False,
+                TimeSlot.status == SlotStatus.OPEN,
+            )
+            .correlate(Vendor)
+            .scalar_subquery()
         )
+        main_image_subq = (
+            select(VendorImage.url)
+            .where(VendorImage.vendor_id == Vendor.id)
+            .order_by(VendorImage.order, VendorImage.id)
+            .limit(1)
+            .correlate(Vendor)
+            .scalar_subquery()
+        )
+        query = select(
+            Vendor.id.label("id"),
+            Vendor.name.label("name"),
+            Vendor.sport_types.label("sport_types"),
+            Vendor.address.label("address"),
+            Vendor.latitude.label("latitude"),
+            Vendor.longitude.label("longitude"),
+            Vendor.capacity.label("capacity"),
+            Vendor.is_active.label("is_active"),
+            Vendor.average_rating.label("average_rating"),
+            Vendor.created_at.label("created_at"),
+            User.full_name.label("manager_name"),
+            main_image_subq.label("main_image"),
+            min_price_subq.label("base_price"),
+        ).outerjoin(User, User.id == Vendor.manager_id)
 
         if sport_types:
             cond = or_(Vendor.sport_types.any(st.value) for st in sport_types)
@@ -99,18 +130,7 @@ class VendorRepo:
 
         order = Vendor.id.desc()
         if sort in ("price_asc", "price_desc"):
-            price_subq = (
-                select(func.min(TimeSlot.base_price))
-                .where(
-                    TimeSlot.vendor_id == Vendor.id,
-                    TimeSlot.is_reserved == False,
-                    TimeSlot.status == SlotStatus.OPEN,
-                )
-                .correlate(Vendor)
-                .scalar_subquery()
-            )
-            query = query.add_columns(price_subq)
-            order = price_subq.asc() if sort == "price_asc" else price_subq.desc()
+            order = min_price_subq.asc() if sort == "price_asc" else min_price_subq.desc()
         elif sort == "rating":
             order = Vendor.average_rating.desc()
 
@@ -123,16 +143,18 @@ class VendorRepo:
             result = await self.db.execute(query.limit(limit).order_by(order))
         else:
             result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
-        vendors = list(result.scalars().all())
+        vendors = list(result.mappings().all())
 
         # Distance filter (in-memory Haversine)
         if distance_filter:
             filtered = []
-            for c in vendors:
-                if c.latitude is not None and c.longitude is not None:
-                    d = self._haversine_km(ref_lat, ref_lon, c.latitude, c.longitude)
+            for vendor in vendors:
+                latitude = vendor["latitude"]
+                longitude = vendor["longitude"]
+                if isinstance(latitude, (int, float)) and isinstance(longitude, (int, float)):
+                    d = self._haversine_km(ref_lat, ref_lon, latitude, longitude)
                     if d <= max_distance_km:
-                        filtered.append(c)
+                        filtered.append(vendor)
             vendors = filtered
             total = len(filtered)
             vendors = vendors[skip : skip + limit]
@@ -149,23 +171,23 @@ class VendorRepo:
         result = await self.db.execute(
             select(Vendor)
             .options(
-                selectinload(Vendor.vendor_images),
-                selectinload(Vendor.manager),
+                joinedload(Vendor.vendor_images),
+                joinedload(Vendor.manager),
             )
             .where(Vendor.id == vendor_id)
         )
-        return result.scalar_one_or_none()
+        return result.unique().scalar_one_or_none()
 
     async def get_by_id_with_images(self, vendor_id: int) -> Vendor | None:
         result = await self.db.execute(
             select(Vendor)
             .options(
-                selectinload(Vendor.vendor_images),
-                selectinload(Vendor.manager),
+                joinedload(Vendor.vendor_images),
+                joinedload(Vendor.manager),
             )
             .where(Vendor.id == vendor_id)
         )
-        return result.scalar_one_or_none()
+        return result.unique().scalar_one_or_none()
 
     async def count_by_manager(self, manager_id: int) -> int:
         result = await self.db.execute(
@@ -190,44 +212,3 @@ class VendorRepo:
     async def delete(self, vendor: Vendor) -> None:
         await self.db.delete(vendor)
         await self.db.flush()
-
-    async def get_min_prices(self, vendor_ids: list[int]) -> dict[int, Decimal | None]:
-        """Return {vendor_id: min_base_price} for un-reserved time slots."""
-        if not vendor_ids:
-            return {}
-
-        result = await self.db.execute(
-            select(TimeSlot.vendor_id, func.min(TimeSlot.base_price))
-            .where(
-                TimeSlot.vendor_id.in_(vendor_ids),
-                TimeSlot.is_reserved == False,
-                TimeSlot.status == SlotStatus.OPEN,
-            )
-            .group_by(TimeSlot.vendor_id)
-        )
-        return {row[0]: row[1] for row in result.all()}
-
-    async def get_upcoming_slot_genders(self, vendor_ids: list[int]) -> dict[int, list[SlotGender]]:
-        if not vendor_ids:
-            return {}
-
-        result = await self.db.execute(
-            select(TimeSlot.vendor_id, TimeSlot.gender)
-            .where(
-                TimeSlot.vendor_id.in_(vendor_ids),
-                TimeSlot.end_time >= datetime.now(timezone.utc),
-                TimeSlot.status.notin_(
-                    (SlotStatus.BLOCKED, SlotStatus.DISABLED, SlotStatus.CLOSED)
-                ),
-            )
-            .distinct()
-        )
-        genders_by_vendor: dict[int, set[SlotGender]] = {}
-        for vendor_id, gender in result.all():
-            genders_by_vendor.setdefault(vendor_id, set()).add(gender)
-
-        gender_order = (SlotGender.MALE, SlotGender.FEMALE)
-        return {
-            vendor_id: [gender for gender in gender_order if gender in genders]
-            for vendor_id, genders in genders_by_vendor.items()
-        }

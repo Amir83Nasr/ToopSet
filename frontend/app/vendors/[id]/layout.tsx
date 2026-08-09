@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { cache } from "react"
 import { getApiBase } from "@/lib/api"
 import { SITE_URL } from "@/lib/site"
 
@@ -6,7 +7,7 @@ interface VendorMeta {
   name?: string
 }
 
-async function getVendorName(id: string): Promise<string | null> {
+const getVendorName = cache(async (id: string): Promise<string | null> => {
   try {
     const res = await fetch(`${getApiBase()}/api/v1/vendors/${id}`, {
       signal: AbortSignal.timeout(4000),
@@ -17,7 +18,7 @@ async function getVendorName(id: string): Promise<string | null> {
   } catch {
     return null
   }
-}
+})
 
 export async function generateMetadata({
   params,

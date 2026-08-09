@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1 import vendors as vendors_api
 from app.models.time_slot import SlotGender, SlotStatus, TimeSlot
-from app.repositories.vendor_repo import VendorRepo
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -103,24 +102,32 @@ class TestListVendors:
         assert data["total"] == 1
         assert data["vendors"][0]["name"] == "زمین شماره ۱"
 
-    async def test_list_omits_slot_genders(
+    async def test_list_returns_compact_card_payload(
         self,
         client: AsyncClient,
         manager_token: dict,
-        monkeypatch: pytest.MonkeyPatch,
     ):
         headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
 
-        async def fail_if_queried(*_args, **_kwargs):
-            pytest.fail("list_vendors must not query upcoming slot genders")
-
-        monkeypatch.setattr(VendorRepo, "get_upcoming_slot_genders", fail_if_queried)
-
         response = await client.get("/api/v1/vendors", headers=headers)
 
         assert response.status_code == 200
-        assert "slot_genders" not in response.json()["vendors"][0]
+        assert set(response.json()["vendors"][0]) == {
+            "id",
+            "name",
+            "sport_types",
+            "address",
+            "latitude",
+            "longitude",
+            "capacity",
+            "manager_name",
+            "main_image",
+            "is_active",
+            "average_rating",
+            "base_price",
+            "created_at",
+        }
 
     async def test_available_today_returns_only_vendors_with_open_slots(
         self,

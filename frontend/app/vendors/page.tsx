@@ -211,26 +211,39 @@ function VendorsPageContent() {
   const fetchVendors = useCallback(async () => {
     setVendorsLoading(true)
     try {
-      const [pagedRes, allRes] = await Promise.all([
-        api<{ vendors: Vendor[]; total: number }>(
-          `/api/v1/vendors?${apiParams}`
-        ),
-        api<{ vendors: Vendor[] }>(`/api/v1/vendors?${mapApiParams}`),
-      ])
+      const pagedRes = await api<{ vendors: Vendor[]; total: number }>(
+        `/api/v1/vendors?${apiParams}`
+      )
       setFeaturedVendors(pagedRes.vendors)
       setTotal(pagedRes.total)
-      setMapVendors(allRes.vendors)
     } catch {
       // API may not be available
     } finally {
       setVendorsLoading(false)
     }
-  }, [apiParams, mapApiParams])
+  }, [apiParams])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchVendors(), 0)
     return () => clearTimeout(timer)
   }, [fetchVendors])
+
+  useEffect(() => {
+    if (!showMap) return
+
+    let cancelled = false
+    api<{ vendors: Vendor[] }>(`/api/v1/vendors?${mapApiParams}`)
+      .then((result) => {
+        if (!cancelled) setMapVendors(result.vendors)
+      })
+      .catch(() => {
+        if (!cancelled) setMapVendors([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [showMap, mapApiParams])
 
   function clearFilters() {
     setSearchText("")
@@ -552,6 +565,7 @@ function VendorsPageContent() {
                         <div key={vendor.id}>
                           <Link
                             href={`/vendors/${vendor.id}`}
+                            prefetch={false}
                             className="group block"
                           >
                             <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-shadow duration-300 ease-out group-hover:shadow-xl">

@@ -14,7 +14,7 @@ from app.core.logger import log_action
 from app.core.redis_client import get_redis
 from app.core.upload import delete_upload as delete_file
 from app.models.booking import Booking
-from app.models.time_slot import SlotGender, TimeSlot
+from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
@@ -106,23 +106,13 @@ class VendorService:
             ref_lon=ref_lon,
             max_distance_km=max_distance_km,
         )
-        vendor_ids = [vendor.id for vendor in vendors]
-        prices = await self.repo.get_min_prices(vendor_ids)
         next_cursor = None
         if vendors and len(vendors) == limit:
             from app.core.pagination import encode_cursor
 
-            next_cursor = encode_cursor(vendors[-1].id)
+            next_cursor = encode_cursor(int(vendors[-1]["id"]))
         return VendorListResponse(
-            vendors=[
-                VendorListItemResponse.model_validate(
-                    self._to_response(
-                        vendor,
-                        min_price=prices.get(vendor.id),
-                    )
-                )
-                for vendor in vendors
-            ],
+            vendors=[VendorListItemResponse.model_validate(vendor) for vendor in vendors],
             total=total,
             next_cursor=next_cursor,
         )
@@ -137,13 +127,7 @@ class VendorService:
         )
         if not vendor.is_active and not can_view_inactive:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
-        prices = await self.repo.get_min_prices([vendor_id])
-        slot_genders = await self.repo.get_upcoming_slot_genders([vendor_id])
-        return self._to_response(
-            vendor,
-            min_price=prices.get(vendor_id),
-            slot_genders=slot_genders.get(vendor_id, []),
-        )
+        return self._to_response(vendor)
 
     async def create_vendor(self, data: VendorCreate) -> VendorResponse:
         if self.current_user.role != "manager":
@@ -188,8 +172,7 @@ class VendorService:
             "vendor_created",
             f"ایجاد مجموعه | '{vendor.name}' (id={vendor.id}) - {len(urls)} تصویر",
         )
-        prices = await self.repo.get_min_prices([vendor.id])
-        return self._to_response(vendor, min_price=prices.get(vendor.id))
+        return self._to_response(vendor)
 
     async def update_vendor(self, vendor_id: int, data: VendorUpdate) -> VendorResponse:
         vendor = await self.repo.get_by_id(vendor_id)
@@ -291,8 +274,7 @@ class VendorService:
             "vendor_updated",
             " — ".join(details_parts),
         )
-        prices = await self.repo.get_min_prices([vendor_id])
-        return self._to_response(updated, min_price=prices.get(vendor_id))
+        return self._to_response(updated)
 
     async def delete_vendor(self, vendor_id: int) -> None:
         vendor = await self.repo.get_by_id(vendor_id)
@@ -343,20 +325,10 @@ class VendorService:
             "vendor_toggled",
             f"تغییر وضعیت مجموعه | '{vendor.name}' (id={vendor_id}) → {status_label}",
         )
-        prices = await self.repo.get_min_prices([vendor_id])
-        return self._to_response(updated, min_price=prices.get(vendor_id))
+        return self._to_response(updated)
 
-    def _to_response(
-        self,
-        vendor: Vendor,
-        min_price: Decimal | None = None,
-        slot_genders: list[SlotGender] | None = None,
-    ) -> VendorResponse:
+    def _to_response(self, vendor: Vendor) -> VendorResponse:
         resp = VendorResponse.model_validate(vendor)
-        if slot_genders is not None:
-            resp.slot_genders = slot_genders
-        if min_price is not None:
-            resp.base_price = min_price
         if vendor.manager:
             resp.manager_name = vendor.manager.full_name
             resp.manager_phone = vendor.manager.phone

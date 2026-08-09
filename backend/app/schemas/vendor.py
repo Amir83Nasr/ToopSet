@@ -5,7 +5,6 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.models.time_slot import SlotGender
 from app.models.vendor import SportType
 
 
@@ -83,7 +82,25 @@ class VendorUpdate(BaseModel):
         return self
 
 
-class VendorListItemResponse(VendorBase):
+class VendorListItemResponse(BaseModel):
+    id: int
+    name: str
+    sport_types: list[SportType]
+    address: str
+    latitude: float
+    longitude: float
+    capacity: int
+    manager_name: str | None = None
+    main_image: str | None = None
+    is_active: bool
+    average_rating: float
+    base_price: Decimal | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VendorResponse(VendorBase):
     id: int
     manager_id: int
     manager_name: str | None = None
@@ -94,14 +111,9 @@ class VendorListItemResponse(VendorBase):
     is_active: bool
     average_rating: float
     ball_price: float = 0
-    base_price: Decimal | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
-
-class VendorResponse(VendorListItemResponse):
-    slot_genders: list[SlotGender] = Field(default_factory=list)
 
 
 class VendorListResponse(BaseModel):
