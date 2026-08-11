@@ -20,7 +20,9 @@ from pythonjsonlogger.jsonlogger import (  # type: ignore[attr-defined]
 
 from app.core.correlation_id import get_request_id
 
-_LOG_DIR = Path("/app/logs")
+# Path for the file log handler. Defaults to /app/logs (container convention);
+# override with LOG_FILE_DIR for hosts that are not structured around /app.
+_LOG_DIR = Path(os.getenv("LOG_FILE_DIR", "/app/logs"))
 _LOG_FILE = _LOG_DIR / "app.log"
 _LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
