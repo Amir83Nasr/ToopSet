@@ -1,6 +1,9 @@
 # ── ToopSet — Frontend CI ───────────────────────────────────────────────────
-# Self-contained pipeline for frontend changes. Path-gated natively on the
-# trigger so frontend-only PRs never burn backend minutes and vice versa.
+# Self-contained pipeline for frontend changes. The workflow ALWAYS runs for
+# PRs to main and pushes to main; path-gating happens at the JOB level
+# (dorny/paths-filter) so backend-only PRs get a deterministic "Success" for
+# the three required checks instead of a path-skipped run that leaves them
+# "Expected — waiting for status to be reported" forever.
 #
 # Three jobs run in parallel so a lint failure never blocks the build/test
 # results and each stage can be re-run independently from the Actions UI.
@@ -10,17 +13,17 @@
 
 name: Frontend CI
 
+# IMPORTANT: Do NOT add `paths:` to the `on:` triggers. This workflow must run
+# for every PR to main so its required checks always report a conclusion.
+# Path-gating must happen at the JOB level (`if: ${{ dorny/paths-filter }}`),
+# otherwise a path-filtered run is skipped entirely and required checks
+# permanently show "Expected — waiting for status to be reported".
+# Skipped jobs report as "Success" and never block a PR.
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
   push:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
   workflow_dispatch:
 
 # Cancel redundant runs for the same PR/ref (new commits kill in-progress runs).
@@ -39,9 +42,36 @@ defaults:
     working-directory: frontend
 
 jobs:
+  # ── Path detection ──────────────────────────────────────────────────────────
+  # Mirrors the historical `on: paths:` filter. If no frontend path changed,
+  # every job is `if: false` → skipped → reports "Success" → required checks
+  # pass deterministically instead of showing "Expected" forever.
+  changes:
+    name: Detect frontend changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/frontend-ci.yml'
+
   lint:
     name: Lint (ESLint + TypeScript)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -80,6 +110,8 @@ jobs:
   test:
     name: Test (Vitest)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -106,6 +138,8 @@ jobs:
   build:
     name: Build (Next.js)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
