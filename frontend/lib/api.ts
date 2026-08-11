@@ -255,10 +255,13 @@ export async function api<T>(
         throw new ApiError(retryRes.status, parsed.message, parsed.details)
       }
 
+      if (retryRes.status === 204) {
+        return null as T
+      }
       return retryRes.json()
     }
 
-    if (!token) {
+    if (!token && !refreshed) {
       const body = await res.json().catch(() => ({ detail: "Unauthorized" }))
       throw new ApiError(401, translateMessage(body.detail || "Unauthorized"))
     }
