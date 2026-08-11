@@ -15,15 +15,11 @@ on:
     branches: [main]
     paths:
       - 'frontend/**'
-      - 'Makefile'
-      - 'VERSION'
       - '.github/workflows/frontend-ci.yml'
   push:
     branches: [main]
     paths:
       - 'frontend/**'
-      - 'Makefile'
-      - 'VERSION'
       - '.github/workflows/frontend-ci.yml'
   workflow_dispatch:
 

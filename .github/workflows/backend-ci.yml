@@ -14,15 +14,11 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
-      - 'Makefile'
-      - 'VERSION'
       - '.github/workflows/backend-ci.yml'
   push:
     branches: [main]
     paths:
       - 'backend/**'
-      - 'Makefile'
-      - 'VERSION'
       - '.github/workflows/backend-ci.yml'
   workflow_dispatch:
 
