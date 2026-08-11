@@ -12,14 +12,14 @@ name: Frontend CI
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'frontend/**'
       - 'Makefile'
       - 'VERSION'
       - '.github/workflows/frontend-ci.yml'
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'frontend/**'
       - 'Makefile'
