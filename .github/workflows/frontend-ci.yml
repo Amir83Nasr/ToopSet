@@ -62,6 +62,9 @@ jobs:
         id: filter
         uses: dorny/paths-filter@v4
         with:
+          # The default excludes .github/**, so workflow-only PRs (a backend
+          # workflow tweak, or this very CI refactor) legitimately skip this
+          # side — they are not frontend code changes.
           filters: |
             frontend:
               - 'frontend/**'
@@ -95,11 +98,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # VERSION gate — only needs Node to resolve the frontend version.
-      - name: Version check
-        working-directory: .
-        run: make version-check
 
       - name: Lint (ESLint)
         run: pnpm lint

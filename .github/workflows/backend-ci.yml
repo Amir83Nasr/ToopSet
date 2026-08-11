@@ -67,6 +67,9 @@ jobs:
         id: filter
         uses: dorny/paths-filter@v4
         with:
+          # The default excludes .github/**, so workflow-only PRs (a frontend
+          # workflow tweak, or this very CI refactor) legitimately skip this
+          # side — they are not backend code changes.
           filters: |
             backend:
               - 'backend/**'
