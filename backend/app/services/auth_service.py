@@ -180,6 +180,11 @@ class AuthService:
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
 
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
+            )
+
         # Reject refresh if token version doesn't match
         if ver is not None and ver != user.token_version:
             raise HTTPException(
@@ -196,8 +201,8 @@ class AuthService:
 
         if stored is None or stored.revoked_at is not None:
             # Replay attack or already-used token
-            if stored is not None and stored.revoked_at is not None:
-                # Replay detected — revoke the affected session/chain.
+            if stored is not None and stored.replaced_by is not None:
+                # True replay detected (token was rotated, not just logged out) — revoke the affected session/chain.
                 if session_id:
                     await self.refresh_repo.revoke_all_for_session(session_id, user_id=user.id)
                 await _security_log(

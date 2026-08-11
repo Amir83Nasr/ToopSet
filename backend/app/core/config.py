@@ -199,11 +199,6 @@ def validate_env(settings: Settings | None = None) -> None:
     cors = settings.cors_origins
     if not cors:
         errors.append("CORS_ORIGINS must be set (comma-separated origins).")
-    elif cors == "*":
-        errors.append(
-            "CORS_ORIGINS is set to '*' which is insecure for production. "
-            "Set it to a comma-separated list of allowed origins."
-        )
 
     # ── SENTRY_DSN (optional) ──────────────────────────────────────────
     if settings.sentry_dsn:
@@ -250,6 +245,8 @@ def validate_env(settings: Settings | None = None) -> None:
             errors.append("SMS_TEMPLATE_ID must be a positive integer when SMS_PROVIDER='smsir'.")
 
     if is_production:
+        if settings.cors_origins == "*":
+            errors.append("CORS_ORIGINS cannot be '*' in production when credentials are allowed.")
         if not settings.refresh_cookie_secure:
             errors.append(
                 "REFRESH_COOKIE_SECURE must be true in production so refresh tokens are only "

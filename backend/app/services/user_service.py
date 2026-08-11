@@ -91,6 +91,14 @@ class UserService:
         updated = await self.repo.toggle_active(target_id)
         new_status = "فعال" if updated.is_active else "غیرفعال"
 
+        if not updated.is_active:
+            from app.repositories.refresh_token_repo import RefreshTokenRepo
+
+            refresh_repo = RefreshTokenRepo(self.repo.db)
+            await refresh_repo.revoke_all_for_user(target_id)
+            updated.token_version += 1
+            await self.repo.update_user(target_id, {"token_version": updated.token_version})
+
         await log_action(
             self.repo.db,
             admin_user.id,
