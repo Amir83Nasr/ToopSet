@@ -1,36 +1,22 @@
 # ── ToopSet — Lefthook Hooks ──────────────────────────────────────────────────
-# Pre-commit: fast, staged-only checks (formatting, security, quick lint).
-# Pre-push:   heavier validation (typecheck, full lint, build, backend checks).
-# Tests are excluded from both — they require a running PostgreSQL database.
-# CI is the final safety layer.
+# Pre-commit: fast, staged-only — format and catch obvious mistakes.
+# Pre-push:   read-only, repo-wide — typecheck, lint, test, build, backend checks.
+# Backend tests need Postgres + Redis — left to CI, not local hooks.
+# CI is the authoritative full pipeline.
 # ──────────────────────────────────────────────────────────────────────────────
 # Docs: https://github.com/evilmartians/lefthook
 
-# Hide meta (hook header) and execution (command itself) from per-command output.
-# Success/failure/summary still shown.
+# Hide the hook header and each command's invocation line; keep results.
 output:
   - meta
   - execution
 
 pre-commit:
-  # Several fixers use stage_fixed (git add) and may touch the same files.
-  # Keep them serial to avoid races while updating the working tree and index.
+  # Fixers (ruff, prettier, eslint) rewrite and restage files, so keep them
+  # serial to avoid racing on the same files.
   parallel: false
   commands:
-    # ── General hygiene ────────────────────────────────────────────────────────
-    trailing-whitespace:
-      glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
-      run: for f in {staged_files}; do sed -i.bak 's/[[:space:]]*$//' "$f" && rm -f "$f.bak"; done
-      stage_fixed: true
-
-    eof-newline:
-      glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
-      run: |
-        for f in {staged_files}; do
-          [ -s "$f" ] && tail -c1 "$f" | read -r _ || printf '\n' >> "$f"
-        done
-      stage_fixed: true
-
+    # ── Safety ────────────────────────────────────────────────────────────────
     merge-conflict:
       glob: "*"
       run: |
@@ -49,90 +35,64 @@ pre-commit:
           exit 1
         fi
 
-    lf-line-endings:
-      glob: "*.{py,ts,tsx,js,jsx,css,md,yml,yaml,json,mjs,mts,html,toml,cfg,ini,txt,sh,bat}"
-      run: |
-        for f in {staged_files}; do
-          grep -l "$(printf '\r')" "$f" 2>/dev/null && sed -i.bak 's/\r$//' "$f" && rm -f "$f.bak" || true
-        done
-      stage_fixed: true
-
-    # ── Backend: Ruff format + lint (staged only) ─────────────────────────────
+    # ── Backend — staged Python only, fixes restaged ─────────────────────────
+    # NB: lefthook's "**/" doesn't match files at the glob root (backend/*.py),
+    # so the brace OR is required to cover both top-level and nested modules.
     ruff-format:
-      glob: "backend/**/*.py"
+      glob: "{backend/*.py,backend/**/*.py}"
       run: ruff format {staged_files}
       stage_fixed: true
 
     ruff-check:
-      glob: "backend/**/*.py"
+      glob: "{backend/*.py,backend/**/*.py}"
       run: ruff check --fix {staged_files}
       stage_fixed: true
 
-    # ── Frontend: Prettier + ESLint (staged only) ─────────────────────────────
+    # ── Frontend — staged files only, fixes restaged ─────────────────────────
+    # pnpm exec from frontend/, so strip the root-relative prefix.
+    # NB: lefthook's "**/" doesn't match files at the glob root (frontend/foo.tsx),
+    # so the brace OR is required to cover both top-level and nested files.
     prettier:
-      glob: "frontend/**/*.{js,ts,jsx,tsx,css,json,md,mjs,mts}"
-      run: cd frontend && npx prettier --write --ignore-unknown $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
+      glob: "{frontend/*.{js,ts,jsx,tsx,css,json,md,mjs,mts},frontend/**/*.{js,ts,jsx,tsx,css,json,md,mjs,mts}}"
+      run: cd frontend && pnpm exec prettier --write --ignore-unknown $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
       stage_fixed: true
 
     eslint:
-      glob: "frontend/**/*.{ts,tsx,js,jsx}"
-      run: cd frontend && npx eslint --fix $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
+      glob: "{frontend/*.{ts,tsx,js,jsx},frontend/**/*.{ts,tsx,js,jsx}}"
+      run: cd frontend && pnpm exec eslint --fix $(printf '%s\n' {staged_files} | sed 's|^frontend/||')
       stage_fixed: true
 
-
-# ── Pre-push (heavier — run before pushing) ──────────────────────────────────
-# These catch issues that wouldn't be spotted by staged-only checks.
-# If any fails, fix it locally before pushing.
 pre-push:
-  parallel: false
+  # All checks are read-only and independent — parallel keeps push fast.
+  # Backend commands are gated on backend files so frontend-only pushes skip them.
+  parallel: true
   commands:
-    # ── Frontend ────────────────────────────────────────────────────────────────
+    # ── Frontend ──────────────────────────────────────────────────────────────
     typecheck:
-      run: cd frontend && npx tsc --noEmit
+      run: cd frontend && pnpm typecheck
 
-    eslint-full:
-      run: cd frontend && npx eslint .
+    lint:
+      run: cd frontend && pnpm lint
+
+    test:
+      run: cd frontend && pnpm test
 
     build:
-      run: cd frontend && npx next build
+      run: cd frontend && pnpm build
 
-    # ── Backend ─────────────────────────────────────────────────────────────────
-    ruff-check-full:
-      glob: "backend/**/*.py"
+    # ── Backend ───────────────────────────────────────────────────────────────
+    ruff-check:
+      glob: "{backend/*.py,backend/**/*.py}"
       run: cd backend && ruff check .
 
-    ruff-format-check:
-      glob: "backend/**/*.py"
+    ruff-format:
+      glob: "{backend/*.py,backend/**/*.py}"
       run: cd backend && ruff format --check .
 
     mypy:
-      glob: "backend/**/*.py"
+      glob: "{backend/*.py,backend/**/*.py}"
       run: cd backend && mypy app
 
-    # ── CI config validation ───────────────────────────────────────────────────
-    yaml-validate:
-      glob: ".github/**/*.yml"
-      run: python3 -c "import yaml; yaml.safe_load(open('{staged_files}')); print('  ✓ YAML valid')"
-
-    # ── Migration revision check (static, no DB) ───────────────────────────────────────────────────
+    # ── Migrations — static, no DB ────────────────────────────────────────────
     migration-check:
-      glob: "backend/migrations/versions/*.py"
       run: cd backend && python3 -m scripts.check_revisions --strict
-
-    # ── Main-branch-only checks ─────────────────────────────────────────────────
-    dep-audit:
-      run: |
-        if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
-          cd frontend && pnpm audit --audit-level=high || true
-        else
-          echo "  ─ Skipping dep audit on feature branch"
-        fi
-
-    env-validate:
-      run: |
-        if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
-          [ -f .env ] && echo "  ✓ .env found" || echo "  ⚠ .env missing"
-          [ -f backend/.env ] && echo "  ✓ backend/.env found" || echo "  ⚠ backend/.env missing"
-        else
-          echo "  ─ Skipping env check on feature branch"
-        fi
