@@ -51,6 +51,7 @@ Desktop.ini
 *.key
 
 # ── Backend ───────────────────────────────────────────────
+backend/db-backups/
 backend/bin/
 backend/*.db
 backend/.coverage
