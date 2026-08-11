@@ -40,7 +40,7 @@ def read_version(file: str) -> str:
         if "dynamic" in project and "version" in project["dynamic"]:
             # Resolve dynamic attr reference
             m = re.search(
-                r'version\s*=\s*\{attr\s*=\s*"([^"]+)"\}',
+                r'version\s*=\s*\{\s*attr\s*=\s*"([^"]+)"\s*\}',
                 raw,
             )
             if m:

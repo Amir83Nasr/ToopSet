@@ -4,6 +4,9 @@
   "type": "module",
   "private": true,
   "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "scripts": {
     "predev": "rm -rf .next/dev/cache",
     "dev": "next dev --turbopack -H 0.0.0.0",

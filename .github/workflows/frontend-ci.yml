@@ -1,0 +1,139 @@
+# ── ToopSet — Frontend CI ───────────────────────────────────────────────────
+# Self-contained pipeline for frontend changes. Path-gated natively on the
+# trigger so frontend-only PRs never burn backend minutes and vice versa.
+#
+# Three jobs run in parallel so a lint failure never blocks the build/test
+# results and each stage can be re-run independently from the Actions UI.
+# pnpm store caching is handled natively by actions/setup-node (cache: pnpm);
+# pnpm itself is installed first by pnpm/action-setup.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  workflow_dispatch:
+
+# Cancel redundant runs for the same PR/ref (new commits kill in-progress runs).
+concurrency:
+  group: frontend-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  lint:
+    name: Lint (ESLint + TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # pnpm/action-setup must run before setup-node so the pnpm binary
+      # exists when setup-node primes its cache.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          # Monorepo: packageManager pin lives in frontend/package.json,
+          # not the repo root (default lookup), so point the action at it.
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # VERSION gate — only needs Node to resolve the frontend version.
+      - name: Version check
+        working-directory: .
+        run: make version-check
+
+      - name: Lint (ESLint)
+        run: pnpm lint
+
+      - name: Typecheck (TypeScript)
+        run: pnpm typecheck
+
+  test:
+    name: Test (Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test (Vitest)
+        run: pnpm test
+
+  build:
+    name: Build (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Reuse Next.js build cache across runs. Lockfile change busts it.
+      - name: Cache Next.js build cache
+        uses: actions/cache@v6
+        with:
+          path: frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-
+
+      - name: Build (Next.js)
+        run: pnpm build
