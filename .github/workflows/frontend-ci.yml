@@ -42,39 +42,9 @@ defaults:
     working-directory: frontend
 
 jobs:
-  # ── Path detection ──────────────────────────────────────────────────────────
-  # Mirrors the historical `on: paths:` filter. If no frontend path changed,
-  # every job is `if: false` → skipped → reports "Success" → required checks
-  # pass deterministically instead of showing "Expected" forever.
-  changes:
-    name: Detect frontend changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Filter changed paths
-        id: filter
-        uses: dorny/paths-filter@v4
-        with:
-          # The default excludes .github/**, so workflow-only PRs (a backend
-          # workflow tweak, or this very CI refactor) legitimately skip this
-          # side — they are not frontend code changes.
-          filters: |
-            frontend:
-              - 'frontend/**'
-              - '.github/workflows/frontend-ci.yml'
-
   lint:
     name: Lint (ESLint + TypeScript)
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -108,8 +78,6 @@ jobs:
   test:
     name: Test (Vitest)
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -136,8 +104,6 @@ jobs:
   build:
     name: Build (Next.js)
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
