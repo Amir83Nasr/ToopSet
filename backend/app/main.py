@@ -76,7 +76,7 @@ async def _refresh_metrics_periodically():
 
 
 async def _cancel_expired_pending():
-    """Background task: cancel pending bookings whose 10-min payment window expired."""
+    """Background task: cancel pending bookings whose 12-min payment window expired."""
     while True:
         try:
             async with async_session_factory() as db:

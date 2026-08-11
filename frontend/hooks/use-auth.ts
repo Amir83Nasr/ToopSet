@@ -42,9 +42,6 @@ let cachedUserPromise: { promise: Promise<User | null>; ts: number } | null =
   null
 
 async function fetchCurrentUser(): Promise<User | null> {
-  const token = getCookie("access_token")
-  if (!token) return null
-
   // Return cached user if within TTL
   const now = Date.now()
   if (cachedUserPromise && now - cachedUserPromise.ts < USER_CACHE_TTL) {
@@ -73,12 +70,6 @@ export function useAuth() {
   const router = useRouter()
 
   const refreshUser = useCallback(async () => {
-    // Skip API call for anonymous visitors — no token means no user
-    if (!getCookie("access_token")) {
-      setUser(null)
-      setLoading(false)
-      return
-    }
     try {
       setUser(await fetchCurrentUser())
     } catch {

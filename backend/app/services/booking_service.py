@@ -595,7 +595,7 @@ class BookingService:
                     "slot_price": slot_price,
                     "ball_price": ball_price,
                     "with_ball": data.with_ball,
-                    "expires_at": min(now_utc() + timedelta(minutes=10), request.deadline),
+                    "expires_at": min(now_utc() + timedelta(minutes=12), request.deadline),
                 }
             )
             await self.replacement_repo.update_request(
@@ -633,7 +633,7 @@ class BookingService:
                 "slot_price": slot_price,
                 "ball_price": ball_price,
                 "with_ball": data.with_ball,
-                "expires_at": now_utc() + timedelta(minutes=10),
+                "expires_at": now_utc() + timedelta(minutes=12),
             }
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVING})

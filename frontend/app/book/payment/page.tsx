@@ -115,6 +115,10 @@ function PaymentPageContent() {
             ? `/api/v1/bookings/replacement-holds/${bookingId}`
             : `/api/v1/bookings/${bookingId}`
         const res = await api<BookingDetail>(path)
+        if (res.status !== "pending_payment" && res.status !== "pending") {
+          router.push("/dashboard/bookings")
+          return
+        }
         setBooking(res)
       } catch (err) {
         const msg =
@@ -125,7 +129,7 @@ function PaymentPageContent() {
       }
     }
     fetchBooking()
-  }, [bookingId, checkoutType, isAuthenticated])
+  }, [bookingId, checkoutType, isAuthenticated, router])
 
   const handlePayment = async () => {
     if (!booking) return
