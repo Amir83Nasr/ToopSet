@@ -68,7 +68,7 @@ make check          # lint + typecheck + build (CI gate)
 
 **Lefthook** runs auto on `git commit` (staged: Ruff, Prettier, ESLint, trailing-whitespace, EOF-newline, merge-conflict, private-key, LF endings). `stage_fixed: true`. **Never** `--no-verify`.
 
-**CI architecture** (`backend-ci.yml`, `frontend-ci.yml`): **Never** add `paths:` to `on:` triggers — path-filtered runs are skipped entirely, so required checks stay "Expected" forever and block merges. Path-gating is done at the **job level** via `dorny/paths-filter` (`changes` job → `if: needs.changes.outputs.<pkg> == 'true'`), so skipped jobs report "Success" and required checks always resolve deterministically. Both workflows must run for every PR to `main`.
+**CI architecture** (`backend-ci.yml`, `frontend-ci.yml`): **Never** add `paths:` to `on:` triggers — path-filtered runs are skipped entirely, so required checks stay "Expected" forever and block merges. Path-gating is done at the **job level** via `dorny/paths-filter@v4` (`changes` job → `if: needs.changes.outputs.<pkg> == 'true'`), so skipped jobs report "Success" and required checks always resolve deterministically. Both workflows must run for every PR to `main`.
 
 **Testing:**
 
