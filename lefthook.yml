@@ -68,9 +68,8 @@ pre-push:
   parallel: true
   commands:
     # ── Frontend ──────────────────────────────────────────────────────────────
-    typecheck:
-      run: cd frontend && pnpm typecheck
-
+    # typecheck omitted: next build rewrites .next/types, so a separate parallel
+    # tsc would race it (TS6053 on .next/types/**). Build already type-checks.
     lint:
       run: cd frontend && pnpm lint
 
