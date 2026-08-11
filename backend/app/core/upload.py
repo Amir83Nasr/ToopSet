@@ -3,6 +3,8 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
+from app.core.config import settings
+
 # Resolve relative to this file, not the process CWD — the app must work
 # regardless of the working directory (FastAPI Cloud runs from /app/backend).
 BASE_UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
@@ -106,3 +108,51 @@ def delete_upload(relative_path: str | None) -> bool:
         return False
     except OSError:
         return False
+
+
+# ── S3-aware async variants ───────────────────────────────────────────────────
+# These helpers transparently route to ParsPack S3 when all four PARSPACK_*
+# environment variables are set, otherwise they fall back to local disk so that
+# local development and existing tests require no changes.
+
+
+async def save_upload_async(
+    file_content: bytes,
+    original_filename: str,
+    subdir: str = "vendors",
+) -> str:
+    """Validate, then persist the upload on S3 (if configured) or local disk.
+
+    Returns an absolute public URL when S3 is active, or a root-relative path
+    (``/uploads/<subdir>/<uuid>.<ext>``) for local-disk storage.
+    """
+    ext = validate_upload_content(file_content, original_filename)
+    mime = _ALLOWED_MIMES_BY_EXT[ext]
+
+    if settings.parspack_configured:
+        from app.core.s3_service import upload_to_s3
+
+        return await upload_to_s3(
+            content=file_content,
+            original_filename=original_filename,
+            content_type=mime,
+            prefix=subdir,
+        )
+
+    # Local disk fallback (synchronous write is fine for small images)
+    return save_upload(file_content, original_filename, subdir=subdir)
+
+
+async def delete_upload_async(url_or_path: str | None) -> bool:
+    """Delete an upload from S3 (if it looks like an S3 URL) or local disk."""
+    if not url_or_path:
+        return False
+
+    if url_or_path.startswith("http://") or url_or_path.startswith("https://"):
+        if settings.parspack_configured:
+            from app.core.s3_service import delete_from_s3
+
+            return await delete_from_s3(url_or_path)
+        return False  # http URL but S3 not configured — nothing we can do
+
+    return delete_upload(url_or_path)

@@ -17,6 +17,7 @@ prometheus-client>=0.20.0
 python-json-logger>=2.0.7
 jdatetime>=5.0.0
 sentry-sdk>=2.0.0
+aioboto3>=13.0.0
 
 # ── Dev tooling ───────────────────────────────────────────────────────────────
 # Pinned exact versions so local pre-push hooks match CI byte-for-byte

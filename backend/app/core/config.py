@@ -75,6 +75,22 @@ class Settings(BaseSettings):
     # CORS — comma-separated origins, use "*" for development
     cors_origins: str = "*"
 
+    # ParsPack S3-compatible Object Storage
+    parspack_endpoint_url: str = ""
+    parspack_access_key: str = ""
+    parspack_secret_key: SecretStr = SecretStr("")
+    parspack_bucket_name: str = ""
+
+    @property
+    def parspack_configured(self) -> bool:
+        """True when all four ParsPack credentials are present."""
+        return bool(
+            self.parspack_endpoint_url
+            and self.parspack_access_key
+            and self.parspack_secret_key.get_secret_value()
+            and self.parspack_bucket_name
+        )
+
     # Logging
     log_level: str = "INFO"
 
