@@ -3,7 +3,9 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-BASE_UPLOAD_DIR = Path("uploads")
+# Resolve relative to this file, not the process CWD — the app must work
+# regardless of the working directory (FastAPI Cloud runs from /app/backend).
+BASE_UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 # SVG is intentionally not accepted for runtime uploads. Serving an attacker-
