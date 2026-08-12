@@ -3,6 +3,14 @@ import { SiteFooter } from "@/components/public/site-footer"
 import { HeroSection } from "@/components/public/hero-section"
 import { HowItWorksSection } from "@/components/public/how-it-works-section"
 import { AboutSection } from "@/components/public/about-section"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  robots: {
+    index: true,
+    follow: true,
+  },
+}
 
 export default function HomePage() {
   return (

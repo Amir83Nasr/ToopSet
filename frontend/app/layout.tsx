@@ -14,20 +14,6 @@ export const metadata: Metadata = {
   },
   description:
     "با توپ‌سِت (ToopSet) به راحتی آنلاین سانس‌های ورزشی، سالن فوتسال، زمین چمن مصنوعی و مجموعه‌های ورزشی قم را رزرو کنید.",
-  keywords: [
-    "توپست",
-    "توپ ست",
-    "toopset",
-    "toop set",
-    "رزرو مجموعه ورزشی",
-    "رزرو سالن",
-    "رزرو چمن",
-    "رزرو چمن مصنوعی",
-    "رزرو سانس فوتبال",
-    "رزرو فوتسال",
-    "رزرو زمین ورزشی قم",
-    "رزرو سالن ورزشی قم",
-  ],
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -55,7 +41,7 @@ export const metadata: Metadata = {
     images: ["/icons/logo-1080.webp"],
   },
   robots: {
-    index: true,
+    index: false,
     follow: true,
   },
 }
@@ -78,7 +64,7 @@ const jsonLd = [
     "@type": "Organization",
     "@id": `${SITE_URL}/#organization`,
     name: "توپ‌ست",
-    alternateName: ["توپ‌ست", "توپ‌سِت", "توپ ست", "ToopSet", "Toop Set"],
+    alternateName: ["ToopSet", "toopset", "توپست", "توپ‌ست", "توپ‌سِت", "توپ ست"],
     url: SITE_URL,
     logo: `${SITE_URL}/icons/logo-1080.webp`,
     description:
@@ -92,7 +78,7 @@ const jsonLd = [
     "@type": "WebSite",
     "@id": `${SITE_URL}/#website`,
     name: "توپ‌ست (ToopSet)",
-    alternateName: ["توپ ست", "Toop Set"],
+    alternateName: ["ToopSet", "toopset", "توپست", "توپ‌ست", "توپ‌سِت", "توپ ست"],
     url: SITE_URL,
     inLanguage: "fa-IR",
     publisher: { "@id": `${SITE_URL}/#organization` },
@@ -110,7 +96,7 @@ const jsonLd = [
     "@type": "SportsActivityLocation",
     "@id": `${SITE_URL}/#sports-location`,
     name: "توپ‌ست",
-    alternateName: ["توپ ست", "ToopSet", "Toop Set"],
+    alternateName: ["ToopSet", "toopset", "توپست", "توپ‌ست", "توپ‌سِت", "توپ ست"],
     url: SITE_URL,
     description:
       "سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی، سالن فوتسال و چمن مصنوعی",
