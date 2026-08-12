@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     jwt_issuer: str = "toopset-api"
     jwt_audience: str = "toopset-client"
-    clock_skew_seconds: int = 10
+    clock_skew_seconds: int = 30
     session_cleanup_interval_days: int = 30
     app_environment: str = "development"
     bootstrap_admin_secret: str = ""

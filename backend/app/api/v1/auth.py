@@ -147,7 +147,6 @@ async def verify_otp(
     )
     # Persist refresh token from OTP login
     auth_service = _auth_service(db)
-    await auth_service.refresh_repo.revoke_all_for_user(user.id)
     await auth_service._persist_refresh_token(
         user_id=user.id,
         refresh_token=refresh_token,

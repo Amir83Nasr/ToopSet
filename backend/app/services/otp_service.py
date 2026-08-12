@@ -221,10 +221,10 @@ class OtpService:
                     detail="حساب کاربری شما غیرفعال شده است",
                 )
 
-            user.token_version += 1
+            # Mark phone as verified (idempotent if already set)
             await self.repo.update_user(
                 user.id,
-                {"token_version": user.token_version, "phone_verified_at": now_utc()},
+                {"phone_verified_at": now_utc()},
             )
 
             await log_action(

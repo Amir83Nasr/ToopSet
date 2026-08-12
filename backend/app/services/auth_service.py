@@ -123,13 +123,6 @@ class AuthService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
             )
 
-        # Authentication is intentionally single-device (documented via
-        # token_version). Revoke old refresh rows as well so the sessions API
-        # does not present unusable phantom sessions after a new login.
-        await self.refresh_repo.revoke_all_for_user(user.id)
-        user.token_version += 1
-        await self.repo.update_user(user.id, {"token_version": user.token_version})
-
         access_token, refresh_token = tokens_for_user(user.id, user.role, user.token_version)
         session_id = self._extract_session_id(refresh_token)
 
@@ -168,7 +161,6 @@ class AuthService:
 
         user_id = payload.get("sub")
         _role = payload.get("role")
-        ver = payload.get("ver")
         session_id = payload.get("sid")
 
         if not user_id:
@@ -183,13 +175,6 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
-            )
-
-        # Reject refresh if token version doesn't match
-        if ver is not None and ver != user.token_version:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="نشست شما به پایان رسید — از دستگاه دیگری وارد شده‌اید",
             )
 
         # ── Refresh rotation flow ────────────────────────────────────
@@ -330,7 +315,7 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کاربر یافت نشد")
 
         count = await self.refresh_repo.revoke_all_for_user(target_user_id)
-        # Bump their token_version
+        # Bump token_version to immediately invalidate all outstanding access tokens
         target_user.token_version += 1
         await self.repo.update_user(target_user_id, {"token_version": target_user.token_version})
 

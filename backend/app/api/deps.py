@@ -61,12 +61,12 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN, detail="حساب کاربری شما غیرفعال شده است"
         )
 
-    # Single-device check: reject if token_version in JWT doesn't match
+    # token_version check: only reject if user explicitly bumped it (logout-all / password change)
     token_ver = payload.get("ver")
     if token_ver is not None and token_ver != user.token_version:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="نشست شما به پایان رسید — از دستگاه دیگری وارد شده‌اید",
+            detail="نشست شما به پایان رسید — لطفاً دوباره وارد شوید",
         )
 
     return user

@@ -234,40 +234,48 @@ class TestReplayDetection:
 
 
 class TestMultiDevice:
-    """Verify multiple devices can have independent sessions."""
+    """Verify multiple devices can maintain independent, concurrent sessions."""
 
-    async def test_login_bumps_version(self, client: AsyncClient):
-        """Each login bumps token_version, invalidating previous tokens."""
+    async def test_device_a_stays_valid_after_device_b_login(self, client: AsyncClient):
+        """Logging in on Device B must NOT invalidate Device A's active session."""
         reg = await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111004", "password": "Test1234", "full_name": "multi"},
         )
         assert reg.status_code == 201
-        at1 = reg.json()["access_token"]
-        rt1 = _refresh_cookie(client)
+        at_a = reg.json()["access_token"]
+        rt_a = _refresh_cookie(client)
 
-        # First refresh works
-        r1 = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt1})
-        assert r1.status_code == 200
+        # Device A's refresh token works
+        r_a = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_a})
+        assert r_a.status_code == 200
 
-        # Login again (simulating device B) — bumps version
-        await client.post(
+        # Device B logs in — must NOT invalidate Device A
+        login_b = await client.post(
             "/api/v1/auth/login",
             json={"phone": "09121111004", "password": "Test1234"},
         )
+        assert login_b.status_code == 200
+        at_b = login_b.json()["access_token"]
 
-        # Now the old access token from register is invalid
-        h1 = {"Authorization": f"Bearer {at1}"}
-        r2 = await client.get("/api/v1/auth/me", headers=h1)
-        assert r2.status_code == 401
+        # Device A's original access token is still valid (not invalidated by B)
+        h_a = {"Authorization": f"Bearer {at_a}"}
+        r_check_a = await client.get("/api/v1/auth/me", headers=h_a)
+        assert r_check_a.status_code == 200
 
-    async def test_each_device_can_refresh_after_fresh_login(self, client: AsyncClient):
-        """Each device gets a valid session after logging in with the latest version."""
+        # Device B's access token is also valid
+        h_b = {"Authorization": f"Bearer {at_b}"}
+        r_check_b = await client.get("/api/v1/auth/me", headers=h_b)
+        assert r_check_b.status_code == 200
+
+    async def test_each_device_can_refresh_independently(self, client: AsyncClient):
+        """Each device can refresh independently; one login does not revoke another's session."""
         reg = await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111005", "password": "Test1234", "full_name": "multi2"},
         )
         assert reg.status_code == 201
+        rt_reg = _refresh_cookie(client)
 
         # Device A logs in
         login_a = await client.post(
@@ -277,11 +285,7 @@ class TestMultiDevice:
         assert login_a.status_code == 200
         rt_a = _refresh_cookie(client)
 
-        # Device A refreshes successfully
-        r_a = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_a})
-        assert r_a.status_code == 200
-
-        # Device B logs in (bumps version again)
+        # Device B logs in
         login_b = await client.post(
             "/api/v1/auth/login",
             json={"phone": "09121111005", "password": "Test1234"},
@@ -289,33 +293,52 @@ class TestMultiDevice:
         assert login_b.status_code == 200
         rt_b = _refresh_cookie(client)
 
-        # Device B can refresh
-        r_b = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_b})
-        assert r_b.status_code == 200
+        # All three refresh tokens belong to independent sessions — each should work
+        r_reg = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_reg})
+        assert r_reg.status_code == 200, "register session should still be valid"
 
-    async def test_new_login_removes_phantom_old_sessions(self, client: AsyncClient):
+        r_a = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_a})
+        assert r_a.status_code == 200, "device A session should still be valid"
+
+        r_b = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt_b})
+        assert r_b.status_code == 200, "device B session should still be valid"
+
+    async def test_login_creates_new_session_without_revoking_others(self, client: AsyncClient):
+        """Each login creates an additive new session; existing sessions survive."""
         registered = await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111995", "password": "Test1234", "full_name": "sessions"},
         )
         assert registered.status_code == 201
-        old_refresh = _refresh_cookie(client)
+        at_reg = registered.json()["access_token"]
 
         logged_in = await client.post(
             "/api/v1/auth/login",
             json={"phone": "09121111995", "password": "Test1234"},
         )
         assert logged_in.status_code == 200
-        new_refresh = _refresh_cookie(client)
-        assert new_refresh != old_refresh
+        at_login = logged_in.json()["access_token"]
 
+        # Both tokens should be valid (multi-device: no global revocation on login)
+        r1 = await client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {at_reg}"},
+        )
+        assert r1.status_code == 200
+
+        r2 = await client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {at_login}"},
+        )
+        assert r2.status_code == 200
+
+        # Sessions list shows at least 2 active sessions now
         sessions = await client.get(
             "/api/v1/auth/sessions",
-            headers={"Authorization": f"Bearer {logged_in.json()['access_token']}"},
+            headers={"Authorization": f"Bearer {at_login}"},
         )
         assert sessions.status_code == 200
-        assert len(sessions.json()["sessions"]) == 1
-        assert sessions.json()["current_session_id"] == sessions.json()["sessions"][0]["session_id"]
+        assert len(sessions.json()["sessions"]) >= 2
 
 
 # ── Sequential refresh (rotation correctness) ────────────────────────────
@@ -464,10 +487,16 @@ class TestKeyRotation:
 
 
 class TestTokenVersion:
-    """Verify token_version-based invalidation works."""
+    """Verify token_version-based invalidation works for security-sensitive operations.
 
-    async def test_old_token_version_rejected(self, client: AsyncClient):
-        """Access token with outdated ver claim should be rejected."""
+    token_version is only bumped on:
+      - logout-all-sessions (explicit user action)
+      - password change (security event)
+    It is NOT bumped on normal login, which enables multi-device sessions.
+    """
+
+    async def test_login_does_not_bump_version(self, client: AsyncClient):
+        """Normal login must NOT bump token_version; existing sessions stay valid."""
         reg = await client.post(
             "/api/v1/auth/register",
             json={"phone": "09121111007", "password": "Test1234", "full_name": "version"},
@@ -475,34 +504,51 @@ class TestTokenVersion:
         assert reg.status_code == 201
         at = reg.json()["access_token"]
 
-        # Login bumps token_version, invalidating the register token
+        # Login on Device B — should NOT bump version or revoke Device A
         login = await client.post(
             "/api/v1/auth/login",
             json={"phone": "09121111007", "password": "Test1234"},
         )
         assert login.status_code == 200
 
-        # Now the register access token should be rejected
+        # Register access token is still valid (no version bump from login)
         headers = {"Authorization": f"Bearer {at}"}
+        r = await client.get("/api/v1/auth/me", headers=headers)
+        assert r.status_code == 200
+
+    async def test_logout_all_bumps_version_invalidating_all_tokens(self, client: AsyncClient):
+        """logout-all bumps token_version, so all outstanding access tokens are rejected."""
+        reg = await client.post(
+            "/api/v1/auth/register",
+            json={"phone": "09121111008", "password": "Test1234", "full_name": "ver-all"},
+        )
+        assert reg.status_code == 201
+        at = reg.json()["access_token"]
+        headers = {"Authorization": f"Bearer {at}"}
+
+        # Logout all sessions — this bumps token_version
+        r_logout = await client.delete("/api/v1/auth/sessions", headers=headers)
+        assert r_logout.status_code == 200
+
+        # Old access token must now be rejected because token_version was bumped
         r = await client.get("/api/v1/auth/me", headers=headers)
         assert r.status_code == 401
 
-    async def test_refresh_with_old_version_rejected(self, client: AsyncClient):
-        """Refresh token with outdated ver should be rejected."""
+    async def test_refresh_token_revoked_on_logout(self, client: AsyncClient):
+        """Refresh token belonging to logged-out session is rejected."""
         reg = await client.post(
             "/api/v1/auth/register",
-            json={"phone": "09121111008", "password": "Test1234", "full_name": "ver-ref"},
+            json={"phone": "09121111009", "password": "Test1234", "full_name": "ver-ref"},
         )
         assert reg.status_code == 201
         rt = _refresh_cookie(client)
+        at = reg.json()["access_token"]
+        headers = {"Authorization": f"Bearer {at}"}
 
-        # Login bumps version
-        await client.post(
-            "/api/v1/auth/login",
-            json={"phone": "09121111008", "password": "Test1234"},
-        )
+        # Logout all sessions — revokes refresh tokens in DB too
+        await client.delete("/api/v1/auth/sessions", headers=headers)
 
-        # Old refresh token should be rejected
+        # Old refresh token must now be rejected (revoked in DB)
         r = await client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
         assert r.status_code == 401
 
