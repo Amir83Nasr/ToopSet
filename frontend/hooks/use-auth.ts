@@ -87,6 +87,7 @@ export function useAuth() {
   useEffect(() => {
     const handler = () => {
       clearTokens()
+      cachedUserPromise = null
       setUser(null)
       setLoading(false)
     }

@@ -261,11 +261,7 @@ export async function api<T>(
       return retryRes.json()
     }
 
-    if (!token && !refreshed) {
-      const body = await res.json().catch(() => ({ detail: "Unauthorized" }))
-      throw new ApiError(401, translateMessage(body.detail || "Unauthorized"))
-    }
-
+    // refresh failed — clear state and signal logout regardless of whether we had a token
     clearTokens()
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("auth:expired"))

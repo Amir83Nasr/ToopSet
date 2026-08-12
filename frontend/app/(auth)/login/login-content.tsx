@@ -25,9 +25,7 @@ export default function LoginPageContent({ heroUrls }: { heroUrls: string[] }) {
 
   useEffect(() => {
     if (loading || !user) return
-    router.replace(
-      redirect && redirect.startsWith("/") ? redirect : "/dashboard"
-    )
+    router.replace(redirect && redirect.startsWith("/") ? redirect : "/")
   }, [loading, redirect, router, user])
 
   return (
