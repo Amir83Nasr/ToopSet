@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   description:
     "برای رزرو آنلاین زمین‌های ورزشی در قم و هرگونه سوال درباره مجموعه‌های ورزشی با تیم توپ‌سِت (ToopSet) در تماس باشید.",
   alternates: { canonical: "/contact" },
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function ContactLayout({

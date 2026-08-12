@@ -168,6 +168,7 @@ Key vars: `SECRET_KEY` (gen: `python3 -c "import secrets; print(secrets.token_ur
 8. **Touch targets ≥44px** on mobile (auto-enforced in CSS, but don't override).
 9. **Bottom sheets on mobile** — `Dialog`/`AlertDialogContent` auto-convert. Set `mobileAsSheet={false}` for custom fullscreen overlays.
 10. **Frontend auto-refreshes tokens** on 401 via `api()`. Listen for `auth:expired` events.
+11. **Commit attribution:** Never include AI name or co-author in commits; use only user name.
 
 ### Common Pitfalls
 

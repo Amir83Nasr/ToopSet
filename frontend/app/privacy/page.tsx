@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   description:
     "حریم خصوصی و نحوه استفاده از اطلاعات در سامانه توپ‌سِت (ToopSet)",
   alternates: { canonical: "/privacy" },
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function PrivacyPage() {

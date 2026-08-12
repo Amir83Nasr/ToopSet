@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fa_IR",
   },
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function AboutPage() {

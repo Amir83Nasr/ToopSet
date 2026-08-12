@@ -40,6 +40,10 @@ export async function generateMetadata({
       locale: "fa_IR",
       images: [{ url: "/icons/logo-1080.webp", alt: name }],
     },
+    robots: {
+      index: false,
+      follow: true,
+    },
   }
 }
 

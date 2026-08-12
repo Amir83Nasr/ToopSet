@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   description:
     "جستجو، مقایسه و رزرو آنلاین سانس سالن فوتسال، زمین چمن مصنوعی و مجموعه‌های ورزشی قم با توپ‌سِت (ToopSet).",
   alternates: { canonical: "/vendors" },
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function VendorsLayout({

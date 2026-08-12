@@ -95,9 +95,9 @@ describe("VendorBookingsTab mobile dialogs", () => {
       within(dialog).getByText(formatBookingWeekday(slot.start_time))
     ).toBeInTheDocument()
     expect(dialog).toHaveClass(
-      "max-h-[calc(100dvh-2rem)]",
-      "overflow-y-auto",
-      "rtl:translate-x-1/2"
+      "fixed",
+      "inset-s-1/2",
+      "top-1/2"
     )
   })
 

@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   description:
     "قوانین و مقررات استفاده از سامانه رزرو آنلاین توپ‌سِت (ToopSet)",
   alternates: { canonical: "/terms" },
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function TermsPage() {
