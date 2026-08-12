@@ -27,11 +27,18 @@ from pathlib import PurePosixPath
 from urllib.parse import urlparse
 
 import aioboto3
+from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# ParsPack uses path-style S3 addressing with SigV4.
+_S3_CONFIG = Config(
+    signature_version="s3v4",
+    s3={"addressing_style": "path"},
+)
 
 # ── internal helpers ──────────────────────────────────────────────────────────
 
@@ -43,9 +50,9 @@ def _session() -> aioboto3.Session:
     )
 
 
-def _object_key(prefix: str, original_filename: str, extension: str | None = None) -> str:
+def _object_key(prefix: str, original_filename: str) -> str:
     """Return ``<prefix>/<uuid><ext>`` — always uses a fresh UUID."""
-    ext = extension or PurePosixPath(original_filename).suffix.lower()
+    ext = PurePosixPath(original_filename).suffix.lower()
     return f"{prefix.strip('/')}/{uuid.uuid4().hex}{ext}"
 
 
@@ -114,14 +121,14 @@ async def upload_to_s3(
         async with session.client(
             "s3",
             endpoint_url=settings.parspack_endpoint_url,
-            region_name="default",
+            region_name="us-east-1",
+            config=_S3_CONFIG,
         ) as s3:
             await s3.put_object(
                 Bucket=settings.parspack_bucket_name,
                 Key=key,
                 Body=content,
                 ContentType=content_type,
-                ACL="public-read",
             )
     except (BotoCoreError, ClientError) as exc:
         logger.error("S3 upload failed for key=%s: %s", key, exc)
@@ -155,7 +162,8 @@ async def delete_from_s3(url_or_key: str | None) -> bool:
         async with session.client(
             "s3",
             endpoint_url=settings.parspack_endpoint_url,
-            region_name="default",
+            region_name="us-east-1",
+            config=_S3_CONFIG,
         ) as s3:
             await s3.delete_object(Bucket=settings.parspack_bucket_name, Key=key)
         logger.info("S3 delete succeeded: key=%s", key)
