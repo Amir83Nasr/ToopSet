@@ -9,11 +9,8 @@ import {
   ResponsiveAlertDialogDescription,
   ResponsiveAlertDialogFooter,
   ResponsiveAlertDialogHeader,
-  ResponsiveAlertDialogMedia,
   ResponsiveAlertDialogTitle,
 } from "@/components/ui/responsive-alert-dialog"
-import { LogOut } from "lucide-react"
-
 interface LogoutDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -32,9 +29,6 @@ export function LogoutDialog({
     <ResponsiveAlertDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveAlertDialogContent>
         <ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogMedia className="bg-destructive/10 dark:bg-destructive/20">
-            <LogOut className="text-destructive" />
-          </ResponsiveAlertDialogMedia>
           <ResponsiveAlertDialogTitle>خروج از حساب</ResponsiveAlertDialogTitle>
           <ResponsiveAlertDialogDescription>
             آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟

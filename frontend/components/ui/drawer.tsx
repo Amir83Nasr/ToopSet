@@ -4,6 +4,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { useScrollLock } from "@/hooks/use-scroll-lock"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Cancel01Icon } from "@hugeicons/core-free-icons"
@@ -15,9 +16,6 @@ function Drawer({
   defaultOpen = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  // Modal drawers aria-hide the page behind them (Radix's hideOthers). Chrome
-  // blocks aria-hidden on a focused element, and Vaul keeps focus on the
-  // trigger (autoFocus=false), so blur it before the hide lands.
   const isOpen = open ?? defaultOpen
 
   React.useLayoutEffect(() => {
@@ -25,6 +23,8 @@ function Drawer({
       document.activeElement.blur()
     }
   }, [isOpen])
+
+  useScrollLock(isOpen)
 
   return (
     <DrawerPrimitive.Root
@@ -89,8 +89,8 @@ function DrawerContent({
         )}
         {...props}
       >
-        {/* Drag handle + optional close button row */}
-        <div className="relative flex items-center justify-center">
+        {/* Drag handle + optional close button row — pinned at top */}
+        <div className="shrink-0 relative flex items-center justify-center">
           <div className="mt-2 h-1 w-16 shrink-0 rounded-full bg-muted-foreground/20" />
           {showCloseButton && (
             <DrawerPrimitive.Close data-slot="drawer-close" asChild>
@@ -105,8 +105,8 @@ function DrawerContent({
             </DrawerPrimitive.Close>
           )}
         </div>
-        {/* Content */}
-        <div className="px-4 py-2">{children}</div>
+        {/* Scrollable body — fills remaining space */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-2">{children}</div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )

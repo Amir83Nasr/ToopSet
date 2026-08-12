@@ -4,12 +4,27 @@ import * as React from "react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { useScrollLock } from "@/hooks/use-scroll-lock"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Cancel01Icon } from "@hugeicons/core-free-icons"
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
+function Sheet({
+  open,
+  defaultOpen = false,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Root>) {
+  const isOpen = open ?? defaultOpen
+  useScrollLock(isOpen)
+
+  return (
+    <SheetPrimitive.Root
+      data-slot="sheet"
+      open={open}
+      defaultOpen={defaultOpen}
+      {...props}
+    />
+  )
 }
 
 function SheetTrigger({

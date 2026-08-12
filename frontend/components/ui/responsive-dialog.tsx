@@ -110,7 +110,10 @@ function ResponsiveDialogContent({
   if (isSheet) {
     return (
       <DrawerContent
-        className={cn("overflow-y-auto", className)}
+        className={cn(
+          "flex h-auto! max-h-[calc(100dvh-2rem)] sm:max-h-none",
+          className
+        )}
         showCloseButton={false}
         style={{
           ...(sheetSide === "bottom"

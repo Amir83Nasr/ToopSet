@@ -394,7 +394,7 @@ export function VendorBookingsTab({
           }
         }}
       >
-        <ResponsiveDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+        <ResponsiveDialogContent className="sm:max-w-lg">
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>جزئیات رزرو سانس</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -517,7 +517,7 @@ export function VendorBookingsTab({
           if (!open) setManualBookingSlot(null)
         }}
       >
-        <ResponsiveDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+        <ResponsiveDialogContent className="sm:max-w-lg">
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>رزرو سانس آزاد</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
