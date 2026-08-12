@@ -462,19 +462,19 @@ function VendorsPageContent() {
 
               {/* Filter chips */}
               {hasActiveFilters && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
+                <div className="mt-2 flex max-sm:flex-nowrap max-sm:gap-1 max-sm:overflow-x-auto max-sm:pb-1 max-sm:max-w-full items-center gap-1.5 border-t pt-2">
                   {/* Clear all — always first */}
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={clearFilters}
-                    className=""
+                    className="max-sm:shrink-0"
                   >
                     <X />
                     پاک کردن همه فیلتر‌ها
                   </Button>
                   {searchText && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs">
+                    <span className="inline-flex max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs">
                       <Search className="size-3" />
                       {searchText}
                       <Button
@@ -491,7 +491,7 @@ function VendorsPageContent() {
                   {selectedSports.map((st) => (
                     <span
                       key={st}
-                      className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs"
+                      className="inline-flex max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs"
                     >
                       {sportLabels[st] || st}
                       <Button
@@ -510,7 +510,7 @@ function VendorsPageContent() {
                     </span>
                   ))}
                   {availableToday && (
-                    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs">
+                    <span className="inline-flex max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs">
                       <CalendarCheck className="size-3" />
                       سانس خالی امروز
                       <Button
@@ -550,6 +550,7 @@ function VendorsPageContent() {
                   <ScrollReveal
                     stagger={0.04}
                     animation="fade-in-up"
+                    threshold={0}
                     className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
                   >
                     {featuredVendors.map((vendor) => {
