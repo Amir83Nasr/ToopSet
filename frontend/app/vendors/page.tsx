@@ -474,7 +474,7 @@ function VendorsPageContent() {
                     پاک کردن همه فیلتر‌ها
                   </Button>
                   {searchText && (
-                    <span className="inline-flex max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs">
+                    <span className="inline-flex h-10 md:h-8 max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm md:text-xs">
                       <Search className="size-3" />
                       {searchText}
                       <Button
@@ -491,7 +491,7 @@ function VendorsPageContent() {
                   {selectedSports.map((st) => (
                     <span
                       key={st}
-                      className="inline-flex max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs"
+                      className="inline-flex h-10 md:h-8 max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm md:text-xs"
                     >
                       {sportLabels[st] || st}
                       <Button
@@ -510,7 +510,7 @@ function VendorsPageContent() {
                     </span>
                   ))}
                   {availableToday && (
-                    <span className="inline-flex max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs">
+                    <span className="inline-flex h-10 md:h-8 max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm md:text-xs">
                       <CalendarCheck className="size-3" />
                       سانس خالی امروز
                       <Button
