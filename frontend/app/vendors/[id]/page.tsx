@@ -195,6 +195,7 @@ const GalleryImage = memo(function GalleryImage({
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           priority={index === 0}
           loading={index === 0 ? "eager" : "lazy"}
+          unoptimized
           onError={() => setError(true)}
         />
       )}

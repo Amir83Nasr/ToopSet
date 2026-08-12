@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import Image from "next/image"
 import { toast } from "@/lib/toast"
 import {
-  buildAvatarUrl,
+  buildVendorImageUrl,
   uploadFile,
   type UploadResult,
   ApiError,
@@ -93,7 +93,7 @@ export function ImageUpload({
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
         {images.map((url, index) => {
-          const normalizedUrl = buildAvatarUrl(url) || url
+          const normalizedUrl = buildVendorImageUrl(url)
           const hasFailed = failedImages.has(url)
           return (
             <div

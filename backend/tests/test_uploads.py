@@ -76,6 +76,9 @@ class TestUploadVendorImage:
         from app.core import upload as upload_module
 
         monkeypatch.setattr(upload_module, "BASE_UPLOAD_DIR", tmp_path / "uploads")
+        monkeypatch.setattr(upload_module.settings, "parspack_endpoint_url", "")
+        monkeypatch.setattr(upload_module.settings, "parspack_access_key", "")
+        monkeypatch.setattr(upload_module.settings, "parspack_bucket_name", "")
         owner_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         uploaded = await client.post(
             "/api/v1/uploads/vendor-image",

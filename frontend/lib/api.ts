@@ -49,10 +49,25 @@ export function buildVendorImageUrl(url: string | null | undefined): string {
   if (!url) return ""
   // Already a relative path — let the rewrite handle it
   if (url.startsWith("/")) return url
-  // Absolute URL — convert to relative for same-origin serving
+  // Only backend-hosted uploads should use the Next.js rewrite. External
+  // object-storage/CDN URLs must keep their origin intact.
   try {
     const parsed = new URL(url)
-    return parsed.pathname + parsed.search
+    const api = new URL(API_BASE)
+    const loopbackHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0"])
+    const isApiOrigin = parsed.origin === api.origin
+    const isLoopbackApi =
+      loopbackHosts.has(parsed.hostname) &&
+      loopbackHosts.has(api.hostname) &&
+      parsed.port === api.port
+
+    if (
+      parsed.pathname.startsWith("/uploads/") &&
+      (isApiOrigin || isLoopbackApi)
+    ) {
+      return parsed.pathname + parsed.search
+    }
+    return url
   } catch {
     return url
   }

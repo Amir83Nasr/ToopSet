@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 
-from app.core.upload import delete_upload
+from app.core.upload import delete_upload_async
 
 TEMP_UPLOAD_TTL_SECONDS = 3600
 TEMP_UPLOAD_GRACE_SECONDS = 3600
@@ -58,7 +58,11 @@ async def consume_temp_uploads(redis, *, temp_ids: list[str], user_id: int) -> l
                 detail="شما به این تصویر دسترسی ندارید",
             )
         path = payload.get("path")
-        if not isinstance(path, str) or not path.startswith("/uploads/"):
+        if not isinstance(path, str) or not (
+            path.startswith("/uploads/")
+            or path.startswith("https://")
+            or path.startswith("http://")
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"تصویر با شناسه {temp_id} معتبر نیست.",
@@ -85,7 +89,7 @@ async def cleanup_orphan_temp_uploads(redis) -> int:
                 payload = {}
             path = payload.get("path")
             if isinstance(path, str):
-                delete_upload(path)
+                await delete_upload_async(path)
                 cleaned += 1
             await redis.delete(_key(temp_id))
         await redis.zrem(TEMP_UPLOAD_GC_SET, temp_id)

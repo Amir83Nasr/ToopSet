@@ -10,7 +10,7 @@ from app.api.deps import get_current_manager
 from app.core.database import get_db
 from app.core.rate_limiter import limiter
 from app.core.redis_client import get_redis
-from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, save_upload, save_upload_async
+from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, save_upload_async
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.models.vendor_image import VendorImage
@@ -37,20 +37,22 @@ async def upload_vendor_image(
         raise HTTPException(status_code=400, detail=f"نوع فایل .{ext} مجاز نیست")
 
     try:
-        relative_url = save_upload(content, file.filename or "image.jpg", subdir="vendors")
-    except ValueError as e:
+        image_url = await save_upload_async(content, file.filename or "image.jpg", subdir="vendors")
+    except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
-    base = str(request.base_url).rstrip("/")
-    absolute_url = f"{base}{relative_url}"
+    response_url = image_url
+    if image_url.startswith("/"):
+        base = str(request.base_url).rstrip("/")
+        response_url = f"{base}{image_url}"
     temp_id = uuid.uuid4().hex
     r = await get_redis()
     await store_temp_upload(
         r,
         temp_id=temp_id,
         user_id=current_user.id,
-        path=relative_url,
+        path=image_url,
     )
-    return {"temp_id": temp_id, "url": absolute_url}
+    return {"temp_id": temp_id, "url": response_url}
 
 
 # ── Direct S3 upload — vendor image ──────────────────────────────────────────

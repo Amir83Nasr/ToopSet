@@ -152,6 +152,7 @@ export function ImageLightbox({
               sizes="100vw"
               className="object-contain"
               priority
+              unoptimized
             />
           </div>
         </div>
