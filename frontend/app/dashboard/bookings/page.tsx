@@ -20,7 +20,7 @@ import { RefreshCw } from "lucide-react"
 type BookingTab = "current" | "past" | "cancelled"
 
 const tabTriggerClass =
-  "max-sm:h-full max-sm:flex-col max-sm:justify-center max-sm:gap-0.5 max-sm:py-2 max-sm:leading-4"
+  "max-sm:h-auto max-sm:py-2.5 max-sm:flex-col max-sm:justify-center max-sm:gap-0.5 max-sm:leading-4"
 
 const emptyStateByTab: Record<
   BookingTab,
@@ -213,7 +213,7 @@ export default function BookingsPage() {
       <BookingFilters search={search} onSearchChange={setSearch} />
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="gap-x-2 max-sm:grid max-sm:w-full max-sm:grid-cols-3 max-sm:gap-1 max-sm:p-1">
+        <TabsList className="h-auto gap-x-2 max-sm:grid max-sm:w-full max-sm:grid-cols-3 max-sm:gap-1 max-sm:p-1">
           <TabsTrigger value="current" className={tabTriggerClass}>
             سانس جاری
           </TabsTrigger>
