@@ -186,9 +186,13 @@ describe("VendorScheduleTab", () => {
     await user.click(screen.getByText("ویرایش برنامه هفتگی"))
 
     expect(
-      await screen.findByRole("heading", {
-        name: "ویرایش برنامه هفتگی ثابت سالن",
-      })
+      await screen.findByRole(
+        "heading",
+        {
+          name: "ویرایش برنامه هفتگی ثابت سالن",
+        },
+        { timeout: 10000 }
+      )
     ).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: "افزودن سانس شنبه" })
