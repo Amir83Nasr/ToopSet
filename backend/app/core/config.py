@@ -77,15 +77,17 @@ class Settings(BaseSettings):
 
     # ParsPack S3-compatible Object Storage
     parspack_endpoint_url: str = ""
+    parspack_public_base_url: str = ""
     parspack_access_key: str = ""
     parspack_secret_key: SecretStr = SecretStr("")
     parspack_bucket_name: str = ""
 
     @property
     def parspack_configured(self) -> bool:
-        """True when all four ParsPack credentials are present."""
+        """True when S3 access and public URL settings are present."""
         return bool(
             self.parspack_endpoint_url
+            and self.parspack_public_base_url
             and self.parspack_access_key
             and self.parspack_secret_key.get_secret_value()
             and self.parspack_bucket_name

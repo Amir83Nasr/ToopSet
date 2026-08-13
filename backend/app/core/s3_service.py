@@ -1,7 +1,8 @@
 """ParsPack S3-compatible object storage helpers.
 
-All operations are async (aioboto3).  The module is a no-op when the four
-PARSPACK_* environment variables are not set — callers should check
+All operations are async (aioboto3). The S3 API endpoint is kept separate from
+the public media base URL so internal operations do not depend on the CDN/TLS
+configuration used by browsers. Callers should check
 ``settings.parspack_configured`` before routing through S3.
 
 Public surface
@@ -57,10 +58,24 @@ def _object_key(prefix: str, original_filename: str) -> str:
 
 
 def public_url(object_key: str) -> str:
-    """Construct the public HTTPS URL for *object_key* in the configured bucket."""
-    endpoint = settings.parspack_endpoint_url.rstrip("/")
-    bucket = settings.parspack_bucket_name
-    return f"{endpoint}/{bucket}/{object_key}"
+    """Construct the browser-facing URL for an object key."""
+    base_url = settings.parspack_public_base_url.rstrip("/")
+    return f"{base_url}/{object_key.lstrip('/')}"
+
+
+def _key_after_base_path(url: str, base_url: str) -> str | None:
+    """Return the URL path after a configured base, ignoring the scheme."""
+    parsed = urlparse(url)
+    base = urlparse(base_url)
+    if parsed.netloc != base.netloc:
+        return None
+
+    base_path = base.path.rstrip("/")
+    prefix = f"{base_path}/" if base_path else "/"
+    if not parsed.path.startswith(prefix):
+        return None
+    key = parsed.path[len(prefix) :]
+    return key or None
 
 
 def _key_from_url(url: str) -> str | None:
@@ -68,17 +83,16 @@ def _key_from_url(url: str) -> str | None:
 
     Returns *None* when the URL doesn't belong to the configured bucket.
     """
-    endpoint = settings.parspack_endpoint_url.rstrip("/")
-    bucket = settings.parspack_bucket_name
-    prefix = f"{endpoint}/{bucket}/"
-    if url.startswith(prefix):
-        return url[len(prefix) :]
-    # Fallback: parse URL path and strip leading /<bucket>/
-    parsed = urlparse(url)
-    path = parsed.path.lstrip("/")
-    bucket_prefix = f"{bucket}/"
-    if path.startswith(bucket_prefix):
-        return path[len(bucket_prefix) :]
+    key = _key_after_base_path(url, settings.parspack_public_base_url)
+    if key is not None:
+        return key
+
+    # Accept legacy URLs built from the S3 endpoint so existing objects remain
+    # deletable during and after the database URL migration.
+    legacy_base = f"{settings.parspack_endpoint_url.rstrip('/')}/{settings.parspack_bucket_name}"
+    key = _key_after_base_path(url, legacy_base)
+    if key is not None:
+        return key
     return None
 
 
