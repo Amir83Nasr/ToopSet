@@ -42,6 +42,12 @@ let cachedUserPromise: { promise: Promise<User | null>; ts: number } | null =
   null
 
 async function fetchCurrentUser(): Promise<User | null> {
+  // If there's no access_token cookie at all, skip calling /api/v1/auth/me entirely
+  const token = getCookie("access_token")
+  if (!token) {
+    return null
+  }
+
   // Return cached user if within TTL
   const now = Date.now()
   if (cachedUserPromise && now - cachedUserPromise.ts < USER_CACHE_TTL) {

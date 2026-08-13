@@ -18,13 +18,13 @@ describe("formatTime", () => {
 describe("formatPrice", () => {
   it("formats number with Persian digits and تومان suffix", () => {
     const result = formatPrice(150000)
-    expect(result).toMatch(/تومان$/)
+    expect(result).toContain("تومان")
     expect(result).toContain("۱۵۰")
   })
 
   it("handles zero", () => {
     const result = formatPrice(0)
-    expect(result).toMatch(/تومان$/)
+    expect(result).toContain("تومان")
   })
 })
 

@@ -233,6 +233,14 @@ export async function api<T>(
   }
 
   if (res.status === 401) {
+    const token = getCookie("access_token")
+    if (!token) {
+      // No token present — guest user, do not attempt token refresh
+      clearTokens()
+      const body = await res.json().catch(() => ({ detail: "Unauthorized" }))
+      throw new ApiError(401, translateMessage(body.detail || "Unauthorized"))
+    }
+
     if (!shouldAttemptTokenRefresh(path)) {
       if (path === "/api/v1/auth/refresh") {
         clearTokens()
