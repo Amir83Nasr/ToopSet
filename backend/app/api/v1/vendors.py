@@ -13,7 +13,7 @@ from app.core.date_utils import parse_date_filter, parse_date_filter_end
 from app.core.pagination import decode_cursor
 from app.core.redis_client import get_redis
 from app.core.timezone import iran_to_utc, now_iran, now_utc
-from app.core.upload import delete_upload
+from app.core.upload import delete_upload_async
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
@@ -31,6 +31,12 @@ from app.services.vendor_service import VendorService, get_vendor_service, get_v
 
 router = APIRouter(prefix="/vendors", tags=["vendors"])
 legacy_router = APIRouter(prefix="/courts", tags=["vendors"], include_in_schema=False)
+
+
+def _normalized_upload_url(url: str) -> str:
+    """Match local response URLs by path while preserving absolute S3 URLs."""
+    path = urlparse(url).path
+    return path if path.startswith("/uploads/") else url
 
 
 @legacy_router.get("", response_model=VendorListResponse, summary="List sports vendors")
@@ -238,7 +244,7 @@ async def upload_vendor_image(
         redis = await get_redis()
         consumed = await consume_temp_uploads(redis, temp_ids=[temp_id], user_id=current_user.id)
         safe_url = consumed[0]
-        if url and urlparse(url).path != safe_url:
+        if url and _normalized_upload_url(url) != _normalized_upload_url(safe_url):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 detail="شناسه موقت و نشانی تصویر یکسان نیستند",
@@ -287,7 +293,7 @@ async def delete_vendor_image(
     img = await db.get(VendorImage, image_id)
     if not img or img.vendor_id != vendor_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="تصویر یافت نشد")
-    delete_upload(img.url)
+    await delete_upload_async(img.url)
     await db.delete(img)
     await db.commit()
 

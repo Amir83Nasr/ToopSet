@@ -34,6 +34,7 @@ from app.core.upload import (
     ALLOWED_EXTENSIONS,
     MAX_FILE_SIZE,
     delete_upload,
+    delete_upload_async,
     validate_upload_content,
 )
 from app.models.setting import Setting
@@ -453,7 +454,7 @@ async def reject_vendor(
         )
     name = vendor.name
     for img in vendor.vendor_images or []:
-        delete_upload(img.url)
+        await delete_upload_async(img.url)
     await repo.delete(vendor)
     await invalidate_admin_list_cache("pending_vendors")
     await invalidate_admin_list_cache("vendors")
@@ -492,7 +493,7 @@ async def hard_delete_vendor(
             detail="مجموعه دارای سابقه رزرو یا مالی است و قابل حذف دائمی نیست",
         )
     for img in vendor.vendor_images or []:
-        delete_upload(img.url)
+        await delete_upload_async(img.url)
     await repo.delete(vendor)
     from app.services.cache_service import invalidate_admin_list_cache
 
@@ -636,7 +637,7 @@ async def force_delete_user(
             .all()
         )
         for url in image_urls:
-            delete_upload(url)
+            await delete_upload_async(url)
         await db.execute(delete(VendorImage).where(VendorImage.vendor_id == cid))
         await db.execute(delete(Review).where(Review.vendor_id == cid))
 

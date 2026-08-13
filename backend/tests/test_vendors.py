@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -12,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1 import vendors as vendors_api
 from app.models.time_slot import SlotGender, SlotStatus, TimeSlot
+from app.services import vendor_service as vendor_service_module
 
 pytestmark = [pytest.mark.asyncio]
 
@@ -286,6 +288,84 @@ class TestUpdateVendor:
             headers=headers,
         )
         assert resp.status_code == 404
+
+
+class TestVendorImages:
+    async def test_attach_s3_temp_upload_accepts_matching_absolute_url(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        created = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
+        vendor_id = created.json()["id"]
+        image_url = "https://media.toopset.ir/c228415/vendors/photo.webp"
+
+        async def consume_temp_upload(*args, **kwargs):
+            return [image_url]
+
+        monkeypatch.setattr(vendors_api, "consume_temp_uploads", consume_temp_upload)
+
+        response = await client.post(
+            f"/api/v1/vendors/{vendor_id}/images",
+            params={"temp_id": "temp-id", "url": image_url},
+            headers=headers,
+        )
+
+        assert response.status_code == 201, response.text
+        assert response.json()["url"] == image_url
+
+    async def test_delete_vendor_image_deletes_s3_object(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        created = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
+        vendor_id = created.json()["id"]
+        image_url = "https://media.toopset.ir/c228415/vendors/photo.webp"
+        attached = await client.post(
+            f"/api/v1/vendors/{vendor_id}/images",
+            params={"url": image_url},
+            headers=headers,
+        )
+        delete_s3 = AsyncMock(return_value=True)
+        monkeypatch.setattr(vendors_api, "delete_upload_async", delete_s3)
+
+        response = await client.delete(
+            f"/api/v1/vendors/{vendor_id}/images/{attached.json()['id']}",
+            headers=headers,
+        )
+
+        assert response.status_code == 204
+        delete_s3.assert_awaited_once_with(image_url)
+
+    async def test_replacing_gallery_deletes_removed_s3_object(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        image_url = "https://media.toopset.ir/c228415/vendors/photo.webp"
+        created = await client.post(
+            "/api/v1/vendors",
+            json={**COURT_CREATE_PAYLOAD, "images": [image_url]},
+            headers=headers,
+        )
+        delete_s3 = AsyncMock(return_value=True)
+        monkeypatch.setattr(vendor_service_module, "delete_upload_async", delete_s3)
+
+        response = await client.patch(
+            f"/api/v1/vendors/{created.json()['id']}",
+            json={"images": []},
+            headers=headers,
+        )
+
+        assert response.status_code == 200, response.text
+        delete_s3.assert_awaited_once_with(image_url)
 
 
 class TestDeleteVendor:

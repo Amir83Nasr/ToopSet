@@ -12,7 +12,7 @@ from app.api.deps import get_current_manager, get_current_user_optional
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.redis_client import get_redis
-from app.core.upload import delete_upload as delete_file
+from app.core.upload import delete_upload_async
 from app.models.booking import Booking
 from app.models.time_slot import TimeSlot
 from app.models.user import User
@@ -211,7 +211,7 @@ class VendorService:
                 )
             )
             for img in result.scalars().all():
-                delete_file(img.url)
+                await delete_upload_async(img.url)
                 await self.repo.db.delete(img)
             await self.repo.db.flush()
         if data.images is not None:
@@ -252,7 +252,7 @@ class VendorService:
             # Delete images no longer in the set + remove physical files
             for url, img in old_by_url.items():
                 if url not in new_urls_set:
-                    delete_file(img.url)
+                    await delete_upload_async(img.url)
                     await self.repo.db.delete(img)
 
             # Add new images and reorder all to match provided order
@@ -299,7 +299,7 @@ class VendorService:
             )
         # delete image files before removing the vendor record
         for img in vendor.vendor_images or []:
-            delete_file(img.url)
+            await delete_upload_async(img.url)
         await self.repo.delete(vendor)
         await log_action(
             self.repo.db,
