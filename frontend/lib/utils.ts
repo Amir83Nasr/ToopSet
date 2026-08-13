@@ -39,6 +39,28 @@ export function toPersianDigits(value: string | number): string {
   return String(value).replace(/[0-9]/g, (d) => persianDigits[d])
 }
 
+/** Format price with Persian thousands separator (٬) and dedicated toman glyph (تومانءء). */
+export function formatPrice(price: number | null | undefined): string {
+  if (price == null) return "—"
+  const formattedNumber = new Intl.NumberFormat("fa-IR", {
+    useGrouping: true,
+  }).format(price).replace(/٬/g, "٬").replace(/,/g, "٬")
+  return `${toPersianDigits(formattedNumber)} تومانءء`
+}
+
+/** Format date in Persian using standard dot separator (٫). */
+export function formatPersianDate(dateInput: string | Date): string {
+  const d = new Date(dateInput)
+  if (isNaN(d.getTime())) return "—"
+  const formatted = d.toLocaleDateString("fa-IR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+  // Replace slashes or other separators with Persian dot (٫)
+  return toPersianDigits(formatted).replace(/[\/\-\.]/g, "٫")
+}
+
 /** Convert Persian/Arabic digits to English (Latin) digits.
  *  e.g. "۰۹۱۲۰۰۰۰۰۰۰" → "09120000000"
  *  Passes through non-digit characters unchanged.

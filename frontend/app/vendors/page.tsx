@@ -83,7 +83,10 @@ const sportLabels: Record<string, string> = {
 
 function formatPrice(price: number | null): string {
   if (price == null) return "—"
-  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
+  const formattedNumber = new Intl.NumberFormat("fa-IR", {
+    useGrouping: true,
+  }).format(price).replace(/,/g, "٬")
+  return `${formattedNumber} تومانءء`
 }
 
 function VendorsPageContent() {

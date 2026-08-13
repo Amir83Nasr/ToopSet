@@ -169,6 +169,7 @@ Key vars: `SECRET_KEY` (gen: `python3 -c "import secrets; print(secrets.token_ur
 9. **Bottom sheets on mobile** — `Dialog`/`AlertDialogContent` auto-convert. Set `mobileAsSheet={false}` for custom fullscreen overlays.
 10. **Frontend auto-refreshes tokens** on 401 via `api()`. Listen for `auth:expired` events.
 11. **Commit attribution:** Never include AI name or co-author in commits; use only user name.
+12. **IranYekan Typography & Formats:** Use `تومانءء` (with `ءء` glyph) for currency, Persian thousands separator `٬`, and Persian dot separator `٫` (`YYYY٫MM٫DD`) for dates via `formatPrice()` and `formatPersianDate()`.
 
 ### Common Pitfalls
 

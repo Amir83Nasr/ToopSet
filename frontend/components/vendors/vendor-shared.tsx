@@ -95,12 +95,24 @@ export function formatTime(iso: string): string {
   })
 }
 
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
+export function formatPrice(price: number | null | undefined): string {
+  if (price == null) return "—"
+  const formattedNumber = new Intl.NumberFormat("fa-IR", {
+    useGrouping: true,
+  }).format(price).replace(/,/g, "٬")
+  return `${formattedNumber} تومانءء`
 }
 
 export function formatPersianDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  if (!iso) return "—"
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return "—"
+  const formatted = d.toLocaleDateString("fa-IR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+  return formatted.replace(/[\/\-\.]/g, "٫")
 }
 
 export function Stars({
