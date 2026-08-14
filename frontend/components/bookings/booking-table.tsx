@@ -1,6 +1,6 @@
 "use client"
 
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 import { BOOKING_STATUS_LABELS } from "@/lib/constants"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -155,7 +155,7 @@ export function BookingTable({
                   </div>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
-                  {b.slot_start_time ? formatDate(b.slot_start_time) : "-"}
+                  {b.slot_start_time ? formatPersianDate(b.slot_start_time) : "-"}
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center text-muted-foreground">
                   {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
@@ -169,10 +169,7 @@ export function BookingTable({
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
                   <span>
-                    {new Intl.NumberFormat("fa-IR").format(b.price_paid)}
-                  </span>
-                  <span className="ms-1 text-xs font-normal text-muted-foreground">
-                    تومان
+                    {formatPrice(b.price_paid)}
                   </span>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center whitespace-normal">

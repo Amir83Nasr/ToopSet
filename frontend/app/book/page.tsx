@@ -1,6 +1,11 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useState } from "react"
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+} from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
@@ -69,9 +74,7 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
-}
+import { formatPrice } from "@/lib/utils"
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
@@ -160,6 +163,19 @@ function BookPageContent() {
     fetchDetails()
   }, [slotId, vendorId, isAuthenticated])
 
+// Add type inside the file to avoid import issues
+interface ZibalPaymentStartResponse {
+  checkout_type: "booking"
+  payment_gateway: "zibal"
+  booking_id: number
+  payment_id: number
+  amount: number
+  track_id: string
+  start_url: string
+  callback_url: string
+  expires_at: string | null
+}
+
   const handleConfirm = useCallback(async () => {
     if (!slot) return
     if (new Date(slot.start_time).getTime() <= Date.now()) {
@@ -169,6 +185,7 @@ function BookPageContent() {
     }
     setStep("processing")
     try {
+      // 1. Create booking
       const res = await api<BookingResult>("/api/v1/bookings", {
         method: "POST",
         body: JSON.stringify({
@@ -177,10 +194,27 @@ function BookPageContent() {
           with_ball: withBall,
         }),
       })
-      // Redirect to payment gateway page after successful booking creation
-      router.push(
-        `/book/payment?booking_id=${res.id}&checkout_type=${res.checkout_type ?? "booking"}&vendor_id=${vendorId}`
-      )
+
+      // 2. Immediately pay/finalize booking
+      const payRes = await api<BookingResult | ZibalPaymentStartResponse>(`/api/v1/bookings/${res.id}/pay`, {
+        method: "POST",
+      })
+
+      // If gateway (e.g. zibal), redirect to start_url
+      if (
+        payRes &&
+        typeof payRes === "object" &&
+        "payment_gateway" in payRes &&
+        payRes.payment_gateway === "zibal" &&
+        payRes.start_url
+      ) {
+        window.location.assign(payRes.start_url)
+        return
+      }
+
+      // Otherwise (mock or direct success), toast and go to bookings dashboard
+      toast.success("رزرو با موفقیت ثبت و پرداخت شد")
+      router.push("/dashboard/bookings")
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message)
@@ -189,11 +223,11 @@ function BookPageContent() {
           return
         }
       } else {
-        setErrorMsg("خطا در ایجاد رزرو")
+        setErrorMsg("خطا در ایجاد یا پرداخت رزرو")
       }
       setStep("confirm")
     }
-  }, [slot, withBall, vendorId, router])
+  }, [slot, withBall, router])
 
   // ============ LOADING / AUTH CHECKING ============
   if (authLoading || step === "loading") {
