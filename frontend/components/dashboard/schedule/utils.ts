@@ -37,6 +37,14 @@ export function getSlotDateKey(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA")
 }
 
+export function getPersianDayIndex(date: Date): number {
+  return (date.getDay() + 1) % 7
+}
+
+export function formatWeekday(date: Date): string {
+  return PERSIAN_DAY_NAMES[getPersianDayIndex(date)]
+}
+
 export function getWeekDays(from?: Date): Date[] {
   const today = from ?? new Date()
   const daysSinceSaturday = (today.getDay() + 1) % 7

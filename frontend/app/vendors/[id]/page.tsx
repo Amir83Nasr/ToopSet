@@ -286,6 +286,29 @@ export default function PublicVendorDetailPage() {
     })
   }, [weekStart])
 
+  // Compute the index of the selected date within the current week (0 = Saturday … 6 = Friday).
+  const selectedWeekdayIndex = useMemo(() => {
+    const idx = weekDays.findIndex((d) => d.date === selectedDate)
+    return idx === -1 ? -1 : idx
+  }, [weekDays, selectedDate])
+
+  // Find the earliest valid date in the target week.
+  const findBestDateInWeek = useCallback(
+    (targetWeekOffset: number): string => {
+      const targetWeekStart = getWeekStart(targetWeekOffset)
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(targetWeekStart)
+        d.setDate(targetWeekStart.getDate() + i)
+        return enCa(d)
+      })
+
+      // Always pick the first day in the week that is valid (Saturday prioritised).
+      const firstValid = days.find((d) => d >= publicMinDate && d <= publicMaxDate)
+      return firstValid || days[0]
+    },
+    [publicMinDate, publicMaxDate]
+  )
+
   const weekRange = useMemo(() => {
     if (weekDays.length < 7) return ""
     const from = `${weekDays[0].dayNum} ${weekDays[0].month}`
@@ -409,11 +432,17 @@ export default function PublicVendorDetailPage() {
   }
 
   function goPrevWeek() {
-    setWeekOffset((prev) => Math.max(0, prev - 1))
+    if (weekOffset <= 0) return
+    const nextOffset = weekOffset - 1
+    setSelectedDate(findBestDateInWeek(nextOffset))
+    setWeekOffset(nextOffset)
   }
 
   function goNextWeek() {
-    if (canGoNextWeek) setWeekOffset((prev) => prev + 1)
+    if (!canGoNextWeek) return
+    const nextOffset = weekOffset + 1
+    setSelectedDate(findBestDateInWeek(nextOffset))
+    setWeekOffset(nextOffset)
   }
 
   // ── Render ──

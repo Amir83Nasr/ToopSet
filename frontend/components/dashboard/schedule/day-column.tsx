@@ -1,6 +1,6 @@
 "use client"
 
-import { PERSIAN_DAY_NAMES, formatPersianDate } from "./utils"
+import { formatPersianDate, formatWeekday } from "./utils"
 import { SlotCard } from "./slot-card"
 import type { TimeSlot } from "./types"
 import { CalendarDays } from "lucide-react"
@@ -32,7 +32,7 @@ export function DayColumn({
           isToday ? "border-primary/20 bg-primary/5" : "bg-muted/30"
         }`}
       >
-        <div className="text-sm font-medium">{PERSIAN_DAY_NAMES[dayIndex]}</div>
+        <div className="text-sm font-medium">{formatWeekday(day)}</div>
         <div className="mt-0.5 text-xs text-muted-foreground">
           {formatPersianDate(day)}
         </div>

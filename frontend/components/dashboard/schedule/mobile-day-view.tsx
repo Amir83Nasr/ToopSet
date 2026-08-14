@@ -5,10 +5,10 @@ import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SlotCard } from "./slot-card"
 import {
-  PERSIAN_DAY_NAMES,
   getWeekDays,
   getDateKey,
   groupSlotsByDateKey,
+  formatWeekday,
 } from "./utils"
 import type { TimeSlot } from "./types"
 
@@ -47,7 +47,7 @@ export function MobileDayView({
   // Convert days to swipe-friendly format
   const dayOptions = days.map((d, i) => ({
     index: i,
-    label: `${PERSIAN_DAY_NAMES[i]} ${d.toLocaleDateString("fa-IR", { day: "numeric" })}`,
+    label: `${formatWeekday(d)} ${d.toLocaleDateString("fa-IR", { day: "numeric" })}`,
     isToday: getDateKey(d) === todayKey,
   }))
 
