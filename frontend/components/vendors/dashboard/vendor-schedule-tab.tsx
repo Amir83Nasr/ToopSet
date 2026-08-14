@@ -264,8 +264,9 @@ export function VendorScheduleTab({
               </CardDescription>
             </div>
             <div className="flex w-full items-center gap-2 sm:w-auto">
-              <Button variant="outline" size="icon-sm" onClick={onPrevWeek}>
-                <ChevronRight className="size-4" />
+              <Button variant="outline" size="sm" onClick={onPrevWeek}>
+                <ChevronRight className="ms-1 size-4" />
+                <span>هفته قبل</span>
               </Button>
               <Button
                 variant="outline"
@@ -273,10 +274,11 @@ export function VendorScheduleTab({
                 className="flex-1 sm:flex-none"
                 onClick={onThisWeek}
               >
-                این هفته
+                <span>این هفته</span>
               </Button>
-              <Button variant="outline" size="icon-sm" onClick={onNextWeek}>
-                <ChevronLeft className="size-4" />
+              <Button variant="outline" size="sm" onClick={onNextWeek}>
+                <span>هفته بعد</span>
+                <ChevronLeft className="me-1 size-4" />
               </Button>
               <Button variant="ghost" size="icon-sm" onClick={onRefresh}>
                 <RefreshCw

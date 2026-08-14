@@ -311,12 +311,13 @@ export default function PublicVendorDetailPage() {
 
   const weekRange = useMemo(() => {
     if (weekDays.length < 7) return ""
-    const from = `${weekDays[0].dayNum} ${weekDays[0].month}`
-    const to = `${weekDays[6].dayNum} ${weekDays[6].month}`
-    if (weekDays[0].month === weekDays[6].month) {
-      return `${weekDays[0].dayNum} ${weekDays[0].month} — ${weekDays[6].dayNum}`
+    const start = weekDays[0]
+    const end = weekDays[6]
+    // If same month and year, render like: ۱۵ الی ۲۱ مهر
+    if (start.month === end.month) {
+      return `${start.dayNum} الی ${end.dayNum} ${end.month}`
     }
-    return `${from} — ${to}`
+    return `${start.dayNum} ${start.month} الی ${end.dayNum} ${end.month}`
   }, [weekDays])
 
   const selectedDayInfo = useMemo(
@@ -622,26 +623,32 @@ export default function PublicVendorDetailPage() {
             <div className="lg:col-span-2">
               <div className="rounded-xl border bg-card">
                 {/* ── Week nav ── */}
-                <div className="flex items-center justify-between border-b px-5 py-4">
-                  <h2 className="text-base font-semibold">برنامه هفتگی</h2>
-                  <div className="flex items-center gap-2">
-                    <button
+                <div className="flex flex-col gap-3 border-b px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <h2 className="text-sm font-semibold sm:text-base">برنامه هفتگی</h2>
+                  <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={goPrevWeek}
                       disabled={!canGoPrevWeek}
-                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-card disabled:hover:text-muted-foreground"
+                      className="h-8 gap-1 px-2.5 text-xs font-medium"
                     >
-                      <ChevronRight className="size-4" />
-                    </button>
-                    <span className="min-w-32 text-center text-xs font-semibold text-foreground">
+                      <ChevronRight className="size-3.5" />
+                      <span>هفته قبل</span>
+                    </Button>
+                    <span className="min-w-28 text-center text-xs font-semibold text-foreground sm:px-2">
                       {weekRange}
                     </span>
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={goNextWeek}
                       disabled={!canGoNextWeek}
-                      className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-card disabled:hover:text-muted-foreground"
+                      className="h-8 gap-1 px-2.5 text-xs font-medium"
                     >
-                      <ChevronLeft className="size-4" />
-                    </button>
+                      <span>هفته بعد</span>
+                      <ChevronLeft className="size-3.5" />
+                    </Button>
                   </div>
                 </div>
 

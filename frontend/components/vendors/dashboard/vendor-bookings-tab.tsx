@@ -201,18 +201,21 @@ export function VendorBookingsTab({
       {/* Week navigation */}
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex w-full items-center gap-2 sm:w-auto">
-          <Button variant="outline" size="icon-sm" onClick={onPrevWeek}>
-            <ChevronRight className="size-4" />
+          <Button variant="outline" size="sm" onClick={onPrevWeek}>
+            <ChevronRight className="ms-1 size-4" />
+            <span>هفته قبل</span>
           </Button>
           <Button
             variant="outline"
+            size="sm"
             className="flex-1 sm:flex-none"
             onClick={onThisWeek}
           >
-            این هفته
+            <span>این هفته</span>
           </Button>
-          <Button variant="outline" size="icon-sm" onClick={onNextWeek}>
-            <ChevronLeft className="size-4" />
+          <Button variant="outline" size="sm" onClick={onNextWeek}>
+            <span>هفته بعد</span>
+            <ChevronLeft className="me-1 size-4" />
           </Button>
         </div>
         <div className="text-center text-sm font-medium sm:text-start">
