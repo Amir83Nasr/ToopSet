@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { BookingBallOption } from "@/components/bookings/booking-ball-option"
 
-const formatPrice = (price: number) => `${price.toLocaleString("fa-IR")} تومان`
+import { formatPrice } from "@/lib/utils"
 
 describe("BookingBallOption", () => {
   it("warns the user when the vendor has no ball", () => {
@@ -41,7 +41,7 @@ describe("BookingBallOption", () => {
 
     const button = screen.getByRole("button", { name: /افزودن توپ به رزرو/ })
     expect(button).toHaveAttribute("aria-pressed", "false")
-    expect(screen.getByText("۷۵٬۰۰۰ تومان")).toBeInTheDocument()
+    expect(screen.getByText("۷۵٬۰۰۰ تومانءء")).toBeInTheDocument()
     await user.click(button)
     expect(onToggle).toHaveBeenCalledOnce()
   })

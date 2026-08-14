@@ -18,7 +18,7 @@ import { toPersianDigits } from "@/lib/utils"
  */
 export function formatMoney(amount: number | null | undefined): string {
   if (amount == null) return "—"
-  return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومان`
+  return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومانءء`
 }
 
 // ── Enum / Status translation ─────────────────────────────────

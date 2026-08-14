@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import * as React from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits, toLocalDateStr, todayStr } from "@/lib/utils"
+import { toPersianDigits, toLocalDateStr, todayStr, formatPersianDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -59,9 +59,7 @@ interface LogEntry {
 
 function formatDate(iso: string): string {
   const normalized = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z"
-  return new Date(normalized).toLocaleDateString("fa-IR", {
-    timeZone: "Asia/Tehran",
-  })
+  return formatPersianDate(normalized)
 }
 
 function formatTime(iso: string): string {

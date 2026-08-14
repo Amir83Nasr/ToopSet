@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPersianDate } from "@/lib/utils"
 import { formatMoney } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -307,16 +307,17 @@ export default function AdminSettlementsPage() {
         </Card>
       ) : (
         <div>
-          <Table className="min-w-300 table-fixed">
+          <Table className="min-w-330 table-fixed">
             <colgroup>
-              <col className="w-44" />
-              <col className="w-52" />
-              <col className="w-36" />
-              <col className="w-36" />
-              <col className="w-36" />
-              <col className="w-24" />
+              <col className="w-40" />
+              <col className="w-48" />
               <col className="w-32" />
-              <col className="w-56" />
+              <col className="w-32" />
+              <col className="w-36" />
+              <col className="w-20" />
+              <col className="w-32" />
+              <col className="w-28" />
+              <col className="w-52" />
             </colgroup>
             <TableHeader>
               <TableRow>
@@ -328,6 +329,7 @@ export default function AdminSettlementsPage() {
                 <TableHead className="text-center">رزروها</TableHead>
                 <TableHead className="text-center">تاریخ</TableHead>
                 <TableHead className="text-center">وضعیت</TableHead>
+                <TableHead className="text-center">عملیات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -348,14 +350,29 @@ export default function AdminSettlementsPage() {
                   <TableCell className="text-center">
                     {toPersianDigits(s.bookings_count)}
                   </TableCell>
-                  <TableCell className="text-center">
-                    {new Date(s.requested_at).toLocaleDateString("fa-IR")}
+                  <TableCell className="text-center text-xs whitespace-nowrap">
+                    <div>{formatPersianDate(s.requested_at)}</div>
+                    <div className="text-muted-foreground mt-0.5">
+                      <span dir="ltr" className="inline-block">
+                        {new Date(s.requested_at).toLocaleTimeString("fa-IR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Asia/Tehran",
+                        })}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-wrap justify-center gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      {statusLabels[s.status] ?? s.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1 whitespace-nowrap">
                       <Button
                         size="sm"
                         variant="outline"
+                        className="px-2"
                         onClick={() => fetchDetail(s.id)}
                       >
                         جزئیات
@@ -364,13 +381,15 @@ export default function AdminSettlementsPage() {
                         <>
                           <Button
                             size="sm"
+                            className="px-2"
                             onClick={() => updateStatus(s.id, "approved")}
                           >
-                            تأیید کامل
+                            تأیید
                           </Button>
                           <Button
                             size="sm"
                             variant="destructive"
+                            className="px-2"
                             onClick={() => updateStatus(s.id, "rejected")}
                           >
                             رد
@@ -378,13 +397,14 @@ export default function AdminSettlementsPage() {
                         </>
                       )}
                       {s.status === "approved" && (
-                        <Button size="sm" onClick={() => openPaymentDialog(s)}>
-                          ثبت پرداخت
+                        <Button
+                          size="sm"
+                          className="px-2"
+                          onClick={() => openPaymentDialog(s)}
+                        >
+                          پرداخت
                         </Button>
                       )}
-                      <span className="w-full text-xs text-muted-foreground">
-                        {statusLabels[s.status] ?? s.status}
-                      </span>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -443,8 +463,17 @@ export default function AdminSettlementsPage() {
                     <TableRow key={item.booking_id}>
                       <TableCell>{toPersianDigits(item.booking_id)}</TableCell>
                       <TableCell>{item.customer_name}</TableCell>
-                      <TableCell>
-                        {new Date(item.slot_start_time).toLocaleString("fa-IR")}
+                      <TableCell className="text-center text-xs whitespace-nowrap">
+                        <div>{formatPersianDate(item.slot_start_time)}</div>
+                        <div className="text-muted-foreground mt-0.5">
+                          <span dir="ltr" className="inline-block">
+                            {new Date(item.slot_start_time).toLocaleTimeString("fa-IR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              timeZone: "Asia/Tehran",
+                            })}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>{money(item.amount)}</TableCell>
                     </TableRow>

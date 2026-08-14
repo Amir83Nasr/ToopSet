@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { TimeSlot } from "@/components/vendors/vendor-shared"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPrice } from "@/lib/utils"
 import { toast } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -59,8 +59,8 @@ interface VendorScheduleTabProps {
   onRefresh: () => void
 }
 
-function formatPrice(value: number | string): string {
-  return `${Number(value).toLocaleString("fa-IR")} تومان`
+function formatPriceVal(value: number | string): string {
+  return formatPrice(Number(value) || 0)
 }
 
 export function VendorScheduleTab({
@@ -229,7 +229,7 @@ export function VendorScheduleTab({
                             </div>
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <DollarSign className="size-3.5" />
-                              {formatPrice(item.base_price)}
+                              {formatPriceVal(item.base_price)}
                             </div>
                             <Badge
                               variant={

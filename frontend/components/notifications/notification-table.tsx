@@ -1,6 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import { cn, formatPersianDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,8 +17,7 @@ import { CheckCheck } from "lucide-react"
 /* ── Helpers ── */
 
 function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString("fa-IR")
+  return formatPersianDate(iso)
 }
 
 function formatTime(iso: string): string {

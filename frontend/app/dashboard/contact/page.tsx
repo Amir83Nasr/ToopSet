@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPersianDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -57,12 +57,14 @@ interface ContactMessage {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  return formatPersianDate(iso)
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("fa-IR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Tehran",
   })
 }
 
@@ -273,7 +275,12 @@ export default function ContactMessagesPage() {
                       <p className="truncate">{msg.subject}</p>
                     </TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">
-                      {formatDate(msg.created_at)}
+                      <div>{formatDate(msg.created_at)}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        <span dir="ltr" className="inline-block">
+                          {formatTime(msg.created_at)}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div

@@ -51,7 +51,7 @@ function formatTime(iso: string): string {
 }
 
 function formatPrice(price: number): string {
-  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
+  return toPersianDigits(new Intl.NumberFormat("fa-IR").format(price)) + " تومانءء"
 }
 
 function formatDate(iso: string): string {

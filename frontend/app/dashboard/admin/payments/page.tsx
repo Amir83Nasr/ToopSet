@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -51,11 +51,11 @@ interface PaymentListResponse {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  return formatPersianDate(iso)
 }
 
 function formatAmount(amount: number): string {
-  return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومان`
+  return formatPrice(amount)
 }
 
 export default function AdminPaymentsPage() {

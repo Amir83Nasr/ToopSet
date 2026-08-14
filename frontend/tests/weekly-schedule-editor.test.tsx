@@ -181,7 +181,7 @@ describe("VendorScheduleTab", () => {
       )
     )
     expect(await screen.findByText("08:00 – 10:00")).toBeInTheDocument()
-    expect(screen.getByText("۲۵۰٬۰۰۰ تومان")).toBeInTheDocument()
+    expect(screen.getByText("۲۵۰٬۰۰۰ تومانءء")).toBeInTheDocument()
     expect(screen.getByText("بانوان")).toBeInTheDocument()
     await user.click(screen.getByText("ویرایش برنامه هفتگی"))
 

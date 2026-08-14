@@ -90,15 +90,17 @@ export function ImageUpload({
   const canUpload = images.length < maxImages
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-3">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {images.map((url, index) => {
           const normalizedUrl = buildVendorImageUrl(url)
           const hasFailed = failedImages.has(url)
           return (
             <div
               key={url}
-              className="group relative size-24 overflow-hidden rounded-lg border"
+              className={`group relative aspect-square overflow-hidden rounded-xl border-2 bg-muted/40 transition-all ${
+                index === 0 ? "border-primary shadow-md ring-2 ring-primary/20" : "border-border hover:border-primary/50"
+              }`}
             >
               {hasFailed ? (
                 <div className="flex size-full items-center justify-center bg-muted">
@@ -109,17 +111,18 @@ export function ImageUpload({
                   src={normalizedUrl}
                   alt={`تصویر ${index + 1}`}
                   fill
-                  className="object-cover"
-                  sizes="96px"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="(max-width: 768px) 50vw, 200px"
                   unoptimized
                   onError={() => {
                     setFailedImages((prev) => new Set(prev).add(url))
                   }}
                 />
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-80 group-hover:opacity-100 transition-opacity" />
               {index === 0 ? (
-                <span className="absolute inset-x-1 bottom-1 flex h-6 items-center justify-center gap-1 rounded-md bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground shadow-sm">
-                  <Star className="size-3 fill-current" />
+                <span className="absolute inset-x-2 bottom-2 flex h-7 items-center justify-center gap-1.5 rounded-lg bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md">
+                  <Star className="size-3.5 fill-current" />
                   عکس اصلی
                 </span>
               ) : (
@@ -127,21 +130,21 @@ export function ImageUpload({
                   type="button"
                   aria-label={`انتخاب تصویر ${toPersianDigits(index + 1)} به عنوان عکس اصلی`}
                   onClick={() => setMainImage(index)}
-                  className="absolute inset-x-1 bottom-1 flex h-6 cursor-pointer items-center justify-center gap-1 rounded-md bg-black/65 px-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-primary"
+                  className="absolute inset-x-2 bottom-2 flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-black/75 px-2 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-primary"
                 >
-                  <Star className="size-3" />
+                  <Star className="size-3.5" />
                   انتخاب اصلی
                 </button>
               )}
               <Button
                 type="button"
                 variant="destructive"
-                size="icon-xs"
+                size="icon"
                 aria-label={`حذف تصویر ${toPersianDigits(index + 1)}`}
                 onClick={() => removeImage(index)}
-                className="absolute end-1 top-1 z-10 rounded-md bg-black/65 text-white opacity-100 hover:bg-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute end-2 top-2 z-10 size-8 rounded-lg bg-black/70 text-white shadow-md backdrop-blur-sm transition-transform hover:scale-110 hover:bg-destructive"
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-4" />
               </Button>
             </div>
           )
@@ -149,11 +152,16 @@ export function ImageUpload({
 
         {/* Upload placeholder */}
         {canUpload && (
-          <label className="flex size-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+          <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/20 text-muted-foreground transition-all hover:border-primary hover:bg-primary/5 hover:text-primary">
             {uploading ? (
-              <Loader2 className="size-6 animate-spin" />
+              <Loader2 className="size-8 animate-spin text-primary" />
             ) : (
-              <ImagePlus className="size-6" />
+              <>
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <ImagePlus className="size-6" />
+                </div>
+                <span className="text-xs font-medium">افزودن تصویر</span>
+              </>
             )}
             <input
               type="file"

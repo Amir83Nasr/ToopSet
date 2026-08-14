@@ -50,11 +50,10 @@ export function AmenityCheckboxes({ value, onChange }: AmenityCheckboxesProps) {
   )
 
   return (
-    <div className="space-y-2">
-      <Label>امکانات</Label>
-      <div className="grid grid-cols-2 gap-3 rounded-lg border p-4">
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border p-4 bg-card">
         {AMENITIES.map((amenity) => (
-          <div key={amenity.key} className="flex items-center gap-2">
+          <div key={amenity.key} className="flex items-center gap-2.5 py-1">
             <Checkbox
               id={`amenity-${amenity.key}`}
               checked={!!current[amenity.key]}
@@ -64,7 +63,7 @@ export function AmenityCheckboxes({ value, onChange }: AmenityCheckboxesProps) {
             />
             <Label
               htmlFor={`amenity-${amenity.key}`}
-              className="text-sm leading-none font-normal peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm leading-none font-normal cursor-pointer"
             >
               {amenity.label}
             </Label>

@@ -31,7 +31,7 @@ interface BookingCancelDialogProps {
 }
 
 function formatMoney(amount: number): string {
-  return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`
+  return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومانءء`
 }
 
 function modeLabel(mode: string): string {

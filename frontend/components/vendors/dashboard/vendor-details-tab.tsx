@@ -155,61 +155,48 @@ export function VendorDetailsTab({
       <Card>
         <CardHeader>
           <CardTitle>
-            <div className="flex items-center gap-2.5">
-              <div className="h-6 w-1 rounded-full bg-primary/60" />
-              <h3 className="text-sm font-semibold text-foreground">
-                ورزش‌های قابل ارائه
-              </h3>
-              {errors.sport_types?.message && (
-                <span className="mr-auto text-xs text-destructive">
-                  {String(errors.sport_types.message)}
-                </span>
-              )}
-            </div>
+            <SectionTitle title="ورزش‌های قابل ارائه" />
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {sportTypes.map((sport) => {
               const checked = watchSportTypes.includes(sport.value)
               return (
                 <button
                   type="button"
                   key={sport.value}
-                  aria-pressed={checked}
                   onClick={() => toggleSportType(sport.value)}
-                  className={`group flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border-2 p-3 text-sm transition-all sm:gap-3 sm:p-4 ${
+                  className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 p-4 text-center transition-all ${
                     checked
-                      ? "border-primary bg-primary/4 shadow-sm ring-1 ring-primary/20"
-                      : "border-border hover:border-primary/30 hover:bg-accent/30"
+                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                      : "border-border bg-card hover:border-primary/50 hover:bg-muted/50"
                   }`}
                 >
                   <div
-                    className={`flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-full transition-colors ${
                       checked
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-muted-foreground/30 group-hover:border-primary/50"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {checked && (
-                      <svg className="size-3" viewBox="0 0 12 12" fill="none">
-                        <path
-                          d="M2.5 6L5 8.5L9.5 3.5"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
+                    {/* Add icons here based on sport */}
+                    <span className="text-xl">
+                      {sport.value === "volleyball" ? "🏐" : sport.value === "basketball" ? "🏀" : sport.value === "futsal" ? "⚽" : "🏀"}
+                    </span>
                   </div>
-                  <span className="min-w-0 truncate font-medium text-foreground/90">
+                  <span className="text-sm font-semibold text-foreground/90">
                     {sport.label}
                   </span>
                 </button>
               )
             })}
           </div>
+          {errors.sport_types?.message && (
+            <p className="mt-4 text-xs text-destructive">
+              {String(errors.sport_types.message)}
+            </p>
+          )}
         </CardContent>
       </Card>
 

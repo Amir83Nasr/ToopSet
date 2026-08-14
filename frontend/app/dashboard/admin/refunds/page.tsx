@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPersianDate } from "@/lib/utils"
 import { formatMoney } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -304,17 +304,17 @@ export default function AdminRefundsPage() {
       ) : (
         <div>
           <Table className="min-w-400 table-fixed">
-            <colgroup>
+  <colgroup>
               <col className="w-48" />
-              <col className="w-52" />
-              <col className="w-44" />
+              <col className="w-48" />
+              <col className="w-36" />
               <col className="w-28" />
               <col className="w-28" />
               <col className="w-28" />
-              <col className="w-28" />
+              <col className="w-32" />
               <col className="w-28" />
               <col className="w-48" />
-              <col className="w-60" />
+              <col className="w-48" />
             </colgroup>
             <TableHeader>
               <TableRow>
@@ -333,15 +333,24 @@ export default function AdminRefundsPage() {
             <TableBody>
               {filteredRefunds.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="text-center">
-                    <div>{r.user_name}</div>
+                  <TableCell>
+                    <div className="font-medium">{r.user_name}</div>
                     <div className="text-xs text-muted-foreground">
                       {toPersianDigits(r.user_phone)}
                     </div>
                   </TableCell>
                   <TableCell>{r.vendor_name}</TableCell>
-                  <TableCell>
-                    {new Date(r.slot_start_time).toLocaleString("fa-IR")}
+                  <TableCell className="text-center text-xs whitespace-nowrap">
+                    <div>{formatPersianDate(r.slot_start_time)}</div>
+                    <div className="text-muted-foreground mt-0.5">
+                      <span dir="ltr" className="inline-block">
+                        {new Date(r.slot_start_time).toLocaleTimeString("fa-IR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Asia/Tehran",
+                        })}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     {money(r.total_paid)}

@@ -9,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+import { cn, formatPersianDate } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 
@@ -30,8 +30,8 @@ function DateRangePicker({
 
   const rangeText = React.useMemo(() => {
     if (!value?.from && !value?.to) return null
-    const fromStr = value.from?.toLocaleDateString("fa-IR")
-    const toStr = value.to?.toLocaleDateString("fa-IR")
+    const fromStr = value.from ? formatPersianDate(value.from) : undefined
+    const toStr = value.to ? formatPersianDate(value.to) : undefined
     if (fromStr && toStr && fromStr !== toStr) return `${fromStr} تا ${toStr}`
     if (fromStr && toStr && fromStr === toStr) return fromStr
     if (fromStr) return `از ${fromStr}`
@@ -62,7 +62,7 @@ function DateRangePicker({
         <div dir="rtl">
           <div className="border-b px-4 py-2 text-xs text-muted-foreground">
             {value?.from
-              ? `انتخاب تاریخ پایان — شروع: ${value.from.toLocaleDateString("fa-IR")}`
+              ? `انتخاب تاریخ پایان — شروع: ${formatPersianDate(value.from)}`
               : "تاریخ شروع را انتخاب کنید"}
           </div>
           <Calendar

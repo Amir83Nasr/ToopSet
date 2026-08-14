@@ -227,7 +227,9 @@ export default function AdminManagerCancellationsPage() {
                   <TableCell>
                     <div>{r.affected_full_name || "-"}</div>
                     <div className="text-xs text-muted-foreground">
-                      {toPersianDigits(r.affected_phone || "-")}
+                      <span dir="ltr" className="inline-block">
+                        {toPersianDigits(r.affected_phone || "-")}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">

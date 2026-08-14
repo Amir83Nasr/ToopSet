@@ -1,7 +1,7 @@
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 
 export function formatBookingDate(iso: string): string {
-  return toPersianDigits(new Date(iso).toLocaleDateString("fa-IR"))
+  return formatPersianDate(iso)
 }
 
 export function formatBookingWeekday(iso: string): string {
@@ -29,7 +29,7 @@ export function getPersianDayIndex(date: Date): number {
 }
 
 export function formatMoney(amount: number): string {
-  return `${toPersianDigits(new Intl.NumberFormat("fa-IR").format(amount))} تومان`
+  return formatPrice(amount)
 }
 
 export interface ManagerBooking {

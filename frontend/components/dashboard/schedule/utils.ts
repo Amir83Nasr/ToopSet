@@ -1,6 +1,8 @@
 import type { DateRange } from "@daypicker/react"
 import type { TimeSlot, TimeSlotTemplate } from "./types"
 
+import { formatPrice as libFormatPrice, formatPersianDate as libFormatPersianDate } from "@/lib/utils"
+
 export const PERSIAN_DAY_NAMES = [
   "شنبه",
   "یکشنبه",
@@ -19,7 +21,7 @@ export function formatTime(iso: string): string {
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("fa-IR").format(price) + " تومان"
+  return libFormatPrice(price)
 }
 
 export function formatPersianDate(date: Date): string {

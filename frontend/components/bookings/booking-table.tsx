@@ -19,7 +19,7 @@ import type { BookingDetail } from "@/components/bookings/types"
 /* ── Helpers ── */
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  return formatPersianDate(iso)
 }
 
 function formatWeekday(iso: string): string {
@@ -34,7 +34,7 @@ function formatTime(iso: string): string {
 }
 
 function formatMoney(amount: number): string {
-  return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`
+  return formatPrice(amount)
 }
 
 function refundBadge(booking: BookingDetail): {
@@ -104,7 +104,7 @@ export function BookingTable({
         }
         tableWrapperClassName="shadow-xs"
       >
-        <colgroup>
+          <colgroup>
           <col className="w-[210px]" />
           <col className="w-[135px]" />
           <col className="w-[90px]" />
@@ -112,7 +112,7 @@ export function BookingTable({
           <col className="w-[145px]" />
           <col className="w-[175px]" />
           {showRefundStatus && <col className="w-[220px]" />}
-          <col className="w-[220px]" />
+          <col className="w-[180px]" />
         </colgroup>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

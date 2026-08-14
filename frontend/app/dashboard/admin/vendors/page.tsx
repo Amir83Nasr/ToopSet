@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
-import { usePaginationLimit } from "@/hooks/use-pagination-limit"
+import { formatPersianDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -57,7 +57,7 @@ interface PendingVendor {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  return formatPersianDate(iso)
 }
 
 function formatPersianNumber(num: number): string {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -52,7 +52,7 @@ interface AdminBooking {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  return formatPersianDate(iso)
 }
 
 function formatWeekday(iso: string): string {
@@ -274,7 +274,7 @@ export default function AdminBookingsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-center">
-                    {new Intl.NumberFormat("fa-IR").format(b.price_paid)} تومان
+                    {formatPrice(b.price_paid)}
                   </TableCell>
                   <TableCell className="text-center">
                     <span

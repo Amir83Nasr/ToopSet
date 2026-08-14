@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPersianDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -80,7 +80,7 @@ const roleOptions = [
 ]
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR")
+  return formatPersianDate(iso)
 }
 
 export default function UsersPage() {
