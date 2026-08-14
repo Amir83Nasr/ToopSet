@@ -329,9 +329,8 @@ export function VendorFinanceTab({
                   <span>{formatMoney(settlement.requested_amount)}</span>
                   <Badge variant="outline">{settlement.status}</Badge>
                   {settlement.payment_tracking_code && (
-                    <span>
-                      پیگیری:{" "}
-                      {toPersianDigits(settlement.payment_tracking_code)}
+                    <span dir="ltr">
+                      {settlement.payment_tracking_code}
                     </span>
                   )}
                   <Button
@@ -396,12 +395,8 @@ export function VendorFinanceTab({
                 </div>
                 <div>
                   <span className="text-muted-foreground">کد رهگیری</span>
-                  <div className="font-medium">
-                    {selectedSettlement.payment_tracking_code
-                      ? toPersianDigits(
-                          selectedSettlement.payment_tracking_code
-                        )
-                      : "ثبت نشده"}
+                  <div className="font-medium" dir="ltr">
+                    {selectedSettlement.payment_tracking_code || "ثبت نشده"}
                   </div>
                 </div>
                 <div>

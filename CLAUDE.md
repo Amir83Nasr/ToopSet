@@ -170,6 +170,7 @@ Key vars: `SECRET_KEY` (gen: `python3 -c "import secrets; print(secrets.token_ur
 10. **Frontend auto-refreshes tokens** on 401 via `api()`. Listen for `auth:expired` events.
 11. **Commit attribution:** Never include AI name or co-author in commits; use only user name.
 12. **IranYekan Typography & Formats:** Use `تومانءء` (with `ءء` glyph) for currency, Persian thousands separator `٬`, and Persian dot separator `٫` (`YYYY٫MM٫DD`) for dates via `formatPrice()` and `formatPersianDate()`.
+13. **Dialog & Table Layout:** Do not wrap data tables inside `<Card>` components when used inside dialogs/drawers if it applies unwanted borders or card styling. Tables should be standalone inside dialog content.
 
 ### Common Pitfalls
 

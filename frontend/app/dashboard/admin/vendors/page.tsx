@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
-import { formatPersianDate } from "@/lib/utils"
+import { formatPersianDate, toPersianDigits } from "@/lib/utils"
+import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,

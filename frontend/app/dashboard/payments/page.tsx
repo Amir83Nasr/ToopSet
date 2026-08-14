@@ -284,10 +284,8 @@ export default function PaymentsPage() {
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <dt className="text-xs text-muted-foreground">کد پیگیری</dt>
-                    <dd className="font-mono text-xs text-muted-foreground">
-                      {p.gateway_transaction_id
-                        ? toPersianDigits(p.gateway_transaction_id)
-                        : "-"}
+                    <dd className="text-xs text-muted-foreground" dir="ltr">
+                      {p.gateway_transaction_id || "-"}
                     </dd>
                   </div>
                 </dl>
@@ -351,10 +349,8 @@ export default function PaymentsPage() {
                       "-"
                     )}
                   </TableCell>
-                  <TableCell className="text-center font-mono text-xs text-muted-foreground">
-                    {p.gateway_transaction_id
-                      ? toPersianDigits(p.gateway_transaction_id)
-                      : "-"}
+                  <TableCell className="text-center text-xs text-muted-foreground" dir="ltr">
+                    {p.gateway_transaction_id || "-"}
                   </TableCell>
                 </TableRow>
               )

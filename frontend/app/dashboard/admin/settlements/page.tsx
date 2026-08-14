@@ -91,6 +91,7 @@ export default function AdminSettlementsPage() {
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState(todayStr())
   const [detail, setDetail] = useState<SettlementDetail | null>(null)
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [revealedCard, setRevealedCard] = useState<string | null>(null)
   const [paymentDialogSettlement, setPaymentDialogSettlement] =
     useState<Settlement | null>(null)
@@ -212,7 +213,10 @@ export default function AdminSettlementsPage() {
   async function fetchDetail(id: number) {
     try {
       setRevealedCard(null)
-      setDetail(await api<SettlementDetail>(`/api/v1/admin/settlements/${id}`))
+      const data = await api<SettlementDetail>(`/api/v1/admin/settlements/${id}`)
+      setDetail(data)
+      setDetailDialogOpen(true)
+      revealDestination(id)
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "خطا در دریافت جزئیات"
@@ -413,77 +417,92 @@ export default function AdminSettlementsPage() {
           </Table>
         </div>
       )}
-      {detail && (
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold">
-                جزئیات تسویه {toPersianDigits(detail.id)}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDetail(null)}
-              >
-                بستن
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              مقصد: {detail.destination_card_masked || "ثبت نشده"} —{" "}
-              {detail.destination_card_holder_name || "بدون نام"}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              کد رهگیری:{" "}
-              {detail.payment_tracking_code
-                ? toPersianDigits(detail.payment_tracking_code)
-                : "ثبت نشده"}
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => revealDestination(detail.id)}
-              >
-                نمایش شماره کامل کارت
-              </Button>
-              {revealedCard && <span dir="ltr">{revealedCard}</span>}
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>رزرو</TableHead>
-                    <TableHead>مشتری</TableHead>
-                    <TableHead>زمان سانس</TableHead>
-                    <TableHead>مبلغ خالص</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {detail.items.map((item) => (
-                    <TableRow key={item.booking_id}>
-                      <TableCell>{toPersianDigits(item.booking_id)}</TableCell>
-                      <TableCell>{item.customer_name}</TableCell>
-                      <TableCell className="text-center text-xs whitespace-nowrap">
-                        <div>{formatPersianDate(item.slot_start_time)}</div>
-                        <div className="text-muted-foreground mt-0.5">
-                          <span dir="ltr" className="inline-block">
-                            {new Date(item.slot_start_time).toLocaleTimeString("fa-IR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              timeZone: "Asia/Tehran",
-                            })}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{money(item.amount)}</TableCell>
+      <ResponsiveDialog
+        open={detailDialogOpen}
+        onOpenChange={(open) => {
+          setDetailDialogOpen(open)
+          if (!open) setDetail(null)
+        }}
+      >
+        <ResponsiveDialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
+              جزئیات تسویه {detail ? toPersianDigits(detail.id) : ""}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              مشاهده اطلاعات کامل و اقساط رزروهای مرتبط با این درخواست تسویه.
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          {detail && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="text-muted-foreground">کارت مقصد:</span>
+                  <span dir="ltr" className="font-medium">
+                    {revealedCard || detail.destination_card_masked || "ثبت نشده"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="text-muted-foreground">صاحب حساب:</span>
+                  <span className="font-medium">
+                    {detail.destination_card_holder_name || "بدون نام"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="text-muted-foreground">کد رهگیری:</span>
+                  <span dir="ltr">
+                    {detail.payment_tracking_code || "ثبت نشده"}
+                  </span>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>رزرو</TableHead>
+                      <TableHead>مشتری</TableHead>
+                      <TableHead>زمان سانس</TableHead>
+                      <TableHead>مبلغ خالص</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {detail.items.map((item) => (
+                      <TableRow key={item.booking_id}>
+                        <TableCell>{toPersianDigits(item.booking_id)}</TableCell>
+                        <TableCell>{item.customer_name}</TableCell>
+                        <TableCell className="text-center text-xs whitespace-nowrap">
+                          <div>{formatPersianDate(item.slot_start_time)}</div>
+                          <div className="text-muted-foreground mt-0.5">
+                            <span dir="ltr" className="inline-block">
+                              {new Date(item.slot_start_time).toLocaleTimeString("fa-IR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                timeZone: "Asia/Tehran",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{money(item.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+          <ResponsiveDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDetailDialogOpen(false)
+                setDetail(null)
+              }}
+            >
+              بستن
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <ResponsiveDialog
         open={paymentDialogSettlement !== null}
