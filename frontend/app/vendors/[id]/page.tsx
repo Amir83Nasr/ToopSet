@@ -753,42 +753,30 @@ export default function PublicVendorDetailPage() {
                       </div>
                     </div>
 
-                    {/* Booking CTA — desktop: static bar below table; mobile: opens booking drawer */}
+                      {/* Booking CTA — desktop: static bar below table; mobile: direct booking button */}
                     {selectedSlot &&
                       isSlotBookable(selectedSlot) &&
                       new Date(selectedSlot.start_time).getTime() > NOW && (
-                        <>
-                          <div className="hidden border-t lg:block">
-                            <div className="px-5 py-4">
+                        <div className="border-t">
+                          <div className="px-5 py-4">
+                            <div className="hidden lg:block">
                               <SlotInfo
                                 slot={selectedSlot}
                                 dateLabel={
                                   selectedDayInfo?.fullPersian || selectedDate
                                 }
                               />
-                              <Button
-                                size="md"
-                                className="mt-3 w-full font-semibold shadow-xs"
-                                onClick={() => handleBookSlot(selectedSlot)}
-                              >
-                                <CheckCircle2 className="ms-1.5 size-4" />
-                                {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
-                              </Button>
                             </div>
+                            <Button
+                              size="lg"
+                              className="w-full font-semibold shadow-xs"
+                              onClick={() => handleBookSlot(selectedSlot)}
+                            >
+                              <CheckCircle2 className="ms-1.5 size-5" />
+                              {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
+                            </Button>
                           </div>
-                          <div className="border-t lg:hidden">
-                            <div className="px-5 py-4">
-                              <Button
-                                size="lg"
-                                className="w-full font-semibold shadow-xs"
-                                onClick={() => setBookingDrawerOpen(true)}
-                              >
-                                <CheckCircle2 className="ms-1.5 size-5" />
-                                تکمیل رزرو
-                              </Button>
-                            </div>
-                          </div>
-                        </>
+                        </div>
                       )}
                   </>
                 )}
@@ -978,45 +966,6 @@ export default function PublicVendorDetailPage() {
             lightboxIndex={lightboxIndex}
             setLightboxIndex={setLightboxIndex}
           />
-
-          {/* ═══════════════════════════════════
-               Booking Drawer (mobile)
-               ═══════════════════════════════════ */}
-          <Drawer
-            open={
-              bookingDrawerOpen &&
-              !!selectedSlot &&
-              isSlotBookable(selectedSlot) &&
-              new Date(selectedSlot.start_time).getTime() > NOW
-            }
-            onOpenChange={setBookingDrawerOpen}
-            shouldScaleBackground={false}
-          >
-            <DrawerContent showCloseButton={false}>
-              <DrawerHeader className="text-start">
-                <DrawerTitle>تکمیل رزرو</DrawerTitle>
-                <DrawerDescription>
-                  جزئیات سانس انتخاب‌شده را بررسی کنید
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="pb-6">
-                {selectedSlot && (
-                  <SlotInfo
-                    slot={selectedSlot}
-                    dateLabel={selectedDayInfo?.fullPersian || selectedDate}
-                  />
-                )}
-                <Button
-                  size="lg"
-                  className="mt-4 w-full font-semibold shadow-xs"
-                  onClick={() => selectedSlot && handleBookSlot(selectedSlot)}
-                >
-                  <CheckCircle2 className="ms-1.5 size-5" />
-                  {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
-                </Button>
-              </div>
-            </DrawerContent>
-          </Drawer>
         </div>
       </main>
       <SiteFooter />
