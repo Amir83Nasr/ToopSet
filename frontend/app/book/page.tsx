@@ -1,11 +1,6 @@
 "use client"
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useState,
-} from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { api, ApiError } from "@/lib/api"
@@ -62,6 +57,27 @@ interface BookingResult {
   expires_at: string | null
 }
 
+interface PendingCheckout {
+  checkout_type: "booking" | "replacement_hold"
+  booking_id: number
+  vendor_id: number | null
+  vendor_name: string
+  track_id: string | null
+  start_url: string | null
+  can_resume: boolean
+  expires_at: string | null
+  message: string
+}
+
+interface PendingCheckoutErrorDetails {
+  code?: string
+  checkout_type?: "booking" | "replacement_hold"
+  booking_id?: number
+  hold_id?: number
+  payment_url?: string | null
+  expires_at?: string | null
+}
+
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
   basketball: "بسکتبال",
@@ -104,6 +120,8 @@ function BookPageContent() {
   } | null>(null)
   const [withBall, setWithBall] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string>("")
+  const [pendingCheckout, setPendingCheckout] =
+    useState<PendingCheckout | null>(null)
 
   // Redirect to login only if we're sure there's no auth (no token cookie)
   useEffect(() => {
@@ -136,6 +154,15 @@ function BookPageContent() {
 
     async function fetchDetails() {
       try {
+        const currentCheckout = await api<PendingCheckout | null>(
+          "/api/v1/bookings/pending-checkout"
+        )
+        if (currentCheckout) {
+          setPendingCheckout(currentCheckout)
+          setErrorMsg(currentCheckout.message)
+          setStep("conflict")
+          return
+        }
         const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
         if (!isSlotBookable(slotRes))
           throw new ApiError(409, "این سانس قبلاً رزرو شده است")
@@ -163,18 +190,18 @@ function BookPageContent() {
     fetchDetails()
   }, [slotId, vendorId, isAuthenticated])
 
-// Add type inside the file to avoid import issues
-interface ZibalPaymentStartResponse {
-  checkout_type: "booking"
-  payment_gateway: "zibal"
-  booking_id: number
-  payment_id: number
-  amount: number
-  track_id: string
-  start_url: string
-  callback_url: string
-  expires_at: string | null
-}
+  // Add type inside the file to avoid import issues
+  interface ZibalPaymentStartResponse {
+    checkout_type: "booking"
+    payment_gateway: "zibal"
+    booking_id: number
+    payment_id: number
+    amount: number
+    track_id: string
+    start_url: string
+    callback_url: string
+    expires_at: string | null
+  }
 
   const handleConfirm = useCallback(async () => {
     if (!slot) return
@@ -196,9 +223,12 @@ interface ZibalPaymentStartResponse {
       })
 
       // 2. Immediately pay/finalize booking
-      const payRes = await api<BookingResult | ZibalPaymentStartResponse>(`/api/v1/bookings/${res.id}/pay`, {
-        method: "POST",
-      })
+      const payRes = await api<BookingResult | ZibalPaymentStartResponse>(
+        `/api/v1/bookings/${res.id}/pay`,
+        {
+          method: "POST",
+        }
+      )
 
       // If gateway (e.g. zibal), redirect to start_url
       if (
@@ -219,6 +249,23 @@ interface ZibalPaymentStartResponse {
       if (err instanceof ApiError) {
         setErrorMsg(err.message)
         if (err.status === 409) {
+          const details = err.details as PendingCheckoutErrorDetails | undefined
+          if (details?.code === "pending_booking_limit_reached") {
+            const bookingId = details.booking_id ?? details.hold_id
+            if (bookingId) {
+              setPendingCheckout({
+                checkout_type: details.checkout_type ?? "booking",
+                booking_id: bookingId,
+                vendor_id: null,
+                vendor_name: "",
+                track_id: null,
+                start_url: details.payment_url ?? null,
+                can_resume: true,
+                expires_at: details.expires_at ?? null,
+                message: err.message,
+              })
+            }
+          }
           setStep("conflict")
           return
         }
@@ -367,18 +414,49 @@ interface ZibalPaymentStartResponse {
           {step === "conflict" && (
             <Card>
               <CardContent className="flex flex-col items-center gap-4 py-12">
-                <XCircle className="size-12 text-destructive" />
-                <CardTitle className="text-xl">متأسفیم</CardTitle>
+                {pendingCheckout ? (
+                  <AlertTriangle className="size-12 text-amber-600" />
+                ) : (
+                  <XCircle className="size-12 text-destructive" />
+                )}
+                <CardTitle className="text-xl">
+                  {pendingCheckout ? "رزرو در انتظار پرداخت" : "متأسفیم"}
+                </CardTitle>
                 <CardDescription className="text-center">
-                  این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را
-                  انتخاب کنید.
+                  {pendingCheckout
+                    ? errorMsg
+                    : "این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید."}
                 </CardDescription>
-                <Button asChild>
-                  <Link href={`/vendors/${vendorId}`}>
-                    <ArrowRight className="me-2 size-4" />
-                    انتخاب سانس دیگر
-                  </Link>
-                </Button>
+                {pendingCheckout ? (
+                  <div className="flex w-full max-w-sm flex-col gap-2">
+                    {pendingCheckout.can_resume && (
+                      <Button
+                        onClick={() => {
+                          if (pendingCheckout.start_url) {
+                            window.location.assign(pendingCheckout.start_url)
+                            return
+                          }
+                          router.push(
+                            `/book/payment?booking_id=${pendingCheckout.booking_id}&checkout_type=${pendingCheckout.checkout_type}`
+                          )
+                        }}
+                      >
+                        <CreditCard className="me-2 size-4" />
+                        ادامه پرداخت
+                      </Button>
+                    )}
+                    <Button variant="outline" asChild>
+                      <Link href="/dashboard/bookings">مشاهده رزروهای من</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button asChild>
+                    <Link href={`/vendors/${vendorId}`}>
+                      <ArrowRight className="me-2 size-4" />
+                      انتخاب سانس دیگر
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

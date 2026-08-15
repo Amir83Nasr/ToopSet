@@ -115,7 +115,7 @@ class TestCreateBooking:
             headers=user_headers,
         )
         assert resp2.status_code == 409
-        assert "قبلاً" in resp2.text
+        assert resp2.json()["detail"]["code"] == "pending_booking_limit_reached"
 
     async def test_user_cannot_hold_two_different_slots(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
@@ -146,7 +146,11 @@ class TestCreateBooking:
             headers=user_headers,
         )
         assert second.status_code == 409
-        assert "pending_booking_limit_reached" in second.text
+        detail = second.json()["detail"]
+        assert detail["code"] == "pending_booking_limit_reached"
+        assert detail["booking_id"] == first.json()["id"]
+        assert detail["payment_url"] is None
+        assert "یک رزرو در انتظار پرداخت دارید" in detail["message"]
 
     async def test_create_booking_version_conflict(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
@@ -331,7 +335,11 @@ class TestPayBooking:
             settings, "zibal_callback_url", "https://example.com/book/payment/callback"
         )
 
+        request_calls = 0
+
         async def fake_request_payment(self, **kwargs):
+            nonlocal request_calls
+            request_calls += 1
             return ZibalPaymentStartResult(
                 track_id="15966442233311",
                 start_url="https://gateway.zibal.ir/start/15966442233311",
@@ -364,6 +372,31 @@ class TestPayBooking:
         assert data["payment_gateway"] == "zibal"
         assert data["track_id"] == "15966442233311"
         assert data["start_url"].endswith("/start/15966442233311")
+
+        resumed = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
+        assert resumed.status_code == 200, resumed.text
+        assert resumed.json()["track_id"] == data["track_id"]
+        assert resumed.json()["start_url"] == data["start_url"]
+        assert request_calls == 1
+
+        pending = await client.get("/api/v1/bookings/pending-checkout", headers=user_headers)
+        assert pending.status_code == 200, pending.text
+        assert pending.json()["booking_id"] == booking_id
+        assert pending.json()["track_id"] == data["track_id"]
+        assert pending.json()["start_url"] == data["start_url"]
+        assert pending.json()["can_resume"] is True
+
+        second_slot_id = await _create_slot(client, session, vendor_id, offset_hours=8)
+        blocked = await client.post(
+            "/api/v1/bookings",
+            json={
+                "slot_id": second_slot_id,
+                "version": await _get_slot_version(client, second_slot_id),
+            },
+            headers=user_headers,
+        )
+        assert blocked.status_code == 409
+        assert blocked.json()["detail"]["payment_url"] == data["start_url"]
 
     async def test_verify_zibal_payment_confirms_booking(
         self,
@@ -530,7 +563,7 @@ class TestPayBooking:
 
 
 class TestCancelBooking:
-    async def test_cancel_pending_booking(
+    async def test_pending_booking_cannot_be_cancelled_from_site(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
@@ -549,8 +582,8 @@ class TestCancelBooking:
         booking_id = create.json()["id"]
 
         resp = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "cancelled"
+        assert resp.status_code == 409
+        assert "داخل سایت قابل لغو نیست" in resp.text
 
     async def test_cancel_already_cancelled(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
@@ -569,6 +602,10 @@ class TestCancelBooking:
         )
         booking_id = create.json()["id"]
 
-        await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
+        await session.execute(
+            text("UPDATE bookings SET status = 'cancelled' WHERE id = :id"),
+            {"id": booking_id},
+        )
+        await session.flush()
         resp = await client.post(f"/api/v1/bookings/{booking_id}/cancel", headers=user_headers)
         assert resp.status_code == 409

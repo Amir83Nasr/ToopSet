@@ -356,13 +356,20 @@ function PaymentPageContent() {
                 مشاهده رزروهای من
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleCancelBooking}
-            >
-              لغو رزرو
-            </Button>
+            {checkoutType === "replacement_hold" ? (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleCancelBooking}
+              >
+                آزاد کردن درخواست جایگزینی
+              </Button>
+            ) : (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800">
+                برای لغو این رزرو، وارد درگاه شوید و گزینه لغو پرداخت را انتخاب
+                کنید. دکمه بازگشت مرورگر پرداخت را لغو نمی‌کند.
+              </p>
+            )}
           </div>
         </div>
       </main>

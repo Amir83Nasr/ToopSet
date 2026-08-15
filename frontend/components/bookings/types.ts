@@ -17,6 +17,7 @@ export interface Booking {
   penalty_amount: number | null
   created_at: string
   updated_at: string
+  expires_at?: string | null
 }
 
 export interface BookingDetail extends Booking {
@@ -24,7 +25,12 @@ export interface BookingDetail extends Booking {
   vendor_address: string
   slot_start_time: string | null
   slot_end_time: string | null
-  payment: { id: number; status: string } | null
+  payment: {
+    id: number
+    status: string
+    gateway_transaction_id?: string | null
+    gateway_name?: string | null
+  } | null
   refund_status: string | null
   refund_amount: number | null
   refund_penalty_amount: number | null

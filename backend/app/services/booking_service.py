@@ -43,7 +43,11 @@ from app.schemas.booking import (
     PaymentResponse,
     ReplacementHoldResponse,
 )
-from app.schemas.payment import PaymentResolutionResponse, PaymentStartResponse
+from app.schemas.payment import (
+    PaymentResolutionResponse,
+    PaymentStartResponse,
+    PendingCheckoutResponse,
+)
 from app.services.bank_card_service import BankCardService
 from app.services.cache_service import invalidate_slot_list
 from app.services.finance_service import FinanceService
@@ -180,12 +184,28 @@ class BookingService:
                     )
                     await invalidate_slot_list(old_slot.vendor_id)
             elif pending:
+                payment = await self.payment_repo.get_by_booking(pending.id)
+                track_id = (
+                    payment.gateway_transaction_id
+                    if payment and payment.status == PaymentStatus.PENDING
+                    else None
+                )
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "code": "pending_booking_limit_reached",
-                        "message": "یک رزرو قبلاً در انتظار پرداخت دارید؛ ابتدا آن را پرداخت یا لغو کنید",
+                        "message": (
+                            "شما یک رزرو در انتظار پرداخت دارید. ابتدا پرداخت آن را تکمیل کنید "
+                            "یا از داخل درگاه پرداخت آن را لغو کنید تا بتوانید سانس دیگری رزرو کنید."
+                        ),
+                        "checkout_type": "booking",
                         "booking_id": pending.id,
+                        "track_id": track_id,
+                        "payment_url": (
+                            f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}"
+                            if track_id
+                            else None
+                        ),
                         "expires_at": pending.expires_at.isoformat()
                         if pending.expires_at
                         else None,
@@ -223,11 +243,92 @@ class BookingService:
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "code": "pending_booking_limit_reached",
-                        "message": "ابتدا فرایند رزرو قبلی را پرداخت یا لغو کنید",
+                        "message": (
+                            "شما یک فرایند جایگزینی در انتظار پرداخت دارید. ابتدا پرداخت آن را "
+                            "تکمیل کنید یا از داخل درگاه لغو کنید."
+                        ),
+                        "checkout_type": "replacement_hold",
                         "hold_id": hold.id,
+                        "booking_id": hold.id,
+                        "track_id": hold.gateway_transaction_id,
+                        "payment_url": (
+                            f"{settings.zibal_base_url.rstrip('/')}/start/"
+                            f"{hold.gateway_transaction_id}"
+                            if hold.gateway_transaction_id
+                            else None
+                        ),
                         "expires_at": hold.expires_at.isoformat(),
                     },
                 )
+
+    async def get_pending_checkout(self) -> PendingCheckoutResponse | None:
+        """Return the user's single live checkout for early frontend routing."""
+        pending = await self.booking_repo.get_pending_payment_by_user(self.current_user.id)
+        if pending:
+            payment = await self.payment_repo.get_by_booking(pending.id)
+            has_live_gateway_payment = bool(
+                payment
+                and payment.status == PaymentStatus.PENDING
+                and payment.gateway_transaction_id
+            )
+            if has_live_gateway_payment or not pending.expires_at or pending.expires_at > now_utc():
+                track_id = payment.gateway_transaction_id if has_live_gateway_payment else None
+                vendor = pending.slot.vendor if pending.slot else None
+                can_resume = not pending.expires_at or pending.expires_at > now_utc()
+                return PendingCheckoutResponse(
+                    checkout_type="booking",
+                    booking_id=pending.id,
+                    vendor_id=pending.slot.vendor_id if pending.slot else None,
+                    vendor_name=vendor.name if vendor else "",
+                    track_id=track_id,
+                    start_url=(
+                        f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}"
+                        if track_id and can_resume
+                        else None
+                    ),
+                    can_resume=can_resume,
+                    expires_at=pending.expires_at,
+                    message=(
+                        (
+                            "شما یک رزرو در انتظار پرداخت دارید. ابتدا پرداخت آن را تکمیل کنید "
+                            "یا از داخل درگاه پرداخت آن را لغو کنید تا بتوانید سانس دیگری رزرو کنید."
+                        )
+                        if can_resume
+                        else "مهلت پرداخت تمام شده و نتیجه تراکنش در حال بررسی نهایی است."
+                    ),
+                )
+
+        hold = await self.replacement_repo.get_live_hold_for_user(self.current_user.id)
+        if hold and (
+            hold.expires_at > now_utc()
+            or (hold.status == BookingHoldStatus.PROCESSING and bool(hold.gateway_transaction_id))
+        ):
+            track_id = hold.gateway_transaction_id
+            vendor = hold.slot.vendor if hold.slot else None
+            can_resume = hold.expires_at > now_utc()
+            return PendingCheckoutResponse(
+                checkout_type="replacement_hold",
+                booking_id=hold.id,
+                vendor_id=hold.slot.vendor_id if hold.slot else None,
+                vendor_name=vendor.name if vendor else "",
+                track_id=track_id,
+                start_url=(
+                    f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}"
+                    if track_id and can_resume
+                    else None
+                ),
+                can_resume=can_resume,
+                expires_at=hold.expires_at,
+                message=(
+                    (
+                        "شما یک فرایند جایگزینی در انتظار پرداخت دارید. ابتدا پرداخت آن را "
+                        "تکمیل کنید یا از داخل درگاه لغو کنید."
+                    )
+                    if can_resume
+                    else "مهلت پرداخت جایگزینی تمام شده و نتیجه تراکنش در حال بررسی است."
+                ),
+            )
+        return None
 
     async def get_cancellation_terms(self, booking_id: int) -> BookingCancellationTermsResponse:
         booking = await self._get_owned_booking_for_cancel(booking_id)
@@ -236,7 +337,7 @@ class BookingService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
 
         rules = [
-            "لغو فقط برای رزروهای پرداخت‌نشده یا تأییدشده امکان‌پذیر است.",
+            "رزرو در انتظار پرداخت فقط از داخل درگاه یا پس از پایان مهلت پرداخت تعیین تکلیف می‌شود.",
             "برای رزروهای تأییدشده، ثبت کارت بانکی تأییدشده جهت بازگشت وجه الزامی است.",
             "اگر بیش از ۴۸ ساعت تا شروع سانس باقی مانده باشد، رزرو لغو می‌شود و ۹۰٪ مبلغ پرداختی عودت می‌شود.",
             "اگر ۴۸ ساعت یا کمتر تا شروع سانس باقی مانده باشد، رزرو در انتظار جایگزین قرار می‌گیرد و فقط در صورت جایگزینی با کسر ۱۰٪ عودت می‌شود.",
@@ -294,13 +395,17 @@ class BookingService:
         if booking.status == BookingStatus.PENDING_PAYMENT:
             return BookingCancellationTermsResponse(
                 booking_id=booking.id,
-                can_cancel=True,
+                can_cancel=False,
                 requires_bank_card=False,
                 has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
                 mode="pending_payment",
                 refund_amount=0,
                 penalty_amount=0,
                 rules=rules,
+                blocking_reason=(
+                    "برای لغو، وارد درگاه پرداخت شوید و گزینه لغو پرداخت را انتخاب کنید. "
+                    "استفاده از دکمه بازگشت مرورگر، پرداخت را لغو نمی‌کند."
+                ),
             )
 
         has_card = bool(await self._get_verified_bank_card(booking.user_id))
@@ -742,7 +847,27 @@ class BookingService:
         slot = booking.slot
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
+        latest_payment = await self.payment_repo.get_by_booking(booking_id)
         if booking.expires_at and booking.expires_at < now_utc():
+            if (
+                latest_payment
+                and latest_payment.status == PaymentStatus.PENDING
+                and latest_payment.gateway_transaction_id
+            ):
+                track_id = latest_payment.gateway_transaction_id
+                await self.db.commit()
+                resolution = await self.resolve_zibal_payment(track_id)
+                if resolution.outcome == "paid":
+                    return await self.get_booking(booking_id)
+                if resolution.outcome in {"pending", "reconciliation_required"}:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="نتیجه تراکنش هنوز قطعی نیست و رزرو تا تعیین تکلیف آزاد نمی‌شود",
+                    )
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="پرداخت انجام نشد و رزرو موقت آزاد شد",
+                )
             is_replacement = booking.replaces_booking_id is not None
             await self.booking_repo.update(
                 booking,
@@ -797,7 +922,6 @@ class BookingService:
                 detail="این سانس دیگر در وضعیت جایگزینی نیست",
             )
 
-        latest_payment = await self.payment_repo.get_by_booking(booking_id)
         if latest_payment and latest_payment.status == PaymentStatus.PENDING:
             if latest_payment.gateway_transaction_id:
                 return self._zibal_start_response(
@@ -2204,6 +2328,13 @@ class BookingService:
                     status_code=status.HTTP_409_CONFLICT,
                     detail="درخواست پرداخت هنوز در حال ایجاد است؛ چند لحظه دیگر دوباره تلاش کنید",
                 )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "رزرو در انتظار پرداخت از داخل سایت قابل لغو نیست؛ وارد درگاه شوید "
+                    "و گزینه لغو پرداخت را انتخاب کنید"
+                ),
+            )
             replaces_booking_id = booking.replaces_booking_id
             booking = await self.booking_repo.update(
                 booking,

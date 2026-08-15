@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 import { BOOKING_STATUS_LABELS } from "@/lib/constants"
 import { Badge } from "@/components/ui/badge"
@@ -35,6 +36,20 @@ function formatTime(iso: string): string {
 
 function formatMoney(amount: number): string {
   return formatPrice(amount)
+}
+
+function formatRemaining(expiresAt: string | null, now: number): string | null {
+  if (!expiresAt) return null
+  const seconds = Math.max(
+    0,
+    Math.ceil((new Date(expiresAt).getTime() - now) / 1000)
+  )
+  if (seconds === 0) return "در انتظار تعیین تکلیف درگاه"
+  const minutes = Math.floor(seconds / 60)
+  const remainder = seconds % 60
+  return `مهلت پرداخت ${toPersianDigits(
+    `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+  )}`
 }
 
 function refundBadge(booking: BookingDetail): {
@@ -87,6 +102,13 @@ export function BookingTable({
   showRefundStatus = false,
   category,
 }: BookingTableProps) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   const categoryLabel: Record<BookingTableProps["category"], string> = {
     current: "سانس جاری",
     past: "سانس قبلی",
@@ -104,7 +126,7 @@ export function BookingTable({
         }
         tableWrapperClassName="shadow-xs"
       >
-          <colgroup>
+        <colgroup>
           <col className="w-[210px]" />
           <col className="w-[135px]" />
           <col className="w-[90px]" />
@@ -139,10 +161,15 @@ export function BookingTable({
               variant: "outline" as const,
             }
             const canCancel =
-              b.status === "pending_payment" ||
-              (b.status === "confirmed" &&
-                !!b.slot_start_time &&
-                new Date(b.slot_start_time) > new Date())
+              b.status === "confirmed" &&
+              !!b.slot_start_time &&
+              new Date(b.slot_start_time) > new Date()
+            const remaining =
+              b.status === "pending_payment"
+                ? formatRemaining(b.expires_at ?? null, now)
+                : null
+            const canResumePayment =
+              !b.expires_at || new Date(b.expires_at).getTime() > now
             const refund = refundBadge(b)
             return (
               <TableRow key={b.id} className="group h-[76px]">
@@ -155,7 +182,9 @@ export function BookingTable({
                   </div>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
-                  {b.slot_start_time ? formatPersianDate(b.slot_start_time) : "-"}
+                  {b.slot_start_time
+                    ? formatPersianDate(b.slot_start_time)
+                    : "-"}
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center text-muted-foreground">
                   {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
@@ -168,9 +197,7 @@ export function BookingTable({
                   </span>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
-                  <span>
-                    {formatPrice(b.price_paid)}
-                  </span>
+                  <span>{formatPrice(b.price_paid)}</span>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-center whitespace-normal">
                   <div className="flex flex-col items-center gap-1.5">
@@ -181,6 +208,11 @@ export function BookingTable({
                     {b.status === "pending_cancellation" && (
                       <div className="text-xs leading-5 text-muted-foreground">
                         لغو پس از پرداخت جایگزین قطعی می‌شود.
+                      </div>
+                    )}
+                    {remaining && (
+                      <div className="text-xs leading-5 text-amber-700">
+                        {remaining}
                       </div>
                     )}
                   </div>
@@ -222,7 +254,7 @@ export function BookingTable({
                       <>
                         <Button
                           size="sm"
-                          disabled={payingId === b.id}
+                          disabled={payingId === b.id || !canResumePayment}
                           onClick={() => onPay(b.id)}
                         >
                           {payingId === b.id ? (
@@ -230,14 +262,7 @@ export function BookingTable({
                           ) : (
                             <CreditCard className="me-1 size-4" />
                           )}
-                          پرداخت
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => onCancelClick(b)}
-                        >
-                          لغو رزرو
+                          ادامه پرداخت
                         </Button>
                       </>
                     )}

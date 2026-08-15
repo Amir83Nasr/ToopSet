@@ -19,6 +19,11 @@ import { RefreshCw } from "lucide-react"
 
 type BookingTab = "current" | "past" | "cancelled"
 
+interface PaymentStartResponse {
+  payment_gateway: "zibal"
+  start_url: string
+}
+
 const tabTriggerClass =
   "max-sm:h-auto max-sm:py-2.5 max-sm:flex-col max-sm:justify-center max-sm:gap-0.5 max-sm:leading-4"
 
@@ -102,7 +107,18 @@ export default function BookingsPage() {
   async function handlePay(bookingId: number) {
     setPayingId(bookingId)
     try {
-      await api(`/api/v1/bookings/${bookingId}/pay`, { method: "POST" })
+      const result = await api<BookingDetail | PaymentStartResponse>(
+        `/api/v1/bookings/${bookingId}/pay`,
+        { method: "POST" }
+      )
+      if (
+        "payment_gateway" in result &&
+        result.payment_gateway === "zibal" &&
+        result.start_url
+      ) {
+        window.location.assign(result.start_url)
+        return
+      }
       toast.success("پرداخت با موفقیت انجام شد")
       ;(await import("canvas-confetti")).default({
         particleCount: 120,

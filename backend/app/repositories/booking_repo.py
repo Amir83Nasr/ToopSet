@@ -174,6 +174,7 @@ class BookingRepo:
     ) -> Booking | None:
         stmt = (
             select(Booking)
+            .options(selectinload(Booking.slot).selectinload(TimeSlot.vendor))
             .where(
                 Booking.user_id == user_id,
                 Booking.status == BookingStatus.PENDING_PAYMENT,

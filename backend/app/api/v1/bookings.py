@@ -18,7 +18,7 @@ from app.schemas.booking import (
     BookingListResponse,
     ReplacementHoldResponse,
 )
-from app.schemas.payment import PaymentStartResponse
+from app.schemas.payment import PaymentStartResponse, PendingCheckoutResponse
 from app.services.booking_service import BookingService, get_booking_service
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -63,6 +63,17 @@ async def get_booking_service_admin(
     current_user: User = Depends(get_current_admin),
 ) -> BookingService:
     return BookingService(db=db, current_user=current_user)
+
+
+@router.get(
+    "/pending-checkout",
+    response_model=PendingCheckoutResponse | None,
+    summary="Get the current user's live checkout",
+)
+async def get_pending_checkout(
+    service: BookingService = Depends(get_booking_service),
+):
+    return await service.get_pending_checkout()
 
 
 @router.get("/all", response_model=AdminBookingListResponse, summary="All bookings (admin)")

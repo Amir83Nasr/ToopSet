@@ -53,6 +53,18 @@ class PaymentStartResponse(BaseModel):
     expires_at: datetime | None = None
 
 
+class PendingCheckoutResponse(BaseModel):
+    checkout_type: Literal["booking", "replacement_hold"]
+    booking_id: int
+    vendor_id: int | None = None
+    vendor_name: str = ""
+    track_id: str | None = None
+    start_url: str | None = None
+    can_resume: bool
+    expires_at: datetime | None = None
+    message: str
+
+
 class PaymentVerificationRequest(BaseModel):
     track_id: str
     order_id: str | None = None
