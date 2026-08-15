@@ -115,7 +115,7 @@ async def get_replacement_hold(
 
 @router.post(
     "/replacement-holds/{hold_id}/pay",
-    response_model=BookingDetailResponse,
+    response_model=BookingDetailResponse | PaymentStartResponse,
     summary="Pay and finalize a replacement hold",
     description="Pay a live replacement hold and atomically transfer the slot booking.",
 )

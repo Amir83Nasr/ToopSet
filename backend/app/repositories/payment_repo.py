@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking
-from app.models.payment import Payment
+from app.models.payment import Payment, PaymentStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -104,11 +106,34 @@ class PaymentRepo:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_gateway_transaction_id(self, track_id: str) -> Payment | None:
-        result = await self.db.execute(
-            select(Payment).where(Payment.gateway_transaction_id == track_id).limit(1)
+    async def get_by_gateway_transaction_id(
+        self, track_id: str, *, for_update: bool = False
+    ) -> Payment | None:
+        stmt = (
+            select(Payment)
+            .where(Payment.gateway_transaction_id == track_id)
+            .execution_options(populate_existing=True)
+            .limit(1)
         )
-        return result.scalar_one_or_none()
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def list_stale_zibal_pending(
+        self, cutoff: datetime, *, limit: int = 100
+    ) -> list[Payment]:
+        result = await self.db.execute(
+            select(Payment)
+            .where(
+                Payment.status == PaymentStatus.PENDING,
+                Payment.gateway_name == "zibal",
+                Payment.gateway_transaction_id.isnot(None),
+                Payment.created_at <= cutoff,
+            )
+            .order_by(Payment.created_at)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
 
     async def get_by_booking_ids(self, booking_ids: list[int]) -> dict[int, Payment]:
         """Return a ``{booking_id: Payment}`` map for the given booking IDs.

@@ -37,7 +37,9 @@ class ZibalPaymentVerificationResult:
     verified: bool
     ref_id: str | None
     message: str | None
+    paid_amount: Decimal | None  # amount in Toman as returned by Zibal (rial ÷ 10)
     raw_response: dict[str, Any]
+    payment_status: int | None = None
 
 
 def _base_url() -> str:
@@ -71,15 +73,31 @@ def _extract_track_id(payload: dict[str, Any]) -> str | None:
     return None
 
 
+def _extract_paid_amount(payload: dict[str, Any]) -> Decimal | None:
+    """Extract and convert paid amount from Zibal: they return rial, we store toman."""
+    raw = payload.get("amount")
+    if raw is None:
+        data = payload.get("data")
+        if isinstance(data, dict):
+            raw = data.get("amount")
+    if raw is not None:
+        try:
+            rial = int(raw)
+            return Decimal(rial) / Decimal("10")
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
 def _extract_ref_id(payload: dict[str, Any]) -> str | None:
-    for key in ("refId", "ref_id", "refID", "refid"):
+    for key in ("refId", "ref_id", "refID", "refid", "refNumber"):
         value = payload.get(key)
         if value is not None:
             return str(value)
 
     data = payload.get("data")
     if isinstance(data, dict):
-        for key in ("refId", "ref_id", "refID", "refid"):
+        for key in ("refId", "ref_id", "refID", "refid", "refNumber"):
             value = data.get(key)
             if value is not None:
                 return str(value)
@@ -160,7 +178,8 @@ class ZibalGatewayService:
             {"merchant": settings.zibal_merchant, "trackId": str(track_id)},
         )
         result_code = _extract_result_code(data)
-        verified = result_code in {100, 201}
+        payment_status = data.get("status") if isinstance(data.get("status"), int) else None
+        verified = result_code in {100, 201} and payment_status in {None, 1, 2}
         if result_code is None:
             raise ZibalVerificationError("Zibal returned an invalid verification result.")
         if not verified:
@@ -177,7 +196,9 @@ class ZibalGatewayService:
             verified=True,
             ref_id=_extract_ref_id(data),
             message=data.get("message") if isinstance(data.get("message"), str) else None,
+            paid_amount=_extract_paid_amount(data),
             raw_response=data,
+            payment_status=payment_status,
         )
 
     async def inquiry_payment(self, track_id: str) -> ZibalPaymentVerificationResult:
@@ -188,11 +209,14 @@ class ZibalGatewayService:
         result_code = _extract_result_code(data)
         if result_code is None:
             raise ZibalVerificationError("Zibal returned an invalid inquiry result.")
+        payment_status = data.get("status") if isinstance(data.get("status"), int) else None
         return ZibalPaymentVerificationResult(
             result=result_code,
             track_id=str(track_id),
-            verified=result_code in {100, 201},
+            verified=result_code == 100 and payment_status in {1, 2},
             ref_id=_extract_ref_id(data),
             message=data.get("message") if isinstance(data.get("message"), str) else None,
+            paid_amount=_extract_paid_amount(data),
             raw_response=data,
+            payment_status=payment_status,
         )

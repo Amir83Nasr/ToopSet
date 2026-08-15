@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     zibal_merchant: str = ""
     zibal_base_url: str = "https://gateway.zibal.ir"
     zibal_callback_url: str = ""
+    payment_result_url: str = "http://localhost:3000/book/payment/callback"
 
     # SMS
     sms_provider: str = "mock"
@@ -248,6 +249,14 @@ def validate_env(settings: Settings | None = None) -> None:
             errors.append("ZIBAL_MERCHANT must be set when PAYMENT_GATEWAY='zibal'.")
         if not settings.zibal_callback_url:
             errors.append("ZIBAL_CALLBACK_URL must be set when PAYMENT_GATEWAY='zibal'.")
+        elif "/payments/zibal/callback" not in settings.zibal_callback_url:
+            errors.append(
+                "ZIBAL_CALLBACK_URL must point to the backend /payments/zibal/callback endpoint."
+            )
+        if not settings.payment_result_url:
+            errors.append("PAYMENT_RESULT_URL must be set when PAYMENT_GATEWAY='zibal'.")
+        elif settings.payment_result_url == settings.zibal_callback_url:
+            errors.append("PAYMENT_RESULT_URL must be different from ZIBAL_CALLBACK_URL.")
         if not settings.zibal_base_url:
             errors.append("ZIBAL_BASE_URL must be set when PAYMENT_GATEWAY='zibal'.")
     if settings.sms_provider not in _SUPPORTED_SMS_PROVIDERS:

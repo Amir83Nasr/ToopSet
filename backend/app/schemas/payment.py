@@ -42,7 +42,7 @@ class PaymentListResponse(BaseModel):
 
 
 class PaymentStartResponse(BaseModel):
-    checkout_type: Literal["booking"] = "booking"
+    checkout_type: Literal["booking", "replacement_hold"] = "booking"
     payment_gateway: Literal["zibal"] = "zibal"
     booking_id: int
     payment_id: int
@@ -58,6 +58,18 @@ class PaymentVerificationRequest(BaseModel):
     order_id: str | None = None
 
 
+PaymentResolutionOutcome = Literal["paid", "failed", "pending", "reconciliation_required"]
+
+
+class PaymentResolutionResponse(BaseModel):
+    outcome: PaymentResolutionOutcome
+    track_id: str
+    payment_id: int | None = None
+    booking_id: int | None = None
+    message: str
+    ref_id: str | None = None
+
+
 class PaymentVerificationStatusResponse(BaseModel):
     track_id: str
     result: int
@@ -65,3 +77,6 @@ class PaymentVerificationStatusResponse(BaseModel):
     payment_id: int | None = None
     booking_id: int | None = None
     message: str | None = None
+    payment_status: str | None = None
+    booking_status: str | None = None
+    ref_id: str | None = None

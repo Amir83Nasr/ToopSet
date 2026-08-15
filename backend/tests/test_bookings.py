@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.services.zibal_gateway import (
     ZibalPaymentStartResult,
     ZibalPaymentVerificationResult,
+    ZibalVerificationError,
 )
 
 pytestmark = [pytest.mark.asyncio]
@@ -259,8 +260,14 @@ class TestGetBooking:
 
 class TestPayBooking:
     async def test_pay_booking(
-        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+        manager_token: dict,
+        user_token: dict,
+        monkeypatch,
     ):
+        monkeypatch.setattr(settings, "payment_gateway", "mock")
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
         vendor_id = vendor_resp.json()["id"]
@@ -281,8 +288,14 @@ class TestPayBooking:
         assert resp.json()["status"] == "confirmed"
 
     async def test_pay_already_paid(
-        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+        manager_token: dict,
+        user_token: dict,
+        monkeypatch,
     ):
+        monkeypatch.setattr(settings, "payment_gateway", "mock")
         mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
         vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
         vendor_id = vendor_resp.json()["id"]
@@ -381,7 +394,9 @@ class TestPayBooking:
                 verified=True,
                 ref_id="99887766",
                 message="OK",
+                paid_amount=None,
                 raw_response={"result": 100, "refId": "99887766"},
+                payment_status=1,
             )
 
         monkeypatch.setattr(
@@ -417,7 +432,101 @@ class TestPayBooking:
             headers=user_headers,
         )
         assert verify_resp.status_code == 200, verify_resp.text
-        assert verify_resp.json()["status"] == "confirmed"
+        assert verify_resp.json()["outcome"] == "paid"
+        assert verify_resp.json()["booking_id"] == booking_id
+
+    async def test_unauthenticated_cancelled_callback_releases_booking(
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+        manager_token: dict,
+        user_token: dict,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(settings, "payment_gateway", "zibal")
+        monkeypatch.setattr(
+            settings,
+            "zibal_callback_url",
+            "http://test/api/v1/payments/zibal/callback",
+        )
+        monkeypatch.setattr(
+            settings, "payment_result_url", "https://toopset.ir/book/payment/callback"
+        )
+
+        async def fake_request_payment(self, **kwargs):
+            return ZibalPaymentStartResult(
+                track_id="4733198010",
+                start_url="https://gateway.zibal.ir/start/4733198010",
+                callback_url=kwargs["callback_url"],
+                raw_response={"result": 100, "trackId": "4733198010"},
+            )
+
+        async def fake_verify_payment(self, track_id: str):
+            raise ZibalVerificationError("پرداخت لغو شده است")
+
+        async def fake_inquiry_payment(self, track_id: str):
+            return ZibalPaymentVerificationResult(
+                result=100,
+                track_id=track_id,
+                verified=False,
+                ref_id=None,
+                message="cancelled",
+                paid_amount=20000,
+                raw_response={"result": 100, "status": 3, "amount": 200000},
+                payment_status=3,
+            )
+
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.request_payment",
+            fake_request_payment,
+        )
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.verify_payment",
+            fake_verify_payment,
+        )
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.inquiry_payment",
+            fake_inquiry_payment,
+        )
+
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
+        version = await _get_slot_version(client, slot_id)
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        create = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": version},
+            headers=user_headers,
+        )
+        booking_id = create.json()["id"]
+        await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
+
+        callback = await client.get("/api/v1/payments/zibal/callback?trackId=4733198010")
+        assert callback.status_code == 303
+        assert "outcome=failed" in callback.headers["location"]
+        assert (
+            await session.scalar(
+                text("SELECT status FROM bookings WHERE id = :id"), {"id": booking_id}
+            )
+            == "cancelled"
+        )
+        assert (
+            await session.scalar(
+                text("SELECT status FROM payments WHERE booking_id = :id"),
+                {"id": booking_id},
+            )
+            == "failed"
+        )
+        slot_state = (
+            await session.execute(
+                text("SELECT status, is_reserved FROM time_slots WHERE id = :id"),
+                {"id": slot_id},
+            )
+        ).one()
+        assert slot_state.status == "open"
+        assert slot_state.is_reserved is False
 
 
 class TestCancelBooking:

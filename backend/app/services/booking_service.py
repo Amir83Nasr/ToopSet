@@ -43,6 +43,7 @@ from app.schemas.booking import (
     PaymentResponse,
     ReplacementHoldResponse,
 )
+from app.schemas.payment import PaymentResolutionResponse, PaymentStartResponse
 from app.services.bank_card_service import BankCardService
 from app.services.cache_service import invalidate_slot_list
 from app.services.finance_service import FinanceService
@@ -51,6 +52,7 @@ from app.services.payment_service import (
     GatewayTimeoutError,
     InsufficientFundsError,
     PaymentError,
+    PaymentResult,
     PaymentService,
 )
 from app.services.zibal_gateway import (
@@ -140,6 +142,30 @@ class BookingService:
         )
         if pending:
             if pending.expires_at and pending.expires_at <= now_utc():
+                payment = await self.payment_repo.get_by_booking(pending.id)
+                if (
+                    payment
+                    and payment.status == PaymentStatus.PENDING
+                    and payment.gateway_transaction_id
+                ):
+                    track_id = payment.gateway_transaction_id
+                    await self.db.commit()
+                    resolution = await self.resolve_zibal_payment(track_id)
+                    if resolution.outcome in {"pending", "reconciliation_required"}:
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail="نتیجه پرداخت قبلی هنوز قطعی نیست؛ تراکنش به صورت خودکار بررسی می‌شود",
+                        )
+                    await self.db.execute(
+                        select(User).where(User.id == self.current_user.id).with_for_update()
+                    )
+                    pending = await self.booking_repo.get_pending_payment_by_user(
+                        self.current_user.id, for_update=True
+                    )
+                    if not pending:
+                        pending = None
+
+            if pending and pending.expires_at and pending.expires_at <= now_utc():
                 await self.booking_repo.update(
                     pending,
                     {
@@ -153,7 +179,7 @@ class BookingService:
                         old_slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                     )
                     await invalidate_slot_list(old_slot.vendor_id)
-            else:
+            elif pending:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
@@ -857,8 +883,6 @@ class BookingService:
         track_id: str,
         expires_at: datetime | None,
     ):
-        from app.schemas.payment import PaymentStartResponse
-
         return PaymentStartResponse(
             booking_id=booking_id,
             payment_id=payment_id,
@@ -869,9 +893,162 @@ class BookingService:
             expires_at=expires_at,
         )
 
-    async def verify_zibal_payment(self, track_id: str) -> BookingDetailResponse:
+    async def resolve_zibal_payment(self, track_id: str) -> PaymentResolutionResponse:
+        """Resolve a Zibal transaction into a stable, client-safe outcome."""
         payment = await self.payment_repo.get_by_gateway_transaction_id(track_id)
+        hold = None
+        booking_id = None
+        payment_id = None
+        ref_id = None
+
+        if payment:
+            booking = await self.booking_repo.get_by_id(payment.booking_id)
+            if not booking:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+            if booking.user_id != self.current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="شما به این رزرو دسترسی ندارید",
+                )
+            booking_id = booking.id
+            payment_id = payment.id
+            ref_id = payment.ref_id
+            if payment.status == PaymentStatus.SUCCESS:
+                outcome = (
+                    "paid"
+                    if booking.status == BookingStatus.CONFIRMED
+                    else "reconciliation_required"
+                )
+                return PaymentResolutionResponse(
+                    outcome=outcome,
+                    track_id=track_id,
+                    payment_id=payment.id,
+                    booking_id=booking.id,
+                    ref_id=payment.ref_id,
+                    message=(
+                        "پرداخت با موفقیت ثبت شد."
+                        if outcome == "paid"
+                        else "پرداخت ثبت شده اما نهایی‌سازی رزرو نیازمند بررسی پشتیبانی است."
+                    ),
+                )
+            if payment.status in (PaymentStatus.FAILED, PaymentStatus.EXPIRED):
+                return PaymentResolutionResponse(
+                    outcome="failed",
+                    track_id=track_id,
+                    payment_id=payment.id,
+                    booking_id=booking.id,
+                    ref_id=payment.ref_id,
+                    message="پرداخت انجام نشد و سانس آزاد شد.",
+                )
+        else:
+            hold = await self.replacement_repo.get_hold_by_gateway_transaction_id(track_id)
+            if not hold:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="پرداخت یافت نشد")
+            if hold.user_id != self.current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="شما به این هولد دسترسی ندارید",
+                )
+            payment_id = hold.id
+            booking_id = hold.replacement_booking_id
+            ref_id = hold.ref_id
+            if hold.status == BookingHoldStatus.PAID:
+                return PaymentResolutionResponse(
+                    outcome="paid",
+                    track_id=track_id,
+                    payment_id=hold.id,
+                    booking_id=hold.replacement_booking_id,
+                    ref_id=hold.ref_id,
+                    message="پرداخت و انتقال رزرو با موفقیت ثبت شد.",
+                )
+            if hold.status in (
+                BookingHoldStatus.FAILED,
+                BookingHoldStatus.EXPIRED,
+                BookingHoldStatus.CANCELLED,
+            ):
+                return PaymentResolutionResponse(
+                    outcome="failed",
+                    track_id=track_id,
+                    payment_id=hold.id,
+                    booking_id=hold.replacement_booking_id,
+                    ref_id=hold.ref_id,
+                    message="پرداخت انجام نشد و درخواست جایگزینی دوباره در دسترس قرار گرفت.",
+                )
+
+        try:
+            detail = await self.verify_zibal_payment(track_id)
+        except HTTPException:
+            # Verification failures are classified with inquiry. Callback query flags are
+            # intentionally ignored because only Zibal's server-to-server state is trusted.
+            gateway = ZibalGatewayService()
+            try:
+                inquiry = await gateway.inquiry_payment(track_id)
+            except ZibalGatewayError:
+                await self.db.rollback()
+                return PaymentResolutionResponse(
+                    outcome="reconciliation_required",
+                    track_id=track_id,
+                    payment_id=payment_id,
+                    booking_id=booking_id,
+                    ref_id=ref_id,
+                    message="ارتباط با درگاه برقرار نشد؛ تراکنش به صورت خودکار دوباره بررسی می‌شود.",
+                )
+
+            if inquiry.verified:
+                return PaymentResolutionResponse(
+                    outcome="reconciliation_required",
+                    track_id=track_id,
+                    payment_id=payment_id,
+                    booking_id=booking_id,
+                    ref_id=inquiry.ref_id or ref_id,
+                    message="درگاه پرداخت را موفق اعلام کرده اما نهایی‌سازی نیازمند بررسی است.",
+                )
+            if inquiry.payment_status in {None, -1}:
+                return PaymentResolutionResponse(
+                    outcome="pending",
+                    track_id=track_id,
+                    payment_id=payment_id,
+                    booking_id=booking_id,
+                    ref_id=inquiry.ref_id or ref_id,
+                    message="نتیجه تراکنش هنوز از طرف درگاه نهایی نشده است.",
+                )
+            if inquiry.result == 100:
+                await self._record_failed_zibal_attempt(track_id, inquiry.message or "failed")
+                return PaymentResolutionResponse(
+                    outcome="failed",
+                    track_id=track_id,
+                    payment_id=payment_id,
+                    booking_id=booking_id,
+                    ref_id=inquiry.ref_id or ref_id,
+                    message="پرداخت انجام نشد و رزرو موقت آزاد شد.",
+                )
+            return PaymentResolutionResponse(
+                outcome="reconciliation_required",
+                track_id=track_id,
+                payment_id=payment_id,
+                booking_id=booking_id,
+                ref_id=inquiry.ref_id or ref_id,
+                message="پاسخ درگاه قطعی نیست؛ تراکنش به صورت خودکار دوباره بررسی می‌شود.",
+            )
+
+        return PaymentResolutionResponse(
+            outcome="paid",
+            track_id=track_id,
+            payment_id=payment_id,
+            booking_id=detail.id,
+            ref_id=(detail.payment.ref_id if detail.payment else ref_id),
+            message="پرداخت با موفقیت ثبت شد.",
+        )
+
+    async def verify_zibal_payment(self, track_id: str) -> BookingDetailResponse:
+        # ── Step 1: lock payment row first to prevent concurrent verify calls ──
+        payment = await self.payment_repo.get_by_gateway_transaction_id(track_id, for_update=True)
         if not payment:
+            hold = await self.replacement_repo.get_hold_by_gateway_transaction_id(
+                track_id, for_update=True
+            )
+            if hold:
+                return await self._verify_zibal_replacement_hold(hold, track_id)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="پرداخت یافت نشد")
         booking = await self.booking_repo.get_by_id(payment.booking_id, for_update=True)
         if not booking:
@@ -881,32 +1058,95 @@ class BookingService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="شما به این رزرو دسترسی ندارید"
             )
 
+        # ── Step 2: idempotent — already confirmed ────────────────────
         if payment.status == PaymentStatus.SUCCESS and booking.status == BookingStatus.CONFIRMED:
             return await self.get_booking(booking.id)
 
+        # ── Step 3: release DB locks before the blocking network call ──
+        # Save the IDs so we can re-acquire locks after the gateway responds.
+        payment_id = payment.id
+        booking_id_inner = booking.id
+        expected_amount = payment.amount  # Toman, as stored in DB
+        await self.db.commit()
+
+        # ── Step 4: call Zibal — this can block for several seconds ───
         gateway = ZibalGatewayService()
         try:
             result = await gateway.verify_payment(track_id)
         except ZibalVerificationError as exc:
+            await self._record_failed_zibal_attempt(track_id, str(exc))
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        # ── Step 5: re-acquire locks after the external call ──────────
+        payment = await self.payment_repo.get_by_id(payment_id, for_update=True)
+        booking = await self.booking_repo.get_by_id(booking_id_inner, for_update=True)
+        if not payment or not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+
+        # ── Step 6: idempotent check again after re-locking ──────────
+        if payment.status == PaymentStatus.SUCCESS and booking.status == BookingStatus.CONFIRMED:
+            return await self.get_booking(booking.id)
 
         slot = booking.slot
         if not slot:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
 
-        if booking.status != BookingStatus.PENDING_PAYMENT:
-            if payment.status == PaymentStatus.PENDING:
+        # ── Step 7: amount mismatch guard ─────────────────────────────
+        if result.paid_amount is not None:
+            tolerance = Decimal("1")  # 1 toman tolerance for rounding
+            if abs(result.paid_amount - expected_amount) > tolerance:
                 await self.payment_repo.update(
                     payment,
                     {
+                        "status": PaymentStatus.SUCCESS,
                         "gateway_name": "zibal",
                         "ref_id": result.ref_id,
-                        "failure_code": "booking_not_payable",
+                        "paid_at": now_utc(),
+                        "processing_token": None,
+                        "failure_code": "amount_mismatch",
                     },
                 )
+                await log_action(
+                    self.booking_repo.db,
+                    self.current_user.id,
+                    "payment_amount_mismatch",
+                    f"تأیید پرداخت زیبال — عدم تطابق مبلغ | رزرو {booking.id} "
+                    f"انتظار {expected_amount} تومان، زیبال {result.paid_amount} تومان اعلام کرد",
+                    severity="CRITICAL",
+                )
                 await self.db.commit()
-            return await self.get_booking(booking.id)
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="مبلغ پرداخت‌شده با مبلغ رزرو مطابقت ندارد. لطفاً با پشتیبانی تماس بگیرید.",
+                )
 
+        # ── Step 8: booking no longer payable (raced with cancel etc.) ─
+        if booking.status != BookingStatus.PENDING_PAYMENT:
+            await self.payment_repo.update(
+                payment,
+                {
+                    "status": PaymentStatus.SUCCESS,
+                    "gateway_name": "zibal",
+                    "ref_id": result.ref_id,
+                    "paid_at": now_utc(),
+                    "processing_token": None,
+                    "failure_code": "paid_but_booking_not_payable",
+                },
+            )
+            await log_action(
+                self.booking_repo.db,
+                self.current_user.id,
+                "payment_reconciliation_required",
+                f"پرداخت رزرو {booking.id} موفق شد اما وضعیت رزرو {booking.status.value} است",
+                severity="CRITICAL",
+            )
+            await self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="پرداخت انجام شده اما نهایی‌سازی رزرو نیازمند بررسی پشتیبانی است.",
+            )
+
+        # ── Step 9: finalize ──────────────────────────────────────────
         await self.payment_repo.update(
             payment,
             {
@@ -915,6 +1155,7 @@ class BookingService:
                 "gateway_transaction_id": track_id,
                 "ref_id": result.ref_id,
                 "paid_at": now_utc(),
+                "processing_token": None,
                 "failure_code": None,
             },
         )
@@ -936,10 +1177,373 @@ class BookingService:
         )
         return await self.get_booking(booking.id)
 
+    async def _verify_zibal_replacement_hold(
+        self, hold: BookingHold, track_id: str
+    ) -> BookingDetailResponse:
+        if hold.user_id != self.current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="شما به این هولد دسترسی ندارید"
+            )
+        if hold.status == BookingHoldStatus.PAID and hold.replacement_booking_id:
+            return await self.get_booking(hold.replacement_booking_id)
+        if hold.status != BookingHoldStatus.PROCESSING or not hold.processing_token:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="این هولد دیگر در وضعیت پرداخت نیست",
+            )
+
+        hold_id = hold.id
+        processing_token = hold.processing_token
+        expected_amount = hold.price_paid
+        await self.db.commit()
+
+        gateway = ZibalGatewayService()
+        try:
+            result = await gateway.verify_payment(track_id)
+        except ZibalVerificationError as exc:
+            await self._record_failed_zibal_attempt(track_id, str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        hold = await self.replacement_repo.get_hold(hold_id, for_update=True)
+        if not hold:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="هولد یافت نشد")
+        if hold.status == BookingHoldStatus.PAID and hold.replacement_booking_id:
+            return await self.get_booking(hold.replacement_booking_id)
+        if hold.processing_token != processing_token:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="نتیجه پرداخت نیازمند بررسی پشتیبانی است",
+            )
+
+        if result.paid_amount is not None and abs(result.paid_amount - expected_amount) > Decimal(
+            "1"
+        ):
+            await self.replacement_repo.update_hold(
+                hold,
+                {
+                    "gateway_name": "zibal",
+                    "ref_id": result.ref_id,
+                    "paid_at": now_utc(),
+                    "failure_code": "amount_mismatch",
+                },
+            )
+            await log_action(
+                self.db,
+                self.current_user.id,
+                "replacement_payment_amount_mismatch",
+                f"عدم تطابق مبلغ هولد {hold.id}: انتظار {expected_amount}، زیبال {result.paid_amount}",
+                severity="CRITICAL",
+            )
+            await self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="مبلغ پرداخت‌شده با مبلغ هولد مطابقت ندارد. لطفاً با پشتیبانی تماس بگیرید.",
+            )
+
+        payment_result = PaymentResult(
+            transaction_id=track_id,
+            gateway_name="zibal",
+            card_number="",
+            paid_at=now_utc(),
+            ref_id=result.ref_id or "",
+            fee=0,
+        )
+        return await self._finalize_replacement_payment(hold_id, processing_token, payment_result)
+
+    async def _finalize_replacement_payment(
+        self, hold_id: int, processing_token: str, result: PaymentResult
+    ) -> BookingDetailResponse:
+        hold = await self.replacement_repo.get_hold(hold_id, for_update=True)
+        if not hold or hold.processing_token != processing_token:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="نتیجه پرداخت نیازمند بررسی پشتیبانی است",
+            )
+        request = await self.replacement_repo.get_request(
+            hold.replacement_request_id, for_update=True
+        )
+        original = (
+            await self.booking_repo.get_by_id(request.original_booking_id, for_update=True)
+            if request
+            else None
+        )
+        slot = await self.slot_repo.get_by_id(hold.slot_id, for_update=True)
+        vendor = slot.vendor if slot else None
+        now = now_utc()
+        if (
+            request is None
+            or original is None
+            or slot is None
+            or request.status != ReplacementRequestStatus.HELD
+            or original.status != BookingStatus.PENDING_CANCELLATION
+            or request.deadline <= now
+        ):
+            await self.replacement_repo.update_hold(
+                hold,
+                {
+                    "status": BookingHoldStatus.FAILED,
+                    "processing_token": None,
+                    "gateway_transaction_id": result.transaction_id,
+                    "gateway_name": result.gateway_name,
+                    "card_number": result.card_number or None,
+                    "ref_id": result.ref_id or None,
+                    "gateway_fee": Decimal(str(result.fee)),
+                    "paid_at": result.paid_at,
+                    "failure_code": "paid_but_transfer_conflicted",
+                },
+            )
+            if (
+                request
+                and original
+                and slot
+                and request.deadline <= now
+                and original.status == BookingStatus.PENDING_CANCELLATION
+            ):
+                await self.replacement_repo.update_request(
+                    request, {"status": ReplacementRequestStatus.EXPIRED}
+                )
+                await self.booking_repo.update(
+                    original, {"status": BookingStatus.CONFIRMED, "penalty_amount": None}
+                )
+                await self.slot_repo.update(
+                    slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
+                )
+                await invalidate_slot_list(slot.vendor_id)
+            await log_action(
+                self.db,
+                self.current_user.id,
+                "replacement_payment_reconciliation_required",
+                f"پرداخت هولد {hold_id} موفق شد اما انتقال مالکیت انجام نشد",
+                severity="CRITICAL",
+            )
+            await self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="پرداخت ثبت شد اما انتقال رزرو نیازمند بررسی پشتیبانی است",
+            )
+
+        await self.booking_repo.update(
+            original,
+            {
+                "status": BookingStatus.TRANSFERRED,
+                "penalty_amount": request.penalty_amount,
+                "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_REFUND,
+            },
+        )
+        replacement = await self.booking_repo.create(
+            {
+                "user_id": hold.user_id,
+                "slot_id": hold.slot_id,
+                "replaces_booking_id": original.id,
+                "status": BookingStatus.CONFIRMED,
+                "source": BookingSource.ONLINE,
+                "settlement_status": SettlementStatus.NOT_SETTLED,
+                "price_paid": hold.price_paid,
+                "slot_price": hold.slot_price,
+                "ball_price": hold.ball_price,
+                "with_ball": hold.with_ball,
+                "expires_at": None,
+            }
+        )
+        payment = await self.payment_repo.create(
+            {
+                "booking_id": replacement.id,
+                "amount": hold.price_paid,
+                "gateway_transaction_id": result.transaction_id,
+                "gateway_name": result.gateway_name,
+                "card_number": result.card_number or None,
+                "ref_id": result.ref_id or None,
+                "gateway_fee": Decimal(str(result.fee)),
+                "paid_at": result.paid_at,
+                "status": PaymentStatus.SUCCESS,
+            }
+        )
+        finance = FinanceService(self.db, self.current_user)
+        await finance.create_refund(
+            booking=original,
+            refund_type=RefundType.REPLACED_AFTER_PENDING_CANCELLATION,
+            reason="رزرو با پرداخت موفق متقاضی جایگزین منتقل شد",
+            penalty_amount=request.penalty_amount,
+            refund_amount=request.refund_amount,
+            penalty_charged_to_user=True,
+            site_bears_penalty=False,
+        )
+        await self.penalty_repo.create(
+            user_id=original.user_id,
+            booking_id=original.id,
+            amount=request.penalty_amount,
+            reason="Replacement booking completed",
+        )
+        await self.replacement_repo.update_request(
+            request,
+            {
+                "status": ReplacementRequestStatus.COMPLETED,
+                "replacement_booking_id": replacement.id,
+                "completed_at": now,
+            },
+        )
+        await self.replacement_repo.update_hold(
+            hold,
+            {
+                "status": BookingHoldStatus.PAID,
+                "processing_token": None,
+                "replacement_booking_id": replacement.id,
+                "gateway_transaction_id": result.transaction_id,
+                "gateway_name": result.gateway_name,
+                "card_number": result.card_number or None,
+                "ref_id": result.ref_id or None,
+                "gateway_fee": Decimal(str(result.fee)),
+                "paid_at": result.paid_at,
+                "failure_code": None,
+            },
+        )
+        await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
+        await invalidate_slot_list(slot.vendor_id)
+        await self.notify_repo.create(
+            user_id=original.user_id,
+            type_="booking_replaced",
+            message=f"برای سانس شما جایگزین پیدا شد و مبلغ {request.refund_amount} تومان در انتظار عودت است.",
+        )
+        await self.notify_repo.create(
+            user_id=hold.user_id,
+            type_="booking_confirmed",
+            message=f"رزرو شما برای {vendor.name if vendor else 'مجموعه'} تأیید شد.",
+        )
+        if vendor:
+            await self.notify_repo.create(
+                user_id=vendor.manager_id,
+                type_="booking_replaced",
+                message=f"رزرو سانس {slot.start_time.strftime('%Y-%m-%d')} با موفقیت منتقل شد.",
+            )
+        await log_action(
+            self.db,
+            self.current_user.id,
+            "replacement_booking_confirmed",
+            f"انتقال رزرو کامل شد | رزرو {original.id} ← رزرو {replacement.id}",
+        )
+        await self.db.commit()
+        detail = await self.get_booking(replacement.id)
+        detail.payment = PaymentResponse.model_validate(payment)
+        return detail
+
+    async def _record_failed_zibal_attempt(self, track_id: str, message: str) -> None:
+        """Persist a definitive failed callback after confirming it with inquiry."""
+        gateway = ZibalGatewayService()
+        try:
+            inquiry = await gateway.inquiry_payment(track_id)
+        except ZibalGatewayError:
+            await self.db.rollback()
+            return
+        if inquiry.verified:
+            await self.db.rollback()
+            return
+        if inquiry.payment_status in {None, -1, 2}:
+            await self.db.rollback()
+            return
+
+        payment = await self.payment_repo.get_by_gateway_transaction_id(track_id, for_update=True)
+        if payment:
+            booking = await self.booking_repo.get_by_id(payment.booking_id, for_update=True)
+            if not booking or booking.user_id != self.current_user.id:
+                await self.db.rollback()
+                return
+            if payment.status == PaymentStatus.PENDING:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "status": PaymentStatus.FAILED,
+                        "processing_token": None,
+                        "failure_code": "zibal_payment_failed",
+                    },
+                )
+            if booking.status == BookingStatus.PENDING_PAYMENT:
+                slot = booking.slot
+                await self.booking_repo.update(
+                    booking,
+                    {
+                        "status": BookingStatus.CANCELLED,
+                        "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+                    },
+                )
+                if slot and slot.status == SlotStatus.RESERVING:
+                    await self.slot_repo.update(
+                        slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                    )
+                    await invalidate_slot_list(slot.vendor_id)
+            await log_action(
+                self.db,
+                self.current_user.id,
+                "payment_failed",
+                f"پرداخت زیبال ناموفق بود | رزرو {payment.booking_id} — {message}",
+                severity="WARNING",
+            )
+            await self.db.commit()
+            return
+
+        hold = await self.replacement_repo.get_hold_by_gateway_transaction_id(
+            track_id, for_update=True
+        )
+        if not hold or hold.user_id != self.current_user.id:
+            await self.db.rollback()
+            return
+        request = await self.replacement_repo.get_request(
+            hold.replacement_request_id, for_update=True
+        )
+        if hold.status == BookingHoldStatus.PROCESSING:
+            await self.replacement_repo.update_hold(
+                hold,
+                {
+                    "status": BookingHoldStatus.FAILED,
+                    "processing_token": None,
+                    "failure_code": "zibal_payment_failed",
+                },
+            )
+        if request and request.status == ReplacementRequestStatus.HELD:
+            await self.replacement_repo.update_request(
+                request, {"status": ReplacementRequestStatus.OPEN}
+            )
+            slot = hold.slot
+            if slot and slot.status == SlotStatus.RESERVING:
+                await self.slot_repo.update(
+                    slot, {"is_reserved": True, "status": SlotStatus.PENDING_CANCELLATION}
+                )
+                await invalidate_slot_list(slot.vendor_id)
+        await log_action(
+            self.db,
+            self.current_user.id,
+            "replacement_payment_failed",
+            f"پرداخت زیبال هولد {hold.id} ناموفق بود — {message}",
+            severity="WARNING",
+        )
+        await self.db.commit()
+
     async def inquiry_zibal_payment(self, track_id: str) -> dict[str, object]:
         payment = await self.payment_repo.get_by_gateway_transaction_id(track_id)
         if not payment:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="پرداخت یافت نشد")
+            hold = await self.replacement_repo.get_hold_by_gateway_transaction_id(track_id)
+            if not hold:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="پرداخت یافت نشد")
+            if hold.user_id != self.current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="شما به این هولد دسترسی ندارید",
+                )
+            gateway = ZibalGatewayService()
+            try:
+                result = await gateway.inquiry_payment(track_id)
+            except ZibalVerificationError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            return {
+                "track_id": track_id,
+                "payment_id": hold.id,
+                "booking_id": hold.replacement_booking_id,
+                "result": result.result,
+                "verified": result.verified,
+                "message": result.message,
+                "payment_status": hold.status,
+                "booking_status": None,
+                "ref_id": result.ref_id,
+            }
         booking = await self.booking_repo.get_by_id(payment.booking_id)
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
@@ -1370,7 +1974,9 @@ class BookingService:
         # dependency rolls back uncommitted work whenever HTTPException is raised.
         await self.db.commit()
 
-    async def pay_replacement_hold(self, hold_id: int) -> BookingDetailResponse:
+    async def pay_replacement_hold(
+        self, hold_id: int
+    ) -> BookingDetailResponse | PaymentStartResponse:
         hold = await self.replacement_repo.get_hold(hold_id, for_update=True)
         if not hold:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="هولد یافت نشد")
@@ -1458,6 +2064,58 @@ class BookingService:
         # partial unique index keeps all other buyers out during this interval.
         await self.db.commit()
 
+        if settings.payment_gateway == "zibal":
+            # Zibal flow for replacement holds: start payment and return redirect URL.
+            # The hold stays in PROCESSING state; verify is handled via /payments/zibal/verify
+            # after the user returns from the bank page.
+            gateway = ZibalGatewayService()
+            try:
+                zibal_result = await gateway.request_payment(
+                    amount=payment_amount,
+                    callback_url=settings.zibal_callback_url,
+                    order_id=f"hold:{hold_id}",
+                    mobile=self.current_user.phone if self.current_user else None,
+                )
+            except ZibalGatewayError as exc:
+                await self._fail_replacement_payment(
+                    hold_id,
+                    processing_token,
+                    failure_code=exc.code,
+                    failure_message=str(exc),
+                )
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+            # Record the track_id on the hold so verify can look it up later
+            hold = await self.replacement_repo.get_hold(hold_id, for_update=True)
+            if hold and hold.processing_token == processing_token:
+                await self.replacement_repo.update_hold(
+                    hold,
+                    {
+                        "gateway_transaction_id": zibal_result.track_id,
+                        "gateway_name": "zibal",
+                        "failure_code": None,
+                    },
+                )
+                await self.db.commit()
+            await log_action(
+                self.db,
+                self.current_user.id,
+                "replacement_payment_started",
+                f"شروع پرداخت زیبال برای هولد {hold_id} — trackId {zibal_result.track_id}",
+            )
+            return PaymentStartResponse(
+                checkout_type="replacement_hold",
+                payment_gateway="zibal",
+                booking_id=hold_id,
+                payment_id=hold_id,
+                amount=float(payment_amount),
+                track_id=zibal_result.track_id,
+                start_url=zibal_result.start_url,
+                callback_url=zibal_result.callback_url,
+                expires_at=hold.expires_at if hold else None,
+            )
+
+        # ── Mock gateway (development only) ──────────────────────────
         payment_service = PaymentService()
         try:
             result = await payment_service.process_payment(float(payment_amount))
@@ -1487,179 +2145,7 @@ class BookingService:
             )
             raise HTTPException(status_code=status_code, detail=str(exc))
 
-        hold = await self.replacement_repo.get_hold(hold_id, for_update=True)
-        if not hold or hold.processing_token != processing_token:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="نتیجه پرداخت نیازمند بررسی پشتیبانی است",
-            )
-        request = await self.replacement_repo.get_request(
-            hold.replacement_request_id, for_update=True
-        )
-        original = (
-            await self.booking_repo.get_by_id(request.original_booking_id, for_update=True)
-            if request
-            else None
-        )
-        slot = await self.slot_repo.get_by_id(hold.slot_id, for_update=True)
-        vendor = slot.vendor if slot else None
-        now = now_utc()
-        if (
-            request is None
-            or original is None
-            or slot is None
-            or request.status != ReplacementRequestStatus.HELD
-            or original.status != BookingStatus.PENDING_CANCELLATION
-            or request.deadline <= now
-        ):
-            await self.replacement_repo.update_hold(
-                hold,
-                {
-                    "status": BookingHoldStatus.FAILED,
-                    "processing_token": None,
-                    "gateway_transaction_id": result.transaction_id,
-                    "gateway_name": result.gateway_name,
-                    "card_number": result.card_number,
-                    "ref_id": result.ref_id,
-                    "gateway_fee": Decimal(str(result.fee)),
-                    "paid_at": result.paid_at,
-                    "failure_code": "paid_but_transfer_conflicted",
-                },
-            )
-            if (
-                request
-                and original
-                and slot
-                and request.deadline <= now
-                and original.status == BookingStatus.PENDING_CANCELLATION
-            ):
-                await self.replacement_repo.update_request(
-                    request, {"status": ReplacementRequestStatus.EXPIRED}
-                )
-                await self.booking_repo.update(
-                    original, {"status": BookingStatus.CONFIRMED, "penalty_amount": None}
-                )
-                await self.slot_repo.update(
-                    slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
-                )
-                await invalidate_slot_list(slot.vendor_id)
-            await log_action(
-                self.db,
-                self.current_user.id,
-                "replacement_payment_reconciliation_required",
-                f"پرداخت هولد {hold_id} موفق شد اما انتقال مالکیت انجام نشد",
-                severity="CRITICAL",
-            )
-            await self.db.commit()
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="پرداخت ثبت شد اما انتقال رزرو نیازمند بررسی پشتیبانی است",
-            )
-
-        # Release the active-booking unique index before inserting the new owner.
-        await self.booking_repo.update(
-            original,
-            {
-                "status": BookingStatus.TRANSFERRED,
-                "penalty_amount": request.penalty_amount,
-                "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_REFUND,
-            },
-        )
-        replacement = await self.booking_repo.create(
-            {
-                "user_id": hold.user_id,
-                "slot_id": hold.slot_id,
-                "replaces_booking_id": original.id,
-                "status": BookingStatus.CONFIRMED,
-                "source": BookingSource.ONLINE,
-                "settlement_status": SettlementStatus.NOT_SETTLED,
-                "price_paid": hold.price_paid,
-                "slot_price": hold.slot_price,
-                "ball_price": hold.ball_price,
-                "with_ball": hold.with_ball,
-                "expires_at": None,
-            }
-        )
-        payment = await self.payment_repo.create(
-            {
-                "booking_id": replacement.id,
-                "amount": hold.price_paid,
-                "gateway_transaction_id": result.transaction_id,
-                "gateway_name": result.gateway_name,
-                "card_number": result.card_number,
-                "ref_id": result.ref_id,
-                "gateway_fee": Decimal(str(result.fee)),
-                "paid_at": result.paid_at,
-                "status": "success",
-            }
-        )
-        finance = FinanceService(self.db, self.current_user)
-        await finance.create_refund(
-            booking=original,
-            refund_type=RefundType.REPLACED_AFTER_PENDING_CANCELLATION,
-            reason="رزرو با پرداخت موفق متقاضی جایگزین منتقل شد",
-            penalty_amount=request.penalty_amount,
-            refund_amount=request.refund_amount,
-            penalty_charged_to_user=True,
-            site_bears_penalty=False,
-        )
-        await self.penalty_repo.create(
-            user_id=original.user_id,
-            booking_id=original.id,
-            amount=request.penalty_amount,
-            reason="Replacement booking completed",
-        )
-        await self.replacement_repo.update_request(
-            request,
-            {
-                "status": ReplacementRequestStatus.COMPLETED,
-                "replacement_booking_id": replacement.id,
-                "completed_at": now,
-            },
-        )
-        await self.replacement_repo.update_hold(
-            hold,
-            {
-                "status": BookingHoldStatus.PAID,
-                "processing_token": None,
-                "replacement_booking_id": replacement.id,
-                "gateway_transaction_id": result.transaction_id,
-                "gateway_name": result.gateway_name,
-                "card_number": result.card_number,
-                "ref_id": result.ref_id,
-                "gateway_fee": Decimal(str(result.fee)),
-                "paid_at": result.paid_at,
-                "failure_code": None,
-            },
-        )
-        await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
-        await invalidate_slot_list(slot.vendor_id)
-        await self.notify_repo.create(
-            user_id=original.user_id,
-            type_="booking_replaced",
-            message=f"برای سانس شما جایگزین پیدا شد و مبلغ {request.refund_amount} تومان در انتظار عودت است.",
-        )
-        await self.notify_repo.create(
-            user_id=hold.user_id,
-            type_="booking_confirmed",
-            message=f"رزرو شما برای {vendor.name if vendor else 'مجموعه'} تأیید شد.",
-        )
-        if vendor:
-            await self.notify_repo.create(
-                user_id=vendor.manager_id,
-                type_="booking_replaced",
-                message=f"رزرو سانس {slot.start_time.strftime('%Y-%m-%d')} با موفقیت منتقل شد.",
-            )
-        await log_action(
-            self.db,
-            self.current_user.id,
-            "replacement_booking_confirmed",
-            f"انتقال رزرو کامل شد | رزرو {original.id} ← رزرو {replacement.id}",
-        )
-        await self.db.commit()
-        detail = await self.get_booking(replacement.id)
-        detail.payment = PaymentResponse.model_validate(payment)
-        return detail
+        return await self._finalize_replacement_payment(hold_id, processing_token, result)
 
     async def cancel_booking(
         self, data: BookingCancelRequest, booking_id: int
@@ -1693,6 +2179,31 @@ class BookingService:
             )
 
         if booking.status == BookingStatus.PENDING_PAYMENT:
+            payment = await self.payment_repo.get_by_booking(booking_id)
+            if (
+                payment
+                and payment.status == PaymentStatus.PENDING
+                and payment.gateway_transaction_id
+            ):
+                track_id = payment.gateway_transaction_id
+                await self.db.commit()
+                resolution = await self.resolve_zibal_payment(track_id)
+                if resolution.outcome == "failed":
+                    return await self.get_booking(booking_id)
+                if resolution.outcome == "paid":
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="پرداخت این رزرو موفق شده و لغو آن تابع قوانین بازپرداخت است",
+                    )
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="نتیجه پرداخت درگاه هنوز قطعی نیست؛ تراکنش به صورت خودکار بررسی می‌شود",
+                )
+            if payment and payment.status == PaymentStatus.PENDING and payment.processing_token:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="درخواست پرداخت هنوز در حال ایجاد است؛ چند لحظه دیگر دوباره تلاش کنید",
+                )
             replaces_booking_id = booking.replaces_booking_id
             booking = await self.booking_repo.update(
                 booking,
@@ -1720,7 +2231,6 @@ class BookingService:
                         slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                     )
             await invalidate_slot_list(slot.vendor_id)
-            payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
                 id=booking.id,
                 user_id=booking.user_id,
@@ -2008,3 +2518,49 @@ async def get_booking_service(
     current_user: User = Depends(get_current_user),
 ) -> BookingService:
     return BookingService(db=db, current_user=current_user)
+
+
+async def reconcile_stale_zibal_payments(
+    db: AsyncSession, *, older_than: timedelta = timedelta(minutes=2)
+) -> dict[str, int]:
+    """Reconcile callbacks that never reached the browser or backend."""
+    cutoff = now_utc() - older_than
+    payment_repo = PaymentRepo(db)
+    replacement_repo = ReplacementRepo(db)
+    booking_repo = BookingRepo(db)
+
+    payments = await payment_repo.list_stale_zibal_pending(cutoff)
+    holds = await replacement_repo.list_stale_zibal_processing(cutoff)
+    targets: list[tuple[str, int]] = []
+    for payment in payments:
+        booking = await booking_repo.get_by_id(payment.booking_id)
+        if booking and payment.gateway_transaction_id:
+            targets.append((payment.gateway_transaction_id, booking.user_id))
+    for hold in holds:
+        if hold.gateway_transaction_id:
+            targets.append((hold.gateway_transaction_id, hold.user_id))
+
+    counts = {
+        "paid": 0,
+        "failed": 0,
+        "pending": 0,
+        "reconciliation_required": 0,
+    }
+    for track_id, user_id in targets:
+        user = await db.get(User, user_id)
+        if not user:
+            counts["reconciliation_required"] += 1
+            continue
+        try:
+            result = await BookingService(db, user).resolve_zibal_payment(track_id)
+        except Exception:
+            await db.rollback()
+            counts["reconciliation_required"] += 1
+            continue
+        counts[result.outcome] += 1
+    if counts["paid"] or counts["failed"]:
+        from app.services.cache_service import invalidate_admin_list_cache
+
+        await invalidate_admin_list_cache("bookings")
+        await invalidate_admin_list_cache("payments")
+    return counts

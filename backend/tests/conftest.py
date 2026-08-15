@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest_asyncio
@@ -94,8 +95,8 @@ async def _register_and_promote(
     user_id = data["user"]["id"]
 
     await session.execute(
-        text("UPDATE users SET role = :role WHERE id = :id"),
-        {"role": role, "id": user_id},
+        text("UPDATE users SET role = :role, phone_verified_at = :verified_at WHERE id = :id"),
+        {"role": role, "verified_at": datetime.now(timezone.utc), "id": user_id},
     )
     await session.flush()
 

@@ -34,7 +34,7 @@ interface BookingDetail {
 }
 
 interface ZibalPaymentStartResponse {
-  checkout_type: "booking"
+  checkout_type: "booking" | "replacement_hold"
   payment_gateway: "zibal"
   booking_id: number
   payment_id: number
@@ -51,7 +51,9 @@ function formatTime(iso: string): string {
 }
 
 function formatPrice(price: number): string {
-  return toPersianDigits(new Intl.NumberFormat("fa-IR").format(price)) + " تومانءء"
+  return (
+    toPersianDigits(new Intl.NumberFormat("fa-IR").format(price)) + " تومانءء"
+  )
 }
 
 function formatDate(iso: string): string {

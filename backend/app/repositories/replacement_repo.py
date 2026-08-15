@@ -85,6 +85,40 @@ class ReplacementRepo:
             stmt = stmt.with_for_update()
         return (await self.db.execute(stmt)).scalar_one_or_none()
 
+    async def get_hold_by_gateway_transaction_id(
+        self, track_id: str, *, for_update: bool = False
+    ) -> BookingHold | None:
+        stmt = (
+            select(BookingHold)
+            .where(BookingHold.gateway_transaction_id == track_id)
+            .options(
+                selectinload(BookingHold.replacement_request).selectinload(
+                    ReplacementRequest.original_booking
+                ),
+                selectinload(BookingHold.slot).selectinload(TimeSlot.vendor),
+            )
+            .execution_options(populate_existing=True)
+        )
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def list_stale_zibal_processing(
+        self, cutoff: datetime, *, limit: int = 100
+    ) -> list[BookingHold]:
+        result = await self.db.execute(
+            select(BookingHold)
+            .where(
+                BookingHold.status == BookingHoldStatus.PROCESSING,
+                BookingHold.gateway_name == "zibal",
+                BookingHold.gateway_transaction_id.isnot(None),
+                BookingHold.processing_started_at <= cutoff,
+            )
+            .order_by(BookingHold.processing_started_at)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def get_live_hold_for_request(
         self, request_id: int, *, for_update: bool = False
     ) -> BookingHold | None:
@@ -133,6 +167,7 @@ class ReplacementRepo:
                     and_(
                         BookingHold.status == BookingHoldStatus.PROCESSING,
                         BookingHold.failure_code.is_(None),
+                        BookingHold.gateway_transaction_id.is_(None),
                     ),
                 ),
                 BookingHold.expires_at <= now,
@@ -150,6 +185,13 @@ class ReplacementRepo:
                     (ReplacementRequestStatus.OPEN, ReplacementRequestStatus.HELD)
                 ),
                 ReplacementRequest.deadline <= now,
+                ~select(BookingHold.id)
+                .where(
+                    BookingHold.replacement_request_id == ReplacementRequest.id,
+                    BookingHold.status == BookingHoldStatus.PROCESSING,
+                    BookingHold.gateway_transaction_id.isnot(None),
+                )
+                .exists(),
             )
             .order_by(ReplacementRequest.deadline)
             .with_for_update(skip_locked=True)

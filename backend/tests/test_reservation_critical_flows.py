@@ -18,6 +18,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.config import settings
 from app.models.booking import Booking, BookingSource, BookingStatus
 from app.models.replacement import (
     BookingHold,
@@ -33,6 +34,10 @@ from app.services.booking_service import BookingService
 from app.services.finance_service import FinanceService
 from app.services.payment_service import PaymentResult, PaymentService
 from app.services.replacement_service import expire_replacement_work
+from app.services.zibal_gateway import (
+    ZibalPaymentStartResult,
+    ZibalPaymentVerificationResult,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -63,12 +68,14 @@ async def _seed_committed_slot() -> dict[str, int | str]:
             phone=_phone(3),
             password_hash="test",
             role=UserRole.USER,
+            phone_verified_at=datetime.now(timezone.utc),
         )
         user_two = User(
             full_name="race user two",
             phone=_phone(4),
             password_hash="test",
             role=UserRole.USER,
+            phone_verified_at=datetime.now(timezone.utc),
         )
         db.add_all([manager, admin, user_one, user_two])
         await db.flush()
@@ -488,6 +495,11 @@ async def test_replacement_booking_completes_transfer_and_financial_records(
         json={"phone": "09128887766", "password": "Test1234", "full_name": "جایگزین"},
     )
     assert registered.status_code == 201, registered.text
+    await session.execute(
+        text("UPDATE users SET phone_verified_at = now() WHERE id = :id"),
+        {"id": registered.json()["user"]["id"]},
+    )
+    await session.flush()
     replacement_headers = {"Authorization": f"Bearer {registered.json()['access_token']}"}
     version = await session.scalar(
         text("SELECT version FROM time_slots WHERE id = :id"), {"id": slot_id}
@@ -526,15 +538,20 @@ async def test_replacement_booking_completes_transfer_and_financial_records(
         ref_id=uuid4().hex,
         fee=1000,
     )
-    with patch.object(
-        PaymentService,
-        "process_payment",
-        new=AsyncMock(return_value=gateway_result),
-    ):
-        paid = await client.post(
-            f"/api/v1/bookings/replacement-holds/{hold_id}/pay",
-            headers=replacement_headers,
-        )
+    original_gateway = settings.payment_gateway
+    settings.payment_gateway = "mock"
+    try:
+        with patch.object(
+            PaymentService,
+            "process_payment",
+            new=AsyncMock(return_value=gateway_result),
+        ):
+            paid = await client.post(
+                f"/api/v1/bookings/replacement-holds/{hold_id}/pay",
+                headers=replacement_headers,
+            )
+    finally:
+        settings.payment_gateway = original_gateway
     assert paid.status_code == 200, paid.text
     replacement_id = paid.json()["id"]
     assert paid.json()["status"] == "confirmed"
@@ -590,6 +607,85 @@ async def test_replacement_booking_completes_transfer_and_financial_records(
         )
         == 1
     )
+
+
+async def test_zibal_replacement_hold_redirect_and_callback_finalize_transfer(
+    client, session: AsyncSession, manager_token: dict, user_token: dict, monkeypatch
+) -> None:
+    _, slot_id = await _api_vendor_and_slot(client, session, manager_token, hours=24)
+    original_id = await _create_and_pay_online(client, user_token, slot_id)
+    original_user = await session.get(User, user_token["user"]["id"])
+    assert original_user is not None
+    original_service = BookingService(session, original_user)
+    with patch.object(original_service, "_ensure_verified_bank_card", new=AsyncMock()):
+        await original_service.cancel_booking(
+            BookingCancelRequest(accepted_terms=True), original_id
+        )
+
+    registered = await client.post(
+        "/api/v1/auth/register",
+        json={"phone": "09128887765", "password": "Test1234", "full_name": "جایگزین زیبال"},
+    )
+    await session.execute(
+        text("UPDATE users SET phone_verified_at = now() WHERE id = :id"),
+        {"id": registered.json()["user"]["id"]},
+    )
+    await session.flush()
+    headers = {"Authorization": f"Bearer {registered.json()['access_token']}"}
+    version = await session.scalar(
+        text("SELECT version FROM time_slots WHERE id = :id"), {"id": slot_id}
+    )
+    held = await client.post(
+        "/api/v1/bookings", json={"slot_id": slot_id, "version": version}, headers=headers
+    )
+    hold_id = held.json()["id"]
+
+    monkeypatch.setattr(settings, "payment_gateway", "zibal")
+
+    async def fake_request(self, **kwargs):
+        return ZibalPaymentStartResult(
+            track_id="15966442239999",
+            start_url="https://gateway.zibal.ir/start/15966442239999",
+            callback_url=kwargs["callback_url"],
+            raw_response={"result": 100},
+        )
+
+    async def fake_verify(self, track_id: str):
+        return ZibalPaymentVerificationResult(
+            result=100,
+            track_id=track_id,
+            verified=True,
+            ref_id="778899",
+            message="OK",
+            paid_amount=None,
+            raw_response={"result": 100, "refId": "778899"},
+            payment_status=1,
+        )
+
+    monkeypatch.setattr(
+        "app.services.zibal_gateway.ZibalGatewayService.request_payment", fake_request
+    )
+    monkeypatch.setattr(
+        "app.services.zibal_gateway.ZibalGatewayService.verify_payment", fake_verify
+    )
+
+    started = await client.post(
+        f"/api/v1/bookings/replacement-holds/{hold_id}/pay", headers=headers
+    )
+    assert started.status_code == 200, started.text
+    assert started.json()["checkout_type"] == "replacement_hold"
+
+    verified = await client.post(
+        "/api/v1/payments/zibal/verify",
+        json={"track_id": "15966442239999"},
+        headers=headers,
+    )
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["outcome"] == "paid"
+    replacement_id = verified.json()["booking_id"]
+    hold = await session.get(BookingHold, hold_id)
+    assert hold is not None and hold.status == BookingHoldStatus.PAID
+    assert hold.replacement_booking_id == verified.json()["booking_id"]
     assert (
         await session.scalar(
             text("SELECT count(*) FROM payments WHERE booking_id = :id"),
@@ -622,6 +718,7 @@ async def test_expired_replacement_hold_reopens_request_without_touching_origina
         phone="09127776655",
         password_hash="test",
         role=UserRole.USER,
+        phone_verified_at=datetime.now(timezone.utc),
     )
     session.add(second)
     await session.flush()
@@ -638,6 +735,7 @@ async def test_expired_replacement_hold_reopens_request_without_touching_origina
         phone="09126665544",
         password_hash="test",
         role=UserRole.USER,
+        phone_verified_at=datetime.now(timezone.utc),
     )
     session.add(competitor)
     await session.flush()
@@ -795,7 +893,12 @@ async def _create_and_pay_online(client, user_token: dict, slot_id: int) -> int:
     )
     assert created.status_code == 201, created.text
     booking_id = created.json()["id"]
-    with patch("random.random", return_value=0.5):
-        paid = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=headers)
+    original_gateway = settings.payment_gateway
+    settings.payment_gateway = "mock"
+    try:
+        with patch("random.random", return_value=0.5):
+            paid = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=headers)
+    finally:
+        settings.payment_gateway = original_gateway
     assert paid.status_code == 200, paid.text
     return booking_id

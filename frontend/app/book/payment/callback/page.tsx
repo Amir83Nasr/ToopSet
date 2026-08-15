@@ -16,28 +16,33 @@ import { SiteFooter } from "@/components/public/site-footer"
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react"
 import { toast } from "@/lib/toast"
 
+type PaymentOutcome = "paid" | "failed" | "pending" | "reconciliation_required"
+
 type PaymentVerifyResponse = {
-  id: number
-  status: string
+  outcome: PaymentOutcome
+  booking_id: number | null
+  message: string
 }
 
 function CallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const trackId = searchParams.get("trackId") ?? searchParams.get("track_id")
-  const success = searchParams.get("success")
+  const callbackOutcome = searchParams.get("outcome") as PaymentOutcome | null
+  const callbackBookingId = searchParams.get("bookingId")
   const orderId = searchParams.get("orderId")
   const shouldVerify = useMemo(() => {
-    if (!trackId) return false
-    if (success === "0") return false
-    return true
-  }, [success, trackId])
+    return Boolean(trackId && !callbackOutcome)
+  }, [callbackOutcome, trackId])
 
   const [loading, setLoading] = useState(shouldVerify)
-  const [error, setError] = useState(
+  const [outcome, setOutcome] = useState<PaymentOutcome | null>(callbackOutcome)
+  const [message, setMessage] = useState(
     trackId ? "" : "شناسه تراکنش از درگاه دریافت نشد."
   )
-  const [bookingId, setBookingId] = useState<number | null>(null)
+  const [bookingId, setBookingId] = useState<number | null>(
+    callbackBookingId ? Number(callbackBookingId) : null
+  )
 
   useEffect(() => {
     if (!shouldVerify) return
@@ -57,16 +62,16 @@ function CallbackContent() {
           }
         )
         if (cancelled) return
-        setBookingId(res.id)
-        toast.success("پرداخت با موفقیت تایید شد")
-        window.setTimeout(() => {
-          router.replace("/dashboard/bookings")
-        }, 2200)
+        setOutcome(res.outcome)
+        setMessage(res.message)
+        setBookingId(res.booking_id)
+        if (res.outcome === "paid") toast.success("پرداخت با موفقیت تایید شد")
       } catch (err) {
         if (cancelled) return
         const msg =
           err instanceof ApiError ? err.message : "تأیید پرداخت ناموفق بود"
-        setError(msg)
+        setOutcome("reconciliation_required")
+        setMessage(msg)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -79,6 +84,19 @@ function CallbackContent() {
     }
   }, [orderId, router, shouldVerify, trackId])
 
+  const description = loading
+    ? "در حال بررسی نتیجه تراکنش..."
+    : message ||
+      (outcome === "paid"
+        ? "پرداخت با موفقیت ثبت شد."
+        : outcome === "failed"
+          ? "پرداخت انجام نشد و رزرو موقت آزاد شد."
+          : outcome === "pending"
+            ? "نتیجه تراکنش هنوز نهایی نشده و به صورت خودکار بررسی می‌شود."
+            : "تراکنش نیازمند بررسی بیشتر است و به صورت خودکار دوباره بررسی می‌شود.")
+
+  const isPaid = outcome === "paid"
+
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
@@ -88,21 +106,15 @@ function CallbackContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 {loading && <Loader2 className="size-5 animate-spin" />}
-                {!loading && !error && (
+                {!loading && isPaid && (
                   <CheckCircle2 className="size-5 text-green-600" />
                 )}
-                {!loading && error && (
+                {!loading && !isPaid && (
                   <AlertTriangle className="size-5 text-destructive" />
                 )}
                 تایید پرداخت
               </CardTitle>
-              <CardDescription>
-                {loading
-                  ? "در حال بررسی نتیجه تراکنش..."
-                  : error
-                    ? error
-                    : "پرداخت با موفقیت ثبت شد و به‌زودی به لیست رزروها برمی‌گردید."}
-              </CardDescription>
+              <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {bookingId && (
@@ -119,7 +131,7 @@ function CallbackContent() {
                 <Button onClick={() => router.push("/dashboard/bookings")}>
                   مشاهده رزروها
                 </Button>
-                {error && (
+                {!isPaid && trackId && (
                   <Button
                     variant="outline"
                     onClick={() => window.location.reload()}
@@ -128,11 +140,6 @@ function CallbackContent() {
                   </Button>
                 )}
               </div>
-              {success === "0" && (
-                <p className="text-sm text-muted-foreground">
-                  پرداخت توسط کاربر لغو شده یا ناموفق بوده است.
-                </p>
-              )}
             </CardContent>
           </Card>
         </div>

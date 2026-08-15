@@ -129,6 +129,29 @@ async def _cancel_expired_pending():
         await asyncio.sleep(60)
 
 
+async def _reconcile_zibal_payments_periodically():
+    """Finalize or release Zibal payments even when the browser callback is lost."""
+    while True:
+        try:
+            if settings.payment_gateway == "zibal":
+                async with async_session_factory() as db:
+                    from app.services.booking_service import reconcile_stale_zibal_payments
+
+                    result = await reconcile_stale_zibal_payments(db)
+                    if result["reconciliation_required"]:
+                        import logging
+
+                        logging.getLogger(__name__).warning(
+                            "Zibal reconciliation left %s transaction(s) unresolved",
+                            result["reconciliation_required"],
+                        )
+        except Exception:
+            import logging
+
+            logging.exception("_reconcile_zibal_payments_periodically failed")
+        await asyncio.sleep(60)
+
+
 async def _expire_replacement_work_periodically():
     """Release expired replacement holds and restore the original reservation."""
     while True:
@@ -216,10 +239,12 @@ async def lifespan(app: FastAPI):
 
     metrics_task = asyncio.create_task(_refresh_metrics_periodically())
     cancel_task = asyncio.create_task(_cancel_expired_pending())
+    payment_reconciliation_task = asyncio.create_task(_reconcile_zibal_payments_periodically())
     replacement_task = asyncio.create_task(_expire_replacement_work_periodically())
     yield
     metrics_task.cancel()
     cancel_task.cancel()
+    payment_reconciliation_task.cancel()
     replacement_task.cancel()
     await close_redis()
     await engine.dispose()

@@ -1,18 +1,25 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Response
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.pagination import decode_cursor, encode_cursor
+from app.core.rate_limiter import limiter
 from app.models.payment import Payment
 from app.models.user import User
+from app.repositories.booking_repo import BookingRepo
 from app.repositories.payment_repo import PaymentRepo
-from app.schemas.booking import BookingDetailResponse
+from app.repositories.replacement_repo import ReplacementRepo
 from app.schemas.payment import (
     PaymentDetailResponse,
     PaymentListResponse,
+    PaymentResolutionResponse,
     PaymentVerificationRequest,
     PaymentVerificationStatusResponse,
 )
@@ -126,20 +133,98 @@ async def list_all_payments(
 
 @router.post(
     "/zibal/verify",
-    response_model=BookingDetailResponse,
+    response_model=PaymentResolutionResponse,
     summary="Verify a Zibal payment",
 )
+@limiter.limit("10/minute")
 async def verify_zibal_payment(
+    request: Request,
     data: PaymentVerificationRequest,
     service: BookingService = Depends(get_booking_service),
 ):
     """Verify a completed Zibal payment by its track id and finalize the booking."""
     from app.services.cache_service import invalidate_admin_list_cache
 
-    result = await service.verify_zibal_payment(data.track_id)
+    result = await service.resolve_zibal_payment(data.track_id)
     await invalidate_admin_list_cache("bookings")
     await invalidate_admin_list_cache("payments")
     return result
+
+
+def _payment_result_redirect(result: PaymentResolutionResponse) -> RedirectResponse:
+    query = urlencode(
+        {
+            "outcome": result.outcome,
+            "trackId": result.track_id,
+            "bookingId": result.booking_id or "",
+            "refId": result.ref_id or "",
+        }
+    )
+    separator = "&" if "?" in settings.payment_result_url else "?"
+    return RedirectResponse(
+        url=f"{settings.payment_result_url}{separator}{query}",
+        status_code=303,
+    )
+
+
+@router.get(
+    "/zibal/callback",
+    response_class=RedirectResponse,
+    summary="Handle Zibal's unauthenticated server callback",
+)
+@limiter.limit("300/minute")
+async def zibal_callback(
+    request: Request,
+    track_id: str | None = Query(None, alias="trackId"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve the transaction on the backend, then redirect to the result UI."""
+    if not track_id:
+        return _payment_result_redirect(
+            PaymentResolutionResponse(
+                outcome="reconciliation_required",
+                track_id="",
+                message="شناسه تراکنش از درگاه دریافت نشد.",
+            )
+        )
+
+    payment = await PaymentRepo(db).get_by_gateway_transaction_id(track_id)
+    user = None
+    if payment:
+        booking = await BookingRepo(db).get_by_id(payment.booking_id)
+        if booking:
+            user = booking.user
+    else:
+        hold = await ReplacementRepo(db).get_hold_by_gateway_transaction_id(track_id)
+        if hold:
+            user = await db.get(User, hold.user_id)
+
+    if not user:
+        return _payment_result_redirect(
+            PaymentResolutionResponse(
+                outcome="reconciliation_required",
+                track_id=track_id,
+                message="تراکنش یافت نشد و نیازمند بررسی است.",
+            )
+        )
+
+    try:
+        result = await BookingService(db, user).resolve_zibal_payment(track_id)
+    except Exception:
+        await db.rollback()
+        result = PaymentResolutionResponse(
+            outcome="reconciliation_required",
+            track_id=track_id,
+            payment_id=payment.id if payment else None,
+            booking_id=payment.booking_id if payment else None,
+            message="تراکنش به صورت خودکار دوباره بررسی می‌شود.",
+        )
+    if result.outcome in {"paid", "failed"}:
+        from app.services.cache_service import invalidate_admin_list_cache
+
+        await invalidate_admin_list_cache("bookings")
+        await invalidate_admin_list_cache("payments")
+    return _payment_result_redirect(result)
 
 
 @router.get(
@@ -147,7 +232,9 @@ async def verify_zibal_payment(
     response_model=PaymentVerificationStatusResponse,
     summary="Inquiry a Zibal payment",
 )
+@limiter.limit("20/minute")
 async def inquiry_zibal_payment(
+    request: Request,
     track_id: str,
     service: BookingService = Depends(get_booking_service),
 ):
