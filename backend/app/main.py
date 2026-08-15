@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -59,6 +60,7 @@ from app.core.redis_client import close_redis
 from app.core.timezone import now_utc
 
 METRICS_REFRESH_INTERVAL = 120  # seconds
+logger = logging.getLogger(__name__)
 
 
 async def _refresh_metrics_periodically():
@@ -122,9 +124,8 @@ async def _cancel_expired_pending():
                     )
                 if expired:
                     await db.commit()
+                logger.info("pending booking expiry job completed expired=%s", len(expired))
         except Exception:
-            import logging
-
             logging.exception("_cancel_expired_pending failed")
         await asyncio.sleep(60)
 
@@ -138,10 +139,17 @@ async def _reconcile_zibal_payments_periodically():
                     from app.services.booking_service import reconcile_stale_zibal_payments
 
                     result = await reconcile_stale_zibal_payments(db)
+                    logger.info(
+                        "Zibal reconciliation job completed checked=%s paid=%s failed=%s "
+                        "pending=%s unresolved=%s",
+                        sum(result.values()),
+                        result["paid"],
+                        result["failed"],
+                        result["pending"],
+                        result["reconciliation_required"],
+                    )
                     if result["reconciliation_required"]:
-                        import logging
-
-                        logging.getLogger(__name__).warning(
+                        logger.warning(
                             "Zibal reconciliation left %s transaction(s) unresolved",
                             result["reconciliation_required"],
                         )
