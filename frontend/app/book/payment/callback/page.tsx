@@ -86,16 +86,17 @@ function CallbackContent() {
 
   const description = loading
     ? "در حال بررسی نتیجه تراکنش..."
-    : message ||
-      (outcome === "paid"
-        ? "پرداخت با موفقیت ثبت شد."
-        : outcome === "failed"
-          ? "پرداخت انجام نشد و رزرو موقت آزاد شد."
+    : outcome === "failed"
+      ? "پرداخت انجام نشد و رزروی صورت نگرفت."
+      : message ||
+        (outcome === "paid"
+          ? "پرداخت با موفقیت ثبت شد."
           : outcome === "pending"
             ? "نتیجه تراکنش هنوز نهایی نشده و به صورت خودکار بررسی می‌شود."
             : "تراکنش نیازمند بررسی بیشتر است و به صورت خودکار دوباره بررسی می‌شود.")
 
   const isPaid = outcome === "paid"
+  const showPaymentDetails = outcome !== "failed"
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -117,12 +118,12 @@ function CallbackContent() {
               <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {bookingId && (
+              {showPaymentDetails && bookingId && (
                 <div className="rounded-lg border bg-muted/40 p-4 text-sm">
                   شماره رزرو: {bookingId}
                 </div>
               )}
-              {trackId && (
+              {showPaymentDetails && trackId && (
                 <div className="rounded-lg border bg-muted/40 p-4 text-sm">
                   Track ID: <span dir="ltr">{trackId}</span>
                 </div>

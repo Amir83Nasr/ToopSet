@@ -46,6 +46,18 @@ const nextConfig = {
         hostname: "*.railway.com",
         pathname: "/uploads/**",
       },
+      // ParsPack object storage — vendor images
+      {
+        protocol: "https",
+        hostname: "*.parspack.net",
+        pathname: "/**",
+      },
+      // Production API uploads
+      {
+        protocol: "https",
+        hostname: "api.toopset.ir",
+        pathname: "/uploads/**",
+      },
     ],
   },
   // Serwist injects a webpack config — explicit empty turbopack config
