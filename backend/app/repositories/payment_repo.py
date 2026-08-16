@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingStatus
 from app.models.payment import Payment, PaymentStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User
@@ -124,16 +124,37 @@ class PaymentRepo:
     ) -> list[Payment]:
         result = await self.db.execute(
             select(Payment)
+            .join(Booking, Payment.booking_id == Booking.id)
             .where(
                 Payment.status == PaymentStatus.PENDING,
                 Payment.gateway_name == "zibal",
                 Payment.gateway_transaction_id.isnot(None),
                 Payment.created_at <= cutoff,
+                Booking.status == BookingStatus.PENDING_PAYMENT,
             )
             .order_by(Payment.created_at)
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def expire_pending_for_nonpayable_bookings(self) -> int:
+        """Close stale payment rows whose booking can no longer be paid."""
+        result = await self.db.execute(
+            update(Payment)
+            .where(
+                Payment.status == PaymentStatus.PENDING,
+                Payment.booking_id.in_(
+                    select(Booking.id).where(Booking.status != BookingStatus.PENDING_PAYMENT)
+                ),
+            )
+            .values(
+                status=PaymentStatus.EXPIRED,
+                processing_token=None,
+                failure_code="booking_not_payable",
+            )
+            .returning(Payment.id)
+        )
+        return len(result.scalars().all())
 
     async def get_by_booking_ids(self, booking_ids: list[int]) -> dict[int, Payment]:
         """Return a ``{booking_id: Payment}`` map for the given booking IDs.

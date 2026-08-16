@@ -25,6 +25,7 @@ from app.core.correlation_id import get_request_id
 _LOG_DIR = Path(os.getenv("LOG_FILE_DIR", "/app/logs"))
 _LOG_FILE = _LOG_DIR / "app.log"
 _LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+_CONFIGURED_ATTR = "_toopset_logging_configured"
 
 # Fields emitted in every JSON log line.
 _LOG_FMT = "%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d %(request_id)s"
@@ -81,7 +82,8 @@ def _build_file_handler() -> logging.Handler | None:
 
 def setup_logging() -> None:
     """Idempotent logging bootstrap. Call once at app startup."""
-    if logging.getLogger().hasHandlers():
+    root_logger = logging.getLogger()
+    if getattr(root_logger, _CONFIGURED_ATTR, False):
         return
 
     handlers: list[logging.Handler] = [_build_json_handler()]
@@ -94,6 +96,7 @@ def setup_logging() -> None:
         handlers=handlers,
         force=True,
     )
+    setattr(logging.getLogger(), _CONFIGURED_ATTR, True)
 
     # Keep uvicorn access logs under control
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)

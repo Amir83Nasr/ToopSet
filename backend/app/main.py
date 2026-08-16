@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -52,6 +53,8 @@ from app.core.logging_config import setup_logging
 from app.core.metrics import (
     PrometheusMiddleware,
     metrics_response,
+    record_payment_reconciliation_failure,
+    record_payment_reconciliation_success,
     refresh_business_metrics,
 )
 from app.core.profiler import ProfilerMiddleware
@@ -133,20 +136,27 @@ async def _cancel_expired_pending():
 async def _reconcile_zibal_payments_periodically():
     """Finalize or release Zibal payments even when the browser callback is lost."""
     while True:
+        started_at = time.monotonic()
         try:
             if settings.payment_gateway == "zibal":
                 async with async_session_factory() as db:
                     from app.services.booking_service import reconcile_stale_zibal_payments
 
                     result = await reconcile_stale_zibal_payments(db)
+                    record_payment_reconciliation_success(result)
+                    checked = sum(
+                        result[key]
+                        for key in ("paid", "failed", "pending", "reconciliation_required")
+                    )
                     logger.info(
                         "Zibal reconciliation job completed checked=%s paid=%s failed=%s "
-                        "pending=%s unresolved=%s",
-                        sum(result.values()),
+                        "pending=%s unresolved=%s cleaned=%s",
+                        checked,
                         result["paid"],
                         result["failed"],
                         result["pending"],
                         result["reconciliation_required"],
+                        result["cleaned"],
                     )
                     if result["reconciliation_required"]:
                         logger.warning(
@@ -154,10 +164,10 @@ async def _reconcile_zibal_payments_periodically():
                             result["reconciliation_required"],
                         )
         except Exception:
-            import logging
-
-            logging.exception("_reconcile_zibal_payments_periodically failed")
-        await asyncio.sleep(60)
+            record_payment_reconciliation_failure()
+            logger.exception("_reconcile_zibal_payments_periodically failed")
+        elapsed = time.monotonic() - started_at
+        await asyncio.sleep(max(1, 60 - elapsed))
 
 
 async def _expire_replacement_work_periodically():

@@ -191,6 +191,33 @@ toopset_active_sessions = Gauge(
     "Number of active refresh token sessions",
 )
 
+toopset_payment_reconciliation_last_run_timestamp_seconds = Gauge(
+    "toopset_payment_reconciliation_last_run_timestamp_seconds",
+    "Unix timestamp of the latest payment reconciliation attempt",
+)
+
+toopset_payment_reconciliation_last_success_timestamp_seconds = Gauge(
+    "toopset_payment_reconciliation_last_success_timestamp_seconds",
+    "Unix timestamp of the latest successful payment reconciliation run",
+)
+
+toopset_payment_reconciliation_last_checked = Gauge(
+    "toopset_payment_reconciliation_last_checked",
+    "Number of gateway transactions checked by the latest reconciliation run",
+)
+
+toopset_payment_reconciliation_runs_total = Counter(
+    "toopset_payment_reconciliation_runs_total",
+    "Payment reconciliation runs grouped by result",
+    labelnames=["result"],
+)
+
+toopset_payment_reconciliation_outcomes_total = Counter(
+    "toopset_payment_reconciliation_outcomes_total",
+    "Payment reconciliation outcomes",
+    labelnames=["outcome"],
+)
+
 # ── Connection pool metrics ──────────────────────────────────────────────
 
 toopset_db_pool_size = Gauge(
@@ -198,6 +225,28 @@ toopset_db_pool_size = Gauge(
     "SQLAlchemy connection pool size",
     labelnames=["state"],  # "checked_in", "checked_out", "overflow", "total"
 )
+
+
+def record_payment_reconciliation_success(result: dict[str, int]) -> None:
+    """Publish liveness and outcome metrics for a completed reconciliation run."""
+    now = time.time()
+    checked = sum(
+        result.get(key, 0) for key in ("paid", "failed", "pending", "reconciliation_required")
+    )
+    toopset_payment_reconciliation_last_run_timestamp_seconds.set(now)
+    toopset_payment_reconciliation_last_success_timestamp_seconds.set(now)
+    toopset_payment_reconciliation_last_checked.set(checked)
+    toopset_payment_reconciliation_runs_total.labels(result="success").inc()
+    for outcome in ("paid", "failed", "pending", "reconciliation_required", "cleaned"):
+        count = result.get(outcome, 0)
+        if count:
+            toopset_payment_reconciliation_outcomes_total.labels(outcome=outcome).inc(count)
+
+
+def record_payment_reconciliation_failure() -> None:
+    """Publish a failed reconciliation attempt without advancing success time."""
+    toopset_payment_reconciliation_last_run_timestamp_seconds.set(time.time())
+    toopset_payment_reconciliation_runs_total.labels(result="failure").inc()
 
 
 # ── Middleware ────────────────────────────────────────────────────────────

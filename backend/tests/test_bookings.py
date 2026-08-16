@@ -11,6 +11,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.repositories.payment_repo import PaymentRepo
+from app.services.booking_service import reconcile_stale_zibal_payments
 from app.services.zibal_gateway import (
     ZibalPaymentStartResult,
     ZibalPaymentVerificationResult,
@@ -560,6 +562,158 @@ class TestPayBooking:
         ).one()
         assert slot_state.status == "open"
         assert slot_state.is_reserved is False
+
+    async def test_reconciliation_expires_zibal_pending_status_and_releases_booking(
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+        manager_token: dict,
+        user_token: dict,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(settings, "payment_gateway", "zibal")
+
+        async def fake_request_payment(self, **kwargs):
+            return ZibalPaymentStartResult(
+                track_id="4733198011",
+                start_url="https://gateway.zibal.ir/start/4733198011",
+                callback_url=kwargs["callback_url"],
+                raw_response={"result": 100, "trackId": "4733198011"},
+            )
+
+        async def fake_verify_payment(self, track_id: str):
+            raise ZibalVerificationError("پرداخت انجام نشده است")
+
+        async def fake_inquiry_payment(self, track_id: str):
+            return ZibalPaymentVerificationResult(
+                result=100,
+                track_id=track_id,
+                verified=False,
+                ref_id=None,
+                message="success",
+                paid_amount=20000,
+                raw_response={"result": 100, "status": -1, "amount": 200000},
+                payment_status=-1,
+            )
+
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.request_payment",
+            fake_request_payment,
+        )
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.verify_payment",
+            fake_verify_payment,
+        )
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.inquiry_payment",
+            fake_inquiry_payment,
+        )
+
+        manager_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=manager_headers)
+        slot_id = await _create_slot(client, session, vendor.json()["id"])
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        created = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": await _get_slot_version(client, slot_id)},
+            headers=user_headers,
+        )
+        booking_id = created.json()["id"]
+        await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
+        await session.execute(
+            text("UPDATE bookings SET expires_at = now() - interval '1 minute' WHERE id = :id"),
+            {"id": booking_id},
+        )
+        await session.commit()
+
+        result = await reconcile_stale_zibal_payments(
+            session,
+            older_than=timedelta(seconds=-1),
+        )
+
+        assert result == {
+            "paid": 0,
+            "failed": 1,
+            "pending": 0,
+            "reconciliation_required": 0,
+            "cleaned": 0,
+        }
+        assert (
+            await session.scalar(
+                text("SELECT status FROM bookings WHERE id = :id"), {"id": booking_id}
+            )
+            == "expired"
+        )
+        payment_state = (
+            await session.execute(
+                text("SELECT status, failure_code FROM payments WHERE booking_id = :booking_id"),
+                {"booking_id": booking_id},
+            )
+        ).one()
+        assert payment_state.status == "expired"
+        assert payment_state.failure_code == "zibal_checkout_expired"
+        slot_state = (
+            await session.execute(
+                text("SELECT status, is_reserved FROM time_slots WHERE id = :id"),
+                {"id": slot_id},
+            )
+        ).one()
+        assert slot_state.status == "open"
+        assert slot_state.is_reserved is False
+
+    async def test_reconciliation_query_ignores_nonpayable_bookings(
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+        manager_token: dict,
+        user_token: dict,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(settings, "payment_gateway", "zibal")
+
+        async def fake_request_payment(self, **kwargs):
+            return ZibalPaymentStartResult(
+                track_id="4733198012",
+                start_url="https://gateway.zibal.ir/start/4733198012",
+                callback_url=kwargs["callback_url"],
+                raw_response={"result": 100, "trackId": "4733198012"},
+            )
+
+        monkeypatch.setattr(
+            "app.services.zibal_gateway.ZibalGatewayService.request_payment",
+            fake_request_payment,
+        )
+        manager_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=manager_headers)
+        slot_id = await _create_slot(client, session, vendor.json()["id"])
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        created = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": await _get_slot_version(client, slot_id)},
+            headers=user_headers,
+        )
+        booking_id = created.json()["id"]
+        await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
+        await session.execute(
+            text("UPDATE bookings SET status = 'cancelled' WHERE id = :id"),
+            {"id": booking_id},
+        )
+        await session.commit()
+
+        repo = PaymentRepo(session)
+        stale = await repo.list_stale_zibal_pending(
+            datetime.now(timezone.utc) + timedelta(minutes=1)
+        )
+        assert stale == []
+        assert await repo.expire_pending_for_nonpayable_bookings() == 1
+        payment_state = (
+            await session.execute(
+                text("SELECT status, failure_code FROM payments WHERE booking_id = :booking_id"),
+                {"booking_id": booking_id},
+            )
+        ).one()
+        assert payment_state.status == "expired"
+        assert payment_state.failure_code == "booking_not_payable"
 
 
 class TestCancelBooking:

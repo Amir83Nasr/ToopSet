@@ -40,6 +40,14 @@ class Payment(Base):
             unique=True,
             postgresql_where=text("idempotency_key IS NOT NULL"),
         ),
+        Index(
+            "ix_payments_zibal_pending_created_at",
+            "created_at",
+            postgresql_where=text(
+                "status = 'pending' AND gateway_name = 'zibal' "
+                "AND gateway_transaction_id IS NOT NULL"
+            ),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

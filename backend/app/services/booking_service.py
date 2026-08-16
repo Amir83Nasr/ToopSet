@@ -1017,6 +1017,72 @@ class BookingService:
             expires_at=expires_at,
         )
 
+    async def _expire_zibal_booking_checkout(self, track_id: str) -> bool:
+        """Expire an unpaid Zibal checkout after the local booking deadline."""
+        payment = await self.payment_repo.get_by_gateway_transaction_id(track_id, for_update=True)
+        if not payment or payment.status != PaymentStatus.PENDING:
+            await self.db.rollback()
+            return False
+
+        booking = await self.booking_repo.get_by_id(payment.booking_id, for_update=True)
+        if (
+            not booking
+            or booking.user_id != self.current_user.id
+            or booking.status != BookingStatus.PENDING_PAYMENT
+            or not booking.expires_at
+            or booking.expires_at > now_utc()
+        ):
+            await self.db.rollback()
+            return False
+
+        slot = await self.slot_repo.get_by_id(booking.slot_id, for_update=True)
+        await self.payment_repo.update(
+            payment,
+            {
+                "status": PaymentStatus.EXPIRED,
+                "processing_token": None,
+                "failure_code": "zibal_checkout_expired",
+            },
+        )
+        await self.booking_repo.update(
+            booking,
+            {
+                "status": BookingStatus.EXPIRED,
+                "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
+            },
+        )
+
+        if slot and slot.status == SlotStatus.RESERVING:
+            if booking.replaces_booking_id:
+                original = await self.booking_repo.get_by_id(
+                    booking.replaces_booking_id, for_update=True
+                )
+                if original and original.status == BookingStatus.PENDING_CANCELLATION:
+                    await self.slot_repo.update(
+                        slot,
+                        {
+                            "is_reserved": True,
+                            "status": SlotStatus.PENDING_CANCELLATION,
+                        },
+                    )
+                else:
+                    await self.slot_repo.update(
+                        slot, {"is_reserved": False, "status": SlotStatus.OPEN}
+                    )
+            else:
+                await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
+            await invalidate_slot_list(slot.vendor_id)
+
+        await log_action(
+            self.db,
+            self.current_user.id,
+            "payment_expired",
+            f"مهلت پرداخت زیبال پایان یافت | رزرو {booking.id}",
+            severity="WARNING",
+        )
+        await self.db.commit()
+        return True
+
     async def resolve_zibal_payment(self, track_id: str) -> PaymentResolutionResponse:
         """Resolve a Zibal transaction into a stable, client-safe outcome."""
         payment = await self.payment_repo.get_by_gateway_transaction_id(track_id)
@@ -1127,7 +1193,31 @@ class BookingService:
                     ref_id=inquiry.ref_id or ref_id,
                     message="درگاه پرداخت را موفق اعلام کرده اما نهایی‌سازی نیازمند بررسی است.",
                 )
-            if inquiry.payment_status in {None, -1}:
+            if inquiry.payment_status == -1:
+                if payment and await self._expire_zibal_booking_checkout(track_id):
+                    return PaymentResolutionResponse(
+                        outcome="failed",
+                        track_id=track_id,
+                        payment_id=payment_id,
+                        booking_id=booking_id,
+                        ref_id=inquiry.ref_id or ref_id,
+                        message="مهلت پرداخت تمام شد و سانس آزاد شد.",
+                    )
+                if hold and hold.expires_at <= now_utc() and hold.processing_token:
+                    await self._fail_replacement_payment(
+                        hold.id,
+                        hold.processing_token,
+                        failure_code="zibal_checkout_expired",
+                        failure_message="مهلت پرداخت زیبال پایان یافت",
+                    )
+                    return PaymentResolutionResponse(
+                        outcome="failed",
+                        track_id=track_id,
+                        payment_id=payment_id,
+                        booking_id=booking_id,
+                        ref_id=inquiry.ref_id or ref_id,
+                        message="مهلت پرداخت جایگزینی تمام شد.",
+                    )
                 return PaymentResolutionResponse(
                     outcome="pending",
                     track_id=track_id,
@@ -1135,6 +1225,24 @@ class BookingService:
                     booking_id=booking_id,
                     ref_id=inquiry.ref_id or ref_id,
                     message="نتیجه تراکنش هنوز از طرف درگاه نهایی نشده است.",
+                )
+            if inquiry.payment_status is None:
+                return PaymentResolutionResponse(
+                    outcome="pending",
+                    track_id=track_id,
+                    payment_id=payment_id,
+                    booking_id=booking_id,
+                    ref_id=inquiry.ref_id or ref_id,
+                    message="نتیجه تراکنش هنوز از طرف درگاه نهایی نشده است.",
+                )
+            if inquiry.payment_status == 2:
+                return PaymentResolutionResponse(
+                    outcome="reconciliation_required",
+                    track_id=track_id,
+                    payment_id=payment_id,
+                    booking_id=booking_id,
+                    ref_id=inquiry.ref_id or ref_id,
+                    message="پرداخت درگاه هنوز verify نشده و دوباره بررسی خواهد شد.",
                 )
             if inquiry.result == 100:
                 await self._record_failed_zibal_attempt(track_id, inquiry.message or "failed")
@@ -2660,6 +2768,10 @@ async def reconcile_stale_zibal_payments(
     replacement_repo = ReplacementRepo(db)
     booking_repo = BookingRepo(db)
 
+    cleaned = await payment_repo.expire_pending_for_nonpayable_bookings()
+    if cleaned:
+        await db.commit()
+
     payments = await payment_repo.list_stale_zibal_pending(cutoff)
     holds = await replacement_repo.list_stale_zibal_processing(cutoff)
     targets: list[tuple[str, int]] = []
@@ -2676,6 +2788,7 @@ async def reconcile_stale_zibal_payments(
         "failed": 0,
         "pending": 0,
         "reconciliation_required": 0,
+        "cleaned": cleaned,
     }
     for track_id, user_id in targets:
         user = await db.get(User, user_id)
