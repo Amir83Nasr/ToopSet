@@ -269,6 +269,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
+    lifespan=lifespan,
     title="ToopSet API",
     description="Online sports venue booking platform — user management, vendors, bookings, and payments",
     version=__version__,
