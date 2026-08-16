@@ -249,10 +249,6 @@ def validate_env(settings: Settings | None = None) -> None:
             errors.append("ZIBAL_MERCHANT must be set when PAYMENT_GATEWAY='zibal'.")
         if not settings.zibal_callback_url:
             errors.append("ZIBAL_CALLBACK_URL must be set when PAYMENT_GATEWAY='zibal'.")
-        elif "/payments/zibal/callback" not in settings.zibal_callback_url:
-            errors.append(
-                "ZIBAL_CALLBACK_URL must point to the backend /payments/zibal/callback endpoint."
-            )
         if not settings.payment_result_url:
             errors.append("PAYMENT_RESULT_URL must be set when PAYMENT_GATEWAY='zibal'.")
         elif settings.payment_result_url == settings.zibal_callback_url:

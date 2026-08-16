@@ -195,9 +195,6 @@ async def lifespan(app: FastAPI):
     try:
         validate_env(settings)
     except EnvValidationError as exc:
-        import logging
-
-        logger = logging.getLogger(__name__)
         if settings.app_environment.lower() == "production":
             logger.error(str(exc))
             raise
@@ -207,14 +204,22 @@ async def lifespan(app: FastAPI):
             "Set APP_ENVIRONMENT=production and configure all env vars before deploying.",
         )
 
+    if (
+        settings.payment_gateway == "zibal"
+        and settings.zibal_callback_url
+        and "/payments/zibal/callback" not in settings.zibal_callback_url
+    ):
+        logger.warning(
+            "ZIBAL_CALLBACK_URL does not use the backend callback endpoint; "
+            "reconciliation remains the fallback for lost browser callbacks"
+        )
+
     # ── Migration check + auto-apply ───────────────────────────────────
     if settings.auto_migrate:
-        import logging
         import subprocess
         import sys
         from pathlib import Path
 
-        logger = logging.getLogger(__name__)
         try:
             logger.info("Checking migration revisions (AUTO_MIGRATE=True)…")
             result = subprocess.run(
