@@ -21,6 +21,8 @@ type PaymentOutcome = "paid" | "failed" | "pending" | "reconciliation_required"
 type PaymentVerifyResponse = {
   outcome: PaymentOutcome
   booking_id: number | null
+  ref_id?: string | null
+  track_id?: string | null
   message: string
 }
 
@@ -30,6 +32,7 @@ function CallbackContent() {
   const trackId = searchParams.get("trackId") ?? searchParams.get("track_id")
   const callbackOutcome = searchParams.get("outcome") as PaymentOutcome | null
   const callbackBookingId = searchParams.get("bookingId")
+  const callbackRefId = searchParams.get("refId") ?? searchParams.get("ref_id")
   const orderId = searchParams.get("orderId")
   const shouldVerify = useMemo(() => {
     return Boolean(trackId && !callbackOutcome)
@@ -43,6 +46,7 @@ function CallbackContent() {
   const [bookingId, setBookingId] = useState<number | null>(
     callbackBookingId ? Number(callbackBookingId) : null
   )
+  const [refId, setRefId] = useState<string | null>(callbackRefId)
 
   useEffect(() => {
     if (!shouldVerify) return
@@ -65,6 +69,7 @@ function CallbackContent() {
         setOutcome(res.outcome)
         setMessage(res.message)
         setBookingId(res.booking_id)
+        if (res.ref_id) setRefId(res.ref_id)
         if (res.outcome === "paid") toast.success("پرداخت با موفقیت تایید شد")
       } catch (err) {
         if (cancelled) return
@@ -84,19 +89,29 @@ function CallbackContent() {
     }
   }, [orderId, router, shouldVerify, trackId])
 
+  const isPaid = outcome === "paid"
+  const isFailed = outcome === "failed"
+  const isPending =
+    outcome === "pending" || outcome === "reconciliation_required"
+
+  const title = loading
+    ? "در حال بررسی وضعیت پرداخت"
+    : isPaid
+      ? "پرداخت موفق"
+      : isFailed
+        ? "پرداخت ناموفق"
+        : "در حال پیگیری پرداخت"
+
   const description = loading
-    ? "در حال بررسی نتیجه تراکنش..."
-    : outcome === "failed"
-      ? "پرداخت انجام نشد و رزروی صورت نگرفت."
-      : message ||
-        (outcome === "paid"
-          ? "پرداخت با موفقیت ثبت شد."
-          : outcome === "pending"
+    ? "در حال بررسی نتیجه تراکنش از درگاه پرداخت..."
+    : message ||
+      (isPaid
+        ? "پرداخت با موفقیت ثبت شد و رزرو شما نهایی گردید."
+        : isFailed
+          ? "پرداخت انجام نشد و رزرو موقت آزاد شد."
+          : isPending
             ? "نتیجه تراکنش هنوز نهایی نشده و به صورت خودکار بررسی می‌شود."
             : "تراکنش نیازمند بررسی بیشتر است و به صورت خودکار دوباره بررسی می‌شود.")
-
-  const isPaid = outcome === "paid"
-  const showPaymentDetails = outcome !== "failed"
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -110,35 +125,68 @@ function CallbackContent() {
                 {!loading && isPaid && (
                   <CheckCircle2 className="size-5 text-green-600" />
                 )}
-                {!loading && !isPaid && (
+                {!loading && isFailed && (
                   <AlertTriangle className="size-5 text-destructive" />
                 )}
-                تایید پرداخت
+                {!loading && isPending && (
+                  <AlertTriangle className="size-5 text-amber-500" />
+                )}
+                {title}
               </CardTitle>
               <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {showPaymentDetails && bookingId && (
+              {isPaid && bookingId && (
                 <div className="rounded-lg border bg-muted/40 p-4 text-sm">
                   شماره رزرو: {bookingId}
                 </div>
               )}
-              {showPaymentDetails && trackId && (
+              {isPaid && (refId || trackId) && (
                 <div className="rounded-lg border bg-muted/40 p-4 text-sm">
-                  Track ID: <span dir="ltr">{trackId}</span>
+                  کد پیگیری تراکنش: <span dir="ltr">{refId || trackId}</span>
                 </div>
               )}
+              {isPending && trackId && (
+                <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+                  کد رهگیری: <span dir="ltr">{trackId}</span>
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => router.push("/dashboard/bookings")}>
-                  مشاهده رزروها
-                </Button>
-                {!isPaid && trackId && (
-                  <Button
-                    variant="outline"
-                    onClick={() => window.location.reload()}
-                  >
-                    تلاش دوباره
-                  </Button>
+                {isPaid && (
+                  <>
+                    <Button onClick={() => router.push("/dashboard/bookings")}>
+                      مشاهده رزروها
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/")}>
+                      صفحه اصلی
+                    </Button>
+                  </>
+                )}
+
+                {isFailed && (
+                  <>
+                    <Button onClick={() => router.push("/courts")}>
+                      انتخاب مجدد سانس
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/")}>
+                      صفحه اصلی
+                    </Button>
+                  </>
+                )}
+
+                {isPending && (
+                  <>
+                    <Button onClick={() => router.push("/dashboard/bookings")}>
+                      پیگیری در پنل کاربری
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/contact")}
+                    >
+                      تماس با پشتیبانی
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>
