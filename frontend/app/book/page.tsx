@@ -28,6 +28,10 @@ import {
   AlertTriangle,
   Loader2,
   XCircle,
+  Building2,
+  Calendar,
+  Clock,
+  Ticket,
 } from "lucide-react"
 
 interface SlotDetail {
@@ -457,59 +461,70 @@ function BookPageContent() {
                 </div>
 
                 {pendingCheckout && (
-                  <div className="w-full max-w-md rounded-xl border border-red-200 bg-white p-4 shadow-sm dark:border-red-900 dark:bg-zinc-900">
-                    <div className="mb-3 flex items-center justify-between border-b pb-2">
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        اطلاعات رزرو در انتظار پرداخت
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className="border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-                      >
-                        کد رزرو: {pendingCheckout.booking_id}
+                  <div className="w-full max-w-md overflow-hidden rounded-xl border border-red-300 bg-white shadow-md dark:border-red-900/80 dark:bg-zinc-900">
+                    <div className="flex items-center justify-between border-b border-red-200 bg-red-50/80 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40">
+                      <div className="flex items-center gap-2 text-xs font-bold text-red-700 dark:text-red-300">
+                        <Ticket className="size-4 text-red-600 dark:text-red-400" />
+                        <span>اطلاعات رزرو نهایی‌نشده</span>
+                      </div>
+                      <Badge className="bg-red-600 px-2.5 py-0.5 font-mono text-xs text-white shadow-xs hover:bg-red-700">
+                        کد رزرو: #{pendingCheckout.booking_id}
                       </Badge>
                     </div>
 
-                    <div className="grid gap-2.5 text-sm">
+                    <div className="space-y-3 p-4">
                       {pendingCheckout.vendor_name && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">
-                            نام مجموعه:
-                          </span>
-                          <span className="font-semibold text-foreground">
+                        <div className="flex items-center justify-between rounded-lg border border-red-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Building2 className="size-4 text-red-500" />
+                            <span className="text-xs font-medium">
+                              مجموعه ورزشی:
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold text-foreground">
                             {pendingCheckout.vendor_name}
                           </span>
                         </div>
                       )}
-                      {(pendingCheckout.slot_date ||
-                        pendingCheckout.slot_start_time) && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">
-                            تاریخ سانس:
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {pendingCheckout.slot_date ||
-                              (pendingCheckout.slot_start_time
-                                ? formatDate(pendingCheckout.slot_start_time)
-                                : "-")}
-                          </span>
-                        </div>
-                      )}
-                      {(pendingCheckout.slot_time ||
-                        pendingCheckout.slot_start_time) && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">
-                            ساعت سانس:
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {pendingCheckout.slot_time ||
-                              (pendingCheckout.slot_start_time &&
-                              pendingCheckout.slot_end_time
-                                ? `${formatTime(pendingCheckout.slot_start_time)} تا ${formatTime(pendingCheckout.slot_end_time)}`
-                                : "-")}
-                          </span>
-                        </div>
-                      )}
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {(pendingCheckout.slot_date ||
+                          pendingCheckout.slot_start_time) && (
+                          <div className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="size-3.5 text-red-500" />
+                              <span className="text-xs font-medium">
+                                تاریخ سانس
+                              </span>
+                            </div>
+                            <span className="dir-rtl text-xs font-bold text-foreground">
+                              {pendingCheckout.slot_date ||
+                                (pendingCheckout.slot_start_time
+                                  ? formatDate(pendingCheckout.slot_start_time)
+                                  : "-")}
+                            </span>
+                          </div>
+                        )}
+
+                        {(pendingCheckout.slot_time ||
+                          pendingCheckout.slot_start_time) && (
+                          <div className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Clock className="size-3.5 text-red-500" />
+                              <span className="text-xs font-medium">
+                                ساعت سانس
+                              </span>
+                            </div>
+                            <span className="dir-rtl text-xs font-bold text-foreground">
+                              {pendingCheckout.slot_time ||
+                                (pendingCheckout.slot_start_time &&
+                                pendingCheckout.slot_end_time
+                                  ? `${formatTime(pendingCheckout.slot_start_time)} تا ${formatTime(pendingCheckout.slot_end_time)}`
+                                  : "-")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
