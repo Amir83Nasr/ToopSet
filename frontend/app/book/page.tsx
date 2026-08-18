@@ -62,6 +62,10 @@ interface PendingCheckout {
   booking_id: number
   vendor_id: number | null
   vendor_name: string
+  slot_start_time?: string | null
+  slot_end_time?: string | null
+  slot_date?: string
+  slot_time?: string
   track_id: string | null
   start_url: string | null
   can_resume: boolean
@@ -74,6 +78,11 @@ interface PendingCheckoutErrorDetails {
   checkout_type?: "booking" | "replacement_hold"
   booking_id?: number
   hold_id?: number
+  vendor_name?: string
+  slot_start_time?: string | null
+  slot_end_time?: string | null
+  slot_date?: string
+  slot_time?: string
   payment_url?: string | null
   expires_at?: string | null
 }
@@ -257,7 +266,11 @@ function BookPageContent() {
                 checkout_type: details.checkout_type ?? "booking",
                 booking_id: bookingId,
                 vendor_id: null,
-                vendor_name: "",
+                vendor_name: details.vendor_name ?? "",
+                slot_start_time: details.slot_start_time ?? null,
+                slot_end_time: details.slot_end_time ?? null,
+                slot_date: details.slot_date ?? "",
+                slot_time: details.slot_time ?? "",
                 track_id: null,
                 start_url: details.payment_url ?? null,
                 can_resume: true,
@@ -412,25 +425,100 @@ function BookPageContent() {
 
           {/* ============ CONFLICT STEP ============ */}
           {step === "conflict" && (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-4 py-12">
+            <Card
+              className={
+                pendingCheckout
+                  ? "border-red-500/50 bg-red-50/50 dark:bg-red-950/20"
+                  : ""
+              }
+            >
+              <CardContent className="flex flex-col items-center gap-6 py-8">
                 {pendingCheckout ? (
-                  <AlertTriangle className="size-12 text-amber-600" />
+                  <div className="rounded-full bg-red-100 p-3 text-red-600 dark:bg-red-900/40 dark:text-red-400">
+                    <AlertTriangle className="size-10" />
+                  </div>
                 ) : (
                   <XCircle className="size-12 text-destructive" />
                 )}
-                <CardTitle className="text-xl">
-                  {pendingCheckout ? "رزرو در انتظار پرداخت" : "متأسفیم"}
-                </CardTitle>
-                <CardDescription className="text-center">
-                  {pendingCheckout
-                    ? errorMsg
-                    : "این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید."}
-                </CardDescription>
+
+                <div className="space-y-1 text-center">
+                  <CardTitle
+                    className={`text-xl font-bold ${pendingCheckout ? "text-red-600 dark:text-red-400" : ""}`}
+                  >
+                    {pendingCheckout
+                      ? "رزرو در انتظار پرداخت دارید!"
+                      : "متأسفیم"}
+                  </CardTitle>
+                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                    {pendingCheckout
+                      ? "یک رزرو نهایی‌نشده از قبل دارید. برای رزرو سانس جدید، باید ابتدا رزرو قبلی را پرداخت کنید یا داخل درگاه انصراف را بزنید."
+                      : "این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید."}
+                  </p>
+                </div>
+
+                {pendingCheckout && (
+                  <div className="w-full max-w-md rounded-xl border border-red-200 bg-white p-4 shadow-sm dark:border-red-900 dark:bg-zinc-900">
+                    <div className="mb-3 flex items-center justify-between border-b pb-2">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        اطلاعات رزرو در انتظار پرداخت
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
+                      >
+                        کد رزرو: {pendingCheckout.booking_id}
+                      </Badge>
+                    </div>
+
+                    <div className="grid gap-2.5 text-sm">
+                      {pendingCheckout.vendor_name && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            نام مجموعه:
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {pendingCheckout.vendor_name}
+                          </span>
+                        </div>
+                      )}
+                      {(pendingCheckout.slot_date ||
+                        pendingCheckout.slot_start_time) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            تاریخ سانس:
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {pendingCheckout.slot_date ||
+                              (pendingCheckout.slot_start_time
+                                ? formatDate(pendingCheckout.slot_start_time)
+                                : "-")}
+                          </span>
+                        </div>
+                      )}
+                      {(pendingCheckout.slot_time ||
+                        pendingCheckout.slot_start_time) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            ساعت سانس:
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {pendingCheckout.slot_time ||
+                              (pendingCheckout.slot_start_time &&
+                              pendingCheckout.slot_end_time
+                                ? `${formatTime(pendingCheckout.slot_start_time)} تا ${formatTime(pendingCheckout.slot_end_time)}`
+                                : "-")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {pendingCheckout ? (
-                  <div className="flex w-full max-w-sm flex-col gap-2">
+                  <div className="flex w-full max-w-sm flex-col gap-2.5">
                     {pendingCheckout.can_resume && (
                       <Button
+                        className="w-full bg-red-600 text-white shadow hover:bg-red-700"
                         onClick={() => {
                           if (pendingCheckout.start_url) {
                             window.location.assign(pendingCheckout.start_url)
@@ -442,11 +530,13 @@ function BookPageContent() {
                         }}
                       >
                         <CreditCard className="me-2 size-4" />
-                        ادامه پرداخت
+                        ادامه و تکمیل پرداخت رزرو قبلی
                       </Button>
                     )}
-                    <Button variant="outline" asChild>
-                      <Link href="/dashboard/bookings">مشاهده رزروهای من</Link>
+                    <Button variant="outline" asChild className="w-full">
+                      <Link href="/dashboard/bookings">
+                        مشاهده لیست رزروهای من
+                      </Link>
                     </Button>
                   </div>
                 ) : (

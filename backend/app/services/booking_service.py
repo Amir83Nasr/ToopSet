@@ -336,12 +336,46 @@ class BookingService:
             if has_live_gateway_payment or not pending.expires_at or pending.expires_at > now_utc():
                 track_id = payment.gateway_transaction_id if has_live_gateway_payment else None
                 vendor = pending.slot.vendor if pending.slot else None
+                vendor_name = vendor.name if vendor else ""
                 can_resume = not pending.expires_at or pending.expires_at > now_utc()
+                slot_date = ""
+                slot_time = ""
+                if pending.slot:
+                    start_iran = utc_to_iran(pending.slot.start_time)
+                    end_iran = utc_to_iran(pending.slot.end_time)
+                    slot_date = jdatetime.date.fromgregorian(date=start_iran.date()).strftime(
+                        "%Y/%m/%d"
+                    )
+                    slot_time = f"{start_iran.strftime('%H:%M')} تا {end_iran.strftime('%H:%M')}"
+                    booking_details_text = (
+                        f"\n\n📋 جزییات رزرو قبلی:\n"
+                        f"• کد رزرو: {pending.id}\n"
+                        f"• مجموعه: {vendor_name}\n"
+                        f"• تاریخ: {slot_date}\n"
+                        f"• ساعت: {slot_time}"
+                    )
+                else:
+                    booking_details_text = f"\n\n📋 جزییات رزرو قبلی:\n• کد رزرو: {pending.id}"
+
+                message = (
+                    (
+                        "⚠️ شما یک رزرو در انتظار پرداخت دارید!\n"
+                        "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                        f"{booking_details_text}"
+                    )
+                    if can_resume
+                    else "مهلت پرداخت تمام شده و نتیجه تراکنش در حال بررسی نهایی است."
+                )
+
                 return PendingCheckoutResponse(
                     checkout_type="booking",
                     booking_id=pending.id,
                     vendor_id=pending.slot.vendor_id if pending.slot else None,
-                    vendor_name=vendor.name if vendor else "",
+                    vendor_name=vendor_name,
+                    slot_start_time=pending.slot.start_time if pending.slot else None,
+                    slot_end_time=pending.slot.end_time if pending.slot else None,
+                    slot_date=slot_date,
+                    slot_time=slot_time,
                     track_id=track_id,
                     start_url=(
                         f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}"
@@ -350,14 +384,7 @@ class BookingService:
                     ),
                     can_resume=can_resume,
                     expires_at=pending.expires_at,
-                    message=(
-                        (
-                            "شما یک رزرو در انتظار پرداخت دارید. ابتدا پرداخت آن را تکمیل کنید "
-                            "یا از داخل درگاه پرداخت آن را لغو کنید تا بتوانید سانس دیگری رزرو کنید."
-                        )
-                        if can_resume
-                        else "مهلت پرداخت تمام شده و نتیجه تراکنش در حال بررسی نهایی است."
-                    ),
+                    message=message,
                 )
 
         hold = await self.replacement_repo.get_live_hold_for_user(self.current_user.id)
@@ -367,12 +394,46 @@ class BookingService:
         ):
             track_id = hold.gateway_transaction_id
             vendor = hold.slot.vendor if hold.slot else None
+            vendor_name = vendor.name if vendor else ""
             can_resume = hold.expires_at > now_utc()
+            slot_date = ""
+            slot_time = ""
+            if hold.slot:
+                start_iran = utc_to_iran(hold.slot.start_time)
+                end_iran = utc_to_iran(hold.slot.end_time)
+                slot_date = jdatetime.date.fromgregorian(date=start_iran.date()).strftime(
+                    "%Y/%m/%d"
+                )
+                slot_time = f"{start_iran.strftime('%H:%M')} تا {end_iran.strftime('%H:%M')}"
+                hold_details_text = (
+                    f"\n\n📋 جزییات فرایند جایگزینی قبلی:\n"
+                    f"• کد هولد: {hold.id}\n"
+                    f"• مجموعه: {vendor_name}\n"
+                    f"• تاریخ: {slot_date}\n"
+                    f"• ساعت: {slot_time}"
+                )
+            else:
+                hold_details_text = f"\n\n📋 جزییات فرایند جایگزینی قبلی:\n• کد هولد: {hold.id}"
+
+            message = (
+                (
+                    "⚠️ شما یک فرایند جایگزینی در انتظار پرداخت دارید!\n"
+                    "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                    f"{hold_details_text}"
+                )
+                if can_resume
+                else "مهلت پرداخت جایگزینی تمام شده و نتیجه تراکنش در حال بررسی است."
+            )
+
             return PendingCheckoutResponse(
                 checkout_type="replacement_hold",
                 booking_id=hold.id,
                 vendor_id=hold.slot.vendor_id if hold.slot else None,
-                vendor_name=vendor.name if vendor else "",
+                vendor_name=vendor_name,
+                slot_start_time=hold.slot.start_time if hold.slot else None,
+                slot_end_time=hold.slot.end_time if hold.slot else None,
+                slot_date=slot_date,
+                slot_time=slot_time,
                 track_id=track_id,
                 start_url=(
                     f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}"
@@ -381,14 +442,7 @@ class BookingService:
                 ),
                 can_resume=can_resume,
                 expires_at=hold.expires_at,
-                message=(
-                    (
-                        "شما یک فرایند جایگزینی در انتظار پرداخت دارید. ابتدا پرداخت آن را "
-                        "تکمیل کنید یا از داخل درگاه لغو کنید."
-                    )
-                    if can_resume
-                    else "مهلت پرداخت جایگزینی تمام شده و نتیجه تراکنش در حال بررسی است."
-                ),
+                message=message,
             )
         return None
 

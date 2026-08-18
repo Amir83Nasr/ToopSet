@@ -58,6 +58,10 @@ class PendingCheckoutResponse(BaseModel):
     booking_id: int
     vendor_id: int | None = None
     vendor_name: str = ""
+    slot_start_time: datetime | None = None
+    slot_end_time: datetime | None = None
+    slot_date: str = ""
+    slot_time: str = ""
     track_id: str | None = None
     start_url: str | None = None
     can_resume: bool
