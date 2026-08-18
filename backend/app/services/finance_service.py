@@ -25,7 +25,7 @@ from app.repositories.booking_repo import BookingRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.repositories.user_repo import UserRepository
-from app.services.sms_provider import get_sms_provider
+from app.services.sms_provider import get_sms_provider, send_booking_confirmation_sms
 
 # Frontend weekday convention in this project: 0=Saturday ... 6=Friday.
 _WEEKDAY_MAP = [5, 6, 0, 1, 2, 3, 4]
@@ -168,6 +168,13 @@ class FinanceService:
             }
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
+        await send_booking_confirmation_sms(
+            phone=normalize_phone(phone_number),
+            vendor_name=vendor.name if vendor else "",
+            booking_id=booking.id,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+        )
         return booking
 
     async def create_recurring_manager_bookings(

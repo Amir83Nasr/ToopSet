@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
+import jdatetime
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
-from app.core.timezone import now_utc
+from app.core.timezone import now_utc, utc_to_iran
 from app.models.booking import BookingSource, BookingStatus, SettlementStatus
 from app.models.payment import PaymentStatus
 from app.models.refund import Refund, RefundType
@@ -59,6 +60,7 @@ from app.services.payment_service import (
     PaymentResult,
     PaymentService,
 )
+from app.services.sms_provider import send_booking_confirmation_sms_for_booking
 from app.services.zibal_gateway import (
     ZibalGatewayError,
     ZibalGatewayService,
@@ -190,16 +192,47 @@ class BookingService:
                     if payment and payment.status == PaymentStatus.PENDING
                     else None
                 )
+                pending_slot = pending.slot
+                vendor_name = (
+                    pending_slot.vendor.name if (pending_slot and pending_slot.vendor) else ""
+                )
+                slot_date = ""
+                slot_time = ""
+                if pending_slot:
+                    start_iran = utc_to_iran(pending_slot.start_time)
+                    end_iran = utc_to_iran(pending_slot.end_time)
+                    slot_date = jdatetime.date.fromgregorian(date=start_iran.date()).strftime(
+                        "%Y/%m/%d"
+                    )
+                    slot_time = f"{start_iran.strftime('%H:%M')} تا {end_iran.strftime('%H:%M')}"
+                    booking_details_text = (
+                        f"\n\n📋 جزییات رزرو قبلی:\n"
+                        f"• کد رزرو: {pending.id}\n"
+                        f"• مجموعه: {vendor_name}\n"
+                        f"• تاریخ: {slot_date}\n"
+                        f"• ساعت: {slot_time}"
+                    )
+                else:
+                    booking_details_text = f"\n\n📋 جزییات رزرو قبلی:\n• کد رزرو: {pending.id}"
+
+                message = (
+                    "⚠️ شما یک رزرو در انتظار پرداخت دارید!\n"
+                    "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                    f"{booking_details_text}"
+                )
+
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "code": "pending_booking_limit_reached",
-                        "message": (
-                            "شما یک رزرو در انتظار پرداخت دارید. ابتدا پرداخت آن را تکمیل کنید "
-                            "یا از داخل درگاه پرداخت آن را لغو کنید تا بتوانید سانس دیگری رزرو کنید."
-                        ),
+                        "severity": "warning",
+                        "alert_type": "red_warning",
+                        "message": message,
                         "checkout_type": "booking",
                         "booking_id": pending.id,
+                        "vendor_name": vendor_name,
+                        "slot_date": slot_date,
+                        "slot_time": slot_time,
                         "track_id": track_id,
                         "payment_url": (
                             f"{settings.zibal_base_url.rstrip('/')}/start/{track_id}"
@@ -239,17 +272,46 @@ class BookingService:
                         )
                         await invalidate_slot_list(hold.slot.vendor_id)
             else:
+                hold_slot = hold.slot
+                vendor_name = hold_slot.vendor.name if (hold_slot and hold_slot.vendor) else ""
+                slot_date = ""
+                slot_time = ""
+                if hold_slot:
+                    start_iran = utc_to_iran(hold_slot.start_time)
+                    end_iran = utc_to_iran(hold_slot.end_time)
+                    slot_date = jdatetime.date.fromgregorian(date=start_iran.date()).strftime(
+                        "%Y/%m/%d"
+                    )
+                    slot_time = f"{start_iran.strftime('%H:%M')} تا {end_iran.strftime('%H:%M')}"
+                    hold_details_text = (
+                        f"\n\n📋 جزییات فرایند جایگزینی قبلی:\n"
+                        f"• کد هولد: {hold.id}\n"
+                        f"• مجموعه: {vendor_name}\n"
+                        f"• تاریخ: {slot_date}\n"
+                        f"• ساعت: {slot_time}"
+                    )
+                else:
+                    hold_details_text = f"\n\n📋 جزییات فرایند جایگزینی قبلی:\n• کد هولد: {hold.id}"
+
+                message = (
+                    "⚠️ شما یک فرایند جایگزینی در انتظار پرداخت دارید!\n"
+                    "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                    f"{hold_details_text}"
+                )
+
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "code": "pending_booking_limit_reached",
-                        "message": (
-                            "شما یک فرایند جایگزینی در انتظار پرداخت دارید. ابتدا پرداخت آن را "
-                            "تکمیل کنید یا از داخل درگاه لغو کنید."
-                        ),
+                        "severity": "warning",
+                        "alert_type": "red_warning",
+                        "message": message,
                         "checkout_type": "replacement_hold",
                         "hold_id": hold.id,
                         "booking_id": hold.id,
+                        "vendor_name": vendor_name,
+                        "slot_date": slot_date,
+                        "slot_time": slot_time,
                         "track_id": hold.gateway_transaction_id,
                         "payment_url": (
                             f"{settings.zibal_base_url.rstrip('/')}/start/"
@@ -1407,6 +1469,7 @@ class BookingService:
             "payment_verified",
             f"تأیید پرداخت زیبال | رزرو {booking.id} — trackId {track_id}",
         )
+        await send_booking_confirmation_sms_for_booking(booking)
         return await self.get_booking(booking.id)
 
     async def _verify_zibal_replacement_hold(
@@ -1654,6 +1717,9 @@ class BookingService:
             f"انتقال رزرو کامل شد | رزرو {original.id} ← رزرو {replacement.id}",
         )
         await self.db.commit()
+        replacement_booking = await self.booking_repo.get_by_id(replacement.id)
+        if replacement_booking:
+            await send_booking_confirmation_sms_for_booking(replacement_booking)
         detail = await self.get_booking(replacement.id)
         detail.payment = PaymentResponse.model_validate(payment)
         return detail
@@ -2058,6 +2124,7 @@ class BookingService:
             "booking_confirmed",
             f"تایید رزرو | رزرو {booking_id} به مبلغ {booking.price_paid} تومان پرداخت و تایید شد",
         )
+        await send_booking_confirmation_sms_for_booking(booking)
 
         return BookingDetailResponse(
             id=booking.id,

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.repositories.payment_repo import PaymentRepo
 from app.services.booking_service import reconcile_stale_zibal_payments
+from app.services.sms_provider import SmsSendResult
 from app.services.zibal_gateway import (
     ZibalPaymentStartResult,
     ZibalPaymentVerificationResult,
@@ -153,6 +154,12 @@ class TestCreateBooking:
         assert detail["booking_id"] == first.json()["id"]
         assert detail["payment_url"] is None
         assert "یک رزرو در انتظار پرداخت دارید" in detail["message"]
+        assert detail["alert_type"] == "red_warning"
+        assert detail["severity"] == "warning"
+        assert detail["vendor_name"] != ""
+        assert detail["slot_date"] != ""
+        assert detail["slot_time"] != ""
+        assert "جزییات رزرو قبلی" in detail["message"]
 
     async def test_create_booking_version_conflict(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
@@ -292,6 +299,51 @@ class TestPayBooking:
             resp = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
         assert resp.status_code == 200, resp.text
         assert resp.json()["status"] == "confirmed"
+
+    async def test_pay_booking_triggers_sms_confirmation(
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+        manager_token: dict,
+        user_token: dict,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(settings, "payment_gateway", "mock")
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+        slot_id = await _create_slot(client, session, vendor_id)
+        version = await _get_slot_version(client, slot_id)
+
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        create = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": version},
+            headers=user_headers,
+        )
+        booking_id = create.json()["id"]
+
+        sms_calls = []
+
+        async def fake_send_booking_confirmation(
+            self, phone: str, title_text: str, template_id: int = 625366
+        ):
+            sms_calls.append({"phone": phone, "title_text": title_text, "template_id": template_id})
+            return SmsSendResult(status="mock", message_id=None)
+
+        monkeypatch.setattr(
+            "app.services.sms_provider.MockSmsProvider.send_booking_confirmation",
+            fake_send_booking_confirmation,
+        )
+
+        with patch("random.random", return_value=0.5):
+            resp = await client.post(f"/api/v1/bookings/{booking_id}/pay", headers=user_headers)
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "confirmed"
+        assert len(sms_calls) == 1
+        assert sms_calls[0]["template_id"] == 625366
+        assert "رزرو شما با موفقیت ثبت شد." in sms_calls[0]["title_text"]
+        assert f"کد رزرو: {booking_id}" in sms_calls[0]["title_text"]
 
     async def test_pay_already_paid(
         self,

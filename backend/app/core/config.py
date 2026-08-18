@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     sms_api_url: str = ""
     sms_api_key: SecretStr = SecretStr("")
     sms_template_id: int = 0
+    sms_booking_template_id: int = 625366
 
     # Monitoring
     sentry_dsn: str = ""
@@ -266,6 +267,10 @@ def validate_env(settings: Settings | None = None) -> None:
             errors.append("SMS_API_KEY must be set when SMS_PROVIDER='smsir'.")
         if settings.sms_template_id <= 0:
             errors.append("SMS_TEMPLATE_ID must be a positive integer when SMS_PROVIDER='smsir'.")
+        if settings.sms_booking_template_id <= 0:
+            errors.append(
+                "SMS_BOOKING_TEMPLATE_ID must be a positive integer when SMS_PROVIDER='smsir'."
+            )
 
     if is_production:
         if settings.cors_origins == "*":
