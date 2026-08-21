@@ -223,3 +223,139 @@ async def invalidate_response_cache(prefix: str) -> None:
         await _scan_delete(r, f"resp:{prefix}:*")
     except RedisError:
         pass
+
+
+# ── Vendor weekly min-price cache ────────────────────────────────────────────
+
+VENDOR_MIN_PRICE_TTL = 86400 * 2  # 48 hours (refreshed daily at midnight)
+VENDOR_MIN_PRICES_HASH_KEY = "vendor:min_prices"
+
+
+async def cache_all_vendor_min_prices(prices: dict[int, float | None]) -> None:
+    """Store weekly min prices for all vendors in Redis hash and individual keys."""
+    if not prices:
+        return
+    try:
+        r = await get_redis()
+        pipe = r.pipeline()
+        mapping = {str(vid): json.dumps(price) for vid, price in prices.items()}
+        pipe.hset(VENDOR_MIN_PRICES_HASH_KEY, mapping=mapping)
+        pipe.expire(VENDOR_MIN_PRICES_HASH_KEY, VENDOR_MIN_PRICE_TTL)
+        for vid, price in prices.items():
+            key = f"vendor:min_price:{vid}"
+            pipe.set(key, json.dumps(price), ex=_ttl_jitter(VENDOR_MIN_PRICE_TTL))
+        await pipe.execute()
+    except RedisError:
+        pass
+
+
+async def cache_vendor_min_price(vendor_id: int, min_price: float | None) -> None:
+    """Store weekly min price for a single vendor in Redis."""
+    try:
+        r = await get_redis()
+        pipe = r.pipeline()
+        pipe.hset(VENDOR_MIN_PRICES_HASH_KEY, str(vendor_id), json.dumps(min_price))
+        pipe.set(
+            f"vendor:min_price:{vendor_id}",
+            json.dumps(min_price),
+            ex=_ttl_jitter(VENDOR_MIN_PRICE_TTL),
+        )
+        await pipe.execute()
+    except RedisError:
+        pass
+
+
+async def get_cached_vendor_min_price(vendor_id: int) -> tuple[bool, float | None]:
+    """Return (found, min_price) from Redis. found=False on cache miss / Redis down."""
+    try:
+        r = await get_redis()
+        val = await r.hget(VENDOR_MIN_PRICES_HASH_KEY, str(vendor_id))
+        if val is not None:
+            toopset_cache_hits_total.inc()
+            return True, json.loads(val)
+        # Fallback to individual key
+        raw = await r.get(f"vendor:min_price:{vendor_id}")
+        if raw is not None:
+            toopset_cache_hits_total.inc()
+            return True, json.loads(raw)
+        toopset_cache_misses_total.inc()
+    except RedisError:
+        pass
+    return False, None
+
+
+async def get_cached_vendor_min_prices(vendor_ids: list[int]) -> dict[int, float | None]:
+    """Batch retrieve cached min prices for a list of vendor IDs."""
+    if not vendor_ids:
+        return {}
+    results: dict[int, float | None] = {}
+    try:
+        r = await get_redis()
+        str_keys = [str(vid) for vid in vendor_ids]
+        cached_vals = await r.hmget(VENDOR_MIN_PRICES_HASH_KEY, str_keys)
+        missing_ids = []
+        for vid, val in zip(vendor_ids, cached_vals):
+            if val is not None:
+                toopset_cache_hits_total.inc()
+                results[vid] = json.loads(val)
+            else:
+                missing_ids.append(vid)
+
+        if missing_ids:
+            # Try individual keys for missing
+            keys = [f"vendor:min_price:{vid}" for vid in missing_ids]
+            mget_vals = await r.mget(*keys)
+            for vid, raw in zip(missing_ids, mget_vals):
+                if raw is not None:
+                    toopset_cache_hits_total.inc()
+                    results[vid] = json.loads(raw)
+                else:
+                    toopset_cache_misses_total.inc()
+    except RedisError:
+        pass
+    return results
+
+
+async def compute_and_cache_weekly_min_prices(db: Any) -> dict[int, float | None]:
+    """Query PostgreSQL for minimum open slot price in the upcoming 7 days for each vendor and cache it."""
+    from datetime import timedelta
+
+    from sqlalchemy import func, select
+
+    from app.core.timezone import now_utc
+    from app.models.time_slot import SlotStatus, TimeSlot
+    from app.models.vendor import Vendor
+
+    now = now_utc()
+    one_week_later = now + timedelta(days=7)
+
+    # Subquery/aggregation: minimum price for open, unreserved slots in the next 7 days
+    stmt = (
+        select(
+            TimeSlot.vendor_id,
+            func.min(TimeSlot.base_price).label("min_price"),
+        )
+        .where(
+            TimeSlot.start_time >= now,
+            TimeSlot.start_time <= one_week_later,
+            TimeSlot.is_reserved == False,
+            TimeSlot.status == SlotStatus.OPEN,
+        )
+        .group_by(TimeSlot.vendor_id)
+    )
+    result = await db.execute(stmt)
+    prices: dict[int, float | None] = {}
+    for row in result.all():
+        prices[row.vendor_id] = float(row.min_price) if row.min_price is not None else None
+
+    # For active vendors with no slots in next 7 days, ensure key exists with None/0
+    all_vendors_stmt = select(Vendor.id).where(Vendor.is_active == True)
+    all_vids_res = await db.execute(all_vendors_stmt)
+    for row in all_vids_res.all():
+        if row.id not in prices:
+            prices[row.id] = None
+
+    if prices:
+        await cache_all_vendor_min_prices(prices)
+
+    return prices

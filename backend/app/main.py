@@ -187,6 +187,44 @@ async def _expire_replacement_work_periodically():
         await asyncio.sleep(60)
 
 
+async def _update_vendor_min_prices_nightly():
+    """Background task: refresh weekly minimum prices in Redis for all vendors every midnight."""
+    from datetime import timedelta
+
+    from app.core.timezone import now_iran
+
+    # Initial warmup after a short startup delay to let the DB pool warm up
+    await asyncio.sleep(8)
+    while True:
+        try:
+            async with async_session_factory() as db:
+                from app.services.cache_service import compute_and_cache_weekly_min_prices
+
+                prices = await compute_and_cache_weekly_min_prices(db)
+                logger.info(
+                    "Nightly vendor weekly min_price cache updated vendors_count=%s",
+                    len(prices),
+                )
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("_update_vendor_min_prices_nightly failed")
+
+        # Sleep until next midnight Iran time (00:00:00)
+        try:
+            now = now_iran()
+            next_midnight = (now + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            sleep_seconds = max(60, (next_midnight - now).total_seconds())
+            await asyncio.sleep(sleep_seconds)
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Error computing next midnight for vendor min_prices")
+            await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -264,11 +302,13 @@ async def lifespan(app: FastAPI):
     cancel_task = asyncio.create_task(_cancel_expired_pending())
     payment_reconciliation_task = asyncio.create_task(_reconcile_zibal_payments_periodically())
     replacement_task = asyncio.create_task(_expire_replacement_work_periodically())
+    min_price_task = asyncio.create_task(_update_vendor_min_prices_nightly())
     yield
     metrics_task.cancel()
     cancel_task.cancel()
     payment_reconciliation_task.cancel()
     replacement_task.cancel()
+    min_price_task.cancel()
     await close_redis()
     await engine.dispose()
 
