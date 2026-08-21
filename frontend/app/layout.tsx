@@ -5,15 +5,7 @@ import type { Metadata, Viewport } from "next"
 import { pwaConfig } from "@/config/pwa"
 import { SkipNav } from "@/components/ui/skip-nav"
 import { SITE_URL, BRAND } from "@/lib/site"
-import dynamic from "next/dynamic"
-
-const BottomNavWrapper = dynamic(
-  () =>
-    import("@/components/public/bottom-nav-wrapper").then((m) => ({
-      default: m.BottomNavWrapper,
-    })),
-  { ssr: false }
-)
+import { BottomNavWrapper } from "@/components/public/bottom-nav-wrapper"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
