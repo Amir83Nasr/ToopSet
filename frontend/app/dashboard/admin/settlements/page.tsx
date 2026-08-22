@@ -33,7 +33,8 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog"
-import { RefreshCw, X } from "lucide-react"
+import { X } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import {
   SearchInput,
   DataTableToolbar,
@@ -213,7 +214,9 @@ export default function AdminSettlementsPage() {
   async function fetchDetail(id: number) {
     try {
       setRevealedCard(null)
-      const data = await api<SettlementDetail>(`/api/v1/admin/settlements/${id}`)
+      const data = await api<SettlementDetail>(
+        `/api/v1/admin/settlements/${id}`
+      )
       setDetail(data)
       setDetailDialogOpen(true)
       revealDestination(id)
@@ -248,10 +251,7 @@ export default function AdminSettlementsPage() {
             هر درخواست فقط به‌صورت کامل تسویه می‌شود.
           </p>
         </div>
-        <Button variant="outline" onClick={fetchSettlements}>
-          <RefreshCw className="me-1 size-4" />
-          بروزرسانی
-        </Button>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}
@@ -356,7 +356,7 @@ export default function AdminSettlementsPage() {
                   </TableCell>
                   <TableCell className="text-center text-xs whitespace-nowrap">
                     <div>{formatPersianDate(s.requested_at)}</div>
-                    <div className="text-muted-foreground mt-0.5">
+                    <div className="mt-0.5 text-muted-foreground">
                       <span dir="ltr" className="inline-block">
                         {new Date(s.requested_at).toLocaleTimeString("fa-IR", {
                           hour: "2-digit",
@@ -424,7 +424,7 @@ export default function AdminSettlementsPage() {
           if (!open) setDetail(null)
         }}
       >
-        <ResponsiveDialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <ResponsiveDialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>
               جزئیات تسویه {detail ? toPersianDigits(detail.id) : ""}
@@ -435,11 +435,13 @@ export default function AdminSettlementsPage() {
           </ResponsiveDialogHeader>
           {detail && (
             <div className="space-y-4">
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-2">
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <span className="text-muted-foreground">کارت مقصد:</span>
                   <span dir="ltr" className="font-medium">
-                    {revealedCard || detail.destination_card_masked || "ثبت نشده"}
+                    {revealedCard ||
+                      detail.destination_card_masked ||
+                      "ثبت نشده"}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -468,13 +470,17 @@ export default function AdminSettlementsPage() {
                   <TableBody>
                     {detail.items.map((item) => (
                       <TableRow key={item.booking_id}>
-                        <TableCell>{toPersianDigits(item.booking_id)}</TableCell>
+                        <TableCell>
+                          {toPersianDigits(item.booking_id)}
+                        </TableCell>
                         <TableCell>{item.customer_name}</TableCell>
                         <TableCell className="text-center text-xs whitespace-nowrap">
                           <div>{formatPersianDate(item.slot_start_time)}</div>
-                          <div className="text-muted-foreground mt-0.5">
+                          <div className="mt-0.5 text-muted-foreground">
                             <span dir="ltr" className="inline-block">
-                              {new Date(item.slot_start_time).toLocaleTimeString("fa-IR", {
+                              {new Date(
+                                item.slot_start_time
+                              ).toLocaleTimeString("fa-IR", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                                 timeZone: "Asia/Tehran",

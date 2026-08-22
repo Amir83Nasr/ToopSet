@@ -48,12 +48,12 @@ import {
   Building2,
   MapPin,
   Star,
-  RefreshCw,
   Loader2,
   ToggleRight,
   Trash2,
 } from "lucide-react"
 import { sportLabels, sportColors } from "@/components/vendors/vendor-shared"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface Vendor {
   id: number
@@ -164,6 +164,7 @@ export default function VendorsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <MobileBackButton />
           {user?.role === "manager" && (
             <Button asChild>
               <Link href="/dashboard/vendors/create">
@@ -172,10 +173,6 @@ export default function VendorsPage() {
               </Link>
             </Button>
           )}
-          <Button variant="outline" onClick={() => fetchVendors()}>
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
         </div>
       </div>
 

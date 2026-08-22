@@ -63,11 +63,6 @@ class BankCardService:
         )
 
     async def lookup_card(self, card_number: str) -> BankCard:
-        if self.provider is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="سرویس استعلام کارت بانکی هنوز پیکربندی نشده است",
-            )
         normalized = normalize_card_number(card_number)
         if len(normalized) != 16:
             raise HTTPException(
@@ -75,31 +70,34 @@ class BankCardService:
                 detail="شماره کارت باید ۱۶ رقم باشد",
             )
 
-        try:
-            lookup = await self.provider.lookup_owner(normalized)
-        except BankCardProviderUnavailable:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="سرویس استعلام کارت در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.",
-            )
-        except BankCardVerificationError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="استعلام مالک کارت ناموفق بود",
-            )
+        holder_name: str | None = None
+        if self.provider is not None:
+            try:
+                lookup = await self.provider.lookup_owner(normalized)
+                holder_name = lookup.holder_name
+            except BankCardProviderUnavailable:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="سرویس استعلام کارت در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.",
+                )
+            except BankCardVerificationError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="استعلام مالک کارت ناموفق بود",
+                )
 
         card = await self.repo.upsert_pending(
             user_id=self.current_user.id,
             encrypted_card_number=encrypt_card_number(normalized),
             masked_card_number=mask_card_number(normalized),
             card_fingerprint=card_fingerprint(normalized),
-            holder_name=lookup.holder_name,
+            holder_name=holder_name,
         )
         await log_action(
             self.db,
             self.current_user.id,
             "bank_card_lookup",
-            f"استعلام کارت بانکی | card_id={card.id} | {card.masked_card_number}",
+            f"ثبت کارت بانکی | card_id={card.id} | {card.masked_card_number}",
         )
         return card
 

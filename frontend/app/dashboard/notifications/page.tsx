@@ -11,7 +11,8 @@ import { NotificationEmptyState } from "@/components/notifications/notification-
 import { NotificationTable } from "@/components/notifications/notification-table"
 import { NotificationBroadcastDialog } from "@/components/notifications/notification-broadcast-dialog"
 import { toast } from "@/lib/toast"
-import { CheckCheck, Loader2, RefreshCw, Send } from "lucide-react"
+import { CheckCheck, Loader2, Send } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface Notification {
   id: number
@@ -132,23 +133,18 @@ export default function NotificationsPage() {
   return (
     <div className="flex flex-1 flex-col gap-6">
       {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">اعلان‌ها</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            اعلان‌ها
+          </h1>
+          <p className="text-xs text-muted-foreground sm:text-sm">
             {toPersianDigits(total)} اعلان — {toPersianDigits(unreadCount)}{" "}
             خوانده نشده
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchNotifications()}
-          >
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <MobileBackButton />
 
           {unreadCount > 0 && (
             <Button
@@ -158,9 +154,9 @@ export default function NotificationsPage() {
               disabled={markingAll}
             >
               {markingAll ? (
-                <Loader2 className="me-2 size-4 animate-spin" />
+                <Loader2 className="me-1.5 size-4 animate-spin" />
               ) : (
-                <CheckCheck className="me-2 size-4" />
+                <CheckCheck className="me-1.5 size-4" />
               )}
               علامت همه
             </Button>

@@ -25,6 +25,7 @@ import {
   CreditCard,
 } from "lucide-react"
 import { toast } from "@/lib/toast"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface UserProfile {
   id: number
@@ -220,9 +221,11 @@ export default function SettingsPage() {
         body: JSON.stringify({ card_number: normalized }),
       })
       setPendingCard(card)
-      toast.success("کارت استعلام شد")
+      toast.success(
+        card.holder_name ? "کارت استعلام شد" : "شماره کارت بررسی شد"
+      )
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "خطا در استعلام کارت")
+      toast.error(err instanceof ApiError ? err.message : "خطا در بررسی کارت")
     } finally {
       setSavingCard(false)
     }
@@ -289,13 +292,14 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-1 flex-col gap-8">
       {/* ── Header ── */}
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">پروفایل من</h1>
           <p className="text-sm text-muted-foreground">
             اطلاعات شخصی و تنظیمات حساب کاربری
           </p>
         </div>
+        <MobileBackButton />
       </div>
 
       {/* ── Sections ── */}
@@ -489,9 +493,9 @@ export default function SettingsPage() {
                 />
                 {pendingCard && (
                   <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
-                    <div>
-                      دارنده کارت: {pendingCard.holder_name || "نامشخص"}
-                    </div>
+                    {pendingCard.holder_name ? (
+                      <div>دارنده کارت: {pendingCard.holder_name}</div>
+                    ) : null}
                     <div
                       dir="ltr"
                       className="mt-1 text-end text-muted-foreground"
@@ -513,7 +517,7 @@ export default function SettingsPage() {
                 {savingCard && (
                   <Loader2 className="me-1.5 size-3.5 animate-spin" />
                 )}
-                استعلام کارت
+                {pendingCard ? "بررسی مجدد" : "ثبت و بررسی کارت"}
               </Button>
               <Button
                 type="button"
@@ -521,7 +525,7 @@ export default function SettingsPage() {
                 onClick={confirmCard}
                 disabled={!pendingCard || savingCard}
               >
-                {bankCard ? "تایید و تغییر کارت" : "تایید و ثبت"}
+                {bankCard ? "تایید و تغییر کارت" : "تایید و ذخیره"}
               </Button>
             </div>
           </div>

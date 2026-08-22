@@ -38,7 +38,8 @@ import {
 } from "@/components/ui/responsive-dialog"
 import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
-import { Loader2, Mail, Phone, RefreshCw, Trash2, User, X } from "lucide-react"
+import { Loader2, Mail, Phone, Trash2, User, X } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import {
   SearchInput,
   DataTableToolbar,
@@ -168,17 +169,7 @@ export default function ContactMessagesPage() {
             مدیریت پیام‌های ارسال شده از صفحه تماس با ما
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchMessages}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
-          />
-          بروزرسانی
-        </Button>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}
@@ -276,7 +267,7 @@ export default function ContactMessagesPage() {
                     </TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">
                       <div>{formatDate(msg.created_at)}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         <span dir="ltr" className="inline-block">
                           {formatTime(msg.created_at)}
                         </span>

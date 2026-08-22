@@ -169,7 +169,7 @@ export function BookingCancelDialog({
                       placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
                     />
                     <p className="text-xs text-muted-foreground">
-                      این کارت همان لحظه استعلام و برای عودت وجه ثبت می‌شود.
+                      مبلغ عودت پس از لغو به این شماره کارت واریز خواهد شد.
                     </p>
                   </div>
                 )}

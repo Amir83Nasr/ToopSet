@@ -17,13 +17,13 @@ import {
   FileText,
   Shield,
   MessageSquare,
-  RefreshCw,
   Loader2,
   Settings2,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { HeroImagesEditor } from "@/components/admin/hero-images-editor"
 import { ListSettingEditor } from "@/components/admin/list-setting-editor"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface Setting {
   id: number
@@ -178,17 +178,7 @@ export default function AdminSettingsPage() {
             مدیریت تنظیمات و پیکربندی پلتفرم
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchSettings}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`me-1.5 size-4 ${loading ? "animate-spin" : ""}`}
-          />
-          بروزرسانی
-        </Button>
+        <MobileBackButton />
       </div>
 
       {/* Loading state */}
@@ -215,7 +205,6 @@ export default function AdminSettingsPage() {
         <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
           <Settings2 className="size-10" />
           <p className="text-base font-medium">تنظیماتی یافت نشد</p>
-          <p className="text-sm">روی بروزرسانی کلیک کنید</p>
         </div>
       )}
 

@@ -69,6 +69,7 @@ async def get_booking_service_admin(
     "/pending-checkout",
     response_model=PendingCheckoutResponse | None,
     summary="Get the current user's live checkout",
+    description="Get the current user's live checkout",
 )
 async def get_pending_checkout(
     service: BookingService = Depends(get_booking_service),

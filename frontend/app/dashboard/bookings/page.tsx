@@ -15,7 +15,7 @@ import type {
   BookingDetail,
 } from "@/components/bookings/types"
 import { toast } from "@/lib/toast"
-import { RefreshCw } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 type BookingTab = "current" | "past" | "cancelled"
 
@@ -220,10 +220,7 @@ export default function BookingsPage() {
           <h1 className="text-2xl font-bold tracking-tight">رزروهای من</h1>
           <p className="text-muted-foreground">مدیریت رزروهای ورزشی شما</p>
         </div>
-        <Button variant="outline" onClick={() => fetchBookings()}>
-          <RefreshCw className="me-1.5 size-4" />
-          بروزرسانی
-        </Button>
+        <MobileBackButton />
       </div>
 
       <BookingFilters search={search} onSearchChange={setSearch} />

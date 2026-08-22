@@ -44,14 +44,8 @@ import {
 } from "@/components/ui/responsive-dialog"
 import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
-import {
-  Loader2,
-  RefreshCw,
-  ShieldX,
-  ToggleRight,
-  UserCog,
-  Trash2,
-} from "lucide-react"
+import { Loader2, ShieldX, ToggleRight, UserCog, Trash2 } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface AdminUser {
   id: number
@@ -216,12 +210,7 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold tracking-tight">مدیریت کاربران</h1>
           <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fetchUsers()}>
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
-        </div>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}

@@ -27,6 +27,13 @@ import {
 } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { TablePagination } from "@/components/ui/pagination"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "@/components/ui/drawer"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { VendorCardSkeleton } from "@/components/vendors/vendor-card-skeleton"
 import dynamic from "next/dynamic"
@@ -85,7 +92,9 @@ function formatPrice(price: number | null): string {
   if (price == null) return "—"
   const formattedNumber = new Intl.NumberFormat("fa-IR", {
     useGrouping: true,
-  }).format(price).replace(/,/g, "٬")
+  })
+    .format(price)
+    .replace(/,/g, "٬")
   return `${formattedNumber} تومانءء`
 }
 
@@ -353,13 +362,13 @@ function VendorsPageContent() {
                 </Button>
 
                 <Button
-                  variant={showMap ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
                   className="max-sm:px-2"
-                  onClick={() => setShowMap((v) => !v)}
+                  onClick={() => setShowMap(true)}
                 >
                   <Map className="size-4" />
-                  <span>{showMap ? "مخفی کردن نقشه" : "نمایش نقشه"}</span>
+                  <span>نمایش نقشه</span>
                 </Button>
               </div>
 
@@ -424,16 +433,35 @@ function VendorsPageContent() {
                 </Button>
               </div>
 
-              {/* ── Collapsible map panel ── */}
-              {showMap && (
-                <div className="mt-2 overflow-hidden rounded-xl border">
-                  <VendorsMap
-                    vendors={mapVendors}
-                    height="400px"
-                    userLocation={userLocation}
-                  />
-                </div>
-              )}
+              {/* ── Map Modal (Bottom Sheet - half screen) ── */}
+              <Drawer open={showMap} onOpenChange={setShowMap}>
+                <DrawerContent
+                  showCloseButton={false}
+                  className="flex h-[65vh] max-h-[80vh] flex-col p-0"
+                >
+                  <DrawerHeader className="flex shrink-0 items-center justify-between border-b px-4 py-2.5">
+                    <DrawerTitle className="flex items-center gap-2 text-base font-bold">
+                      <Map className="size-4.5 text-primary" />
+                      نقشه مجموعه‌های ورزشی
+                    </DrawerTitle>
+                    <DrawerClose asChild>
+                      <Button
+                        size="sm"
+                        className="h-8 rounded-lg px-3.5 text-xs font-semibold"
+                      >
+                        بستن
+                      </Button>
+                    </DrawerClose>
+                  </DrawerHeader>
+                  <div className="relative min-h-0 w-full flex-1 overflow-hidden">
+                    <VendorsMap
+                      vendors={mapVendors}
+                      height="100%"
+                      userLocation={userLocation}
+                    />
+                  </div>
+                </DrawerContent>
+              </Drawer>
 
               {/* Geo status — moved from old map section */}
               {(geo.loading || geo.error) && (
@@ -465,7 +493,7 @@ function VendorsPageContent() {
 
               {/* Filter chips */}
               {hasActiveFilters && (
-                <div className="mt-2 flex max-sm:flex-nowrap max-sm:gap-1 max-sm:overflow-x-auto max-sm:pb-1 max-sm:max-w-full items-center gap-1.5 border-t pt-2">
+                <div className="mt-2 flex items-center gap-1.5 border-t pt-2 max-sm:max-w-full max-sm:flex-nowrap max-sm:gap-1 max-sm:overflow-x-auto max-sm:pb-1">
                   {/* Clear all — always first */}
                   <Button
                     variant="destructive"
@@ -477,7 +505,7 @@ function VendorsPageContent() {
                     پاک کردن همه فیلتر‌ها
                   </Button>
                   {searchText && (
-                    <span className="inline-flex h-10 md:h-8 max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm md:text-xs">
+                    <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
                       <Search className="size-3" />
                       {searchText}
                       <Button
@@ -494,7 +522,7 @@ function VendorsPageContent() {
                   {selectedSports.map((st) => (
                     <span
                       key={st}
-                      className="inline-flex h-10 md:h-8 max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm md:text-xs"
+                      className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs"
                     >
                       {sportLabels[st] || st}
                       <Button
@@ -513,7 +541,7 @@ function VendorsPageContent() {
                     </span>
                   ))}
                   {availableToday && (
-                    <span className="inline-flex h-10 md:h-8 max-sm:shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm md:text-xs">
+                    <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
                       <CalendarCheck className="size-3" />
                       سانس خالی امروز
                       <Button

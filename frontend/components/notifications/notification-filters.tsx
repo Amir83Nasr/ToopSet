@@ -45,10 +45,10 @@ export function NotificationFilters({
         onChange={onSearchInputChange}
         placeholder="جستجوی اعلان..."
       />
-      <div className="flex gap-2">
-        <div>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+        <div className="w-full sm:w-40">
           <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-            <SelectTrigger className="w-full sm:w-40">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="نوع اعلان" />
             </SelectTrigger>
             <SelectContent>
@@ -64,9 +64,9 @@ export function NotificationFilters({
             </SelectContent>
           </Select>
         </div>
-        <div>
+        <div className="w-full sm:w-36">
           <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-            <SelectTrigger className="w-full sm:w-36">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="وضعیت" />
             </SelectTrigger>
             <SelectContent>

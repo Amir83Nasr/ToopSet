@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from "next"
 import { pwaConfig } from "@/config/pwa"
 import { SkipNav } from "@/components/ui/skip-nav"
 import { SITE_URL, BRAND } from "@/lib/site"
+import { BottomNavWrapper } from "@/components/public/bottom-nav-wrapper"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -64,7 +65,14 @@ const jsonLd = [
     "@type": "Organization",
     "@id": `${SITE_URL}/#organization`,
     name: "توپ‌ست",
-    alternateName: ["ToopSet", "toopset", "توپست", "توپ‌ست", "توپ‌سِت", "توپ ست"],
+    alternateName: [
+      "ToopSet",
+      "toopset",
+      "توپست",
+      "توپ‌ست",
+      "توپ‌سِت",
+      "توپ ست",
+    ],
     url: SITE_URL,
     logo: `${SITE_URL}/icons/logo-1080.webp`,
     description:
@@ -78,7 +86,14 @@ const jsonLd = [
     "@type": "WebSite",
     "@id": `${SITE_URL}/#website`,
     name: "توپ‌ست (ToopSet)",
-    alternateName: ["ToopSet", "toopset", "توپست", "توپ‌ست", "توپ‌سِت", "توپ ست"],
+    alternateName: [
+      "ToopSet",
+      "toopset",
+      "توپست",
+      "توپ‌ست",
+      "توپ‌سِت",
+      "توپ ست",
+    ],
     url: SITE_URL,
     inLanguage: "fa-IR",
     publisher: { "@id": `${SITE_URL}/#organization` },
@@ -96,7 +111,14 @@ const jsonLd = [
     "@type": "SportsActivityLocation",
     "@id": `${SITE_URL}/#sports-location`,
     name: "توپ‌ست",
-    alternateName: ["ToopSet", "toopset", "توپست", "توپ‌ست", "توپ‌سِت", "توپ ست"],
+    alternateName: [
+      "ToopSet",
+      "toopset",
+      "توپست",
+      "توپ‌ست",
+      "توپ‌سِت",
+      "توپ ست",
+    ],
     url: SITE_URL,
     description:
       "سامانه هوشمند رزرو آنلاین مجموعه‌های ورزشی، سالن فوتسال و چمن مصنوعی",
@@ -128,7 +150,10 @@ export default function RootLayout({
               aria-hidden="true"
               className="bg-grid-pattern pointer-events-none fixed inset-0 -z-10"
             />
-            <Providers>{children}</Providers>
+            <Providers>
+              {children}
+              <BottomNavWrapper />
+            </Providers>
           </div>
         </ThemeProvider>
       </body>

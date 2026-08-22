@@ -42,7 +42,7 @@ class BankCardRepo:
         encrypted_card_number: str,
         masked_card_number: str,
         card_fingerprint: str,
-        holder_name: str,
+        holder_name: str | None,
     ) -> BankCard:
         card = await self.get_for_user(user_id)
         if card is None:
