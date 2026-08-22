@@ -30,7 +30,7 @@ const tabs = [
   },
   {
     href: ACCOUNT_TAB_PATH,
-    label: "حساب",
+    label: "حساب کاربری",
     icon: User,
     exact: false,
   },
