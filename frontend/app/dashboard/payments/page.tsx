@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
 import { api } from "@/lib/api"
 import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -20,17 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TablePagination } from "@/components/ui/pagination"
-import { CreditCard, AlertCircle, RefreshCw } from "lucide-react"
+import {
+  CreditCard,
+  AlertCircle,
+  RefreshCw,
+  Building2,
+  Calendar,
+  Hash,
+} from "lucide-react"
 import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 // --- Types ---
@@ -77,61 +75,32 @@ const statusConfig: Record<
   failed: { label: "ناموفق", variant: "destructive" },
 }
 
-// --- Skeleton rows ---
-
-function SkeletonRow() {
-  return (
-    <TableRow>
-      <TableCell>
-        <Skeleton className="h-4 w-24" />
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-4 w-28" />
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-4 w-20" />
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-4 w-20" />
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-4 w-24" />
-      </TableCell>
-    </TableRow>
-  )
-}
+// --- Skeletons ---
 
 function LoadingSkeleton() {
   return (
-    <div>
-      <Table className="min-w-215 table-fixed">
-        <colgroup>
-          <col className="w-28" />
-          <col className="w-52" />
-          <col className="w-28" />
-          <col className="w-24" />
-          <col className="w-44" />
-          <col className="w-36" />
-        </colgroup>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-center">تاریخ</TableHead>
-            <TableHead>مجموعه</TableHead>
-            <TableHead className="text-center">مبلغ</TableHead>
-            <TableHead className="text-center">وضعیت</TableHead>
-            <TableHead className="text-center">درگاه</TableHead>
-            <TableHead className="text-center">کد پیگیری</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonRow key={i} />
-          ))}
-        </TableBody>
-      </Table>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-4 shadow-xs ring-1 ring-foreground/10"
+        >
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3 border-b pb-3">
+              <div className="space-y-1.5">
+                <Skeleton className="h-4.5 w-36" />
+                <Skeleton className="h-3.5 w-20" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -179,29 +148,22 @@ export default function PaymentsPage() {
   }, [page, statusFilter, debouncedSearch])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchPayments()
-    }, 0)
+    const timer = setTimeout(fetchPayments, 0)
     return () => clearTimeout(timer)
   }, [fetchPayments])
 
   const totalPages = Math.ceil(total / limit)
 
-  // --- Render helpers ---
-
-  function renderLoading() {
-    return <LoadingSkeleton />
-  }
-
   function renderError() {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
-          <AlertCircle className="size-12 text-destructive" />
-          <p className="text-lg text-muted-foreground">خطا در دریافت اطلاعات</p>
-          <p className="text-sm text-muted-foreground/60">{error}</p>
-          <Button variant="outline" onClick={fetchPayments}>
-            <RefreshCw className="me-1.5 size-4" />
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="mb-4 rounded-full bg-destructive/10 p-3">
+            <AlertCircle className="size-8 text-destructive" />
+          </div>
+          <p className="mb-4 font-medium text-destructive">{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchPayments}>
+            <RefreshCw className="me-2 size-4" />
             تلاش مجدد
           </Button>
         </CardContent>
@@ -214,31 +176,23 @@ export default function PaymentsPage() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16">
           <div className="mb-4 rounded-full bg-muted p-4">
-            <CreditCard className="size-10 text-muted-foreground" />
+            <CreditCard className="size-8 text-muted-foreground" />
           </div>
-          <h3 className="mb-1 text-lg font-semibold">
-            هنوز پرداختی انجام نداده‌اید
-          </h3>
-          <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-            پس از رزرو مجموعه و تکمیل فرآیند رزرو، تاریخچه پرداخت‌های شما در این
-            بخش نمایش داده می‌شود.
+          <p className="font-medium">هیچ پرداختی یافت نشد</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {debouncedSearch || statusFilter !== "all"
+              ? "نتیجه‌ای برای فیلترهای انتخابی یافت نشد."
+              : "هنوز پرداختی در سیستم ثبت نشده است."}
           </p>
-          <Button asChild>
-            <Link href="/dashboard/vendors">
-              <CreditCard className="me-2 size-4" />
-              رزرو مجموعه
-            </Link>
-          </Button>
         </CardContent>
       </Card>
     )
   }
 
-  function renderTable() {
+  function renderCards() {
     return (
-      <div>
-        {/* Mobile: stacked cards */}
-        <div className="flex flex-col gap-3 md:hidden">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {payments.map((p) => {
             const status = statusConfig[p.status] || {
               label: p.status,
@@ -247,120 +201,89 @@ export default function PaymentsPage() {
             return (
               <div
                 key={p.id}
-                className="flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10"
+                className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:shadow-md"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-medium">{p.vendor_name}</span>
-                  <Badge variant={status.variant}>{status.label}</Badge>
-                </div>
+                <div>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 border-b bg-muted/30 p-4">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 shrink-0 text-primary" />
+                        <h3
+                          className="truncate text-base font-semibold text-foreground"
+                          title={p.vendor_name}
+                        >
+                          {p.vendor_name}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+                        <Hash className="size-3 shrink-0" />
+                        <span>رزرو {toPersianDigits(p.booking_id)}</span>
+                      </div>
+                    </div>
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                  </div>
 
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-base font-semibold">
-                    {formatAmount(p.amount)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(p.created_at)}
-                  </span>
-                </div>
+                  {/* Body */}
+                  <div className="space-y-3.5 p-4 text-sm">
+                    {/* Date and Amount */}
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3">
+                      <div className="flex items-start gap-2">
+                        <Calendar className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <div className="text-[11px] text-muted-foreground">
+                            تاریخ پرداخت
+                          </div>
+                          <div className="text-xs font-medium text-foreground">
+                            {formatDate(p.created_at)}
+                          </div>
+                        </div>
+                      </div>
 
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm">
-                  <div className="flex flex-col gap-0.5">
-                    <dt className="text-xs text-muted-foreground">درگاه</dt>
-                    <dd className="text-muted-foreground">
-                      {p.gateway_name ? (
-                        <span className="flex flex-col">
-                          <span className="text-foreground">
-                            {p.gateway_name}
-                          </span>
-                          {p.card_number && (
-                            <span className="font-mono text-xs" dir="ltr">
-                              {p.card_number}
-                            </span>
-                          )}
+                      <div className="flex items-start gap-2">
+                        <CreditCard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <div className="text-[11px] text-muted-foreground">
+                            مبلغ
+                          </div>
+                          <div className="text-xs font-bold text-foreground tabular-nums">
+                            {formatAmount(p.amount)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gateway details */}
+                    <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-xs">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>درگاه پرداخت:</span>
+                        <span className="font-medium text-foreground">
+                          {p.gateway_name || "-"}
                         </span>
-                      ) : (
-                        "-"
+                      </div>
+
+                      {p.card_number && (
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>شماره کارت:</span>
+                          <span dir="ltr" className="font-mono text-foreground">
+                            {p.card_number}
+                          </span>
+                        </div>
                       )}
-                    </dd>
+
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>کد پیگیری:</span>
+                        <span dir="ltr" className="font-mono text-foreground">
+                          {p.gateway_transaction_id || "-"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <dt className="text-xs text-muted-foreground">کد پیگیری</dt>
-                    <dd className="text-xs text-muted-foreground" dir="ltr">
-                      {p.gateway_transaction_id || "-"}
-                    </dd>
-                  </div>
-                </dl>
+                </div>
               </div>
             )
           })}
         </div>
-
-        {/* Desktop / tablet: full table */}
-        <Table
-          className="min-w-215 table-fixed"
-          tableWrapperClassName="hidden md:block"
-        >
-          <colgroup>
-            <col className="w-28" />
-            <col className="w-52" />
-            <col className="w-28" />
-            <col className="w-24" />
-            <col className="w-44" />
-            <col className="w-36" />
-          </colgroup>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center">تاریخ</TableHead>
-              <TableHead>مجموعه</TableHead>
-              <TableHead className="text-center">مبلغ</TableHead>
-              <TableHead className="text-center">وضعیت</TableHead>
-              <TableHead className="text-center">درگاه</TableHead>
-              <TableHead className="text-center">کد پیگیری</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((p) => {
-              const status = statusConfig[p.status] || {
-                label: p.status,
-                variant: "secondary" as const,
-              }
-              return (
-                <TableRow key={p.id}>
-                  <TableCell className="text-center text-xs whitespace-nowrap">
-                    {formatDate(p.created_at)}
-                  </TableCell>
-                  <TableCell className="font-medium">{p.vendor_name}</TableCell>
-                  <TableCell className="text-center">
-                    {formatAmount(p.amount)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={status.variant}>{status.label}</Badge>
-                  </TableCell>
-                  <TableCell className="text-center text-xs text-muted-foreground">
-                    {p.gateway_name ? (
-                      <span className="flex flex-col items-center">
-                        <span>{p.gateway_name}</span>
-                        {p.card_number && (
-                          <span className="font-mono text-[10px]" dir="ltr">
-                            {p.card_number}
-                          </span>
-                        )}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className="text-center text-xs text-muted-foreground"
-                    dir="ltr"
-                  >
-                    {p.gateway_transaction_id || "-"}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
 
         <TablePagination
           page={page}
@@ -414,13 +337,15 @@ export default function PaymentsPage() {
         </div>
       </DataTableToolbar>
 
-      {loading
-        ? renderLoading()
-        : error
-          ? renderError()
-          : payments.length === 0
-            ? renderEmpty()
-            : renderTable()}
+      {loading ? (
+        <LoadingSkeleton />
+      ) : error ? (
+        renderError()
+      ) : payments.length === 0 ? (
+        renderEmpty()
+      ) : (
+        renderCards()
+      )}
     </div>
   )
 }

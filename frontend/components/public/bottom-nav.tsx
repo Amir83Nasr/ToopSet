@@ -106,7 +106,7 @@ export function BottomNav() {
       aria-label="منوی پایین"
       className={cn(
         // Layout
-        "fixed inset-x-0 bottom-0 z-[999]",
+        "fixed inset-x-0 bottom-0 z-40",
         // Only visible on mobile
         "flex md:hidden",
         // Background, border and safe-area

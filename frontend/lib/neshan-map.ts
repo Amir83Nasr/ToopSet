@@ -1,8 +1,5 @@
 /**
- * Neshan map SDK integration utilities.
- *
- * Provides a shared L namespace from the standard leaflet SDK and a helper to create
- * a map configured with the project's API key and preferred map type using Neshan tiles.
+ * Map integration utilities using Leaflet with reliable raster tiles.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -13,81 +10,33 @@ export default L
 
 /* ── Config ── */
 
-const API_KEY = process.env.NEXT_PUBLIC_NESHAN_API_KEY
-// const MAP_TYPE = "standard-day"
-
-/** Qom bounds — restrict panning */
-export const QOM_BOUNDS = [
-  [34.45, 50.65],
-  [34.85, 51.1],
-] as const
-
 export const QOM_CENTER: [number, number] = [34.64, 50.88]
 export const DEFAULT_ZOOM = 13
 export const CLOSE_ZOOM = 15
 
 /* ── Helpers ── */
 
-/** Create a Neshan map on the given DOM element. */
+/** Create a map on the given DOM element with reliable raster tiles. */
 export function createNeshanMap(el: HTMLElement, extra?: any): any {
   const map = new L.Map(el, {
     center: QOM_CENTER,
     zoom: DEFAULT_ZOOM,
-    maxBounds: QOM_BOUNDS,
-    maxBoundsViscosity: 1.0,
-    minZoom: 10,
-    maxZoom: 18,
+    minZoom: 4,
+    maxZoom: 19,
     attributionControl: false,
     ...extra,
   })
 
-  // Neshan raster tile layer
-  const neshanTiles = L.tileLayer(
-    `https://api.neshan.org/v2/raster?key=${API_KEY}&x={x}&y={y}&z={z}`,
+  // Reliable, high-performance Carto Voyager raster tiles (with Persian & English support)
+  L.tileLayer(
+    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
     {
-      minZoom: 10,
-      maxZoom: 18,
+      maxZoom: 19,
+      minZoom: 4,
+      subdomains: "abcd",
       attribution: "",
     }
   ).addTo(map)
-
-  // Neshan tiles may return 204 (no content) if the API key is invalid or
-  // expired. Monitor for tile failures and fall back to a styled tile layer.
-  let fallbackAdded = false
-  let checkCount = 0
-  const TILE_CHECK_INTERVAL = 200
-  const TILE_MAX_CHECKS = 5
-
-  const checkInterval = setInterval(() => {
-    checkCount++
-    const tiles = el.querySelectorAll("img.leaflet-tile")
-    const loaded = Array.from(tiles).filter(
-      (t) => t instanceof HTMLImageElement && t.complete && t.naturalWidth > 0
-    )
-    // If at least one tile loaded successfully, Neshan works — stop checking
-    if (loaded.length > 0) {
-      clearInterval(checkInterval)
-      return
-    }
-    // After ~1s (5 × 200ms) with no loaded tiles, declare Neshan tiles failed
-    if (checkCount >= TILE_MAX_CHECKS) {
-      clearInterval(checkInterval)
-      if (!fallbackAdded) {
-        fallbackAdded = true
-        map.removeLayer(neshanTiles)
-        L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-          {
-            maxZoom: 20,
-            minZoom: 10,
-            attribution: "",
-          }
-        ).addTo(map)
-      }
-    }
-  }, TILE_CHECK_INTERVAL)
-
-  map.once("unload", () => clearInterval(checkInterval))
 
   return map
 }
@@ -129,7 +78,7 @@ export function createVendorIcon(sportType?: string): any {
         <path d="${path}"/>
       </svg>
     </div>`,
-    className: "",
+    className: "border-0 bg-transparent",
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
@@ -143,7 +92,7 @@ export function createUserLocationIcon(): any {
       <div class="absolute inset-0.75 rounded-full bg-blue-500/40 animate-pulse"></div>
       <div class="absolute inset-1.5 rounded-full bg-blue-600 border-2 border-white shadow-lg"></div>
     </div>`,
-    className: "",
+    className: "border-0 bg-transparent",
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   })
@@ -156,7 +105,7 @@ export function createDefaultPinIcon(): any {
         <circle cx="12" cy="12" r="6"/>
       </svg>
     </div>`,
-    className: "",
+    className: "border-0 bg-transparent",
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
@@ -170,7 +119,7 @@ export function createSearchPinIcon(): any {
         <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
       </svg>
     </div>`,
-    className: "",
+    className: "border-0 bg-transparent",
     iconSize: [44, 44],
     iconAnchor: [22, 44],
     popupAnchor: [0, -44],

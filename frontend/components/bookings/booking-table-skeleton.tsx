@@ -1,100 +1,70 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 
 interface BookingTableSkeletonProps {
   showRefundStatus?: boolean
 }
 
-export function BookingTableSkeleton({ showRefundStatus = false }: BookingTableSkeletonProps) {
+export function BookingTableSkeleton({
+  showRefundStatus = false,
+}: BookingTableSkeletonProps) {
   return (
-    <div>
-      <Table
-        className={
-          showRefundStatus
-            ? "min-w-[1180px] table-fixed"
-            : "min-w-[980px] table-fixed"
-        }
-        tableWrapperClassName="shadow-xs"
-      >
-        <colgroup>
-          <col className="w-[210px]" />
-          <col className="w-[135px]" />
-          <col className="w-[90px]" />
-          <col className="w-[135px]" />
-          <col className="w-[145px]" />
-          <col className="w-[175px]" />
-          {showRefundStatus && <col className="w-[220px]" />}
-          <col className="w-[220px]" />
-        </colgroup>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-12 px-4">مجموعه</TableHead>
-            <TableHead className="h-12 px-4 text-center">تاریخ</TableHead>
-            <TableHead className="h-12 px-4 text-center">روز</TableHead>
-            <TableHead className="h-12 px-4 text-center">ساعت</TableHead>
-            <TableHead className="h-12 px-4 text-center">
-              مبلغ پرداختی
-            </TableHead>
-            <TableHead className="h-12 px-4 text-center">وضعیت</TableHead>
-            {showRefundStatus && (
-              <TableHead className="h-12 px-4 text-center">
-                وضعیت عودت
-              </TableHead>
-            )}
-            <TableHead className="h-12 px-4 text-center">عملیات</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <TableRow key={i} className="h-[76px]">
-              <TableCell className="px-4 py-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs ring-1 ring-foreground/10"
+        >
+          <div>
+            {/* Header skeleton */}
+            <div className="flex items-start justify-between gap-3 border-b bg-muted/30 p-4">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4.5 w-36" />
+                <Skeleton className="h-3.5 w-24" />
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-3 w-10" />
+              </div>
+            </div>
+
+            {/* Body skeleton */}
+            <div className="space-y-3.5 p-4">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3">
                 <div className="space-y-1.5">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-3 w-14" />
                 </div>
-              </TableCell>
-              <TableCell className="px-4 py-3">
-                <Skeleton className="mx-auto h-4 w-20" />
-              </TableCell>
-              <TableCell className="px-4 py-3">
-                <Skeleton className="mx-auto h-4 w-12" />
-              </TableCell>
-              <TableCell className="px-4 py-3">
-                <Skeleton className="mx-auto h-4 w-24" />
-              </TableCell>
-              <TableCell className="px-4 py-3">
-                <Skeleton className="mx-auto h-4 w-20" />
-              </TableCell>
-              <TableCell className="px-4 py-3 text-center">
-                <div className="flex flex-col items-center gap-1.5">
-                  <Skeleton className="h-5 w-20 rounded-full" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-4 w-24" />
                 </div>
-              </TableCell>
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-2">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+
               {showRefundStatus && (
-                <TableCell className="px-4 py-3 text-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <Skeleton className="h-5 w-24 rounded-full" />
-                    <Skeleton className="h-3 w-16" />
+                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-4.5 w-20 rounded-full" />
                   </div>
-                </TableCell>
-              )}
-              <TableCell className="px-4 py-3 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Skeleton className="h-8 w-20 rounded-md" />
-                  <Skeleton className="h-8 w-16 rounded-md" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
                 </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              )}
+            </div>
+          </div>
+
+          {/* Footer skeleton */}
+          <div className="border-t bg-muted/20 p-3">
+            <Skeleton className="h-9 w-full rounded-md" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

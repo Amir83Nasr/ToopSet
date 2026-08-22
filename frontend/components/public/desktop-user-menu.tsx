@@ -76,7 +76,7 @@ export function DesktopUserMenu({
             align={isRtl ? "start" : "end"}
             side="bottom"
             collisionPadding={16}
-            className="z-60 w-56 border"
+            className="w-56 border"
           >
             <DropdownMenuLabel className="pb-2">
               <div className="flex items-center gap-2.5">

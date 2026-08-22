@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BookingFilters } from "@/components/bookings/booking-filters"
 import { BookingTableSkeleton } from "@/components/bookings/booking-table-skeleton"

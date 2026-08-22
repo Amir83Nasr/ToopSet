@@ -102,9 +102,7 @@ function ResponsiveAlertDialogContent({
         showCloseButton={false}
         {...(props as unknown as Record<string, unknown>)}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2">
-          {children}
-        </div>
+        {children}
       </DrawerContent>
     )
   }

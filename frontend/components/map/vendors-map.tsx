@@ -3,6 +3,7 @@
 
 import {
   Component,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -18,6 +19,8 @@ import L, {
   createSearchPinIcon,
 } from "@/lib/neshan-map"
 import "leaflet/dist/leaflet.css"
+import { Loader2 } from "lucide-react"
+
 const sportLabels: Record<string, string> = {
   volleyball: "والیبال",
   basketball: "بسکتبال",
@@ -37,10 +40,10 @@ interface Vendor {
   address: string
   latitude: number
   longitude: number
-  capacity: number
-  is_active: boolean
-  average_rating: number
-  base_price: number | null
+  capacity?: number
+  is_active?: boolean
+  average_rating?: number
+  base_price?: number | null
   images?: string[]
   vendor_images?: { id: number; url: string; order: number }[]
 }
@@ -48,6 +51,7 @@ interface Vendor {
 interface VendorsMapProps {
   vendors: Vendor[]
   height?: string
+  loading?: boolean
   userLocation?: { latitude: number; longitude: number } | null
   mapLocation?: { latitude: number; longitude: number } | null
   onMapClick?: (lat: number, lng: number) => void
@@ -103,11 +107,21 @@ function renderVendorMarkers(map: any, vendors: Vendor[]) {
 
   // Add fresh markers
   vendors.forEach((vendor) => {
+    if (
+      typeof vendor.latitude !== "number" ||
+      typeof vendor.longitude !== "number" ||
+      isNaN(vendor.latitude) ||
+      isNaN(vendor.longitude) ||
+      (vendor.latitude === 0 && vendor.longitude === 0)
+    ) {
+      return
+    }
+
     const marker = L.marker([vendor.latitude, vendor.longitude], {
       icon: createVendorIcon(vendor.sport_types?.[0]),
     })
 
-    // Sport badges — all gray like other parts of the app
+    // Sport badges
     const badgesHtml =
       vendor.sport_types
         ?.map(
@@ -118,15 +132,17 @@ function renderVendorMarkers(map: any, vendors: Vendor[]) {
 
     const popupHtml = `<div class="text-right font-sans" dir="rtl" style="min-width:220px">
       <div class="px-3 ps-7 pt-3">
-        <div class="flex flex-wrap gap-1 mb-4 mr-3">${badgesHtml}</div>
+        <div class="flex flex-wrap gap-1 mb-3">${badgesHtml}</div>
         <h3 class="text-sm font-bold leading-snug mb-1.5" style="color:var(--color-popover-foreground)">${vendor.name}</h3>
-        <div class="flex items-start gap-1.5 mb-5 text-xs" style="color:var(--color-muted-foreground)">
+        <div class="flex items-start gap-1.5 mb-4 text-xs" style="color:var(--color-muted-foreground)">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <span class="leading-normal line-clamp-2">${vendor.address}</span>
         </div>
       </div>
       <div class="p-3 pt-0">
-        <a href="/vendors/${vendor.id}" class="group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[expanded]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-8 w-full bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50">مشاهده مجموعه</a>
+        <a href="/vendors/${vendor.id}" class="group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[expanded]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-8 w-full bg-background hover:bg-muted hover:text-foreground border-border text-foreground shadow-xs">
+          مشاهده مجموعه
+        </a>
       </div>
     </div>`
 
@@ -136,14 +152,24 @@ function renderVendorMarkers(map: any, vendors: Vendor[]) {
 }
 
 function renderUserMarker(
-  map: any | null,
+  map: any,
   location: { latitude: number; longitude: number } | null
 ) {
   if (lastUserMarker) {
-    lastUserMarker.remove()
+    try {
+      lastUserMarker.remove()
+    } catch {
+      // ignore
+    }
     lastUserMarker = null
   }
-  if (!location || !map) return
+  if (
+    !location ||
+    typeof location.latitude !== "number" ||
+    typeof location.longitude !== "number"
+  ) {
+    return
+  }
 
   const marker = L.marker([location.latitude, location.longitude], {
     icon: createUserLocationIcon(),
@@ -158,14 +184,24 @@ function renderUserMarker(
 }
 
 function renderSearchPin(
-  map: any | null,
+  map: any,
   location: { latitude: number; longitude: number } | null
 ) {
   if (lastSearchMarker) {
-    lastSearchMarker.remove()
+    try {
+      lastSearchMarker.remove()
+    } catch {
+      // ignore
+    }
     lastSearchMarker = null
   }
-  if (!location || !map) return
+  if (
+    !location ||
+    typeof location.latitude !== "number" ||
+    typeof location.longitude !== "number"
+  ) {
+    return
+  }
 
   const marker = L.marker([location.latitude, location.longitude], {
     icon: createSearchPinIcon(),
@@ -216,6 +252,7 @@ class MapErrorBoundary extends Component<
 export function VendorsMap({
   vendors,
   height = "400px",
+  loading = false,
   userLocation,
   mapLocation,
   onMapClick,
@@ -223,10 +260,20 @@ export function VendorsMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any | null>(null)
   const [ready, setReady] = useState(false)
-  const prevIdsRef = useRef("")
-  const prevUserRef = useRef("")
 
-  // Create map once (deferred with rAF to avoid Strict Mode double-invoke races)
+  // Filter valid coordinates
+  const validVendors = useMemo(() => {
+    return (vendors || []).filter(
+      (v) =>
+        typeof v.latitude === "number" &&
+        typeof v.longitude === "number" &&
+        !isNaN(v.latitude) &&
+        !isNaN(v.longitude) &&
+        (v.latitude !== 0 || v.longitude !== 0)
+    )
+  }, [vendors])
+
+  // Create map once
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     let destroyed = false
@@ -234,25 +281,85 @@ export function VendorsMap({
     const raf = requestAnimationFrame(() => {
       if (destroyed || !containerRef.current) return
 
-      const map = createNeshanMap(containerRef.current, {
-        center: QOM_CENTER,
-        zoom: DEFAULT_ZOOM,
-      })
+      try {
+        const map = createNeshanMap(containerRef.current, {
+          center: QOM_CENTER,
+          zoom: DEFAULT_ZOOM,
+        })
 
-      mapRef.current = map
-      addLocateControl(map)
-      setReady(true)
+        mapRef.current = map
+        addLocateControl(map)
+        setReady(true)
+
+        // Multiple invalidates to handle transitions
+        setTimeout(() => map.invalidateSize(), 100)
+        setTimeout(() => map.invalidateSize(), 350)
+      } catch {
+        // ignore map creation error
+      }
     })
 
     return () => {
       destroyed = true
       cancelAnimationFrame(raf)
       if (mapRef.current) {
-        mapRef.current.remove()
+        try {
+          mapRef.current.remove()
+        } catch {
+          // ignore
+        }
         mapRef.current = null
       }
     }
   }, [])
+
+  // Invalidate map size when container is resized or becomes visible
+  const doInvalidate = useCallback(() => {
+    if (!mapRef.current) return
+    try {
+      mapRef.current.invalidateSize()
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!ready || !mapRef.current) return
+
+    doInvalidate()
+    const t1 = setTimeout(doInvalidate, 100)
+    const t2 = setTimeout(doInvalidate, 300)
+    const t3 = setTimeout(doInvalidate, 600)
+
+    let resizeObserver: ResizeObserver | null = null
+    if (containerRef.current && typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => doInvalidate())
+      resizeObserver.observe(containerRef.current)
+    }
+
+    let intersectionObserver: IntersectionObserver | null = null
+    if (containerRef.current && typeof IntersectionObserver !== "undefined") {
+      intersectionObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              doInvalidate()
+            }
+          }
+        },
+        { threshold: 0.1 }
+      )
+      intersectionObserver.observe(containerRef.current)
+    }
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      if (resizeObserver) resizeObserver.disconnect()
+      if (intersectionObserver) intersectionObserver.disconnect()
+    }
+  }, [ready, doInvalidate])
 
   // Map click handler for location selection
   useEffect(() => {
@@ -266,43 +373,13 @@ export function VendorsMap({
     }
   }, [ready, onMapClick])
 
-  // Sync vendors to map
-  const vendorIds = useMemo(
-    () => JSON.stringify(vendors.map((c) => c.id)),
-    [vendors]
+  // Sync markers and viewport bounds
+  const vendorFingerprint = useMemo(
+    () =>
+      validVendors.map((c) => `${c.id}:${c.latitude},${c.longitude}`).join("|"),
+    [validVendors]
   )
 
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !ready) return
-    if (vendorIds === prevIdsRef.current) return
-    prevIdsRef.current = vendorIds
-
-    renderVendorMarkers(map, vendors)
-    renderUserMarker(map, userLocation ?? null)
-
-    // Fit bounds
-    if (vendors.length > 0) {
-      try {
-        const markers = vendors.map((c) => L.marker([c.latitude, c.longitude]))
-        if (userLocation) {
-          markers.push(
-            L.marker([userLocation.latitude, userLocation.longitude])
-          )
-        }
-        const group = L.featureGroup(markers)
-        const bounds = group.getBounds()
-        if (bounds.isValid()) {
-          map.fitBounds(bounds.pad(0.15))
-        }
-      } catch {
-        // ignore fitBounds errors
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vendorIds, ready, userLocation])
-
-  // Sync user location
   const userKey = userLocation
     ? `${userLocation.latitude},${userLocation.longitude}`
     : ""
@@ -310,18 +387,46 @@ export function VendorsMap({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready) return
-    if (userKey === prevUserRef.current) return
-    prevUserRef.current = userKey
 
+    renderVendorMarkers(map, validVendors)
     renderUserMarker(map, userLocation ?? null)
 
-    if (userLocation) {
-      map.setView(
-        [userLocation.latitude, userLocation.longitude],
-        map.getZoom() || DEFAULT_ZOOM
-      )
+    // Adjust view bounds to fit all markers
+    if (validVendors.length > 0) {
+      try {
+        const markers = validVendors.map((c) =>
+          L.marker([c.latitude, c.longitude])
+        )
+        if (
+          userLocation &&
+          typeof userLocation.latitude === "number" &&
+          typeof userLocation.longitude === "number"
+        ) {
+          markers.push(
+            L.marker([userLocation.latitude, userLocation.longitude])
+          )
+        }
+        const group = L.featureGroup(markers)
+        const bounds = group.getBounds()
+        if (bounds.isValid()) {
+          if (validVendors.length === 1 && !userLocation) {
+            map.setView(
+              [validVendors[0].latitude, validVendors[0].longitude],
+              15
+            )
+          } else {
+            map.fitBounds(bounds.pad(0.15), { maxZoom: 15, padding: [40, 40] })
+          }
+        }
+      } catch {
+        // ignore fitBounds errors
+      }
+    } else if (userLocation) {
+      map.setView([userLocation.latitude, userLocation.longitude], 14)
+    } else {
+      map.setView(QOM_CENTER, DEFAULT_ZOOM)
     }
-  }, [userKey, ready, userLocation])
+  }, [vendorFingerprint, ready, userKey, validVendors, userLocation])
 
   // Sync search pin
   const mapLocationKey = mapLocation
@@ -341,10 +446,19 @@ export function VendorsMap({
         className="relative overflow-hidden rounded-xl border"
         style={{ height }}
       >
-        {vendors.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
-            <p className="rounded-full bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
-              هیچ مجموعه‌ای برای نمایش وجود ندارد
+        {loading && (
+          <div className="absolute inset-0 z-500 flex items-center justify-center bg-background/50 backdrop-blur-xs">
+            <div className="flex items-center gap-2 rounded-full bg-background/90 px-4 py-2 text-sm text-foreground shadow-md">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span>در حال به‌روزرسانی نقشه...</span>
+            </div>
+          </div>
+        )}
+
+        {!loading && validVendors.length === 0 && (
+          <div className="pointer-events-none absolute inset-0 z-500 flex items-center justify-center">
+            <p className="rounded-full bg-background/85 px-4 py-2 text-sm font-medium text-muted-foreground shadow-md backdrop-blur-sm">
+              هیچ مجموعه‌ای برای نمایش در این محدوده یافت نشد
             </p>
           </div>
         )}

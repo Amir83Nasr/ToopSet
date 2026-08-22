@@ -27,13 +27,6 @@ import {
 } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { TablePagination } from "@/components/ui/pagination"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerClose,
-} from "@/components/ui/drawer"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { VendorCardSkeleton } from "@/components/vendors/vendor-card-skeleton"
 import dynamic from "next/dynamic"
@@ -47,7 +40,7 @@ const VendorsMap = dynamic(
     loading: () => (
       <div
         className="flex items-center justify-center rounded-xl border bg-muted"
-        style={{ height: "500px" }}
+        style={{ height: "450px" }}
       >
         <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
       </div>
@@ -110,6 +103,7 @@ function VendorsPageContent() {
 
   // Full filtered set for map markers (not paginated)
   const [mapVendors, setMapVendors] = useState<Vendor[]>([])
+  const [mapLoading, setMapLoading] = useState(false)
   const initialized = useRef(false)
 
   // Filters from URL
@@ -240,22 +234,28 @@ function VendorsPageContent() {
     return () => clearTimeout(timer)
   }, [fetchVendors])
 
+  // Fetch full filtered vendors list for the map
+  const fetchMapVendors = useCallback(async () => {
+    setMapLoading(true)
+    try {
+      const res = await api<{ vendors: Vendor[]; total: number }>(
+        `/api/v1/vendors?${mapApiParams}`
+      )
+      setMapVendors(res.vendors || [])
+    } catch {
+      setMapVendors((current) =>
+        current.length === 0 ? featuredVendors : current
+      )
+    } finally {
+      setMapLoading(false)
+    }
+  }, [mapApiParams, featuredVendors])
+
   useEffect(() => {
     if (!showMap) return
-
-    let cancelled = false
-    api<{ vendors: Vendor[] }>(`/api/v1/vendors?${mapApiParams}`)
-      .then((result) => {
-        if (!cancelled) setMapVendors(result.vendors)
-      })
-      .catch(() => {
-        if (!cancelled) setMapVendors([])
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [showMap, mapApiParams])
+    const timer = setTimeout(() => fetchMapVendors(), 0)
+    return () => clearTimeout(timer)
+  }, [showMap, fetchMapVendors])
 
   function clearFilters() {
     setSearchText("")
@@ -272,6 +272,7 @@ function VendorsPageContent() {
     sortBy !== "default"
 
   const totalPages = Math.ceil(total / limit)
+  const vendorsForMap = mapVendors.length > 0 ? mapVendors : featuredVendors
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -295,7 +296,7 @@ function VendorsPageContent() {
                 hasActiveFilters ? "" : ""
               }`}
             >
-              {/* Row 1: Search + Sort + Near Me */}
+              {/* Row 1: Search + Sort + Near Me + Map Toggle */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="min-w-0 flex-1 max-sm:basis-full">
                   <div className="relative">
@@ -362,13 +363,13 @@ function VendorsPageContent() {
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant={showMap ? "default" : "outline"}
                   size="sm"
-                  className="max-sm:px-2"
-                  onClick={() => setShowMap(true)}
+                  className="gap-1.5 max-sm:px-2"
+                  onClick={() => setShowMap((prev) => !prev)}
                 >
                   <Map className="size-4" />
-                  <span>نمایش نقشه</span>
+                  <span>{showMap ? "بستن نقشه" : "نمایش نقشه"}</span>
                 </Button>
               </div>
 
@@ -433,37 +434,39 @@ function VendorsPageContent() {
                 </Button>
               </div>
 
-              {/* ── Map Modal (Bottom Sheet - half screen) ── */}
-              <Drawer open={showMap} onOpenChange={setShowMap}>
-                <DrawerContent
-                  showCloseButton={false}
-                  className="flex h-[65vh] max-h-[80vh] flex-col p-0"
-                >
-                  <DrawerHeader className="flex shrink-0 items-center justify-between border-b px-4 py-2.5">
-                    <DrawerTitle className="flex items-center gap-2 text-base font-bold">
-                      <Map className="size-4.5 text-primary" />
-                      نقشه مجموعه‌های ورزشی
-                    </DrawerTitle>
-                    <DrawerClose asChild>
-                      <Button
-                        size="sm"
-                        className="h-8 rounded-lg px-3.5 text-xs font-semibold"
-                      >
-                        بستن
-                      </Button>
-                    </DrawerClose>
-                  </DrawerHeader>
-                  <div className="relative min-h-0 w-full flex-1 overflow-hidden">
+              {/* ── Interactive Inline Map Panel ── */}
+              {showMap && (
+                <div className="mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm">
+                  <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Map className="size-4 text-primary" />
+                      <span>
+                        نقشه مجموعه‌های ورزشی (
+                        {toPersianDigits(vendorsForMap.length)} مجموعه)
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowMap(false)}
+                      className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="size-3.5" />
+                      بستن نقشه
+                    </Button>
+                  </div>
+                  <div className="h-[380px] sm:h-[480px]">
                     <VendorsMap
-                      vendors={mapVendors}
+                      vendors={vendorsForMap}
+                      loading={mapLoading}
                       height="100%"
                       userLocation={userLocation}
                     />
                   </div>
-                </DrawerContent>
-              </Drawer>
+                </div>
+              )}
 
-              {/* Geo status — moved from old map section */}
+              {/* Geo status */}
               {(geo.loading || geo.error) && (
                 <div className="mt-2 max-sm:mt-1.5">
                   {geo.loading && (
@@ -560,21 +563,34 @@ function VendorsPageContent() {
               )}
             </div>
 
-            {/* ── Results grid ── */}
-            <div className="mt-4">
+            {/* Vendor Cards Grid */}
+            <div className="mt-8">
               {vendorsLoading ? (
-                <VendorCardSkeleton />
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <VendorCardSkeleton key={i} />
+                  ))}
+                </div>
               ) : featuredVendors.length === 0 ? (
-                <div className="flex flex-col items-center gap-4 rounded-xl border bg-card py-20 text-center">
-                  <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-4 rounded-full bg-muted p-4">
                     <Building2 className="size-8 text-muted-foreground" />
                   </div>
-                  <p className="text-lg text-muted-foreground">
-                    هیچ مجموعه‌ای با فیلترهای انتخاب شده یافت نشد
+                  <h3 className="text-lg font-semibold">
+                    مجموعه‌ای با این مشخصات یافت نشد
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید
                   </p>
-                  <Button variant="outline" onClick={clearFilters}>
-                    پاک کردن فیلترها
-                  </Button>
+                  {hasActiveFilters && (
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={clearFilters}
+                    >
+                      پاک کردن همه فیلترها
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -585,10 +601,8 @@ function VendorsPageContent() {
                     className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
                   >
                     {featuredVendors.map((vendor) => {
-                      const mainImage =
-                        vendor.main_image || vendor.images?.[0] || null
+                      const mainImage = vendor.main_image || vendor.images?.[0]
                       const rating =
-                        vendor.average_rating != null &&
                         vendor.average_rating > 0
                           ? vendor.average_rating.toFixed(1)
                           : null

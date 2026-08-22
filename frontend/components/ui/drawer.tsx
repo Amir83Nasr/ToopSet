@@ -90,7 +90,7 @@ function DrawerContent({
         {...props}
       >
         {/* Drag handle + optional close button row — pinned at top */}
-        <div className="shrink-0 relative flex items-center justify-center">
+        <div className="relative flex shrink-0 items-center justify-center">
           <div className="mt-2 h-1 w-16 shrink-0 rounded-full bg-muted-foreground/20" />
           {showCloseButton && (
             <DrawerPrimitive.Close data-slot="drawer-close" asChild>
@@ -106,7 +106,9 @@ function DrawerContent({
           )}
         </div>
         {/* Scrollable body — fills remaining space */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-2">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-2">
+          {children}
+        </div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )

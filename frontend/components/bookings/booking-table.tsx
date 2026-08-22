@@ -5,16 +5,16 @@ import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
 import { BOOKING_STATUS_LABELS } from "@/lib/constants"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { TablePagination } from "@/components/ui/pagination"
-import { CreditCard, Loader2, Undo2 } from "lucide-react"
+import {
+  Building2,
+  Calendar,
+  Clock,
+  CreditCard,
+  Loader2,
+  MapPin,
+  Undo2,
+} from "lucide-react"
 import type { BookingDetail } from "@/components/bookings/types"
 
 /* ── Helpers ── */
@@ -100,7 +100,6 @@ export function BookingTable({
   withdrawingId,
   onWithdrawCancellation,
   showRefundStatus = false,
-  category,
 }: BookingTableProps) {
   const [now, setNow] = useState(() => Date.now())
 
@@ -109,194 +108,229 @@ export function BookingTable({
     return () => window.clearInterval(timer)
   }, [])
 
-  const categoryLabel: Record<BookingTableProps["category"], string> = {
-    current: "سانس جاری",
-    past: "سانس قبلی",
-    cancelled: "سانس لغوشده",
-  }
-
   return (
-    <div>
-      {/* Full data table — same layout on all breakpoints */}
-      <Table
-        className={
-          showRefundStatus
-            ? "min-w-[1180px] table-fixed"
-            : "min-w-[980px] table-fixed"
-        }
-        tableWrapperClassName="shadow-xs"
-      >
-        <colgroup>
-          <col className="w-[210px]" />
-          <col className="w-[135px]" />
-          <col className="w-[90px]" />
-          <col className="w-[135px]" />
-          <col className="w-[145px]" />
-          <col className="w-[175px]" />
-          {showRefundStatus && <col className="w-[220px]" />}
-          <col className="w-[180px]" />
-        </colgroup>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-12 px-4">مجموعه</TableHead>
-            <TableHead className="h-12 px-4 text-center">تاریخ</TableHead>
-            <TableHead className="h-12 px-4 text-center">روز</TableHead>
-            <TableHead className="h-12 px-4 text-center">ساعت</TableHead>
-            <TableHead className="h-12 px-4 text-center">
-              مبلغ پرداختی
-            </TableHead>
-            <TableHead className="h-12 px-4 text-center">وضعیت</TableHead>
-            {showRefundStatus && (
-              <TableHead className="h-12 px-4 text-center">
-                وضعیت عودت
-              </TableHead>
-            )}
-            <TableHead className="h-12 px-4 text-center">عملیات</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {bookings.map((b) => {
-            const st = BOOKING_STATUS_LABELS[b.status] || {
-              label: b.status,
-              variant: "outline" as const,
-            }
-            const canCancel =
-              b.status === "confirmed" &&
-              !!b.slot_start_time &&
-              new Date(b.slot_start_time) > new Date()
-            const remaining =
-              b.status === "pending_payment"
-                ? formatRemaining(b.expires_at ?? null, now)
-                : null
-            const canResumePayment =
-              !b.expires_at || new Date(b.expires_at).getTime() > now
-            const refund = refundBadge(b)
-            return (
-              <TableRow key={b.id} className="group h-[76px]">
-                <TableCell className="px-4 py-3 whitespace-normal">
-                  <div className="min-w-0 space-y-1">
-                    <p className="truncate font-semibold">{b.vendor_name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {b.vendor_address || `رزرو ${toPersianDigits(b.id)}`}
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
-                  {b.slot_start_time
-                    ? formatPersianDate(b.slot_start_time)
-                    : "-"}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-center text-muted-foreground">
-                  {b.slot_start_time ? formatWeekday(b.slot_start_time) : "-"}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
-                  <span dir="ltr" className="inline-block text-center">
-                    {b.slot_start_time && b.slot_end_time
-                      ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
-                      : "-"}
-                  </span>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-center font-medium tabular-nums">
-                  <span>{formatPrice(b.price_paid)}</span>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-center whitespace-normal">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div className="text-xs text-muted-foreground md:hidden">
-                      {categoryLabel[category]}
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {bookings.map((b) => {
+          const st = BOOKING_STATUS_LABELS[b.status] || {
+            label: b.status,
+            variant: "secondary" as const,
+          }
+          const refund = refundBadge(b)
+          const remaining =
+            b.status === "pending_payment"
+              ? formatRemaining(b.expires_at ?? null, now)
+              : null
+          const canResumePayment =
+            b.status === "pending_payment" &&
+            (!b.expires_at || new Date(b.expires_at).getTime() > now)
+          const canCancel = b.slot_start_time
+            ? new Date(b.slot_start_time).getTime() > now
+            : false
+          const hasRefundInfo =
+            showRefundStatus ||
+            Boolean(
+              b.refund_status ||
+              b.refund_amount !== null ||
+              b.refund_destination_card_masked ||
+              b.refund_paid_at ||
+              b.refund_payment_tracking_code
+            )
+          const hasAction =
+            b.status === "pending_payment" ||
+            (canCancel && b.status === "confirmed") ||
+            b.status === "pending_cancellation"
+
+          return (
+            <div
+              key={b.id}
+              className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:shadow-md"
+            >
+              <div>
+                {/* Header: Venue & Status */}
+                <div className="flex items-start justify-between gap-3 border-b bg-muted/30 p-4">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="size-4 shrink-0 text-primary" />
+                      <h3
+                        className="truncate text-base font-semibold text-foreground"
+                        title={b.vendor_name}
+                      >
+                        {b.vendor_name}
+                      </h3>
                     </div>
-                    <Badge variant={st.variant}>{st.label}</Badge>
-                    {b.status === "pending_cancellation" && (
-                      <div className="text-xs leading-5 text-muted-foreground">
-                        لغو پس از پرداخت جایگزین قطعی می‌شود.
-                      </div>
-                    )}
-                    {remaining && (
-                      <div className="text-xs leading-5 text-amber-700">
-                        {remaining}
+                    {b.vendor_address && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="size-3 shrink-0" />
+                        <span className="truncate">{b.vendor_address}</span>
                       </div>
                     )}
                   </div>
-                </TableCell>
-                {showRefundStatus && (
-                  <TableCell className="px-4 py-3 text-center whitespace-normal">
-                    <div className="flex flex-col items-center gap-1">
-                      <Badge variant={refund.variant}>{refund.label}</Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant={st.variant}>{st.label}</Badge>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      #{toPersianDigits(b.id)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Body: Details */}
+                <div className="space-y-3.5 p-4 text-sm">
+                  {/* Slot Date & Time */}
+                  <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3">
+                    <div className="flex items-start gap-2">
+                      <Calendar className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-muted-foreground">
+                          تاریخ سانس
+                        </div>
+                        <div className="text-xs font-medium text-foreground">
+                          {b.slot_start_time
+                            ? formatDate(b.slot_start_time)
+                            : "-"}
+                        </div>
+                        {b.slot_start_time && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {formatWeekday(b.slot_start_time)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-muted-foreground">
+                          ساعت سانس
+                        </div>
+                        <div
+                          className="text-xs font-medium text-foreground"
+                          dir="ltr"
+                        >
+                          {b.slot_start_time && b.slot_end_time
+                            ? `${formatTime(b.slot_start_time)} - ${formatTime(b.slot_end_time)}`
+                            : "-"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price Paid */}
+                  <div className="flex items-center justify-between border-t pt-2 text-xs">
+                    <span className="text-muted-foreground">مبلغ پرداختی:</span>
+                    <span className="font-semibold text-foreground tabular-nums">
+                      {formatPrice(b.price_paid)}
+                    </span>
+                  </div>
+
+                  {/* Pending cancellation message */}
+                  {b.status === "pending_cancellation" && (
+                    <div className="rounded-md border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs text-blue-700 dark:text-blue-400">
+                      لغو پس از پرداخت جایگزین قطعی می‌شود.
+                    </div>
+                  )}
+
+                  {/* Remaining timer for pending payment */}
+                  {remaining && (
+                    <div className="flex items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+                      <Clock className="size-3.5 shrink-0" />
+                      <span>{remaining}</span>
+                    </div>
+                  )}
+
+                  {/* Refund details */}
+                  {hasRefundInfo && (
+                    <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-foreground">
+                          وضعیت عودت وجه
+                        </span>
+                        <Badge variant={refund.variant}>{refund.label}</Badge>
+                      </div>
                       {b.refund_amount !== null && (
-                        <div className="text-xs text-muted-foreground">
-                          {formatMoney(b.refund_amount)}
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>مبلغ بازگشتی:</span>
+                          <span className="font-medium text-foreground">
+                            {formatMoney(b.refund_amount)}
+                          </span>
                         </div>
                       )}
                       {b.refund_destination_card_masked && (
-                        <div
-                          className="text-xs text-muted-foreground"
-                          dir="ltr"
-                        >
-                          {toPersianDigits(b.refund_destination_card_masked)}
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>کارت مقصد:</span>
+                          <span dir="ltr" className="font-mono text-foreground">
+                            {toPersianDigits(b.refund_destination_card_masked)}
+                          </span>
                         </div>
                       )}
                       {b.refund_paid_at && (
-                        <div className="text-xs text-muted-foreground">
-                          واریز: {formatDate(b.refund_paid_at)}
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>تاریخ واریز:</span>
+                          <span className="text-foreground">
+                            {formatDate(b.refund_paid_at)}
+                          </span>
                         </div>
                       )}
                       {b.refund_payment_tracking_code && (
-                        <div className="text-xs text-muted-foreground">
-                          پیگیری:{" "}
-                          {toPersianDigits(b.refund_payment_tracking_code)}
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>کد پیگیری:</span>
+                          <span dir="ltr" className="font-mono text-foreground">
+                            {toPersianDigits(b.refund_payment_tracking_code)}
+                          </span>
                         </div>
                       )}
                     </div>
-                  </TableCell>
-                )}
-                <TableCell className="px-4 py-3 text-center">
-                  <div className="flex min-w-max items-center justify-center gap-2">
-                    {b.status === "pending_payment" && (
-                      <>
-                        <Button
-                          size="sm"
-                          disabled={payingId === b.id || !canResumePayment}
-                          onClick={() => onPay(b.id)}
-                        >
-                          {payingId === b.id ? (
-                            <Loader2 className="me-1 size-4 animate-spin" />
-                          ) : (
-                            <CreditCard className="me-1 size-4" />
-                          )}
-                          ادامه پرداخت
-                        </Button>
-                      </>
-                    )}
-                    {canCancel && b.status === "confirmed" && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => onCancelClick(b)}
-                      >
-                        لغو رزرو
-                      </Button>
-                    )}
-                    {b.status === "pending_cancellation" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={withdrawingId === b.id}
-                        onClick={() => onWithdrawCancellation(b.id)}
-                      >
-                        {withdrawingId === b.id ? (
-                          <Loader2 className="me-1 size-4 animate-spin" />
-                        ) : (
-                          <Undo2 className="me-1 size-4" />
-                        )}
-                        انصراف از لغو
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer: Action buttons */}
+              {hasAction && (
+                <div className="border-t bg-muted/20 p-3">
+                  {b.status === "pending_payment" && (
+                    <Button
+                      className="w-full"
+                      disabled={payingId === b.id || !canResumePayment}
+                      onClick={() => onPay(b.id)}
+                    >
+                      {payingId === b.id ? (
+                        <Loader2 className="me-1.5 size-4 animate-spin" />
+                      ) : (
+                        <CreditCard className="me-1.5 size-4" />
+                      )}
+                      ادامه پرداخت
+                    </Button>
+                  )}
+                  {canCancel && b.status === "confirmed" && (
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => onCancelClick(b)}
+                    >
+                      لغو رزرو
+                    </Button>
+                  )}
+                  {b.status === "pending_cancellation" && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={withdrawingId === b.id}
+                      onClick={() => onWithdrawCancellation(b.id)}
+                    >
+                      {withdrawingId === b.id ? (
+                        <Loader2 className="me-1.5 size-4 animate-spin" />
+                      ) : (
+                        <Undo2 className="me-1.5 size-4" />
+                      )}
+                      انصراف از لغو
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
 
       <TablePagination
         page={page}
