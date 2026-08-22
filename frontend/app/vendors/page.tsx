@@ -11,7 +11,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { useGeolocation } from "@/hooks/use-geolocation"
 import { api, buildVendorImageUrl } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -53,7 +52,6 @@ import {
   MapPin,
   Search,
   X,
-  Navigation,
   Map,
   CalendarCheck,
 } from "lucide-react"
@@ -71,14 +69,6 @@ interface Vendor {
   base_price: number | null
   images?: string[]
   main_image?: string | null
-}
-
-const sportLabels: Record<string, string> = {
-  volleyball: "والیبال",
-  basketball: "بسکتبال",
-  futsal: "فوتسال",
-  handball: "هندبال",
-  football: "فوتبال",
 }
 
 function formatPrice(price: number | null): string {
@@ -108,9 +98,6 @@ function VendorsPageContent() {
 
   // Filters from URL
   const [searchText, setSearchText] = useState(searchParams.get("q") || "")
-  const [selectedSports, setSelectedSports] = useState<string[]>(
-    searchParams.get("sports")?.split(",").filter(Boolean) || []
-  )
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
   const [availableToday, setAvailableToday] = useState(
     searchParams.get("available_today") === "1"
@@ -119,25 +106,10 @@ function VendorsPageContent() {
   // Map panel visibility toggle — hidden by default
   const [showMap, setShowMap] = useState(false)
 
-  // User geolocation for nearby vendors
-  const geo = useGeolocation()
-  const [maxDistance] = useState("")
-  const [locating, setLocating] = useState(false)
-  const userLocation = useMemo(
-    () =>
-      geo.latitude && geo.longitude
-        ? { latitude: geo.latitude, longitude: geo.longitude }
-        : null,
-    [geo.latitude, geo.longitude]
-  )
-
   // Sync URL -> state on mount
   useEffect(() => {
     if (!initialized.current) {
       setSearchText(searchParams.get("q") || "")
-      setSelectedSports(
-        searchParams.get("sports")?.split(",").filter(Boolean) || []
-      )
       setSortBy(searchParams.get("sort") || "default")
       setAvailableToday(searchParams.get("available_today") === "1")
       initialized.current = true
@@ -151,29 +123,13 @@ function VendorsPageContent() {
     params.set("limit", String(limit))
     params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
-    selectedSports.forEach((st) => params.append("sport_types", st))
     if (availableToday) params.set("available_today", "true")
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
-    // Reference coordinate for distance-based sorting
-    if (sortBy === "distance" && userLocation) {
-      params.set("ref_lat", String(userLocation.latitude))
-      params.set("ref_lon", String(userLocation.longitude))
-      if (maxDistance) params.set("max_distance_km", maxDistance)
-    }
     return params.toString()
-  }, [
-    page,
-    limit,
-    searchText,
-    selectedSports,
-    availableToday,
-    sortBy,
-    userLocation,
-    maxDistance,
-  ])
+  }, [page, limit, searchText, availableToday, sortBy])
 
   // Same filters but no pagination — fetches all filtered vendors for the map
   const mapApiParams = useMemo(() => {
@@ -181,38 +137,24 @@ function VendorsPageContent() {
     params.set("limit", "100")
     params.set("is_active", "true")
     if (searchText) params.set("search", searchText)
-    selectedSports.forEach((st) => params.append("sport_types", st))
     if (availableToday) params.set("available_today", "true")
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
-    if (sortBy === "distance" && userLocation) {
-      params.set("ref_lat", String(userLocation.latitude))
-      params.set("ref_lon", String(userLocation.longitude))
-      if (maxDistance) params.set("max_distance_km", maxDistance)
-    }
     return params.toString()
-  }, [
-    searchText,
-    selectedSports,
-    availableToday,
-    sortBy,
-    userLocation,
-    maxDistance,
-  ])
+  }, [searchText, availableToday, sortBy])
 
   // Sync filters to URL
   useEffect(() => {
     const params = new URLSearchParams()
     if (searchText) params.set("q", searchText)
-    if (selectedSports.length) params.set("sports", selectedSports.join(","))
     if (availableToday) params.set("available_today", "1")
     if (sortBy !== "default") params.set("sort", sortBy)
     const qs = params.toString()
     const url = qs ? `/vendors?${qs}` : "/vendors"
     router.replace(url, { scroll: false })
-  }, [searchText, selectedSports, availableToday, sortBy, router])
+  }, [searchText, availableToday, sortBy, router])
 
   const fetchVendors = useCallback(async () => {
     setVendorsLoading(true)
@@ -259,17 +201,12 @@ function VendorsPageContent() {
 
   function clearFilters() {
     setSearchText("")
-    setSelectedSports([])
     setAvailableToday(false)
     setSortBy("default")
     setPage(0)
   }
 
-  const hasActiveFilters =
-    searchText ||
-    selectedSports.length > 0 ||
-    availableToday ||
-    sortBy !== "default"
+  const hasActiveFilters = searchText || availableToday || sortBy !== "default"
 
   const totalPages = Math.ceil(total / limit)
   const vendorsForMap = mapVendors.length > 0 ? mapVendors : featuredVendors
@@ -335,31 +272,23 @@ function VendorsPageContent() {
                           قیمت: زیاد به کم
                         </SelectItem>
                         <SelectItem value="rating">امتیاز</SelectItem>
-                        <SelectItem value="distance">نزدیک‌ترین</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <Button
-                  variant={userLocation ? "default" : "outline"}
+                  type="button"
+                  variant={availableToday ? "default" : "outline"}
                   size="sm"
-                  className="gap-1.5 max-sm:px-2"
                   onClick={() => {
-                    setLocating(true)
-                    setSortBy("distance")
+                    setAvailableToday((current) => !current)
                     setPage(0)
-                    if (!userLocation) geo.requestLocation()
-                    setTimeout(() => setLocating(false), 3000)
                   }}
-                  disabled={locating}
+                  className="gap-1.5 max-sm:px-2"
                 >
-                  <Navigation
-                    className={`size-4 ${locating ? "animate-spin" : ""}`}
-                  />
-                  <span className="max-sm:hidden">
-                    {userLocation ? "نزدیک به من" : "موقعیت من"}
-                  </span>
+                  <CalendarCheck className="size-4" />
+                  <span>سانس خالی امروز</span>
                 </Button>
 
                 <Button
@@ -370,67 +299,6 @@ function VendorsPageContent() {
                 >
                   <Map className="size-4" />
                   <span>{showMap ? "بستن نقشه" : "نمایش نقشه"}</span>
-                </Button>
-              </div>
-
-              {/* Row 2: Sport type pills */}
-              <div className="mt-3 flex flex-wrap gap-2 max-sm:mt-2 max-sm:flex-nowrap max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:pb-1">
-                {(
-                  [
-                    "all",
-                    "volleyball",
-                    "basketball",
-                    "futsal",
-                    "handball",
-                    "football",
-                  ] as const
-                ).map((type) => (
-                  <Button
-                    key={type}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (type === "all") {
-                        setSelectedSports([])
-                      } else {
-                        setSelectedSports((prev) =>
-                          prev.includes(type)
-                            ? prev.filter((t) => t !== type)
-                            : [...prev, type]
-                        )
-                      }
-                      setPage(0)
-                    }}
-                    className={`rounded-full px-4 max-sm:shrink-0 ${
-                      type === "all"
-                        ? selectedSports.length === 0
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                        : selectedSports.includes(type)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                    }`}
-                  >
-                    {type === "all" ? "همه" : sportLabels[type]}
-                  </Button>
-                ))}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setAvailableToday((current) => !current)
-                    setPage(0)
-                  }}
-                  className={`rounded-full px-4 max-sm:shrink-0 ${
-                    availableToday
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                  }`}
-                >
-                  <CalendarCheck className="size-4" />
-                  سانس خالی امروز
                 </Button>
               </div>
 
@@ -460,37 +328,9 @@ function VendorsPageContent() {
                       vendors={vendorsForMap}
                       loading={mapLoading}
                       height="100%"
-                      userLocation={userLocation}
+                      userLocation={null}
                     />
                   </div>
-                </div>
-              )}
-
-              {/* Geo status */}
-              {(geo.loading || geo.error) && (
-                <div className="mt-2 max-sm:mt-1.5">
-                  {geo.loading && (
-                    <div className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
-                      <div className="size-2 animate-pulse rounded-full bg-blue-500" />
-                      در حال دریافت موقعیت شما...
-                    </div>
-                  )}
-                  {geo.error && (
-                    <div className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="size-4 shrink-0" />
-                        <span>
-                          موقعیت‌یابی غیرفعال است — مجموعه‌های نزدیک نمایش داده
-                          نمی‌شوند
-                        </span>
-                      </div>
-                      {geo.permissionState === "denied" && (
-                        <span className="text-xs text-muted-foreground">
-                          فعال‌سازی در تنظیمات مرورگر
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -522,27 +362,7 @@ function VendorsPageContent() {
                       </Button>
                     </span>
                   )}
-                  {selectedSports.map((st) => (
-                    <span
-                      key={st}
-                      className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs"
-                    >
-                      {sportLabels[st] || st}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() =>
-                          setSelectedSports((prev) =>
-                            prev.filter((t) => t !== st)
-                          )
-                        }
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </span>
-                  ))}
+
                   {availableToday && (
                     <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
                       <CalendarCheck className="size-3" />

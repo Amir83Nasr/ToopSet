@@ -50,6 +50,8 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
 } from "@/components/ui/drawer"
 
 const VendorLocationMap = dynamic(
@@ -303,7 +305,9 @@ export default function PublicVendorDetailPage() {
       })
 
       // Always pick the first day in the week that is valid (Saturday prioritised).
-      const firstValid = days.find((d) => d >= publicMinDate && d <= publicMaxDate)
+      const firstValid = days.find(
+        (d) => d >= publicMinDate && d <= publicMaxDate
+      )
       return firstValid || days[0]
     },
     [publicMinDate, publicMaxDate]
@@ -624,7 +628,9 @@ export default function PublicVendorDetailPage() {
               <div className="rounded-xl border bg-card">
                 {/* ── Week nav ── */}
                 <div className="flex flex-col gap-3 border-b px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                  <h2 className="text-sm font-semibold sm:text-base">برنامه هفتگی</h2>
+                  <h2 className="text-sm font-semibold sm:text-base">
+                    برنامه هفتگی
+                  </h2>
                   <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
                     <Button
                       variant="outline"
@@ -743,41 +749,13 @@ export default function PublicVendorDetailPage() {
                             slot={slot}
                             selectedSlot={selectedSlot}
                             onSelect={(s) => {
-                              const isDeselect = selectedSlot?.id === s.id
-                              // Reset drawer on any new selection — reopen via CTA button
-                              setBookingDrawerOpen(false)
-                              setSelectedSlot(isDeselect ? null : s)
+                              setSelectedSlot(s)
+                              setBookingDrawerOpen(true)
                             }}
                           />
                         ))}
                       </div>
                     </div>
-
-                      {/* Booking CTA — desktop: static bar below table; mobile: direct booking button */}
-                    {selectedSlot &&
-                      isSlotBookable(selectedSlot) &&
-                      new Date(selectedSlot.start_time).getTime() > NOW && (
-                        <div className="border-t">
-                          <div className="px-5 py-4">
-                            <div className="hidden lg:block">
-                              <SlotInfo
-                                slot={selectedSlot}
-                                dateLabel={
-                                  selectedDayInfo?.fullPersian || selectedDate
-                                }
-                              />
-                            </div>
-                            <Button
-                              size="lg"
-                              className="w-full font-semibold shadow-xs"
-                              onClick={() => handleBookSlot(selectedSlot)}
-                            >
-                              <CheckCircle2 className="ms-1.5 size-5" />
-                              {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                   </>
                 )}
               </div>
@@ -954,6 +932,63 @@ export default function PublicVendorDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* ═══════════════════════════════════
+               Slot Booking Drawer (Bottom Sheet)
+               ═══════════════════════════════════ */}
+          <Drawer
+            open={bookingDrawerOpen && !!selectedSlot}
+            onOpenChange={(open) => {
+              setBookingDrawerOpen(open)
+              if (!open) setSelectedSlot(null)
+            }}
+          >
+            <DrawerContent className="mx-auto max-w-lg">
+              <DrawerHeader className="text-right">
+                <DrawerTitle className="text-base font-bold">
+                  تکمیل رزرو سانس
+                </DrawerTitle>
+                <DrawerDescription className="text-xs">
+                  {vendor?.name} •{" "}
+                  {selectedDayInfo?.fullPersian || selectedDate}
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="py-2">
+                {selectedSlot && (
+                  <SlotInfo
+                    slot={selectedSlot}
+                    dateLabel={selectedDayInfo?.fullPersian || selectedDate}
+                  />
+                )}
+              </div>
+              <DrawerFooter className="grid grid-cols-2 gap-3 px-0 pt-2 pb-1">
+                <DrawerClose asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={() => {
+                      setBookingDrawerOpen(false)
+                      setSelectedSlot(null)
+                    }}
+                  >
+                    انصراف
+                  </Button>
+                </DrawerClose>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="font-semibold shadow-xs"
+                  onClick={() => {
+                    if (selectedSlot) handleBookSlot(selectedSlot)
+                  }}
+                >
+                  <CheckCircle2 className="ms-1.5 size-5" />
+                  {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
+                </Button>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
 
           {/* ═══════════════════════════════════
                Image Lightbox Dialog
