@@ -54,6 +54,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { sportLabels, sportColors } from "@/components/vendors/vendor-shared"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface Vendor {
   id: number
@@ -164,6 +165,7 @@ export default function VendorsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <MobileBackButton />
           {user?.role === "manager" && (
             <Button asChild>
               <Link href="/dashboard/vendors/create">

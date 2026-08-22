@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react"
 import * as React from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits, toLocalDateStr, todayStr, formatPersianDate } from "@/lib/utils"
+import {
+  toPersianDigits,
+  toLocalDateStr,
+  todayStr,
+  formatPersianDate,
+} from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -35,6 +40,7 @@ import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
 import { ShieldX, History, RefreshCw, Trash2, X } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import {
   ResponsiveAlertDialog,
@@ -301,6 +307,7 @@ export default function AdminLogsPage() {
             </Button>
           )}
 
+          <MobileBackButton />
           <Button
             variant="outline"
             size="sm"

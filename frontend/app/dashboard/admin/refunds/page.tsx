@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Check, Eye, RefreshCw, Send, X, XCircle } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import {
   SearchInput,
   DataTableToolbar,
@@ -240,10 +241,13 @@ export default function AdminRefundsPage() {
             عودت‌ها خودکار پرداخت نمی‌شوند و فقط وضعیت آن‌ها ثبت می‌شود.
           </p>
         </div>
-        <Button variant="outline" onClick={fetchRefunds}>
-          <RefreshCw className="me-1 size-4" />
-          بروزرسانی
-        </Button>
+        <div className="flex gap-2">
+          <MobileBackButton />
+          <Button variant="outline" onClick={fetchRefunds}>
+            <RefreshCw className="me-1 size-4" />
+            بروزرسانی
+          </Button>
+        </div>
       </div>
 
       {/* Search & filter bar */}
@@ -304,7 +308,7 @@ export default function AdminRefundsPage() {
       ) : (
         <div>
           <Table className="min-w-400 table-fixed">
-  <colgroup>
+            <colgroup>
               <col className="w-48" />
               <col className="w-48" />
               <col className="w-36" />
@@ -342,13 +346,16 @@ export default function AdminRefundsPage() {
                   <TableCell>{r.vendor_name}</TableCell>
                   <TableCell className="text-center text-xs whitespace-nowrap">
                     <div>{formatPersianDate(r.slot_start_time)}</div>
-                    <div className="text-muted-foreground mt-0.5">
+                    <div className="mt-0.5 text-muted-foreground">
                       <span dir="ltr" className="inline-block">
-                        {new Date(r.slot_start_time).toLocaleTimeString("fa-IR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: "Asia/Tehran",
-                        })}
+                        {new Date(r.slot_start_time).toLocaleTimeString(
+                          "fa-IR",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "Asia/Tehran",
+                          }
+                        )}
                       </span>
                     </div>
                   </TableCell>

@@ -31,6 +31,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { TablePagination } from "@/components/ui/pagination"
 import { CreditCard, AlertCircle, RefreshCw } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 // --- Types ---
 
@@ -349,7 +350,10 @@ export default function PaymentsPage() {
                       "-"
                     )}
                   </TableCell>
-                  <TableCell className="text-center text-xs text-muted-foreground" dir="ltr">
+                  <TableCell
+                    className="text-center text-xs text-muted-foreground"
+                    dir="ltr"
+                  >
                     {p.gateway_transaction_id || "-"}
                   </TableCell>
                 </TableRow>
@@ -376,10 +380,13 @@ export default function PaymentsPage() {
           <h1 className="text-2xl font-bold tracking-tight">پرداخت‌ها</h1>
           <p className="text-muted-foreground">تاریخچه پرداخت‌های شما</p>
         </div>
-        <Button variant="outline" onClick={() => fetchPayments()}>
-          <RefreshCw className="me-1.5 size-4" />
-          بروزرسانی
-        </Button>
+        <div className="flex gap-2">
+          <MobileBackButton />
+          <Button variant="outline" onClick={() => fetchPayments()}>
+            <RefreshCw className="me-1.5 size-4" />
+            بروزرسانی
+          </Button>
+        </div>
       </div>
 
       {/* Search & filter bar */}

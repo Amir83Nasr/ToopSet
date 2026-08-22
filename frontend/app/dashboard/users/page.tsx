@@ -52,6 +52,7 @@ import {
   UserCog,
   Trash2,
 } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface AdminUser {
   id: number
@@ -217,6 +218,7 @@ export default function UsersPage() {
           <p className="text-muted-foreground">مدیریت نقش و وضعیت کاربران</p>
         </div>
         <div className="flex gap-2">
+          <MobileBackButton />
           <Button variant="outline" onClick={() => fetchUsers()}>
             <RefreshCw className="me-1.5 size-4" />
             بروزرسانی

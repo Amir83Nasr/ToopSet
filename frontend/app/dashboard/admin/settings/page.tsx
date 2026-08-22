@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/hooks/use-auth"
 import { HeroImagesEditor } from "@/components/admin/hero-images-editor"
 import { ListSettingEditor } from "@/components/admin/list-setting-editor"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface Setting {
   id: number
@@ -178,17 +179,20 @@ export default function AdminSettingsPage() {
             مدیریت تنظیمات و پیکربندی پلتفرم
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchSettings}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`me-1.5 size-4 ${loading ? "animate-spin" : ""}`}
-          />
-          بروزرسانی
-        </Button>
+        <div className="flex gap-2">
+          <MobileBackButton />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchSettings}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`me-1.5 size-4 ${loading ? "animate-spin" : ""}`}
+            />
+            بروزرسانی
+          </Button>
+        </div>
       </div>
 
       {/* Loading state */}

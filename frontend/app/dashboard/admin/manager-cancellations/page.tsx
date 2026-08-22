@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { RefreshCw, X } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import {
   SearchInput,
   DataTableToolbar,
@@ -138,10 +139,13 @@ export default function AdminManagerCancellationsPage() {
             می‌دهد.
           </p>
         </div>
-        <Button variant="outline" onClick={fetchRows}>
-          <RefreshCw className="me-1 size-4" />
-          بروزرسانی
-        </Button>
+        <div className="flex gap-2">
+          <MobileBackButton />
+          <Button variant="outline" onClick={fetchRows}>
+            <RefreshCw className="me-1 size-4" />
+            بروزرسانی
+          </Button>
+        </div>
       </div>
 
       {/* Search & filter bar */}

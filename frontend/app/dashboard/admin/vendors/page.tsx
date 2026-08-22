@@ -39,6 +39,7 @@ import {
   SearchInput,
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import {
   CheckCircle,
   XCircle,
@@ -170,20 +171,23 @@ export default function AdminPendingVendorsPage() {
             مجموعه‌های در انتظار تایید مدیریت
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setPage(0)
-            fetchVendors()
-          }}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
-          />
-          بروزرسانی
-        </Button>
+        <div className="flex gap-2">
+          <MobileBackButton />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setPage(0)
+              fetchVendors()
+            }}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
+            />
+            بروزرسانی
+          </Button>
+        </div>
       </div>
 
       {/* Search & filter bar */}

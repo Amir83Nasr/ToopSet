@@ -12,6 +12,7 @@ import { NotificationTable } from "@/components/notifications/notification-table
 import { NotificationBroadcastDialog } from "@/components/notifications/notification-broadcast-dialog"
 import { toast } from "@/lib/toast"
 import { CheckCheck, Loader2, RefreshCw, Send } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface Notification {
   id: number
@@ -141,6 +142,7 @@ export default function NotificationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <MobileBackButton />
           <Button
             variant="outline"
             size="sm"

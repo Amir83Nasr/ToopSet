@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Check, ClipboardCheck, Loader2, RefreshCw, X } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
 import { toPersianDigits } from "@/lib/utils"
@@ -201,6 +202,7 @@ export default function AdminManagerRequestsPage() {
           <Badge variant="outline" className={statusClasses.pending}>
             {toPersianDigits(pendingCount)} درخواست در انتظار
           </Badge>
+          <MobileBackButton />
           <Button variant="outline" onClick={fetchRequests} disabled={loading}>
             <RefreshCw
               className={loading ? "me-1 size-4 animate-spin" : "me-1 size-4"}

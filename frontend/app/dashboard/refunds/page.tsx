@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { RefreshCw, Undo2 } from "lucide-react"
+import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 
 interface UserRefund {
   id: number
@@ -124,10 +125,13 @@ export default function UserRefundsPage() {
             وضعیت بررسی و واریز دستی مبالغ لغوشده را پیگیری کنید.
           </p>
         </div>
-        <Button variant="outline" onClick={fetchRefunds} disabled={loading}>
-          <RefreshCw className="me-1.5 size-4" />
-          بروزرسانی
-        </Button>
+        <div className="flex gap-2">
+          <MobileBackButton />
+          <Button variant="outline" onClick={fetchRefunds} disabled={loading}>
+            <RefreshCw className="me-1.5 size-4" />
+            بروزرسانی
+          </Button>
+        </div>
       </div>
 
       <DataTableToolbar>
