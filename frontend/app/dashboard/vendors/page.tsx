@@ -48,7 +48,6 @@ import {
   Building2,
   MapPin,
   Star,
-  RefreshCw,
   Loader2,
   ToggleRight,
   Trash2,
@@ -174,10 +173,6 @@ export default function VendorsPage() {
               </Link>
             </Button>
           )}
-          <Button variant="outline" onClick={() => fetchVendors()}>
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
         </div>
       </div>
 

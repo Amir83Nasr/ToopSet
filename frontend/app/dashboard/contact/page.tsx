@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/responsive-dialog"
 import { TablePagination } from "@/components/ui/pagination"
 import { toast } from "@/lib/toast"
-import { Loader2, Mail, Phone, RefreshCw, Trash2, User, X } from "lucide-react"
+import { Loader2, Mail, Phone, Trash2, User, X } from "lucide-react"
 import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import {
   SearchInput,
@@ -169,20 +169,7 @@ export default function ContactMessagesPage() {
             مدیریت پیام‌های ارسال شده از صفحه تماس با ما
           </p>
         </div>
-        <div className="flex gap-2">
-          <MobileBackButton />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchMessages}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
-            />
-            بروزرسانی
-          </Button>
-        </div>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}

@@ -40,13 +40,7 @@ import {
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
 import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
-import {
-  CheckCircle,
-  XCircle,
-  ExternalLink,
-  Building2,
-  RefreshCw,
-} from "lucide-react"
+import { CheckCircle, XCircle, ExternalLink, Building2 } from "lucide-react"
 
 interface PendingVendor {
   id: number
@@ -171,23 +165,7 @@ export default function AdminPendingVendorsPage() {
             مجموعه‌های در انتظار تایید مدیریت
           </p>
         </div>
-        <div className="flex gap-2">
-          <MobileBackButton />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setPage(0)
-              fetchVendors()
-            }}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`me-1 size-4 ${loading ? "animate-spin" : ""}`}
-            />
-            بروزرسانی
-          </Button>
-        </div>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}

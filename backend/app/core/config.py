@@ -126,7 +126,7 @@ class Settings(BaseSettings):
     slo_latency_p99_target_ms: float = 500.0
     slo_error_rate_target: float = 1.0
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": (".env", "backend/.env"), "extra": "ignore"}
 
     @property
     def database_url(self) -> str:

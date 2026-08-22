@@ -5,6 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, CalendarDays, CheckCircle2 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { toPersianDigits } from "@/lib/utils"
 import {
   formatTime,
@@ -33,6 +38,9 @@ const PERSIAN_DAY_NAMES = [
   "پنجشنبه",
   "جمعه",
 ]
+
+const RESERVING_HINT =
+  "این سانس در حال رزرو است؛ اگر تا ۱۰ دقیقه دیگر رزرو نهایی نشود، سانس آزاد و قابل رزرو خواهد شد."
 
 function getPersianDate(dateStr: string) {
   const d = new Date(dateStr + "T12:00:00")
@@ -151,28 +159,34 @@ export function VendorBooking({
             <div className="space-y-3">
               {slots.map((slot) => {
                 const isSelected = selectedSlot?.id === slot.id
+                const isReserving = slot.status === "reserving"
                 const bookable = isSlotBookable(slot)
-                return (
+
+                const slotButton = (
                   <button
-                    key={slot.id}
                     onClick={() => bookable && onSlotSelect(slot)}
                     disabled={!bookable}
+                    title={isReserving ? RESERVING_HINT : undefined}
                     className={`flex w-full items-center justify-between rounded-xl border-2 p-4 text-right transition-all ${
-                      !bookable
-                        ? "border-destructive/30 bg-destructive/5 opacity-60 dark:border-destructive/20"
-                        : isSelected
-                          ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20"
-                          : "border-border/50 bg-background/40 hover:border-primary/40 hover:bg-muted/20 hover:shadow-sm"
+                      isReserving
+                        ? "cursor-not-allowed border-amber-300 bg-amber-50/50 hover:bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/20"
+                        : !bookable
+                          ? "cursor-not-allowed border-destructive/30 bg-destructive/5 opacity-60 dark:border-destructive/20"
+                          : isSelected
+                            ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20"
+                            : "border-border/50 bg-background/40 hover:border-primary/40 hover:bg-muted/20 hover:shadow-sm"
                     }`}
                   >
                     <div className="flex items-center gap-4">
                       <div
                         className={`flex size-12 items-center justify-center rounded-xl ${
-                          !bookable
-                            ? "bg-red-100 text-red-500 dark:bg-red-900/20"
-                            : isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-green-100 text-green-600 dark:bg-green-900/20"
+                          isReserving
+                            ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                            : !bookable
+                              ? "bg-red-100 text-red-500 dark:bg-red-900/20"
+                              : isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-green-100 text-green-600 dark:bg-green-900/20"
                         }`}
                       >
                         <Clock className="size-5" />
@@ -185,35 +199,60 @@ export function VendorBooking({
                           </span>
                           {formatTime(slot.end_time)}
                         </p>
-                        <p className="mt-0.5 text-sm font-medium text-primary">
+                        <p
+                          className={`mt-0.5 text-sm font-medium ${
+                            isReserving
+                              ? "text-amber-700 dark:text-amber-400"
+                              : "text-primary"
+                          }`}
+                        >
                           {formatPrice(slot.base_price)}
                         </p>
                       </div>
                     </div>
                     <Badge
                       variant={
-                        !bookable
+                        isReserving || !bookable
                           ? "secondary"
                           : isSelected
                             ? "default"
                             : "outline"
                       }
                       className={`shrink-0 px-3 py-1 text-[11px] ${
-                        !bookable
-                          ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                          : isSelected
-                            ? ""
-                            : "border-primary/30 text-green-600 dark:border-primary/30"
+                        isReserving
+                          ? "border-amber-300 bg-amber-100/80 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                          : !bookable
+                            ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                            : isSelected
+                              ? ""
+                              : "border-primary/30 text-green-600 dark:border-primary/30"
                       }`}
                     >
-                      {!bookable
-                        ? "رزرو شده"
-                        : isSelected
-                          ? "انتخاب شد"
-                          : "آزاد"}
+                      {isReserving
+                        ? "در حال رزرو"
+                        : !bookable
+                          ? "رزرو شده"
+                          : isSelected
+                            ? "انتخاب شد"
+                            : "آزاد"}
                     </Badge>
                   </button>
                 )
+
+                if (isReserving) {
+                  return (
+                    <Tooltip key={slot.id}>
+                      <TooltipTrigger asChild>
+                        <div className="w-full">{slotButton}</div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-center">
+                        {RESERVING_HINT}
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                }
+
+                return <div key={slot.id}>{slotButton}</div>
               })}
             </div>
           </div>

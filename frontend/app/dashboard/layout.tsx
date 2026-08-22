@@ -28,7 +28,9 @@ export default function DashboardLayout({
               className="top-16 h-[calc(100svh-4rem)]"
             />
             <SidebarInset>
-              <div className="flex flex-col gap-4 p-4">{children}</div>
+              <div className="flex flex-col gap-4 p-4 pb-20 md:pb-4">
+                {children}
+              </div>
             </SidebarInset>
           </SidebarProvider>
         </div>

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { SlotRow } from "@/components/vendors/public-slot-row"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import type { TimeSlot } from "@/components/vendors/vendor-shared"
 
 const openSlot: TimeSlot = {
@@ -21,7 +22,11 @@ describe("public vendor slot row", () => {
   it("uses the same centered desktop grid as the slot header", async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
-    render(<SlotRow slot={openSlot} selectedSlot={null} onSelect={onSelect} />)
+    render(
+      <TooltipProvider>
+        <SlotRow slot={openSlot} selectedSlot={null} onSelect={onSelect} />
+      </TooltipProvider>
+    )
 
     const row = screen.getByRole("button")
     expect(row).toHaveClass(
@@ -35,14 +40,36 @@ describe("public vendor slot row", () => {
 
   it("labels an unavailable reserved slot correctly", () => {
     render(
-      <SlotRow
-        slot={{ ...openSlot, is_reserved: true, status: "reserved" }}
-        selectedSlot={null}
-        onSelect={vi.fn()}
-      />
+      <TooltipProvider>
+        <SlotRow
+          slot={{ ...openSlot, is_reserved: true, status: "reserved" }}
+          selectedSlot={null}
+          onSelect={vi.fn()}
+        />
+      </TooltipProvider>
     )
 
     expect(screen.getByRole("button")).toBeDisabled()
     expect(screen.getByText("رزرو شده")).toBeInTheDocument()
+  })
+
+  it("labels a reserving slot with yellow state and hint", () => {
+    render(
+      <TooltipProvider>
+        <SlotRow
+          slot={{ ...openSlot, is_reserved: true, status: "reserving" }}
+          selectedSlot={null}
+          onSelect={vi.fn()}
+        />
+      </TooltipProvider>
+    )
+
+    const button = screen.getByRole("button")
+    expect(button).toBeDisabled()
+    expect(screen.getByText("در حال رزرو")).toBeInTheDocument()
+    expect(button).toHaveAttribute(
+      "title",
+      "این سانس در حال رزرو است؛ اگر تا ۱۰ دقیقه دیگر رزرو نهایی نشود، سانس آزاد و قابل رزرو خواهد شد."
+    )
   })
 })

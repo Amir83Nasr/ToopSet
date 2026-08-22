@@ -13,19 +13,19 @@ const BottomNav = dynamic(
 )
 
 /**
- * Renders BottomNav only on public-facing pages.
- * Hidden on /dashboard/* and /(auth)/* routes.
- * Must be a Client Component so dynamic({ ssr: false }) is permitted.
+ * Renders BottomNav on mobile.
+ * Displayed on public-facing pages and user dashboard pages like /dashboard/bookings.
+ * Hidden only on auth pages (login, register, otp) and other admin/nested sub-dashboards.
  */
 export function BottomNavWrapper() {
   const pathname = usePathname()
 
-  // Hide bottom nav on dashboard pages and auth pages
+  // Hide bottom nav only on auth pages and deep manager/admin dashboard pages
   const hidden =
-    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
-    pathname.startsWith("/otp")
+    pathname.startsWith("/otp") ||
+    (pathname.startsWith("/dashboard") && pathname !== "/dashboard/bookings")
 
   if (hidden) return null
   return <BottomNav />

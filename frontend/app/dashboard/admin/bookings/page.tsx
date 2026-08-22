@@ -29,7 +29,7 @@ import {
   SearchInput,
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
-import { ShieldX, CalendarCheck, RefreshCw } from "lucide-react"
+import { ShieldX, CalendarCheck } from "lucide-react"
 import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import { TablePagination } from "@/components/ui/pagination"
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_STYLES } from "@/lib/constants"
@@ -131,13 +131,7 @@ export default function AdminBookingsPage() {
           <h1 className="text-2xl font-bold tracking-tight">مدیریت رزروها</h1>
           <p className="text-muted-foreground">همه رزروهای سیستم</p>
         </div>
-        <div className="flex gap-2">
-          <MobileBackButton />
-          <Button variant="outline" onClick={() => fetchBookings()}>
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
-        </div>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}

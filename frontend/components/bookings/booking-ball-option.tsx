@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface BookingBallOptionProps {
   available: boolean
@@ -35,25 +35,26 @@ export function BookingBallOption({
   }
 
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onToggle}
-      className={`flex w-full items-center justify-between rounded-lg border p-3 text-right transition-colors ${
+    <label
+      className={`flex w-full cursor-pointer items-center justify-between rounded-lg border p-3 text-right transition-colors ${
         selected
           ? "border-primary bg-primary/5"
           : "border-border hover:border-primary/40"
       }`}
     >
-      <span>
-        <span className="block font-medium">افزودن توپ به رزرو</span>
-        <span className="text-xs text-muted-foreground">
-          {formatPrice(price)}
-        </span>
-      </span>
-      <Badge variant={selected ? "default" : "outline"}>
-        {selected ? "انتخاب شد" : "اختیاری"}
-      </Badge>
-    </button>
+      <div className="flex items-center gap-3">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={() => onToggle()}
+          aria-label="افزودن توپ به رزرو"
+        />
+        <div>
+          <span className="block text-sm font-medium">افزودن توپ به رزرو</span>
+          <span className="text-xs text-muted-foreground">
+            {formatPrice(price)}
+          </span>
+        </div>
+      </div>
+    </label>
   )
 }

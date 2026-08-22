@@ -3,6 +3,11 @@
 import { memo } from "react"
 import { Clock } from "lucide-react"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   formatPrice,
   formatTime,
   isSlotBookable,
@@ -12,6 +17,9 @@ import {
 // Frozen timestamp for slot expiry checks — computed once at module load so the
 // React Compiler does not flag a mutable ref or an impure render-time call.
 const NOW = Date.now()
+
+const RESERVING_HINT =
+  "این سانس در حال رزرو است؛ اگر تا ۱۰ دقیقه دیگر رزرو نهایی نشود، سانس آزاد و قابل رزرو خواهد شد."
 
 export const SlotRow = memo(function SlotRow({
   slot,
@@ -24,22 +32,28 @@ export const SlotRow = memo(function SlotRow({
 }) {
   const isSelected = selectedSlot?.id === slot.id
   const isPast = new Date(slot.start_time).getTime() <= NOW
+  const isReserving = slot.status === "reserving"
   const bookable = isSlotBookable(slot)
   const disabled = !bookable || isPast
   const slotDay = new Date(slot.start_time).toLocaleDateString("fa-IR", {
     weekday: "long",
   })
 
-  return (
+  const rowButton = (
     <button
       onClick={() => !disabled && onSelect(slot)}
       disabled={disabled}
+      title={isReserving && !isPast ? RESERVING_HINT : undefined}
       className={`grid w-full grid-cols-2 items-center gap-x-3 gap-y-3 border-b px-4 py-3.5 text-right transition-colors sm:grid-cols-[6rem_minmax(11rem,1fr)_8.75rem_7rem] sm:gap-0 sm:text-center ${
-        disabled
+        isPast
           ? "cursor-not-allowed opacity-35"
-          : isSelected
-            ? "bg-primary/5"
-            : "cursor-pointer hover:bg-muted/20"
+          : isReserving
+            ? "cursor-not-allowed border-amber-300 bg-amber-50/50 hover:bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/20"
+            : disabled
+              ? "cursor-not-allowed opacity-35"
+              : isSelected
+                ? "bg-primary/5"
+                : "cursor-pointer hover:bg-muted/20"
       }`}
     >
       <div className="order-1 text-xs font-medium text-muted-foreground sm:order-none sm:text-center">
@@ -48,11 +62,15 @@ export const SlotRow = memo(function SlotRow({
       <div className="order-3 flex items-center gap-3 sm:order-none sm:justify-center">
         <div
           className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
-            disabled
+            isPast
               ? "bg-muted text-muted-foreground"
-              : isSelected
-                ? "bg-primary text-primary-foreground"
-                : "bg-primary/10 text-primary"
+              : isReserving
+                ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                : disabled
+                  ? "bg-muted text-muted-foreground"
+                  : isSelected
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary/10 text-primary"
           }`}
         >
           <Clock className="size-4" />
@@ -69,7 +87,11 @@ export const SlotRow = memo(function SlotRow({
       <div className="order-4 text-left sm:order-none sm:text-center">
         <span
           className={`text-sm font-bold ${
-            disabled ? "text-muted-foreground" : "text-primary"
+            isPast || (disabled && !isReserving)
+              ? "text-muted-foreground"
+              : isReserving
+                ? "text-amber-700 dark:text-amber-400"
+                : "text-primary"
           }`}
         >
           {formatPrice(slot.base_price)}
@@ -79,6 +101,10 @@ export const SlotRow = memo(function SlotRow({
         {isPast ? (
           <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
             گذشته
+          </span>
+        ) : isReserving ? (
+          <span className="inline-flex h-6 items-center rounded-full border border-amber-300 bg-amber-100/80 px-2.5 text-[10px] font-semibold text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+            در حال رزرو
           </span>
         ) : !bookable ? (
           <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
@@ -96,4 +122,19 @@ export const SlotRow = memo(function SlotRow({
       </div>
     </button>
   )
+
+  if (isReserving && !isPast) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="w-full">{rowButton}</div>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-center">
+          {RESERVING_HINT}
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  return rowButton
 })

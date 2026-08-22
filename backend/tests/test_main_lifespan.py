@@ -49,6 +49,7 @@ async def test_app_lifespan_starts_background_jobs(monkeypatch: pytest.MonkeyPat
         "_cancel_expired_pending",
         "_reconcile_zibal_payments_periodically",
         "_expire_replacement_work_periodically",
+        "_update_vendor_min_prices_nightly",
     ]
     assert created == expected
     assert cancelled == expected

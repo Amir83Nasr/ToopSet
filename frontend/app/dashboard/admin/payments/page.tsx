@@ -31,7 +31,7 @@ import {
   SearchInput,
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
-import { CreditCard, ShieldX, RefreshCw } from "lucide-react"
+import { CreditCard, ShieldX } from "lucide-react"
 import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from "@/lib/constants"
 
@@ -123,20 +123,7 @@ export default function AdminPaymentsPage() {
           </h1>
           <p className="text-muted-foreground">مشاهده تمام تراکنش‌های سیستم</p>
         </div>
-        <div className="flex gap-2">
-          <MobileBackButton />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setPage(0)
-              fetchPayments()
-            }}
-          >
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
-        </div>
+        <MobileBackButton />
       </div>
 
       {/* Search & filter bar */}

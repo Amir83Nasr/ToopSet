@@ -39,7 +39,7 @@ import {
 import { TablePagination } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import { ShieldX, History, RefreshCw, Trash2, X } from "lucide-react"
+import { ShieldX, History, Trash2, X } from "lucide-react"
 import { MobileBackButton } from "@/components/dashboard/mobile-back-button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import {
@@ -308,17 +308,6 @@ export default function AdminLogsPage() {
           )}
 
           <MobileBackButton />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchLogs}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`me-1.5 size-4 ${loading ? "animate-spin" : ""}`}
-            />
-            بروزرسانی
-          </Button>
 
           <ResponsiveAlertDialog
             open={clearDialogOpen}

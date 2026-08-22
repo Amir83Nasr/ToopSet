@@ -22,7 +22,7 @@ describe("BookingBallOption", () => {
       screen.getByText(/در صورت نیاز، توپ همراه داشته باشید/)
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole("button", { name: /افزودن توپ/ })
+      screen.queryByRole("checkbox", { name: /افزودن توپ به رزرو/ })
     ).not.toBeInTheDocument()
   })
 
@@ -39,10 +39,12 @@ describe("BookingBallOption", () => {
       />
     )
 
-    const button = screen.getByRole("button", { name: /افزودن توپ به رزرو/ })
-    expect(button).toHaveAttribute("aria-pressed", "false")
+    const checkbox = screen.getByRole("checkbox", {
+      name: /افزودن توپ به رزرو/,
+    })
+    expect(checkbox).toHaveAttribute("aria-checked", "false")
     expect(screen.getByText("۷۵٬۰۰۰ تومانءء")).toBeInTheDocument()
-    await user.click(button)
+    await user.click(checkbox)
     expect(onToggle).toHaveBeenCalledOnce()
   })
 })

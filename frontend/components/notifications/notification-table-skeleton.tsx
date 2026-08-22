@@ -11,7 +11,34 @@ import {
 export function NotificationTableSkeleton() {
   return (
     <div>
-      <Table className="min-w-220 table-fixed">
+      {/* Mobile: stacked cards skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-5 w-20 rounded-md" />
+              <Skeleton className="h-5 w-16 rounded-md" />
+            </div>
+            <div className="space-y-1.5 py-1">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+            <div className="flex items-center justify-between border-t pt-3">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-7 w-16 rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop / tablet: full data table */}
+      <Table
+        className="min-w-220 table-fixed"
+        tableWrapperClassName="hidden md:block"
+      >
         <colgroup>
           <col className="w-32" />
           <col className="w-72" />
