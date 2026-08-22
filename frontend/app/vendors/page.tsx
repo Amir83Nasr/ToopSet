@@ -435,14 +435,20 @@ function VendorsPageContent() {
 
               {/* ── Map Modal (Bottom Sheet - half screen) ── */}
               <Drawer open={showMap} onOpenChange={setShowMap}>
-                <DrawerContent className="flex h-[65vh] max-h-[80vh] flex-col p-0">
-                  <DrawerHeader className="flex shrink-0 items-center justify-between border-b px-4 py-3">
+                <DrawerContent
+                  showCloseButton={false}
+                  className="flex h-[65vh] max-h-[80vh] flex-col p-0"
+                >
+                  <DrawerHeader className="flex shrink-0 items-center justify-between border-b px-4 py-2.5">
                     <DrawerTitle className="flex items-center gap-2 text-base font-bold">
                       <Map className="size-4.5 text-primary" />
                       نقشه مجموعه‌های ورزشی
                     </DrawerTitle>
                     <DrawerClose asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        size="sm"
+                        className="h-8 rounded-lg px-3.5 text-xs font-semibold"
+                      >
                         بستن
                       </Button>
                     </DrawerClose>
