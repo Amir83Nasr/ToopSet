@@ -4,10 +4,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Search, Calendar, User } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
 
 // ── Bottom Navigation Tab Definitions ────────────────────────────────────────
 
 const ACCOUNT_TAB_PATH = "/account"
+const LOGIN_PATH = "/login"
 
 const tabs = [
   {
@@ -96,10 +98,16 @@ function BottomNavTab({
 /**
  * Fixed bottom navigation bar visible only on mobile (< md breakpoint).
  * Renders four tabs: Home, Search, My Bookings, Account.
- * The Account tab routes to /account — a full-page dashboard view.
+ * The Account tab routes to /account for logged-in users — guests go
+ * straight to /login. While auth state is still loading, /account is kept
+ * as the safe default (same behavior as the header).
  */
 export function BottomNav() {
   const pathname = usePathname()
+  const { isAuthenticated, loading } = useAuth()
+
+  const accountHref =
+    !loading && !isAuthenticated ? LOGIN_PATH : ACCOUNT_TAB_PATH
 
   return (
     <nav
@@ -119,7 +127,7 @@ export function BottomNav() {
         {tabs.map((tab) => (
           <BottomNavTab
             key={tab.href}
-            href={tab.href}
+            href={tab.href === ACCOUNT_TAB_PATH ? accountHref : tab.href}
             label={tab.label}
             icon={tab.icon}
             active={isTabActive(tab.href, pathname, tab.exact)}
