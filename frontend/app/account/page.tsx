@@ -8,15 +8,8 @@ import { buildAvatarUrl } from "@/lib/api"
 import { cn, getInitials, toPersianDigits } from "@/lib/utils"
 import { LogoutDialog } from "@/components/public/logout-dialog"
 import { SiteHeader } from "@/components/public/site-header"
-import { navGroups } from "@/lib/navigation"
-import {
-  Home,
-  Search,
-  MessageCircle,
-  UserCircle,
-  LogOut,
-  ChevronLeft,
-} from "lucide-react"
+import { navGroups, type NavItem } from "@/lib/navigation"
+import { MessageCircle, UserCircle, LogOut, ChevronLeft } from "lucide-react"
 import { usePathname } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
 
@@ -28,13 +21,15 @@ const roleLabels: Record<string, string> = {
   user: "کاربر",
 }
 
-// ── General (public) nav — always visible ─────────────────────────────────────
+// ── Contact link — rendered inside the section holding Notifications ──────────
 
-const generalItems: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/", label: "صفحه اصلی", icon: Home },
-  { href: "/vendors", label: "جستجوی مجموعه‌ها", icon: Search },
-  { href: "/contact", label: "ارتباط با ما", icon: MessageCircle },
-]
+const CONTACT_NAV_ITEM: NavItem = {
+  title: "ارتباط با ما",
+  url: "/contact",
+  icon: MessageCircle,
+}
+
+const NOTIFICATIONS_URL = "/dashboard/notifications"
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
@@ -124,10 +119,17 @@ export default function AccountPage() {
   const { user, loading, isAuthenticated, logout } = useAuth()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
-  // Role-filtered nav groups — same source of truth as the old mobile panel
+  // Role-filtered nav groups — same source of truth as the old mobile panel.
+  // The contact link rides along in whichever section holds Notifications.
   const userRole = user?.role as "admin" | "manager" | "user" | undefined
   const filteredGroups = userRole
-    ? navGroups.filter((g) => g.roles.includes(userRole) && g.items.length > 0)
+    ? navGroups
+        .filter((g) => g.roles.includes(userRole) && g.items.length > 0)
+        .map((g) =>
+          g.items.some((item) => item.url === NOTIFICATIONS_URL)
+            ? { ...g, items: [...g.items, CONTACT_NAV_ITEM] }
+            : g
+        )
     : []
 
   return (
@@ -202,19 +204,6 @@ export default function AccountPage() {
 
           {/* ── Nav Sections ── */}
           <div className="flex flex-col gap-3">
-            {/* General — always shown */}
-            <SectionCard title="عمومی">
-              {generalItems.map((item) => (
-                <AccountNavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  pathname={pathname}
-                />
-              ))}
-            </SectionCard>
-
             {/* Role-based groups — mirrors navGroups from lib/navigation.ts */}
             {filteredGroups.map((group) => (
               <Fragment key={group.label + userRole}>
