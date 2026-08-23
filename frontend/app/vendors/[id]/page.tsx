@@ -995,18 +995,17 @@ export default function PublicVendorDetailPage() {
             <ResponsiveDialogContent className="sm:max-w-md">
               <ResponsiveDialogHeader>
                 <ResponsiveDialogTitle>
-                  رزرو سانس {selectedDayInfo?.dayName}
+                  رزرو سانس
                 </ResponsiveDialogTitle>
                 <ResponsiveDialogDescription>
-                  {vendor?.name} •{" "}
-                  {selectedDayInfo?.fullPersian || selectedDate}
+                  {vendor?.name}
                 </ResponsiveDialogDescription>
               </ResponsiveDialogHeader>
               <div className="py-2">
                 {selectedSlot && (
                   <SlotInfo
                     slot={selectedSlot}
-                    dateLabel={selectedDayInfo?.fullPersian || selectedDate}
+                    dateLabel={`${selectedDayInfo?.dayName || ""}‌ - ${selectedDayInfo?.fullPersian || selectedDate}`}
                   />
                 )}
               </div>
