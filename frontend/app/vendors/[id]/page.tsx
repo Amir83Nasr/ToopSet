@@ -45,14 +45,14 @@ import {
 } from "@/components/vendors/vendor-shared"
 import { SlotRow } from "@/components/vendors/public-slot-row"
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogClose,
+} from "@/components/ui/responsive-dialog"
 
 const VendorLocationMap = dynamic(
   () =>
@@ -983,25 +983,25 @@ export default function PublicVendorDetailPage() {
           </div>
 
           {/* ═══════════════════════════════════
-               Slot Booking Drawer (Bottom Sheet)
+               Slot Booking (Dialog on desktop, bottom sheet on mobile)
                ═══════════════════════════════════ */}
-          <Drawer
+          <ResponsiveDialog
             open={bookingDrawerOpen && !!selectedSlot}
             onOpenChange={(open) => {
               setBookingDrawerOpen(open)
               if (!open) setSelectedSlot(null)
             }}
           >
-            <DrawerContent className="mx-auto max-w-lg">
-              <DrawerHeader className="text-right">
-                <DrawerTitle className="text-base font-bold">
-                  تکمیل رزرو سانس
-                </DrawerTitle>
-                <DrawerDescription className="text-xs">
+            <ResponsiveDialogContent className="sm:max-w-md">
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>
+                  رزرو سانس {selectedDayInfo?.dayName}
+                </ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>
                   {vendor?.name} •{" "}
                   {selectedDayInfo?.fullPersian || selectedDate}
-                </DrawerDescription>
-              </DrawerHeader>
+                </ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
               <div className="py-2">
                 {selectedSlot && (
                   <SlotInfo
@@ -1010,12 +1010,11 @@ export default function PublicVendorDetailPage() {
                   />
                 )}
               </div>
-              <DrawerFooter className="grid grid-cols-2 gap-3 px-0 pt-2 pb-1">
-                <DrawerClose asChild>
+              <ResponsiveDialogFooter className="gap-2">
+                <ResponsiveDialogClose asChild>
                   <Button
                     type="button"
                     variant="outline"
-                    size="lg"
                     onClick={() => {
                       setBookingDrawerOpen(false)
                       setSelectedSlot(null)
@@ -1023,21 +1022,19 @@ export default function PublicVendorDetailPage() {
                   >
                     انصراف
                   </Button>
-                </DrawerClose>
+                </ResponsiveDialogClose>
                 <Button
                   type="button"
-                  size="lg"
-                  className="font-semibold shadow-xs"
                   onClick={() => {
                     if (selectedSlot) handleBookSlot(selectedSlot)
                   }}
                 >
-                  <CheckCircle2 className="ms-1.5 size-5" />
+                  <CheckCircle2 className="me-1.5 size-4" />
                   {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
                 </Button>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
+              </ResponsiveDialogFooter>
+            </ResponsiveDialogContent>
+          </ResponsiveDialog>
 
           {/* ═══════════════════════════════════
                Image Lightbox Dialog

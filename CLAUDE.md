@@ -166,7 +166,7 @@ Key vars: `SECRET_KEY` (gen: `python3 -c "import secrets; print(secrets.token_ur
 6. **Repository pattern** — services access DB through repos, never raw sessions.
 7. **Safe-area insets** on all fixed-position mobile elements (`env(safe-area-inset-*)`).
 8. **Touch targets ≥44px** on mobile (auto-enforced in CSS, but don't override).
-9. **Bottom sheets on mobile** — `Dialog`/`AlertDialogContent` auto-convert. Set `mobileAsSheet={false}` for custom fullscreen overlays.
+9. **Bottom sheets on mobile** — `ResponsiveDialog`/`ResponsiveAlertDialogContent` render Dialog on desktop and bottom Drawer (vaul) on mobile. Use these for booking/record overlays; set `mobileAsSheet={false}` for custom fullscreen overlays. Drawer branch hides the ✕ close button (drag-to-dismiss + cancel button instead).
 10. **Frontend auto-refreshes tokens** on 401 via `api()`. Listen for `auth:expired` events.
 11. **Commit attribution:** Never include AI name or co-author in commits; use only user name.
 12. **IranYekan Typography & Formats:** Use `تومانءء` (with `ءء` glyph) for currency, Persian thousands separator `٬`, and Persian dot separator `٫` (`YYYY٫MM٫DD`) for dates via `formatPrice()` and `formatPersianDate()`.
