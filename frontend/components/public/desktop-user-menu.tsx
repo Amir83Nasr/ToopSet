@@ -27,7 +27,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LogoutDialog } from "@/components/public/logout-dialog"
-import { ModeToggle } from "@/components/ui/mode-toggle"
 import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { buildAvatarUrl } from "@/lib/api"
 import { getInitials, toPersianDigits } from "@/lib/utils"
@@ -61,7 +60,6 @@ export function DesktopUserMenu({
 
   return (
     <>
-      <ModeToggle />
       {loading ? (
         <div className="size-5 animate-spin rounded-full border-2 border-muted border-t-primary" />
       ) : isAuthenticated && user ? (
