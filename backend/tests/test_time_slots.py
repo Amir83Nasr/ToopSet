@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
@@ -426,3 +426,66 @@ class TestDirectDeleteSlotIsDisabled:
         slot_resp = await client.get(f"/api/v1/slots/{slot_id}", headers=headers)
         assert slot_resp.status_code == 200
         assert slot_resp.json()["id"] == slot_id
+
+
+class TestOwnPendingSlotAnnotation:
+    """Public slot list flags reserving slots held by the requesting user."""
+
+    async def test_reserving_slot_owned_by_user_is_annotated(
+        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        start = datetime.now(timezone.utc) + timedelta(hours=4)
+        result = await session.execute(
+            text(
+                """INSERT INTO time_slots (vendor_id, start_time, end_time, base_price, is_reserved, version)
+                   VALUES (:vendor_id, :start, :end, 100.00, false, 1)
+                   RETURNING id"""
+            ),
+            {"vendor_id": vendor_id, "start": start, "end": start + timedelta(hours=2)},
+        )
+        slot_id = result.fetchone()[0]
+        await session.flush()
+
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        version = (await client.get(f"/api/v1/slots/{slot_id}")).json()["version"]
+        booking_resp = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": version, "with_ball": False},
+            headers=user_headers,
+        )
+        assert booking_resp.status_code == 201, booking_resp.text
+        booking_id = booking_resp.json()["id"]
+
+        # Owner sees the reserving slot flagged as their own pending payment
+        owner_resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots", headers=user_headers)
+        assert owner_resp.status_code == 200
+        own_slot = next(s for s in owner_resp.json()["slots"] if s["id"] == slot_id)
+        assert own_slot["status"] == "reserving"
+        assert own_slot["reserved_by_me"] is True
+        assert own_slot["my_booking_id"] == booking_id
+
+        # Anonymous users get no ownership annotation (cache stays anonymous)
+        anon_resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots")
+        assert anon_resp.status_code == 200
+        anon_slot = next(s for s in anon_resp.json()["slots"] if s["id"] == slot_id)
+        assert anon_slot["reserved_by_me"] is False
+        assert anon_slot["my_booking_id"] is None
+
+        # A different authenticated user also gets no ownership annotation
+        other_resp = await client.post(
+            "/api/v1/auth/register",
+            json={"phone": "09121111111", "password": "Test1234", "full_name": "دیگری"},
+        )
+        assert other_resp.status_code == 201
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            json={"phone": "09121111111", "password": "Test1234"},
+        )
+        assert login_resp.status_code == 200
+        other_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+        other_view = await client.get(f"/api/v1/vendors/{vendor_id}/slots", headers=other_headers)
+        assert other_view.status_code == 200
+        other_slot = next(s for s in other_view.json()["slots"] if s["id"] == slot_id)
+        assert other_slot["reserved_by_me"] is False
+        assert other_slot["my_booking_id"] is None

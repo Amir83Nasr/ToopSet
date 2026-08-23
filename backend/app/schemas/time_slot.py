@@ -48,6 +48,10 @@ class TimeSlotResponse(BaseModel):
     status: SlotStatus = SlotStatus.OPEN
     is_reserved: bool
     version: int
+    # Set per-request (never cached) when the reserving slot is held by the
+    # current user's pending_payment booking — lets the UI offer "continue pay".
+    reserved_by_me: bool = False
+    my_booking_id: int | None = None
 
     model_config = {"from_attributes": True}
 

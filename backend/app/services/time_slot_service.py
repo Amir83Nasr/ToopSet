@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
 from app.core.timezone import iran_to_utc, now_iran, now_utc, utc_to_iran
-from app.models.booking import BookingSource
+from app.models.booking import BookingSource, BookingStatus
 from app.models.time_slot import SlotStatus
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -120,6 +120,30 @@ class TimeSlotService:
             version=slot.version,
         )
 
+    async def _annotate_own_pending_bookings(self, responses: list[TimeSlotResponse]) -> None:
+        """Flag reserving slots held by the current user's pending_payment booking.
+
+        Must run after the shared cache read/write so cached payloads stay anonymous.
+        """
+        user = self.current_user
+        if user is None:
+            return
+        reserving_ids = [r.id for r in responses if r.status == SlotStatus.RESERVING]
+        if not reserving_ids:
+            return
+        bookings = await self.booking_repo.list_active_by_slot_ids(reserving_ids)
+        by_slot = {b.slot_id: b for b in bookings}
+        for response in responses:
+            booking = by_slot.get(response.id)
+            if (
+                response.status == SlotStatus.RESERVING
+                and booking is not None
+                and booking.user_id == user.id
+                and booking.status == BookingStatus.PENDING_PAYMENT
+            ):
+                response.reserved_by_me = True
+                response.my_booking_id = booking.id
+
     async def list_slots(
         self,
         vendor_id: int,
@@ -148,8 +172,9 @@ class TimeSlotService:
             cached = await get_cached_slot_list(vendor_id, date=date)
             if cached is not None:
                 self._from_cache = True
-                # cached contains full result for the page
-                return TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
+                result = TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
+                await self._annotate_own_pending_bookings(result.slots)
+                return result
 
         slots, total = await self.repo.list_by_vendor(
             vendor_id,
@@ -166,6 +191,9 @@ class TimeSlotService:
         # Warm cache for the common case (first page, no offset)
         if not can_manage and after_id is None and skip == 0 and limit <= 50:
             await cache_slot_list(vendor_id, serialised, date=date)
+
+        # Annotate after caching — ownership flags are per-user and must not be cached.
+        await self._annotate_own_pending_bookings(responses)
 
         next_cursor = None
         if slots and len(slots) == limit:
