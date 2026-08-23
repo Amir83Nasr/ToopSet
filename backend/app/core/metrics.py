@@ -21,6 +21,7 @@ import time
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 from prometheus_client.registry import REGISTRY
+from sqlalchemy.pool import QueuePool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -288,7 +289,11 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 def refresh_pool_metrics() -> None:
     """Export SQLAlchemy connection pool status as Prometheus gauges."""
     try:
+        # The async engine uses AsyncAdaptedQueuePool (a QueuePool subclass),
+        # which carries the counters; the base Pool type does not.
         pool = engine.pool
+        if not isinstance(pool, QueuePool):
+            return
         toopset_db_pool_size.labels(state="checked_in").set(pool.checkedin())
         toopset_db_pool_size.labels(state="checked_out").set(pool.checkedout())
         # overflow() is negative when no overflow connections are in use
