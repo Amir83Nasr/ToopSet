@@ -30,10 +30,17 @@ export interface TimeSlot {
   status?: string
   is_reserved: boolean
   version: number
+  // Set only when this reserving slot is held by the current user's
+  // pending_payment booking — makes the row clickable for "continue payment".
+  reserved_by_me?: boolean
+  my_booking_id?: number | null
 }
 
 export const RESERVING_HINT =
   "این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید."
+
+export const MY_RESERVING_HINT =
+  "این سانس رزرو نهایی‌نشدهٔ خودتان است؛ برای ادامه پرداخت کلیک کنید."
 
 export function isSlotBookable(slot: Pick<TimeSlot, "is_reserved" | "status">) {
   return !slot.is_reserved || slot.status === "pending_cancellation"

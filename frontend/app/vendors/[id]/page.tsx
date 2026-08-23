@@ -259,6 +259,8 @@ export default function PublicVendorDetailPage() {
   })
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [bookingDrawerOpen, setBookingDrawerOpen] = useState(false)
+  // Booking currently being sent to the payment gateway (own pending slot)
+  const [payingBookingId, setPayingBookingId] = useState<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showMap, setShowMap] = useState(false)
@@ -434,6 +436,55 @@ export default function PublicVendorDetailPage() {
       return
     }
     router.push(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)
+  }
+
+  // Resume the payment of the user's own pending booking straight from the
+  // yellow "reserving" slot row — goes directly to the gateway when possible.
+  async function continuePendingPayment(bookingId: number) {
+    if (payingBookingId) return
+    setPayingBookingId(bookingId)
+    toast.info("در حال انتقال به درگاه پرداخت…")
+    try {
+      const res = await api<{
+        payment_gateway?: string
+        start_url?: string
+        status?: string
+      }>(`/api/v1/bookings/${bookingId}/pay`, { method: "POST" })
+
+      // Real gateway → redirect straight to the payment page
+      if (res?.payment_gateway === "zibal" && res.start_url) {
+        window.location.assign(res.start_url)
+        return
+      }
+
+      // Mock/direct success — booking is already finalised
+      toast.success("رزرو شما با موفقیت پرداخت و نهایی شد")
+      router.push("/dashboard/bookings")
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "خطا در ادامه پرداخت؛ دوباره تلاش کنید"
+      )
+      // Booking may have expired or been released — refresh slot states
+      fetchSlots(effectiveDate)
+    } finally {
+      setPayingBookingId(null)
+    }
+  }
+
+  function handleSlotSelect(slot: TimeSlot) {
+    // Own pending_payment slot (yellow) → jump to payment continuation
+    if (
+      slot.status === "reserving" &&
+      slot.reserved_by_me &&
+      slot.my_booking_id
+    ) {
+      void continuePendingPayment(slot.my_booking_id)
+      return
+    }
+    setSelectedSlot(slot)
+    setBookingDrawerOpen(true)
   }
 
   function goPrevWeek() {
@@ -748,10 +799,8 @@ export default function PublicVendorDetailPage() {
                             key={slot.id}
                             slot={slot}
                             selectedSlot={selectedSlot}
-                            onSelect={(s) => {
-                              setSelectedSlot(s)
-                              setBookingDrawerOpen(true)
-                            }}
+                            onSelect={handleSlotSelect}
+                            payingBookingId={payingBookingId}
                           />
                         ))}
                       </div>

@@ -3,7 +3,11 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { SlotRow } from "@/components/vendors/public-slot-row"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import type { TimeSlot } from "@/components/vendors/vendor-shared"
+import {
+  MY_RESERVING_HINT,
+  RESERVING_HINT,
+  type TimeSlot,
+} from "@/components/vendors/vendor-shared"
 
 const openSlot: TimeSlot = {
   id: 11,
@@ -67,15 +71,56 @@ describe("public vendor slot row", () => {
     const button = screen.getByRole("button")
     expect(button).toBeDisabled()
     expect(screen.getByText("در حال رزرو")).toBeInTheDocument()
-    expect(button).toHaveAttribute(
-      "title",
-      "این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید."
-    )
+    expect(button).toHaveAttribute("title", RESERVING_HINT)
     // Inline hint must be visible without hover (mobile users)
-    expect(
-      screen.getByText(
-        "این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید."
-      )
-    ).toBeInTheDocument()
+    expect(screen.getByText(RESERVING_HINT)).toBeInTheDocument()
+  })
+
+  it("makes the user's own reserving slot clickable to continue payment", async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    const ownSlot: TimeSlot = {
+      ...openSlot,
+      is_reserved: true,
+      status: "reserving",
+      reserved_by_me: true,
+      my_booking_id: 77,
+    }
+    render(
+      <TooltipProvider>
+        <SlotRow slot={ownSlot} selectedSlot={null} onSelect={onSelect} />
+      </TooltipProvider>
+    )
+
+    const button = screen.getByRole("button")
+    expect(button).toBeEnabled()
+    expect(screen.getByText("ادامه پرداخت")).toBeInTheDocument()
+    expect(button).toHaveAttribute("title", MY_RESERVING_HINT)
+    expect(screen.getByText(MY_RESERVING_HINT)).toBeInTheDocument()
+
+    await user.click(button)
+    expect(onSelect).toHaveBeenCalledWith(ownSlot)
+  })
+
+  it("disables the row while its payment is being started", () => {
+    render(
+      <TooltipProvider>
+        <SlotRow
+          slot={{
+            ...openSlot,
+            is_reserved: true,
+            status: "reserving",
+            reserved_by_me: true,
+            my_booking_id: 77,
+          }}
+          selectedSlot={null}
+          onSelect={vi.fn()}
+          payingBookingId={77}
+        />
+      </TooltipProvider>
+    )
+
+    expect(screen.getByRole("button")).toBeDisabled()
+    expect(screen.getByText("در حال انتقال…")).toBeInTheDocument()
   })
 })
