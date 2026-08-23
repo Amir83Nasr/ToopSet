@@ -288,11 +288,12 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 def refresh_pool_metrics() -> None:
     """Export SQLAlchemy connection pool status as Prometheus gauges."""
     try:
-        pool_status: dict = engine.pool.status()  # type: ignore[assignment]
-        toopset_db_pool_size.labels(state="checked_in").set(pool_status.get("checkedin", 0))
-        toopset_db_pool_size.labels(state="checked_out").set(pool_status.get("checkedout", 0))
-        toopset_db_pool_size.labels(state="overflow").set(pool_status.get("overflow", 0))
-        toopset_db_pool_size.labels(state="total").set(pool_status.get("size", 0))
+        pool = engine.pool
+        toopset_db_pool_size.labels(state="checked_in").set(pool.checkedin())
+        toopset_db_pool_size.labels(state="checked_out").set(pool.checkedout())
+        # overflow() is negative when no overflow connections are in use
+        toopset_db_pool_size.labels(state="overflow").set(max(0, pool.overflow()))
+        toopset_db_pool_size.labels(state="total").set(pool.size())
     except Exception:
         import logging
 
