@@ -7,7 +7,10 @@ import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
 import { useAuth } from "@/hooks/use-auth"
 import { getCookie } from "@/lib/cookies"
-import { isSlotBookable } from "@/components/vendors/vendor-shared"
+import {
+  isSlotBookable,
+  RESERVING_HINT,
+} from "@/components/vendors/vendor-shared"
 import { BookingBallOption } from "@/components/bookings/booking-ball-option"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -177,6 +180,8 @@ function BookPageContent() {
           return
         }
         const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
+        if (slotRes.status === "reserving")
+          throw new ApiError(409, RESERVING_HINT)
         if (!isSlotBookable(slotRes))
           throw new ApiError(409, "این سانس قبلاً رزرو شده است")
         if (new Date(slotRes.start_time).getTime() <= Date.now()) {
@@ -432,13 +437,13 @@ function BookPageContent() {
             <Card
               className={
                 pendingCheckout
-                  ? "border-red-500/50 bg-red-50/50 dark:bg-red-950/20"
+                  ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20"
                   : ""
               }
             >
               <CardContent className="flex flex-col items-center gap-6 py-8">
                 {pendingCheckout ? (
-                  <div className="rounded-full bg-red-100 p-3 text-red-600 dark:bg-red-900/40 dark:text-red-400">
+                  <div className="rounded-full bg-amber-100 p-3 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">
                     <AlertTriangle className="size-10" />
                   </div>
                 ) : (
@@ -447,36 +452,37 @@ function BookPageContent() {
 
                 <div className="space-y-1 text-center">
                   <CardTitle
-                    className={`text-xl font-bold ${pendingCheckout ? "text-red-600 dark:text-red-400" : ""}`}
+                    className={`text-xl font-bold ${pendingCheckout ? "text-amber-600 dark:text-amber-400" : ""}`}
                   >
                     {pendingCheckout
                       ? "رزرو در انتظار پرداخت دارید!"
                       : "متأسفیم"}
                   </CardTitle>
-                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                     {pendingCheckout
-                      ? "یک رزرو نهایی‌نشده از قبل دارید. برای رزرو سانس جدید، باید ابتدا رزرو قبلی را پرداخت کنید یا داخل درگاه انصراف را بزنید."
-                      : "این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید."}
+                      ? "یه روز هنوز در انتظار پرداخت گذاشتی، یا رزروش کن یا برو تو درگاه گزینه لغو رو بزن."
+                      : errorMsg ||
+                        "این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید."}
                   </p>
                 </div>
 
                 {pendingCheckout && (
-                  <div className="w-full max-w-md overflow-hidden rounded-xl border border-red-300 bg-white shadow-md dark:border-red-900/80 dark:bg-zinc-900">
-                    <div className="flex items-center justify-between border-b border-red-200 bg-red-50/80 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40">
-                      <div className="flex items-center gap-2 text-xs font-bold text-red-700 dark:text-red-300">
-                        <Ticket className="size-4 text-red-600 dark:text-red-400" />
+                  <div className="w-full max-w-md overflow-hidden rounded-xl border border-amber-300 bg-white shadow-md dark:border-amber-900/80 dark:bg-zinc-900">
+                    <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50/80 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/40">
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                        <Ticket className="size-4 text-amber-600 dark:text-amber-400" />
                         <span>اطلاعات رزرو نهایی‌نشده</span>
                       </div>
-                      <Badge className="bg-red-600 px-2.5 py-0.5 font-mono text-xs text-white shadow-xs hover:bg-red-700">
+                      <Badge className="bg-amber-600 px-2.5 py-0.5 font-mono text-xs text-white shadow-xs hover:bg-amber-700">
                         کد رزرو: #{pendingCheckout.booking_id}
                       </Badge>
                     </div>
 
                     <div className="space-y-3 p-4">
                       {pendingCheckout.vendor_name && (
-                        <div className="flex items-center justify-between rounded-lg border border-red-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
+                        <div className="flex items-center justify-between rounded-lg border border-amber-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
                           <div className="flex items-center gap-2 text-muted-foreground">
-                            <Building2 className="size-4 text-red-500" />
+                            <Building2 className="size-4 text-amber-500" />
                             <span className="text-xs font-medium">
                               مجموعه ورزشی:
                             </span>
@@ -490,9 +496,9 @@ function BookPageContent() {
                       <div className="grid grid-cols-2 gap-2.5">
                         {(pendingCheckout.slot_date ||
                           pendingCheckout.slot_start_time) && (
-                          <div className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
+                          <div className="flex flex-col gap-1.5 rounded-lg border border-amber-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Calendar className="size-3.5 text-red-500" />
+                              <Calendar className="size-3.5 text-amber-500" />
                               <span className="text-xs font-medium">
                                 تاریخ سانس
                               </span>
@@ -508,9 +514,9 @@ function BookPageContent() {
 
                         {(pendingCheckout.slot_time ||
                           pendingCheckout.slot_start_time) && (
-                          <div className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
+                          <div className="flex flex-col gap-1.5 rounded-lg border border-amber-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/60">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Clock className="size-3.5 text-red-500" />
+                              <Clock className="size-3.5 text-amber-500" />
                               <span className="text-xs font-medium">
                                 ساعت سانس
                               </span>
@@ -533,7 +539,7 @@ function BookPageContent() {
                   <div className="flex w-full max-w-sm flex-col gap-2.5">
                     {pendingCheckout.can_resume && (
                       <Button
-                        className="w-full bg-red-600 text-white shadow hover:bg-red-700"
+                        className="w-full bg-amber-600 text-white shadow hover:bg-amber-700"
                         onClick={() => {
                           if (pendingCheckout.start_url) {
                             window.location.assign(pendingCheckout.start_url)

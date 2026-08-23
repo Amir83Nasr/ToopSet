@@ -69,7 +69,13 @@ describe("public vendor slot row", () => {
     expect(screen.getByText("در حال رزرو")).toBeInTheDocument()
     expect(button).toHaveAttribute(
       "title",
-      "این سانس در حال رزرو است؛ اگر تا ۱۰ دقیقه دیگر رزرو نهایی نشود، سانس آزاد و قابل رزرو خواهد شد."
+      "این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید."
     )
+    // Inline hint must be visible without hover (mobile users)
+    expect(
+      screen.getByText(
+        "این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید."
+      )
+    ).toBeInTheDocument()
   })
 })

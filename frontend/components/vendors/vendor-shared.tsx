@@ -32,6 +32,9 @@ export interface TimeSlot {
   version: number
 }
 
+export const RESERVING_HINT =
+  "این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید."
+
 export function isSlotBookable(slot: Pick<TimeSlot, "is_reserved" | "status">) {
   return !slot.is_reserved || slot.status === "pending_cancellation"
 }
@@ -99,7 +102,9 @@ export function formatPrice(price: number | null | undefined): string {
   if (price == null) return "—"
   const formattedNumber = new Intl.NumberFormat("fa-IR", {
     useGrouping: true,
-  }).format(price).replace(/,/g, "٬")
+  })
+    .format(price)
+    .replace(/,/g, "٬")
   return `${formattedNumber} تومانءء`
 }
 

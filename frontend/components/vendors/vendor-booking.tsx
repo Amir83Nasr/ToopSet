@@ -15,6 +15,7 @@ import {
   formatTime,
   formatPrice,
   isSlotBookable,
+  RESERVING_HINT,
   type TimeSlot,
 } from "@/components/vendors/vendor-shared"
 
@@ -38,9 +39,6 @@ const PERSIAN_DAY_NAMES = [
   "پنجشنبه",
   "جمعه",
 ]
-
-const RESERVING_HINT =
-  "این سانس در حال رزرو است؛ اگر تا ۱۰ دقیقه دیگر رزرو نهایی نشود، سانس آزاد و قابل رزرو خواهد شد."
 
 function getPersianDate(dateStr: string) {
   const d = new Date(dateStr + "T12:00:00")

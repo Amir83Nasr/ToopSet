@@ -1,7 +1,7 @@
 "use client"
 
 import { memo } from "react"
-import { Clock } from "lucide-react"
+import { Clock, Info } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -11,15 +11,13 @@ import {
   formatPrice,
   formatTime,
   isSlotBookable,
+  RESERVING_HINT,
   type TimeSlot,
 } from "@/components/vendors/vendor-shared"
 
 // Frozen timestamp for slot expiry checks — computed once at module load so the
 // React Compiler does not flag a mutable ref or an impure render-time call.
 const NOW = Date.now()
-
-const RESERVING_HINT =
-  "این سانس در حال رزرو است؛ اگر تا ۱۰ دقیقه دیگر رزرو نهایی نشود، سانس آزاد و قابل رزرو خواهد شد."
 
 export const SlotRow = memo(function SlotRow({
   slot,
@@ -125,14 +123,21 @@ export const SlotRow = memo(function SlotRow({
 
   if (isReserving && !isPast) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="w-full">{rowButton}</div>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs text-center">
+      <div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="w-full">{rowButton}</div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs text-center">
+            {RESERVING_HINT}
+          </TooltipContent>
+        </Tooltip>
+        {/* Inline hint — always visible so touch users see it too */}
+        <p className="flex items-start gap-1.5 border-b border-amber-200/70 bg-amber-50/40 px-4 pb-3 text-[11px] leading-5 font-medium text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+          <Info className="mt-0.5 size-3.5 shrink-0" />
           {RESERVING_HINT}
-        </TooltipContent>
-      </Tooltip>
+        </p>
+      </div>
     )
   }
 

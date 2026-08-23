@@ -759,6 +759,11 @@ class BookingService:
                 detail="امکان رزرو توپ برای این مجموعه وجود ندارد",
             )
         if slot.is_reserved and slot.status != SlotStatus.PENDING_CANCELLATION:
+            if slot.status == SlotStatus.RESERVING:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="این سانس هم‌اکنون توسط فرد دیگری در حال رزرو است؛ اگر او تا ۱۰ دقیقه دیگر رزرو را نهایی نکند، می‌توانید این سانس را رزرو کنید",
+                )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="این سانس قبلاً رزرو شده است"
             )
