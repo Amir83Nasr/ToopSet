@@ -14,9 +14,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from pythonjsonlogger.jsonlogger import (  # type: ignore[attr-defined]
-    JsonFormatter as _JsonFormatter,
-)
+from pythonjsonlogger.json import JsonFormatter as _JsonFormatter
 
 from app.core.correlation_id import get_request_id
 
@@ -29,6 +27,34 @@ _CONFIGURED_ATTR = "_toopset_logging_configured"
 
 # Fields emitted in every JSON log line.
 _LOG_FMT = "%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d %(request_id)s"
+
+# Console format: LOG_FORMAT=console gives human-readable colored output
+# (local dev); anything else keeps JSON lines (Docker / ELK).
+_LOG_FORMAT = os.getenv("LOG_FORMAT", "json").lower()
+
+_LEVEL_COLORS = {
+    "DEBUG": "\033[36m",
+    "INFO": "\033[32m",
+    "WARNING": "\033[33m",
+    "ERROR": "\033[31m",
+    "CRITICAL": "\033[1;31m",
+}
+_RESET = "\033[0m"
+
+
+class _ConsoleFormatter(logging.Formatter):
+    """Compact colored single-line format for local development."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        color = _LEVEL_COLORS.get(record.levelname, "")
+        # Pad like uvicorn: level prefix always 10 columns before message.
+        pad = " " * max(1, 9 - len(record.levelname))
+        level = f"{color}{record.levelname}{_RESET}:"
+        msg = record.getMessage()
+        line = f"{level}{pad}{msg}"
+        if record.exc_info:
+            line += "\n" + self.formatException(record.exc_info)
+        return line
 
 
 class _RequestIdFilter(logging.Filter):
@@ -51,11 +77,15 @@ class _ExcludeHealthFilter(logging.Filter):
 
 def _build_json_handler() -> logging.Handler:
     handler = logging.StreamHandler(sys.stdout)
-    fmt: logging.Formatter = _JsonFormatter(
-        fmt=_LOG_FMT,
-        datefmt="%Y-%m-%dT%H:%M:%S%z",
-    )
-    handler.setFormatter(fmt)
+    if _LOG_FORMAT == "console":
+        handler.setFormatter(_ConsoleFormatter())
+    else:
+        handler.setFormatter(
+            _JsonFormatter(
+                fmt=_LOG_FMT,
+                datefmt="%Y-%m-%dT%H:%M:%S%z",
+            )
+        )
     handler.addFilter(_RequestIdFilter())
     handler.addFilter(_ExcludeHealthFilter())
     return handler

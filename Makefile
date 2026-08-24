@@ -58,7 +58,7 @@ install-lefthook: ## Register git hooks (lefthook)
 
 # ─── Development ──────────────────────────────────────────────────────────────
 dev-backend: ## Start backend with auto-reload
-	@cd $(BACKEND_DIR) && uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
+	@cd $(BACKEND_DIR) && LOG_FORMAT=console uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
 dev-frontend: ## Start frontend (Turbopack HMR)
 	@cd $(FRONTEND_DIR) && pnpm dev
