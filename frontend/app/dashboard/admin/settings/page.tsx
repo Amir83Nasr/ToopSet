@@ -91,6 +91,7 @@ export default function AdminSettingsPage() {
   const { user } = useAuth()
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchFailed, setFetchFailed] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
   const [values, setValues] = useState<Record<string, string>>({})
 
@@ -99,12 +100,14 @@ export default function AdminSettingsPage() {
     try {
       const res = await api<Setting[]>("/api/v1/admin/settings")
       setSettings(res)
+      setFetchFailed(false)
       setValues((prev) => {
         const next = { ...prev }
         for (const s of res) next[s.key] = s.value
         return next
       })
     } catch {
+      setFetchFailed(true)
       toast.error("خطا در دریافت تنظیمات")
     } finally {
       setLoading(false)
@@ -200,8 +203,23 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
+      {/* Error */}
+      {!loading && fetchFailed && (
+        <div className="flex flex-col items-center justify-center gap-3 py-20">
+          <div className="rounded-full bg-destructive/10 p-4">
+            <Loader2 className="size-10 text-destructive" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            خطا در بارگذاری تنظیمات
+          </p>
+          <Button variant="outline" onClick={fetchSettings}>
+            تلاش مجدد
+          </Button>
+        </div>
+      )}
+
       {/* Empty */}
-      {!loading && settings.length === 0 && (
+      {!loading && !fetchFailed && settings.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
           <Settings2 className="size-10" />
           <p className="text-base font-medium">تنظیماتی یافت نشد</p>
@@ -209,7 +227,7 @@ export default function AdminSettingsPage() {
       )}
 
       {/* Settings sections */}
-      {!loading && settings.length > 0 && (
+      {!loading && !fetchFailed && settings.length > 0 && (
         <div className="space-y-8">
           {sections.map((section) => {
             const visibleKeys = section.keys.filter((k) => settingsMap.has(k))
@@ -299,6 +317,7 @@ export default function AdminSettingsPage() {
 
       {/* Hero images editor */}
       {!loading &&
+        !fetchFailed &&
         settings.length > 0 &&
         settingsMap.has("login_hero_slides") && (
           <HeroImagesEditor
@@ -308,24 +327,30 @@ export default function AdminSettingsPage() {
         )}
 
       {/* Rules text list editor */}
-      {!loading && settings.length > 0 && settingsMap.has("rules_text") && (
-        <ListSettingEditor
-          settingKey="rules_text"
-          label="قوانین و مقررات"
-          icon={<FileText className="size-4" />}
-          className="mt-8"
-        />
-      )}
+      {!loading &&
+        !fetchFailed &&
+        settings.length > 0 &&
+        settingsMap.has("rules_text") && (
+          <ListSettingEditor
+            settingKey="rules_text"
+            label="قوانین و مقررات"
+            icon={<FileText className="size-4" />}
+            className="mt-8"
+          />
+        )}
 
       {/* Privacy text list editor */}
-      {!loading && settings.length > 0 && settingsMap.has("privacy_text") && (
-        <ListSettingEditor
-          settingKey="privacy_text"
-          label="حریم خصوصی"
-          icon={<Shield className="size-4" />}
-          className="mt-8"
-        />
-      )}
+      {!loading &&
+        !fetchFailed &&
+        settings.length > 0 &&
+        settingsMap.has("privacy_text") && (
+          <ListSettingEditor
+            settingKey="privacy_text"
+            label="حریم خصوصی"
+            icon={<Shield className="size-4" />}
+            className="mt-8"
+          />
+        )}
     </div>
   )
 }
