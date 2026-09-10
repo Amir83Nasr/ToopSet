@@ -18,7 +18,6 @@ import {
   Shield,
   MessageSquare,
   Loader2,
-  Settings2,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { HeroImagesEditor } from "@/components/admin/hero-images-editor"
@@ -99,11 +98,21 @@ export default function AdminSettingsPage() {
     setLoading(true)
     try {
       const res = await api<Setting[]>("/api/v1/admin/settings")
-      setSettings(res)
+      let list = res
+      // HeroImagesEditor edits the row by id — create it on first visit so the
+      // editor also works on a fresh install whose settings table is empty.
+      if (!res.some((s) => s.key === "login_hero_slides")) {
+        const created = await api<Setting>(
+          "/api/v1/admin/settings/by-key/login_hero_slides",
+          { method: "PUT", body: JSON.stringify({ value: "[]" }) }
+        )
+        list = [...res, created]
+      }
+      setSettings(list)
       setFetchFailed(false)
       setValues((prev) => {
         const next = { ...prev }
-        for (const s of res) next[s.key] = s.value
+        for (const s of list) next[s.key] = s.value
         return next
       })
     } catch {
@@ -121,10 +130,9 @@ export default function AdminSettingsPage() {
 
   const handleSave = useCallback(
     async (key: string) => {
-      const setting = settings.find((s) => s.key === key)
-      if (!setting) return
+      const existing = settings.find((s) => s.key === key)
+      const newValue = values[key] ?? existing?.value ?? ""
 
-      const newValue = values[key] ?? setting.value
       const meta = settingMeta[key]
 
       if (meta?.validate) {
@@ -138,14 +146,16 @@ export default function AdminSettingsPage() {
       setSaving(key)
       try {
         const updated = await api<Setting>(
-          `/api/v1/admin/settings/${setting.id}`,
+          `/api/v1/admin/settings/by-key/${key}`,
           {
             method: "PUT",
             body: JSON.stringify({ value: newValue }),
           }
         )
         setSettings((prev) =>
-          prev.map((s) => (s.id === setting.id ? updated : s))
+          prev.some((s) => s.key === key)
+            ? prev.map((s) => (s.key === key ? updated : s))
+            : [...prev, updated]
         )
         toast.success(`"${meta?.label || key}" ذخیره شد`)
       } catch (err) {
@@ -218,21 +228,10 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      {/* Empty */}
-      {!loading && !fetchFailed && settings.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
-          <Settings2 className="size-10" />
-          <p className="text-base font-medium">تنظیماتی یافت نشد</p>
-        </div>
-      )}
-
-      {/* Settings sections */}
-      {!loading && !fetchFailed && settings.length > 0 && (
+      {/* Settings sections — fields always render, empty when not yet in DB */}
+      {!loading && !fetchFailed && (
         <div className="space-y-8">
           {sections.map((section) => {
-            const visibleKeys = section.keys.filter((k) => settingsMap.has(k))
-            if (!visibleKeys.length) return null
-
             return (
               <section key={section.title}>
                 <div className="mb-4">
@@ -242,17 +241,18 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <div className="space-y-px overflow-hidden rounded-xl border bg-card">
-                  {visibleKeys.map((key, idx) => {
-                    const setting = settingsMap.get(key)!
+                  {section.keys.map((key, idx) => {
+                    const setting = settingsMap.get(key)
                     const meta = settingMeta[key]
                     const isSaving = saving === key
-                    const hasChanged = values[key] !== setting.value
+                    const currentValue = values[key] ?? setting?.value ?? ""
+                    const hasChanged = currentValue !== (setting?.value ?? "")
 
                     return (
                       <div
                         key={key}
                         className={`group flex items-start gap-3 p-4 ${
-                          idx !== visibleKeys.length - 1 ? "border-b" : ""
+                          idx !== section.keys.length - 1 ? "border-b" : ""
                         }`}
                       >
                         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -266,15 +266,13 @@ export default function AdminSettingsPage() {
                               {meta?.label || key}
                             </label>
                           </div>
-                          {setting.description && (
+                          {setting?.description && (
                             <p className="text-xs text-muted-foreground">
                               {setting.description}
                             </p>
                           )}
                           <Input
-                            value={toPersianDigits(
-                              values[key] ?? setting.value
-                            )}
+                            value={toPersianDigits(currentValue)}
                             onChange={(e) =>
                               setValues((p) => ({
                                 ...p,
@@ -316,41 +314,32 @@ export default function AdminSettingsPage() {
       )}
 
       {/* Hero images editor */}
-      {!loading &&
-        !fetchFailed &&
-        settings.length > 0 &&
-        settingsMap.has("login_hero_slides") && (
-          <HeroImagesEditor
-            settingId={settingsMap.get("login_hero_slides")!.id}
-            className="mt-8"
-          />
-        )}
+      {!loading && !fetchFailed && settingsMap.has("login_hero_slides") && (
+        <HeroImagesEditor
+          settingId={settingsMap.get("login_hero_slides")!.id}
+          className="mt-8"
+        />
+      )}
 
       {/* Rules text list editor */}
-      {!loading &&
-        !fetchFailed &&
-        settings.length > 0 &&
-        settingsMap.has("rules_text") && (
-          <ListSettingEditor
-            settingKey="rules_text"
-            label="قوانین و مقررات"
-            icon={<FileText className="size-4" />}
-            className="mt-8"
-          />
-        )}
+      {!loading && !fetchFailed && (
+        <ListSettingEditor
+          settingKey="rules_text"
+          label="قوانین و مقررات"
+          icon={<FileText className="size-4" />}
+          className="mt-8"
+        />
+      )}
 
       {/* Privacy text list editor */}
-      {!loading &&
-        !fetchFailed &&
-        settings.length > 0 &&
-        settingsMap.has("privacy_text") && (
-          <ListSettingEditor
-            settingKey="privacy_text"
-            label="حریم خصوصی"
-            icon={<Shield className="size-4" />}
-            className="mt-8"
-          />
-        )}
+      {!loading && !fetchFailed && (
+        <ListSettingEditor
+          settingKey="privacy_text"
+          label="حریم خصوصی"
+          icon={<Shield className="size-4" />}
+          className="mt-8"
+        />
+      )}
     </div>
   )
 }

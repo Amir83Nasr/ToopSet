@@ -49,8 +49,6 @@ export function ListSettingEditor({
   const [items, setItems] = useState<string[]>([""])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [settingId, setSettingId] = useState<number | null>(null)
-
   const fetchSetting = useCallback(async () => {
     setLoading(true)
     try {
@@ -58,11 +56,8 @@ export function ListSettingEditor({
         "/api/v1/admin/settings"
       )
       const s = res.find((x) => x.key === settingKey)
-      if (s) {
-        setSettingId(s.id)
-        const parsed = parseItems(s.value)
-        setItems(parsed.length > 0 ? parsed : [""])
-      }
+      const parsed = s ? parseItems(s.value) : []
+      setItems(parsed.length > 0 ? parsed : [""])
     } catch {
       toast.error("خطا در دریافت تنظیمات")
     } finally {
@@ -105,12 +100,10 @@ export function ListSettingEditor({
   // ── Save ──
 
   const handleSave = async () => {
-    if (!settingId) return
-
     const valid = items.filter((s) => s.trim().length > 0)
     setSaving(true)
     try {
-      await api(`/api/v1/admin/settings/${settingId}`, {
+      await api(`/api/v1/admin/settings/by-key/${settingKey}`, {
         method: "PUT",
         body: JSON.stringify({ value: JSON.stringify(valid) }),
       })
@@ -132,10 +125,6 @@ export function ListSettingEditor({
         <Skeleton className="mb-2 h-24 w-full" />
       </div>
     )
-  }
-
-  if (!settingId) {
-    return null
   }
 
   return (

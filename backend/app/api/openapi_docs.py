@@ -453,6 +453,11 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "Admin endpoint that updates a system setting value, invalidates settings "
         "cache, and writes an audit log with the old and new value."
     ),
+    ("put", "/api/v1/admin/settings/by-key/{key}"): (
+        "Admin endpoint that creates a missing setting row or updates the existing "
+        "one by key, so the settings page can save fields on a fresh, unseeded "
+        "installation. Invalidates the settings cache and writes an audit log."
+    ),
     ("post", "/api/v1/admin/settings/seed"): (
         "Admin endpoint that inserts missing default settings such as platform "
         "name, support contact, commission, cancellation policy, rules, privacy, "

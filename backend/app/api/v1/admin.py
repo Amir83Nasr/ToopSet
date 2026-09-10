@@ -26,6 +26,7 @@ from app.api.deps import get_current_admin
 from app.core.card_security import decrypt_card_number
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.legal_content import LEGAL_SETTINGS
 from app.core.logger import log_action
 from app.core.pagination import decode_cursor, encode_cursor
 from app.core.phone import normalize_phone
@@ -700,6 +701,40 @@ async def hard_delete_review(
 
 # ── System settings ─────────────────────────────────────────────────
 
+# Default setting rows shared by the seed endpoint and the by-key upsert
+# below — the description map decorates rows the admin UI creates on a
+# fresh (unseeded) installation.
+_SETTING_SEED_DEFAULTS: list[dict[str, str]] = [
+    {"key": "platform_name", "value": "توپ‌سِت", "description": "نام پلتفرم"},
+    {"key": "support_phone", "value": "۰۹۳۰-۶۸۵۳۳۶۳", "description": "شماره پشتیبانی"},
+    {
+        "key": "support_email",
+        "value": "amirhossein.nasrollahi.main@gmail.com",
+        "description": "ایمیل پشتیبانی",
+    },
+    {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
+    {"key": "cancel_window_hours", "value": "48", "description": "مهلت کنسل کردن (ساعت)"},
+    *LEGAL_SETTINGS,
+    {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
+    {
+        "key": "pagination_limit",
+        "value": "15",
+        "description": "تعداد آیتم در هر صفحه برای جداول",
+    },
+    {
+        "key": "login_hero_slides",
+        "value": "[]",
+        "description": "تصاویر صفحات ورود و ثبت‌نام (JSON array of URLs)",
+    },
+    {
+        "key": "messenger_id",
+        "value": "toopset_support",
+        "description": "شناسه پیامرسان برای پشتیبانی",
+    },
+]
+
+_SETTING_DESCRIPTIONS: dict[str, str] = {d["key"]: d["description"] for d in _SETTING_SEED_DEFAULTS}
+
 
 @router.get("/settings", response_model=list[SettingResponse], summary="List system settings")
 async def list_settings(
@@ -761,6 +796,46 @@ async def update_setting(
     return setting
 
 
+@router.put(
+    "/settings/by-key/{key}",
+    response_model=SettingResponse,
+    summary="Create or update a system setting by key",
+)
+async def upsert_setting_by_key(
+    key: str,
+    data: SettingUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Update the setting with this key, or create it when no row exists.
+
+    Fresh installations start with an empty ``settings`` table; this lets the
+    admin settings page save a field that has never been seeded. Known keys
+    pick up their standard description on creation.
+    """
+    setting = (await db.execute(select(Setting).where(Setting.key == key))).scalar_one_or_none()
+
+    if setting:
+        old_value = setting.value
+        setting.value = data.value
+        action, detail = (
+            "setting_updated",
+            f"ویرایش تنظیمات | '{key}': '{old_value}' → '{data.value}'",
+        )
+    else:
+        setting = Setting(key=key, value=data.value, description=_SETTING_DESCRIPTIONS.get(key))
+        db.add(setting)
+        action, detail = "setting_created", f"ایجاد تنظیمات | '{key}' با مقدار '{data.value}'"
+
+    await db.commit()
+    await db.refresh(setting)
+    from app.services.cache_service import invalidate_admin_list_cache
+
+    await invalidate_admin_list_cache("settings")
+    await log_action(db, _.id, action, detail)
+    return setting
+
+
 @router.post("/settings/seed", status_code=status.HTTP_201_CREATED, summary="Seed default settings")
 async def seed_default_settings(
     db: AsyncSession = Depends(get_db),
@@ -768,37 +843,10 @@ async def seed_default_settings(
 ):
     from sqlalchemy import select
 
-    from app.core.legal_content import LEGAL_SETTINGS
     from app.models.setting import Setting
 
-    defaults = [
-        {"key": "platform_name", "value": "توپ‌سِت", "description": "نام پلتفرم"},
-        {"key": "support_phone", "value": "۰۹۳۰-۶۸۵۳۳۶۳", "description": "شماره پشتیبانی"},
-        {
-            "key": "support_email",
-            "value": "amirhossein.nasrollahi.main@gmail.com",
-            "description": "ایمیل پشتیبانی",
-        },
-        {"key": "commission_percent", "value": "10", "description": "درصد کمیسیون"},
-        {"key": "cancel_window_hours", "value": "48", "description": "مهلت کنسل کردن (ساعت)"},
-        *LEGAL_SETTINGS,
-        {"key": "faq_text", "value": "", "description": "متن سوالات متداول"},
-        {
-            "key": "pagination_limit",
-            "value": "15",
-            "description": "تعداد آیتم در هر صفحه برای جداول",
-        },
-        {
-            "key": "login_hero_slides",
-            "value": "[]",
-            "description": "تصاویر صفحات ورود و ثبت‌نام (JSON array of URLs)",
-        },
-        {
-            "key": "messenger_id",
-            "value": "toopset_support",
-            "description": "شناسه پیامرسان برای پشتیبانی",
-        },
-    ]
+    defaults = _SETTING_SEED_DEFAULTS
+
     count = 0
     for d in defaults:
         existing = await db.execute(select(Setting).where(Setting.key == d["key"]))

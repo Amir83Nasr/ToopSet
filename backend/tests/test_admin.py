@@ -260,6 +260,56 @@ class TestSettings:
         assert data["value"] == "updated_value"
         assert data["id"] == setting_id
 
+    async def test_upsert_setting_by_key_creates_missing_row(
+        self, client: AsyncClient, admin_token: dict
+    ) -> None:
+        """On a fresh install (empty settings table) the by-key upsert creates the row."""
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        resp = await client.put(
+            "/api/v1/admin/settings/by-key/upsert_probe_key",
+            json={"value": "created-from-scratch"},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["key"] == "upsert_probe_key"
+        assert data["value"] == "created-from-scratch"
+        assert data["id"] > 0
+
+        listed = await client.get("/api/v1/admin/settings", headers=headers)
+        assert any(s["key"] == "upsert_probe_key" for s in listed.json())
+
+    async def test_upsert_setting_by_key_updates_existing_row(
+        self, client: AsyncClient, admin_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        first = await client.put(
+            "/api/v1/admin/settings/by-key/messenger_id",
+            json={"value": "toopset_support"},
+            headers=headers,
+        )
+        assert first.status_code == 200
+
+        second = await client.put(
+            "/api/v1/admin/settings/by-key/messenger_id",
+            json={"value": "toopset_support_2"},
+            headers=headers,
+        )
+        assert second.status_code == 200
+        assert second.json()["id"] == first.json()["id"]
+        assert second.json()["value"] == "toopset_support_2"
+
+    async def test_upsert_setting_by_key_requires_admin(
+        self, client: AsyncClient, user_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        resp = await client.put(
+            "/api/v1/admin/settings/by-key/support_phone",
+            json={"value": "x"},
+            headers=headers,
+        )
+        assert resp.status_code == 403
+
     async def test_list_settings_without_admin_role(
         self, client: AsyncClient, user_token: dict
     ) -> None:
