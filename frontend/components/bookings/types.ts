@@ -39,6 +39,8 @@ export interface BookingDetail extends Booking {
   refund_paid_at: string | null
   refund_payment_tracking_code: string | null
   refund_destination_card_masked: string | null
+  /** True when a review was already submitted for this booking. */
+  has_review?: boolean
 }
 
 export interface BookingCancellationTerms {

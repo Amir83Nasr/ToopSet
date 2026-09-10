@@ -9,6 +9,7 @@ import { BookingTableSkeleton } from "@/components/bookings/booking-table-skelet
 import { BookingEmptyState } from "@/components/bookings/booking-empty-state"
 import { BookingTable } from "@/components/bookings/booking-table"
 import { BookingCancelDialog } from "@/components/bookings/booking-cancel-dialog"
+import { ReviewDialog } from "@/components/bookings/review-dialog"
 import type {
   BookingCancellationTerms,
   BookingDetail,
@@ -57,6 +58,8 @@ export default function BookingsPage() {
   const [payingId, setPayingId] = useState<number | null>(null)
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null)
   const [cancellingBooking, setCancellingBooking] =
+    useState<BookingDetail | null>(null)
+  const [reviewingBooking, setReviewingBooking] =
     useState<BookingDetail | null>(null)
   const [cancelTerms, setCancelTerms] =
     useState<BookingCancellationTerms | null>(null)
@@ -207,6 +210,12 @@ export default function BookingsPage() {
 
   const totalPages = Math.ceil(total / limit)
 
+  function handleReviewed(bookingId: number) {
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, has_review: true } : b))
+    )
+  }
+
   function handleTabChange(value: string) {
     setActiveTab(value as BookingTab)
     setPage(0)
@@ -269,6 +278,7 @@ export default function BookingsPage() {
                 onCancelClick={handleCancelClick}
                 withdrawingId={withdrawingId}
                 onWithdrawCancellation={handleWithdrawCancellation}
+                onReviewClick={setReviewingBooking}
                 showRefundStatus={activeTab === "cancelled"}
                 category={activeTab}
               />
@@ -294,6 +304,15 @@ export default function BookingsPage() {
         }}
         onConfirm={handleConfirmCancel}
         loading={cancellingLoading}
+      />
+
+      {/* Review submission for completed bookings */}
+      <ReviewDialog
+        booking={reviewingBooking}
+        onOpenChange={(o) => {
+          if (!o) setReviewingBooking(null)
+        }}
+        onReviewed={handleReviewed}
       />
     </div>
   )

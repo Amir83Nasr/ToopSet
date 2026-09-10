@@ -13,6 +13,7 @@ from app.repositories.booking_repo import BookingRepo
 from app.repositories.review_repo import ReviewRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.schemas.review import ReviewCreate, ReviewDetailResponse, ReviewListResponse
+from app.services.notification_service import NotificationService
 
 
 class ReviewService:
@@ -20,6 +21,7 @@ class ReviewService:
         self.review_repo = ReviewRepo(db)
         self.booking_repo = BookingRepo(db)
         self.slot_repo = TimeSlotRepo(db)
+        self.notifier = NotificationService(db)
         self.current_user = current_user
 
     async def list_my(
@@ -161,6 +163,15 @@ class ReviewService:
         if vendor_id:
             await self._recalc_vendor_rating(vendor_id)
 
+        # Tell the vendor's manager about the new review
+        if slot.vendor:
+            await self.notifier.review_received(
+                manager_id=slot.vendor.manager_id,
+                vendor_name=slot.vendor.name,
+                user_name=self.current_user.full_name,
+                rating=data.rating,
+            )
+
         # Enrich with vendor_name and user_name
         vendor_name = slot.vendor.name if slot.vendor else ""
         user_name = self.current_user.full_name
@@ -197,8 +208,15 @@ class ReviewService:
         await self.review_repo.db.flush()
         await self.review_repo.db.refresh(review)
 
+        # Tell the reviewer their review got a response
+        vendor_name = review.vendor.name if review.vendor else "مجموعه"
+        await self.notifier.review_response_added(
+            user_id=review.user_id,
+            vendor_name=vendor_name,
+        )
+
         item = ReviewDetailResponse.model_validate(review)
-        item.vendor_name = review.vendor.name if review.vendor else ""
+        item.vendor_name = vendor_name
         item.user_name = review.user.full_name if review.user else ""
         return item
 

@@ -329,3 +329,91 @@ class TestCreateReviewCommentTooLong:
             headers=headers,
         )
         assert resp.status_code == 422
+
+
+class TestReviewEventNotifications:
+    """Review creation notifies the vendor manager; responses notify the reviewer."""
+
+    async def _create_review(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> dict:
+        from sqlalchemy import select
+
+        from app.models.notification import Notification
+
+        setup = await _setup_review_scenario(client, manager_token, user_token, session)
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        resp = await client.post(
+            "/api/v1/reviews",
+            json={
+                "booking_id": setup["booking_id"],
+                "rating": 5,
+                "comment": "عالی بود",
+            },
+            headers=user_headers,
+        )
+        assert resp.status_code == 201, resp.text
+
+        manager_id = manager_token["user"]["id"]
+        result = await session.execute(
+            select(Notification)
+            .where(Notification.user_id == manager_id, Notification.type == "review_received")
+            .order_by(Notification.id.desc())
+            .limit(1)
+        )
+        manager_notif = result.scalar_one_or_none()
+        assert manager_notif is not None, "vendor manager must be notified about the new review"
+        assert "۵" in manager_notif.message
+        return setup
+
+    async def test_create_review_notifies_manager(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        await self._create_review(client, manager_token, user_token, session)
+
+    async def test_respond_notifies_reviewer(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        from sqlalchemy import select
+
+        from app.models.notification import Notification
+
+        await self._create_review(client, manager_token, user_token, session)
+
+        reviews_resp = await client.get(
+            "/api/v1/reviews/my", headers={"Authorization": f"Bearer {user_token['access_token']}"}
+        )
+        assert reviews_resp.status_code == 200
+        review_id = reviews_resp.json()["reviews"][0]["id"]
+
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        respond_resp = await client.post(
+            f"/api/v1/reviews/{review_id}/respond",
+            json={"response": "ممنون از نظر شما"},
+            headers=mgr_headers,
+        )
+        assert respond_resp.status_code == 200, respond_resp.text
+        assert respond_resp.json()["response"] == "ممنون از نظر شما"
+
+        user_id = user_token["user"]["id"]
+        result = await session.execute(
+            select(Notification)
+            .where(Notification.user_id == user_id, Notification.type == "review_response")
+            .order_by(Notification.id.desc())
+            .limit(1)
+        )
+        user_notif = result.scalar_one_or_none()
+        assert user_notif is not None, "reviewer must be notified about the vendor response"
+        assert "پاسخ" in user_notif.message

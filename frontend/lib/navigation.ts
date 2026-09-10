@@ -13,6 +13,7 @@ import {
   Calendar,
   Undo2,
   ClipboardCheck,
+  Star,
 } from "lucide-react"
 
 export interface NavItem {
@@ -163,6 +164,11 @@ export const navGroups: NavGroup[] = [
         icon: Calendar,
       },
       {
+        title: "نظرات من",
+        url: "/dashboard/reviews",
+        icon: Star,
+      },
+      {
         title: "پرداخت‌ها",
         url: "/dashboard/payments",
         icon: CreditCard,
@@ -184,6 +190,11 @@ export const navGroups: NavGroup[] = [
         title: "پروفایل",
         url: "/dashboard/settings",
         icon: UserCircle,
+      },
+      {
+        title: "نظرات من",
+        url: "/dashboard/reviews",
+        icon: Star,
       },
     ],
   },

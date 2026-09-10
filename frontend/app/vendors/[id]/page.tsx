@@ -7,7 +7,7 @@ import Image from "next/image"
 import { api, ApiError, buildVendorImageUrl } from "@/lib/api"
 import { buildNeshanShareUrl } from "@/lib/neshan-share"
 import { toast } from "@/lib/toast"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatPersianDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -970,6 +970,21 @@ export default function PublicVendorDetailPage() {
                             {review.comment}
                           </p>
                         )}
+                        {review.response && (
+                          <div className="mt-2 rounded-md border bg-background p-2.5">
+                            <p className="mb-1 text-[11px] font-semibold text-primary">
+                              پاسخ مجموعه
+                            </p>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              {review.response}
+                            </p>
+                          </div>
+                        )}
+                        {review.created_at && (
+                          <p className="mt-1.5 text-[11px] text-muted-foreground/70">
+                            {formatPersianDate(review.created_at)}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -994,9 +1009,7 @@ export default function PublicVendorDetailPage() {
           >
             <ResponsiveDialogContent className="sm:max-w-md">
               <ResponsiveDialogHeader>
-                <ResponsiveDialogTitle>
-                  رزرو سانس
-                </ResponsiveDialogTitle>
+                <ResponsiveDialogTitle>رزرو سانس</ResponsiveDialogTitle>
                 <ResponsiveDialogDescription>
                   {vendor?.name}
                 </ResponsiveDialogDescription>

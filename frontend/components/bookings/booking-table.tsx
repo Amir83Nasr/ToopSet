@@ -13,6 +13,8 @@ import {
   CreditCard,
   Loader2,
   MapPin,
+  MessageSquarePlus,
+  Star,
   Undo2,
 } from "lucide-react"
 import type { BookingDetail } from "@/components/bookings/types"
@@ -85,6 +87,8 @@ interface BookingTableProps {
   onCancelClick: (booking: BookingDetail) => void
   withdrawingId: number | null
   onWithdrawCancellation: (bookingId: number) => void
+  /** Opens the review dialog for a completed booking (past tab only). */
+  onReviewClick?: (booking: BookingDetail) => void
   showRefundStatus?: boolean
   category: "current" | "past" | "cancelled"
 }
@@ -99,7 +103,9 @@ export function BookingTable({
   onCancelClick,
   withdrawingId,
   onWithdrawCancellation,
+  onReviewClick,
   showRefundStatus = false,
+  category,
 }: BookingTableProps) {
   const [now, setNow] = useState(() => Date.now())
 
@@ -136,10 +142,21 @@ export function BookingTable({
               b.refund_paid_at ||
               b.refund_payment_tracking_code
             )
+          const isCompleted =
+            b.status === "confirmed" &&
+            b.slot_end_time !== null &&
+            new Date(b.slot_end_time).getTime() <= now
+          const canReview =
+            category === "past" &&
+            Boolean(onReviewClick) &&
+            isCompleted &&
+            !b.has_review
           const hasAction =
             b.status === "pending_payment" ||
             (canCancel && b.status === "confirmed") ||
-            b.status === "pending_cancellation"
+            b.status === "pending_cancellation" ||
+            canReview ||
+            (isCompleted && b.has_review)
 
           return (
             <div
@@ -324,6 +341,22 @@ export function BookingTable({
                       )}
                       انصراف از لغو
                     </Button>
+                  )}
+                  {canReview && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => onReviewClick?.(b)}
+                    >
+                      <MessageSquarePlus className="me-1.5 size-4" />
+                      ثبت نظر
+                    </Button>
+                  )}
+                  {isCompleted && b.has_review && (
+                    <div className="flex items-center justify-center gap-1.5 rounded-md border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+                      <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                      نظر شما ثبت شده است
+                    </div>
                   )}
                 </div>
               )}

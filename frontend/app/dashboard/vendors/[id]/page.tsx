@@ -30,11 +30,13 @@ import { VendorDetailsTab } from "@/components/vendors/dashboard/vendor-details-
 import { VendorScheduleTab } from "@/components/vendors/dashboard/vendor-schedule-tab"
 import { VendorBookingsTab } from "@/components/vendors/dashboard/vendor-bookings-tab"
 import { VendorFinanceTab } from "@/components/vendors/dashboard/vendor-finance-tab"
+import { VendorReviewsTab } from "@/components/vendors/dashboard/vendor-reviews-tab"
 import {
   Building2,
   CalendarDays,
   ArrowRight,
   CalendarCheck,
+  MessageSquareText,
   Wallet,
 } from "lucide-react"
 
@@ -349,6 +351,13 @@ export default function DashboardVendorEditPage() {
                 <Wallet className="size-4 sm:size-5" />
                 مالی
               </TabsTrigger>
+              <TabsTrigger
+                value="reviews"
+                className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
+              >
+                <MessageSquareText className="size-4 sm:size-5" />
+                نظرات
+              </TabsTrigger>
             </>
           )}
         </TabsList>
@@ -423,6 +432,13 @@ export default function DashboardVendorEditPage() {
                 }}
                 onRequestSettlement={handleRequestSettlement}
               />
+            </TabsContent>
+
+            <TabsContent
+              value="reviews"
+              className="mt-4 min-w-0 flex-1 sm:mt-8"
+            >
+              <VendorReviewsTab vendorId={vendorId} canRespond={canManage} />
             </TabsContent>
           </>
         )}
