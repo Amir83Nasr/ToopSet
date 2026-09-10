@@ -36,8 +36,8 @@ const RATING_HINTS: Record<number, string> = {
 
 /**
  * Submit a 1–5 star review (plus optional comment) for a completed booking.
- * The backend enforces one review per booking and a 2-hour cooldown after the
- * slot ends; those errors surface as Persian toasts.
+ * The backend enforces one review per booking and that the slot has ended;
+ * those errors surface as Persian toasts.
  */
 export function ReviewDialog({
   booking,

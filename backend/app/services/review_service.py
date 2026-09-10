@@ -118,12 +118,12 @@ class ReviewService:
                 detail="سانس یافت نشد",
             )
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timezone
 
-        if slot.end_time + timedelta(hours=2) > datetime.now(timezone.utc):
+        if slot.end_time > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="امکان ثبت نظر ۲ ساعت پس از پایان سانس فراهم است",
+                detail="امکان ثبت نظر پس از پایان سانس فراهم است",
             )
 
         # Validate no existing review for this booking

@@ -331,6 +331,87 @@ class TestCreateReviewCommentTooLong:
         assert resp.status_code == 422
 
 
+class TestCreateReviewTiming:
+    """POST /reviews — the slot must have ended; no cooldown afterwards."""
+
+    async def _setup_with_slot_times(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+        *,
+        slot_start: datetime,
+        slot_end: datetime,
+    ) -> int:
+        vendor_id = await _create_vendor(client, manager_token)
+        await session.execute(
+            text("UPDATE vendors SET is_active = true WHERE id = :vendor_id"),
+            {"vendor_id": vendor_id},
+        )
+        await session.flush()
+        slot = await _create_past_slot(client, vendor_id, manager_token)
+        booking = await _create_booking(client, slot["id"], slot["version"], user_token)
+
+        booking_row = await session.get(Booking, booking["id"])
+        assert booking_row is not None
+        booking_row.status = BookingStatus.CONFIRMED
+        slot_row = await session.get(TimeSlot, slot["id"])
+        assert slot_row is not None
+        slot_row.start_time = slot_start
+        slot_row.end_time = slot_end
+        slot_row.is_reserved = True
+        await session.flush()
+        return booking["id"]
+
+    async def test_review_allowed_immediately_after_slot_end(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        now = datetime.now(timezone.utc)
+        booking_id = await self._setup_with_slot_times(
+            client,
+            manager_token,
+            user_token,
+            session,
+            slot_start=now - timedelta(hours=2),
+            slot_end=now - timedelta(minutes=1),
+        )
+        resp = await client.post(
+            "/api/v1/reviews",
+            json={"booking_id": booking_id, "rating": 5, "comment": "تازه تمام شد"},
+            headers={"Authorization": f"Bearer {user_token['access_token']}"},
+        )
+        assert resp.status_code == 201, resp.text
+
+    async def test_review_rejected_before_slot_end(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        now = datetime.now(timezone.utc)
+        booking_id = await self._setup_with_slot_times(
+            client,
+            manager_token,
+            user_token,
+            session,
+            slot_start=now - timedelta(hours=1),
+            slot_end=now + timedelta(minutes=30),
+        )
+        resp = await client.post(
+            "/api/v1/reviews",
+            json={"booking_id": booking_id, "rating": 5, "comment": "هنوز تمام نشده"},
+            headers={"Authorization": f"Bearer {user_token['access_token']}"},
+        )
+        assert resp.status_code == 400
+        assert "پایان سانس" in resp.json()["detail"]
+
+
 class TestReviewEventNotifications:
     """Review creation notifies the vendor manager; responses notify the reviewer."""
 
