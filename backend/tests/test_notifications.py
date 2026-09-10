@@ -480,6 +480,16 @@ class TestBookingEventNotifications:
         assert notification is not None, "user must be notified about their cancellation"
         assert "لغو" in notification.message
         assert "۹۰٬۰۰۰" in notification.message, "message must state the refund amount"
+        # Precision: weekday + Jalali date + the slot's time window (Jalali digits)
+        from app.core.timezone import utc_to_iran
+        from app.services.notification_service import _to_persian_digits
+
+        assert "ساعت" in notification.message
+        assert "تا" in notification.message
+        expected_start = _to_persian_digits(utc_to_iran(start).strftime("%H:%M"))
+        expected_end = _to_persian_digits(utc_to_iran(start + timedelta(hours=2)).strftime("%H:%M"))
+        assert expected_start in notification.message
+        assert expected_end in notification.message
 
         manager_notification = await _last_notification(session, manager_id, "booking_cancelled")
         assert manager_notification is not None, "manager must be notified about the cancellation"
@@ -579,6 +589,7 @@ class TestBookingEventNotifications:
         user_notif = await _last_notification(session, user_id, "booking_pending_replacement")
         assert user_notif is not None, "user must be notified about pending replacement"
         assert "جایگزین" in user_notif.message
+        assert "ساعت" in user_notif.message, "message must carry the slot time window"
 
         manager_notif = await _last_notification(session, manager_id, "booking_pending_replacement")
         assert manager_notif is not None, "manager must be notified about pending replacement"

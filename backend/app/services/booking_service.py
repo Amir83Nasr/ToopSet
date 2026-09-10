@@ -903,6 +903,7 @@ class BookingService:
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
                 booking_id=booking.id,
+                end_time=slot.end_time,
             )
 
         await log_action(
@@ -1210,6 +1211,7 @@ class BookingService:
             user_id=booking.user_id,
             vendor_name=slot.vendor.name if slot and slot.vendor else "مجموعه",
             start_time=slot.start_time if slot else None,
+            end_time=slot.end_time if slot else None,
         )
         await self.db.commit()
         return True
@@ -1551,6 +1553,7 @@ class BookingService:
                 vendor_name=slot.vendor.name,
                 start_time=slot.start_time,
                 booking_id=booking.id,
+                end_time=slot.end_time,
             )
         await send_booking_confirmation_sms_for_booking(booking)
         return await self.get_booking(booking.id)
@@ -1781,6 +1784,8 @@ class BookingService:
             user_id=original.user_id,
             vendor_name=vendor.name if vendor else "مجموعه",
             refund_amount=request.refund_amount,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
         )
         await self.notifier.booking_confirmed_for_user(
             user_id=hold.user_id,
@@ -1793,6 +1798,7 @@ class BookingService:
                 manager_id=vendor.manager_id,
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
+                end_time=slot.end_time,
             )
         await log_action(
             self.db,
@@ -2212,6 +2218,7 @@ class BookingService:
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
                 booking_id=booking.id,
+                end_time=slot.end_time,
             )
 
         await log_action(
@@ -2706,6 +2713,7 @@ class BookingService:
                 vendor_name=vendor.name if vendor else "مجموعه",
                 start_time=slot.start_time,
                 refund_amount=refund_amount,
+                end_time=slot.end_time,
             )
             if vendor:
                 await self.notifier.booking_pending_replacement_for_manager(
@@ -2713,6 +2721,7 @@ class BookingService:
                     vendor_name=vendor.name,
                     start_time=slot.start_time,
                     booking_id=booking.id,
+                    end_time=slot.end_time,
                 )
             payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
@@ -2787,6 +2796,7 @@ class BookingService:
             start_time=slot.start_time,
             refund_amount=refund_amount,
             penalty_amount=penalty_amount,
+            end_time=slot.end_time,
         )
         if vendor:
             await self.notifier.booking_cancelled_for_manager(
@@ -2794,6 +2804,7 @@ class BookingService:
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
                 booking_id=booking.id,
+                end_time=slot.end_time,
             )
 
         await log_action(
@@ -2875,7 +2886,12 @@ class BookingService:
         if slot:
             await self.slot_repo.update(slot, {"status": SlotStatus.RESERVED, "is_reserved": True})
             await invalidate_slot_list(slot.vendor_id)
-        await self.notifier.cancellation_withdrawn(user_id=booking.user_id)
+        await self.notifier.cancellation_withdrawn(
+            user_id=booking.user_id,
+            vendor_name=slot.vendor.name if slot.vendor else None,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+        )
         await log_action(
             self.db,
             self.current_user.id,

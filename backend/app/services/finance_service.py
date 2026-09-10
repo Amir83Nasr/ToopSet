@@ -327,7 +327,12 @@ class FinanceService:
             booking.user.full_name if booking.user else None
         )
         affected_phone = booking.customer_phone or (booking.user.phone if booking.user else None)
-        message = f"سانس شما در مجموعه {vendor.name} لغو شد."
+        from app.services.notification_service import format_slot_label
+
+        message = (
+            f"سانس شما در مجموعه {vendor.name} "
+            f"({format_slot_label(slot.start_time, slot.end_time)}) لغو شد."
+        )
         notification_status = "not_created"
         sms_status = "not_sent"
         notification = None

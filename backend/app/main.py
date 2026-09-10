@@ -132,6 +132,7 @@ async def _cancel_expired_pending():
                         user_id=b.user_id,
                         vendor_name=vendor_name,
                         start_time=slot.start_time if slot else None,
+                        end_time=slot.end_time if slot else None,
                     )
                 if expired:
                     await db.commit()
