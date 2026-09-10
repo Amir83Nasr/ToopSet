@@ -315,3 +315,362 @@ class TestMarkAllRead:
         mgr_resp = await client.get("/api/v1/notifications?unread_only=true", headers=mgr_headers)
         assert mgr_resp.status_code == 200
         assert mgr_resp.json()["total"] == 1
+
+
+# ── Domain-event notification integration ────────────────────────────────────
+
+
+class TestJalaliFormatting:
+    """Pure formatting helpers produce Persian Jalali labels."""
+
+    async def test_format_jalali_date(self) -> None:
+        from datetime import datetime, timezone
+
+        from app.services.notification_service import format_jalali_date
+
+        # 2026-09-09 12:00 UTC == 2026-09-09 15:30 Iran == ۱۸ شهریور ۱۴۰۵ (Wednesday)
+        dt = datetime(2026, 9, 9, 12, 0, tzinfo=timezone.utc)
+        label = format_jalali_date(dt)
+        assert "شهریور" in label
+        assert "۱۴۰۵" in label
+        assert label.split()[0] in (
+            "شنبه",
+            "یکشنبه",
+            "دوشنبه",
+            "سه‌شنبه",
+            "چهارشنبه",
+            "پنجشنبه",
+            "جمعه",
+        )
+
+    async def test_format_slot_label_includes_time_window(self) -> None:
+        from datetime import datetime, timezone
+
+        from app.services.notification_service import format_slot_label
+
+        start = datetime(2026, 9, 9, 14, 30, tzinfo=timezone.utc)
+        end = datetime(2026, 9, 9, 16, 30, tzinfo=timezone.utc)
+        label = format_slot_label(start, end)
+        assert "ساعت" in label
+        assert "تا" in label
+        assert "۱۸" in label and "۲۰" in label  # Iran local hours
+
+    async def test_format_toman(self) -> None:
+        from decimal import Decimal
+
+        from app.services.notification_service import format_toman
+
+        assert format_toman(Decimal("90000")) == "۹۰٬۰۰۰ تومان"
+        assert format_toman(0) == "۰ تومان"
+
+
+async def _last_notification(
+    session: AsyncSession, user_id: int, type_: str
+) -> Notification | None:
+    from sqlalchemy import select
+
+    result = await session.execute(
+        select(Notification)
+        .where(Notification.user_id == user_id, Notification.type == type_)
+        .order_by(Notification.id.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+class TestBookingEventNotifications:
+    """Booking lifecycle events create in-app notifications."""
+
+    async def test_cancel_confirmed_booking_notifies_user_and_manager(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        """>48h cancellation sends the «لغو شد» message to the user and the manager."""
+        from datetime import datetime, timedelta, timezone
+
+        from sqlalchemy import text
+
+        from app.models.bank_card import BankCard, BankCardStatus
+        from app.models.booking import Booking as BookingModel
+        from app.models.booking import BookingStatus
+        from app.models.time_slot import TimeSlot
+
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        user_id = user_token["user"]["id"]
+        manager_id = manager_token["user"]["id"]
+
+        vendor_resp = await client.post(
+            "/api/v1/vendors",
+            json={
+                "name": "زمین اعلان تست",
+                "sport_types": ["futsal"],
+                "address": "قم",
+                "latitude": 34.64,
+                "longitude": 50.87,
+                "capacity": 10,
+            },
+            headers=mgr_headers,
+        )
+        assert vendor_resp.status_code == 201, vendor_resp.text
+        vendor_id = vendor_resp.json()["id"]
+        await session.execute(
+            text("UPDATE vendors SET is_active = true WHERE id = :v"), {"v": vendor_id}
+        )
+        await session.flush()
+
+        # Slot >48h away → cancellation lands in the refund-with-penalty branch
+        start = datetime.now(timezone.utc) + timedelta(days=5)
+        slot_resp = await client.post(
+            f"/api/v1/vendors/{vendor_id}/slots",
+            json={
+                "vendor_id": vendor_id,
+                "start_time": start.isoformat(),
+                "end_time": (start + timedelta(hours=2)).isoformat(),
+                "base_price": 100000,
+            },
+            headers=mgr_headers,
+        )
+        assert slot_resp.status_code == 201, slot_resp.text
+        slot = slot_resp.json()
+
+        booking_resp = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot["id"], "version": slot["version"]},
+            headers=user_headers,
+        )
+        assert booking_resp.status_code == 201, booking_resp.text
+        booking_id = booking_resp.json()["id"]
+
+        # Confirm the booking directly in the DB (mock gateway is flaky) and
+        # give the user a verified bank card for the refund destination.
+        booking = await session.get(BookingModel, booking_id)
+        assert booking is not None
+        booking.status = BookingStatus.CONFIRMED
+        booking.expires_at = None
+        ts = await session.get(TimeSlot, slot["id"])
+        assert ts is not None
+        ts.status = "reserved"
+        session.add(
+            BankCard(
+                user_id=user_id,
+                encrypted_card_number="test-encrypted",
+                masked_card_number="6104 **** **** 1234",
+                card_fingerprint=f"test-fp-{user_id}",
+                status=BankCardStatus.VERIFIED,
+            )
+        )
+        await session.flush()
+
+        cancel_resp = await client.post(
+            f"/api/v1/bookings/{booking_id}/cancel",
+            json={
+                "accepted_terms": True,
+                "expected_mode": "refund_with_penalty",
+            },
+            headers=user_headers,
+        )
+        assert cancel_resp.status_code == 200, cancel_resp.text
+        assert cancel_resp.json()["status"] == "cancelled"
+
+        notification = await _last_notification(session, user_id, "booking_cancelled")
+        assert notification is not None, "user must be notified about their cancellation"
+        assert "لغو" in notification.message
+        assert "۹۰٬۰۰۰" in notification.message, "message must state the refund amount"
+
+        manager_notification = await _last_notification(session, manager_id, "booking_cancelled")
+        assert manager_notification is not None, "manager must be notified about the cancellation"
+
+    async def test_cancel_pending_replacement_notifies_user_and_manager(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        """≤48h cancellation (pending replacement) notifies both user and manager."""
+        from datetime import datetime, timedelta, timezone
+
+        from sqlalchemy import text
+
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        user_id = user_token["user"]["id"]
+        manager_id = manager_token["user"]["id"]
+
+        vendor_resp = await client.post(
+            "/api/v1/vendors",
+            json={
+                "name": "زمین جایگزینی تست",
+                "sport_types": ["futsal"],
+                "address": "قم",
+                "latitude": 34.64,
+                "longitude": 50.87,
+                "capacity": 10,
+            },
+            headers=mgr_headers,
+        )
+        assert vendor_resp.status_code == 201, vendor_resp.text
+        vendor_id = vendor_resp.json()["id"]
+        await session.execute(
+            text("UPDATE vendors SET is_active = true WHERE id = :v"), {"v": vendor_id}
+        )
+        await session.flush()
+
+        # Slot starts in 24h → cancel lands in the pending-replacement branch
+        start = datetime.now(timezone.utc) + timedelta(hours=24)
+        slot_resp = await client.post(
+            f"/api/v1/vendors/{vendor_id}/slots",
+            json={
+                "vendor_id": vendor_id,
+                "start_time": start.isoformat(),
+                "end_time": (start + timedelta(hours=2)).isoformat(),
+                "base_price": 100000,
+            },
+            headers=mgr_headers,
+        )
+        assert slot_resp.status_code == 201, slot_resp.text
+        slot = slot_resp.json()
+
+        booking_resp = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot["id"], "version": slot["version"]},
+            headers=user_headers,
+        )
+        assert booking_resp.status_code == 201, booking_resp.text
+        booking_id = booking_resp.json()["id"]
+
+        # Confirm the booking directly in the DB (mock gateway is flaky) and
+        # give the user a verified bank card for the refund destination.
+        from app.models.bank_card import BankCard, BankCardStatus
+        from app.models.booking import Booking as BookingModel
+        from app.models.booking import BookingStatus
+        from app.models.time_slot import TimeSlot
+
+        booking = await session.get(BookingModel, booking_id)
+        assert booking is not None
+        booking.status = BookingStatus.CONFIRMED
+        booking.expires_at = None
+        ts = await session.get(TimeSlot, slot["id"])
+        assert ts is not None
+        ts.status = "reserved"
+        session.add(
+            BankCard(
+                user_id=user_id,
+                encrypted_card_number="test-encrypted",
+                masked_card_number="6104 **** **** 1234",
+                card_fingerprint=f"test-fp-repl-{user_id}",
+                status=BankCardStatus.VERIFIED,
+            )
+        )
+        await session.flush()
+
+        cancel_resp = await client.post(
+            f"/api/v1/bookings/{booking_id}/cancel",
+            json={"accepted_terms": True},
+            headers=user_headers,
+        )
+        assert cancel_resp.status_code == 200, cancel_resp.text
+        assert cancel_resp.json()["status"] == "pending_cancellation"
+
+        user_notif = await _last_notification(session, user_id, "booking_pending_replacement")
+        assert user_notif is not None, "user must be notified about pending replacement"
+        assert "جایگزین" in user_notif.message
+
+        manager_notif = await _last_notification(session, manager_id, "booking_pending_replacement")
+        assert manager_notif is not None, "manager must be notified about pending replacement"
+
+
+class TestRefundStatusNotifications:
+    """Admin refund decisions notify the refund's owner."""
+
+    async def test_refund_approval_notifies_user(
+        self,
+        client: AsyncClient,
+        manager_token: dict,
+        user_token: dict,
+        admin_token: dict,
+        session: AsyncSession,
+    ) -> None:
+        from datetime import datetime, timedelta, timezone
+        from decimal import Decimal
+
+        from sqlalchemy import text
+
+        from app.models.refund import Refund, RefundType
+
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        admin_headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        user_id = user_token["user"]["id"]
+
+        vendor_resp = await client.post(
+            "/api/v1/vendors",
+            json={
+                "name": "زمین عودت تست",
+                "sport_types": ["futsal"],
+                "address": "قم",
+                "latitude": 34.64,
+                "longitude": 50.87,
+                "capacity": 10,
+            },
+            headers=mgr_headers,
+        )
+        assert vendor_resp.status_code == 201, vendor_resp.text
+        vendor_id = vendor_resp.json()["id"]
+        await session.execute(
+            text("UPDATE vendors SET is_active = true WHERE id = :v"), {"v": vendor_id}
+        )
+        await session.flush()
+
+        start = datetime.now(timezone.utc) + timedelta(days=3)
+        slot_resp = await client.post(
+            f"/api/v1/vendors/{vendor_id}/slots",
+            json={
+                "vendor_id": vendor_id,
+                "start_time": start.isoformat(),
+                "end_time": (start + timedelta(hours=2)).isoformat(),
+                "base_price": 100000,
+            },
+            headers=mgr_headers,
+        )
+        assert slot_resp.status_code == 201, slot_resp.text
+        slot = slot_resp.json()
+
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        booking_resp = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot["id"], "version": slot["version"]},
+            headers=user_headers,
+        )
+        assert booking_resp.status_code == 201, booking_resp.text
+        booking_id = booking_resp.json()["id"]
+
+        refund = Refund(
+            booking_id=booking_id,
+            user_id=user_id,
+            vendor_id=vendor_id,
+            slot_id=slot["id"],
+            slot_start_time=start,
+            slot_end_time=start + timedelta(hours=2),
+            original_amount=Decimal("100000"),
+            total_paid=Decimal("100000"),
+            refund_amount=Decimal("90000"),
+            reason="test refund",
+            type=RefundType.USER_CANCELLATION,
+        )
+        session.add(refund)
+        await session.flush()
+
+        update_resp = await client.patch(
+            f"/api/v1/admin/refunds/{refund.id}",
+            json={"status": "approved"},
+            headers=admin_headers,
+        )
+        assert update_resp.status_code == 200, update_resp.text
+
+        notification = await _last_notification(session, user_id, "refund_approved")
+        assert notification is not None, "user must be notified about refund approval"
+        assert "۹۰٬۰۰۰" in notification.message

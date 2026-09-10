@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Home } from "lucide-react"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -99,6 +100,7 @@ export function SiteHeader() {
       </div>
       <div className="flex-1" />
       <div className="flex shrink-0 items-center gap-1.5 px-3 sm:gap-2 sm:px-4">
+        <NotificationBell />
         <div className="max-sm:hidden">
           <ModeToggle />
         </div>

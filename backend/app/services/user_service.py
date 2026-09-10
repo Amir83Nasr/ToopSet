@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.logger import log_action
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
+from app.services.notification_service import NotificationService
 
 
 class UserService:
@@ -65,6 +66,8 @@ class UserService:
             f"تغییر نقش کاربر | '{user.full_name}' (id={target_id}): {old_role} → {new_role}",
         )
 
+        await NotificationService(self.repo.db).role_changed(user_id=target_id, new_role=new_role)
+
         return updated
 
     async def toggle_active(self, admin_user: User, target_id: int):
@@ -104,6 +107,10 @@ class UserService:
             admin_user.id,
             "user_toggled",
             f"تغییر وضعیت کاربر | '{user.full_name}' (id={target_id}) → {new_status}",
+        )
+
+        await NotificationService(self.repo.db).account_status_changed(
+            user_id=target_id, is_active=updated.is_active
         )
 
         return updated

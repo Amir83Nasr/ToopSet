@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 
 const DesktopUserMenu = dynamic(
   () =>
@@ -61,6 +62,7 @@ export function SiteHeader() {
 
         {/* Desktop Auth + theme toggle */}
         <div className="flex items-center gap-1">
+          <NotificationBell />
           <ModeToggle />
           <div className="hidden md:flex">
             <Suspense

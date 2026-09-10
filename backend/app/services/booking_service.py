@@ -26,10 +26,10 @@ from app.models.time_slot import SlotStatus
 from app.models.user import User
 from app.repositories.bank_card_repo import BankCardRepo
 from app.repositories.booking_repo import BookingRepo
-from app.repositories.notification_repo import NotificationRepo
 from app.repositories.payment_repo import PaymentRepo
 from app.repositories.penalty_repo import PenaltyRepo
 from app.repositories.replacement_repo import ReplacementRepo
+from app.repositories.review_repo import ReviewRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.repositories.wallet_repo import WalletRepo
 from app.schemas.booking import (
@@ -52,6 +52,7 @@ from app.schemas.payment import (
 from app.services.bank_card_service import BankCardService
 from app.services.cache_service import invalidate_slot_list
 from app.services.finance_service import FinanceService
+from app.services.notification_service import NotificationService
 from app.services.payment_service import (
     FraudDetectionError,
     GatewayTimeoutError,
@@ -75,11 +76,12 @@ class BookingService:
         self.booking_repo = BookingRepo(db)
         self.slot_repo = TimeSlotRepo(db)
         self.payment_repo = PaymentRepo(db)
-        self.notify_repo = NotificationRepo(db)
+        self.notifier = NotificationService(db)
         self.penalty_repo = PenaltyRepo(db)
         self.wallet_repo = WalletRepo(db)
         self.bank_card_repo = BankCardRepo(db)
         self.replacement_repo = ReplacementRepo(db)
+        self.review_repo = ReviewRepo(db)
         self.db = db
         self.current_user = current_user
 
@@ -573,6 +575,7 @@ class BookingService:
             )
             for refund in refund_rows.scalars().all():
                 refund_map.setdefault(refund.booking_id, refund)
+        reviewed_ids = await self.review_repo.booking_ids_with_reviews([b.id for b in bookings])
         result = []
         for b in bookings:
             slot = b.slot  # already loaded via selectinload in the repo
@@ -608,6 +611,7 @@ class BookingService:
                     refund_destination_card_masked=(
                         refund.destination_card_masked if refund else None
                     ),
+                    has_review=b.id in reviewed_ids,
                 )
             )
         return result
@@ -714,6 +718,7 @@ class BookingService:
             refund_paid_at=refund.paid_at if refund else None,
             refund_payment_tracking_code=refund.payment_tracking_code if refund else None,
             refund_destination_card_masked=(refund.destination_card_masked if refund else None),
+            has_review=await self.review_repo.get_by_booking(booking_id) is not None,
         )
 
     async def create_booking(self, data: BookingCreate) -> BookingCreateResponse:
@@ -893,10 +898,11 @@ class BookingService:
 
         # Notify manager about new booking
         if vendor:
-            await self.notify_repo.create(
-                user_id=vendor.manager_id,
-                type_="booking_created",
-                message=f"رزرو جدید برای {vendor.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')}",
+            await self.notifier.booking_created_for_manager(
+                manager_id=vendor.manager_id,
+                vendor_name=vendor.name,
+                start_time=slot.start_time,
+                booking_id=booking.id,
             )
 
         await log_action(
@@ -937,10 +943,9 @@ class BookingService:
                 "status": "failed",
             }
         )
-        await self.notify_repo.create(
+        await self.notifier.booking_failed(
             user_id=self.current_user.id,
-            type_="booking_failed",
-            message=f"پرداخت ناموفق: {reason}",
+            reason=reason,
         )
         await log_action(
             self.booking_repo.db,
@@ -1200,6 +1205,11 @@ class BookingService:
             "payment_expired",
             f"مهلت پرداخت زیبال پایان یافت | رزرو {booking.id}",
             severity="WARNING",
+        )
+        await self.notifier.booking_expired(
+            user_id=booking.user_id,
+            vendor_name=slot.vendor.name if slot and slot.vendor else "مجموعه",
+            start_time=slot.start_time if slot else None,
         )
         await self.db.commit()
         return True
@@ -1528,6 +1538,20 @@ class BookingService:
             "payment_verified",
             f"تأیید پرداخت زیبال | رزرو {booking.id} — trackId {track_id}",
         )
+        # In-app notifications for the finalized booking (booking done message)
+        await self.notifier.booking_confirmed_for_user(
+            user_id=booking.user_id,
+            vendor_name=slot.vendor.name if slot.vendor else "مجموعه",
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+        )
+        if slot.vendor:
+            await self.notifier.booking_confirmed_for_manager(
+                manager_id=slot.vendor.manager_id,
+                vendor_name=slot.vendor.name,
+                start_time=slot.start_time,
+                booking_id=booking.id,
+            )
         await send_booking_confirmation_sms_for_booking(booking)
         return await self.get_booking(booking.id)
 
@@ -1753,21 +1777,22 @@ class BookingService:
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
         await invalidate_slot_list(slot.vendor_id)
-        await self.notify_repo.create(
+        await self.notifier.booking_replaced_for_user(
             user_id=original.user_id,
-            type_="booking_replaced",
-            message=f"برای سانس شما جایگزین پیدا شد و مبلغ {request.refund_amount} تومان در انتظار عودت است.",
+            vendor_name=vendor.name if vendor else "مجموعه",
+            refund_amount=request.refund_amount,
         )
-        await self.notify_repo.create(
+        await self.notifier.booking_confirmed_for_user(
             user_id=hold.user_id,
-            type_="booking_confirmed",
-            message=f"رزرو شما برای {vendor.name if vendor else 'مجموعه'} تأیید شد.",
+            vendor_name=vendor.name if vendor else "مجموعه",
+            start_time=slot.start_time,
+            end_time=slot.end_time,
         )
         if vendor:
-            await self.notify_repo.create(
-                user_id=vendor.manager_id,
-                type_="booking_replaced",
-                message=f"رزرو سانس {slot.start_time.strftime('%Y-%m-%d')} با موفقیت منتقل شد.",
+            await self.notifier.booking_replaced_for_manager(
+                manager_id=vendor.manager_id,
+                vendor_name=vendor.name,
+                start_time=slot.start_time,
             )
         await log_action(
             self.db,
@@ -1833,6 +1858,10 @@ class BookingService:
                 "payment_failed",
                 f"پرداخت زیبال ناموفق بود | رزرو {payment.booking_id} — {message}",
                 severity="WARNING",
+            )
+            await self.notifier.booking_failed(
+                user_id=booking.user_id,
+                reason=message,
             )
             await self.db.commit()
             return
@@ -2170,12 +2199,20 @@ class BookingService:
             booking, {"status": BookingStatus.CONFIRMED, "expires_at": None}
         )
 
-        # Notify user about confirmed booking
-        await self.notify_repo.create(
+        # Notify user and manager about the confirmed booking
+        await self.notifier.booking_confirmed_for_user(
             user_id=self.current_user.id,
-            type_="booking_confirmed",
-            message=f"رزرو شما برای {vendor.name if vendor else 'زمین'} تایید شد",
+            vendor_name=vendor.name if vendor else "زمین",
+            start_time=slot.start_time,
+            end_time=slot.end_time,
         )
+        if vendor:
+            await self.notifier.booking_confirmed_for_manager(
+                manager_id=vendor.manager_id,
+                vendor_name=vendor.name,
+                start_time=slot.start_time,
+                booking_id=booking.id,
+            )
 
         await log_action(
             self.booking_repo.db,
@@ -2316,10 +2353,9 @@ class BookingService:
                         slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
                     )
                     await invalidate_slot_list(slot.vendor_id)
-        await self.notify_repo.create(
+        await self.notifier.replacement_payment_failed(
             user_id=self.current_user.id,
-            type_="replacement_payment_failed",
-            message=f"پرداخت سانس جایگزین ناموفق بود: {failure_message}",
+            failure_message=failure_message,
         )
         await log_action(
             self.db,
@@ -2665,6 +2701,19 @@ class BookingService:
                     "deadline": slot.start_time,
                 }
             )
+            await self.notifier.booking_pending_replacement_for_user(
+                user_id=booking.user_id,
+                vendor_name=vendor.name if vendor else "مجموعه",
+                start_time=slot.start_time,
+                refund_amount=refund_amount,
+            )
+            if vendor:
+                await self.notifier.booking_pending_replacement_for_manager(
+                    manager_id=vendor.manager_id,
+                    vendor_name=vendor.name,
+                    start_time=slot.start_time,
+                    booking_id=booking.id,
+                )
             payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
                 id=booking.id,
@@ -2731,12 +2780,20 @@ class BookingService:
             f"رکورد عودت ساخته شد | رزرو {booking_id} — مبلغ {refund_amount} تومان",
         )
 
-        # Notify manager about cancellation
+        # Notify the user and manager about the cancellation
+        await self.notifier.booking_cancelled_for_user(
+            user_id=booking.user_id,
+            vendor_name=vendor.name if vendor else "مجموعه",
+            start_time=slot.start_time,
+            refund_amount=refund_amount,
+            penalty_amount=penalty_amount,
+        )
         if vendor:
-            await self.notify_repo.create(
-                user_id=vendor.manager_id,
-                type_="booking_cancelled",
-                message=f"رزرو {vendor.name} در تاریخ {slot.start_time.strftime('%Y-%m-%d')} لغو شد",
+            await self.notifier.booking_cancelled_for_manager(
+                manager_id=vendor.manager_id,
+                vendor_name=vendor.name,
+                start_time=slot.start_time,
+                booking_id=booking.id,
             )
 
         await log_action(
@@ -2818,11 +2875,7 @@ class BookingService:
         if slot:
             await self.slot_repo.update(slot, {"status": SlotStatus.RESERVED, "is_reserved": True})
             await invalidate_slot_list(slot.vendor_id)
-        await self.notify_repo.create(
-            user_id=booking.user_id,
-            type_="cancellation_withdrawn",
-            message="درخواست لغو پس گرفته شد و سانس دوباره برای شما قطعی است.",
-        )
+        await self.notifier.cancellation_withdrawn(user_id=booking.user_id)
         await log_action(
             self.db,
             self.current_user.id,

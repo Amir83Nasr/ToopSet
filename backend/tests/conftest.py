@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from typing import Any
@@ -15,7 +16,12 @@ from app.core.config import settings
 from app.core.database import Base, get_db
 from app.main import app
 
-TEST_DB_URL = "postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test"
+# CI serves postgres on the default 5432; local machines with an occupied 5432
+# can point tests at another port via TEST_DATABASE_URL.
+TEST_DB_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test",
+)
 
 engine = create_async_engine(TEST_DB_URL, echo=False, poolclass=NullPool)
 

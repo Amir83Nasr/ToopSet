@@ -151,4 +151,12 @@ async def update_manager_request_status(
     )
     await db.commit()
     await db.refresh(request)
+    from app.services.notification_service import NotificationService
+
+    await NotificationService(db).manager_request_decided(
+        user_id=request.user_id,
+        approved=new_status == ManagerRequestStatus.APPROVED,
+        admin_note=data.admin_note,
+    )
+    await db.commit()
     return request

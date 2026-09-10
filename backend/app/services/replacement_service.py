@@ -9,10 +9,10 @@ from app.models.booking import BookingStatus
 from app.models.replacement import BookingHoldStatus, ReplacementRequestStatus
 from app.models.time_slot import SlotStatus
 from app.repositories.booking_repo import BookingRepo
-from app.repositories.notification_repo import NotificationRepo
 from app.repositories.replacement_repo import ReplacementRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.services.cache_service import invalidate_slot_list
+from app.services.notification_service import NotificationService
 
 
 async def expire_replacement_work(db: AsyncSession, now: datetime) -> dict[str, int]:
@@ -26,7 +26,6 @@ async def expire_replacement_work(db: AsyncSession, now: datetime) -> dict[str, 
     replacement_repo = ReplacementRepo(db)
     booking_repo = BookingRepo(db)
     slot_repo = TimeSlotRepo(db)
-    notify_repo = NotificationRepo(db)
     expired_requests = 0
     expired_holds = 0
 
@@ -53,11 +52,7 @@ async def expire_replacement_work(db: AsyncSession, now: datetime) -> dict[str, 
                 original,
                 {"status": BookingStatus.CONFIRMED, "penalty_amount": None},
             )
-            await notify_repo.create(
-                user_id=original.user_id,
-                type_="replacement_not_found",
-                message="برای سانس شما جایگزین پیدا نشد؛ رزرو همچنان متعلق به شماست.",
-            )
+            await NotificationService(db).replacement_not_found(user_id=original.user_id)
         if slot and slot.status in (
             SlotStatus.PENDING_CANCELLATION,
             SlotStatus.RESERVING,

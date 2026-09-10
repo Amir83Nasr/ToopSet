@@ -13,13 +13,7 @@ import {
   SearchInput,
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
-
-const typeOptions = [
-  { value: "booking_created", label: "رزرو جدید" },
-  { value: "booking_confirmed", label: "تایید رزرو" },
-  { value: "booking_cancelled", label: "لغو رزرو" },
-  { value: "broadcast", label: "اعلان همگانی" },
-]
+import { notificationFilterGroups } from "@/lib/notifications"
 
 interface NotificationFiltersProps {
   searchInput: string
@@ -46,7 +40,7 @@ export function NotificationFilters({
         placeholder="جستجوی اعلان..."
       />
       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-        <div className="w-full sm:w-40">
+        <div className="w-full sm:w-44">
           <Select value={typeFilter} onValueChange={onTypeFilterChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="نوع اعلان" />
@@ -55,12 +49,17 @@ export function NotificationFilters({
               <SelectGroup>
                 <SelectLabel>نوع اعلان</SelectLabel>
                 <SelectItem value="all">همه</SelectItem>
-                {typeOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
               </SelectGroup>
+              {notificationFilterGroups().map(({ group, options }) => (
+                <SelectGroup key={group}>
+                  <SelectLabel>{group}</SelectLabel>
+                  {options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
             </SelectContent>
           </Select>
         </div>

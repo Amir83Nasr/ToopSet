@@ -1,6 +1,7 @@
 "use client"
 
 import { cn, formatPersianDate } from "@/lib/utils"
+import { notificationColorClass, notificationLabel } from "@/lib/notifications"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,22 +24,6 @@ function formatDate(iso: string): string {
 function formatTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
-}
-
-/* ── Type-specific labels/colors ── */
-
-const notificationLabels: Record<string, string> = {
-  booking_created: "رزرو جدید",
-  booking_confirmed: "تایید رزرو",
-  booking_cancelled: "لغو رزرو",
-  broadcast: "اعلان همگانی",
-}
-
-const notificationColors: Record<string, string> = {
-  booking_created: "bg-notif-info-bg text-notif-info",
-  booking_confirmed: "bg-notif-success-bg text-notif-success",
-  booking_cancelled: "bg-notif-error-bg text-notif-error",
-  broadcast: "bg-notif-info-bg text-notif-info",
 }
 
 /* ── Types ── */
@@ -83,10 +68,10 @@ export function NotificationTable({
           >
             <div className="flex items-start justify-between gap-2">
               <Badge
-                className={notificationColors[n.type] || ""}
+                className={notificationColorClass(n.type)}
                 variant="secondary"
               >
-                {notificationLabels[n.type] || n.type}
+                {notificationLabel(n.type)}
               </Badge>
               <Badge variant={n.is_read ? "outline" : "default"}>
                 {n.is_read ? "خوانده شده" : "جدید"}
@@ -142,14 +127,19 @@ export function NotificationTable({
             <TableRow key={n.id} className={n.is_read ? "" : "bg-muted/30"}>
               <TableCell className="text-center">
                 <Badge
-                  className={notificationColors[n.type] || ""}
+                  className={notificationColorClass(n.type)}
                   variant="secondary"
                 >
-                  {notificationLabels[n.type] || n.type}
+                  {notificationLabel(n.type)}
                 </Badge>
               </TableCell>
               <TableCell>
-                <p className="truncate">{n.message}</p>
+                <p
+                  className="line-clamp-2 whitespace-pre-line"
+                  title={n.message}
+                >
+                  {n.message}
+                </p>
               </TableCell>
               <TableCell className="text-center text-xs whitespace-nowrap">
                 {formatDate(n.created_at)}

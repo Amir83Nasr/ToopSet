@@ -89,9 +89,11 @@ async def _cancel_expired_pending():
                 from app.models.time_slot import SlotStatus
                 from app.repositories.booking_repo import BookingRepo
                 from app.repositories.time_slot_repo import TimeSlotRepo
+                from app.services.notification_service import NotificationService
 
                 repo = BookingRepo(db)
                 slot_repo = TimeSlotRepo(db)
+                notifier = NotificationService(db)
                 now = now_utc()
                 expired = await repo.list_expired_pending(now)
                 for b in expired:
@@ -124,6 +126,12 @@ async def _cancel_expired_pending():
                             "status": BookingStatus.EXPIRED,
                             "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
                         },
+                    )
+                    vendor_name = slot.vendor.name if slot and slot.vendor else "مجموعه"
+                    await notifier.booking_expired(
+                        user_id=b.user_id,
+                        vendor_name=vendor_name,
+                        start_time=slot.start_time if slot else None,
                     )
                 if expired:
                     await db.commit()

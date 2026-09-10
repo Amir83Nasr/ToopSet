@@ -101,6 +101,7 @@ class BookingDetailResponse(BookingResponse):
     refund_paid_at: datetime | None = None
     refund_payment_tracking_code: str | None = None
     refund_destination_card_masked: str | None = None
+    has_review: bool = False
 
 
 class ReplacementHoldResponse(BaseModel):

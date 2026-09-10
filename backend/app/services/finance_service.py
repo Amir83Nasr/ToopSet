@@ -25,6 +25,10 @@ from app.repositories.booking_repo import BookingRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.repositories.user_repo import UserRepository
+from app.services.notification_service import (
+    NotificationService,
+    invalidate_notification_list_cache,
+)
 from app.services.sms_provider import get_sms_provider, send_booking_confirmation_sms
 
 # Frontend weekday convention in this project: 0=Saturday ... 6=Friday.
@@ -40,6 +44,7 @@ class FinanceService:
         self.slot_repo = TimeSlotRepo(db)
         self.user_repo = UserRepository(db)
         self.notify_repo = NotificationRepo(db)
+        self.notifier = NotificationService(db)
 
     async def _get_vendor_for_manager(self, vendor_id: int) -> Vendor:
         vendor = await self.db.get(Vendor, vendor_id)
@@ -332,6 +337,7 @@ class FinanceService:
                 type_="slot_cancelled_by_manager",
                 message=message,
             )
+            await invalidate_notification_list_cache()
             notification_status = "created"
         except Exception as exc:  # pragma: no cover - defensive tracking
             notification_status = f"failed:{exc.__class__.__name__}"
@@ -797,4 +803,13 @@ class FinanceService:
             for item in items:
                 item.booking.settlement_status = SettlementStatus.NOT_SETTLED
         await self.db.flush()
+        # Let the manager know their settlement request was decided
+        await self.db.refresh(settlement, ["vendor"])
+        await self.notifier.settlement_status_changed(
+            manager_id=settlement.manager_id,
+            status=new_status.value,
+            vendor_name=settlement.vendor.name if settlement.vendor else "مجموعه",
+            amount=settlement.approved_amount or settlement.requested_amount,
+            payment_tracking_code=settlement.payment_tracking_code,
+        )
         return settlement

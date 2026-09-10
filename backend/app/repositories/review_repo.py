@@ -100,6 +100,15 @@ class ReviewRepo:
         result = await self.db.execute(select(Review).where(Review.booking_id == booking_id))
         return result.scalar_one_or_none()
 
+    async def booking_ids_with_reviews(self, booking_ids: list[int]) -> set[int]:
+        """Return the subset of booking IDs that already have a review (batch)."""
+        if not booking_ids:
+            return set()
+        result = await self.db.execute(
+            select(Review.booking_id).where(Review.booking_id.in_(booking_ids))
+        )
+        return {row[0] for row in result.all()}
+
     async def create(self, data: dict) -> Review:
         review = Review(**data)
         self.db.add(review)

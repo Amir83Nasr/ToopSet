@@ -41,7 +41,6 @@ from app.models.setting import Setting
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.repositories.log_repo import LogRepo
-from app.repositories.notification_repo import NotificationRepo
 from app.repositories.user_repo import UserRepository
 from app.repositories.vendor_repo import VendorRepo
 from app.schemas.finance import (
@@ -178,14 +177,12 @@ async def broadcast_notification(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.notification_service import NotificationService
 
-    repo = NotificationRepo(db)
-    count = await repo.create_for_all_users(type_=data.type, message=data.message)
+    count = await NotificationService(db).broadcast(type_=data.type, message=data.message)
     await log_action(
         db, _.id, "broadcast", f"اعلان همگانی | ارسال به {count} کاربر: {data.message[:100]}"
     )
-    await invalidate_admin_list_cache("notifications")
     return {"success": True, "count": count}
 
 
@@ -410,6 +407,7 @@ async def approve_vendor(
     _: User = Depends(get_current_admin),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.notification_service import NotificationService
     from app.services.vendor_service import VendorService
 
     service = VendorService(db=db, current_user=_)
@@ -419,6 +417,11 @@ async def approve_vendor(
     await log_action(
         db, _.id, "vendor_approved", f"تایید مجموعه | مجموعه (id={vendor_id}) توسط ادمین تایید شد"
     )
+    vendor = await db.get(Vendor, vendor_id)
+    if vendor:
+        await NotificationService(db).vendor_approved(
+            manager_id=vendor.manager_id, vendor_name=vendor.name
+        )
     return result
 
 
@@ -453,6 +456,7 @@ async def reject_vendor(
             detail="مجموعه دارای سابقه رزرو است و قابل حذف نیست",
         )
     name = vendor.name
+    manager_id = vendor.manager_id
     for img in vendor.vendor_images or []:
         await delete_upload_async(img.url)
     await repo.delete(vendor)
@@ -461,6 +465,9 @@ async def reject_vendor(
     await log_action(
         db, _.id, "vendor_rejected", f"رد مجموعه | '{name}' (id={vendor_id}) توسط ادمین رد شد"
     )
+    from app.services.notification_service import NotificationService
+
+    await NotificationService(db).vendor_rejected(manager_id=manager_id, vendor_name=name)
 
 
 # ── Hard-delete endpoints ───────────────────────────────────────────
@@ -904,6 +911,15 @@ async def update_refund_status(
         current_user.id,
         "refund_status_updated",
         f"تغییر وضعیت عودت | refund={refund_id} → {data.status.value}",
+    )
+    # Notify the user about their refund outcome
+    from app.services.notification_service import NotificationService
+
+    await NotificationService(db).refund_status_changed(
+        user_id=refund.user_id,
+        status=data.status.value,
+        refund_amount=refund.refund_amount,
+        payment_tracking_code=refund.payment_tracking_code,
     )
     return _refund_response(refund)
 
