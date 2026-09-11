@@ -38,6 +38,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+# Runtime needs next.config.mjs (images.remotePatterns is read at runtime
+# by `next start`; without it all remote URLs 400 and only local pass).
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
 USER nextjs
 
