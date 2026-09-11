@@ -11,11 +11,11 @@ from app.core.config import settings
 from app.core.logger import log_action
 from app.core.phone import normalize_phone
 from app.core.security import (
+    ahash_password,
+    averify_password,
     decode_token,
-    hash_password,
     hash_token,
     tokens_for_user,
-    verify_password,
 )
 from app.core.timezone import now_utc
 from app.models.user import User
@@ -66,7 +66,7 @@ class AuthService:
                 status_code=status.HTTP_409_CONFLICT, detail="این شماره تلفن قبلاً ثبت‌نام کرده است"
             )
 
-        password_hash = hash_password(password)
+        password_hash = await ahash_password(password)
         user = await self.repo.create(
             phone=phone,
             password_hash=password_hash,
@@ -106,7 +106,7 @@ class AuthService:
     ) -> tuple[User, str, str]:
         phone = normalize_phone(phone)
         user = await self.repo.get_by_phone(phone)
-        if not user or not verify_password(password, user.password_hash):
+        if not user or not await averify_password(password, user.password_hash):
             await _security_log(
                 self.repo.db,
                 user.id if user else None,
@@ -363,7 +363,7 @@ class AuthService:
 
         if data.new_password is not None:
             if current_user.password_hash != OTP_PLACEHOLDER_HASH and not password_change_verified:
-                if not data.current_password or not verify_password(
+                if not data.current_password or not await averify_password(
                     data.current_password, current_user.password_hash
                 ):
                     await _security_log(
@@ -378,7 +378,7 @@ class AuthService:
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="رمز عبور فعلی نامعتبر است",
                     )
-            update_data["password_hash"] = hash_password(data.new_password)
+            update_data["password_hash"] = await ahash_password(data.new_password)
             changed_fields.append("رمز عبور")
 
         try:

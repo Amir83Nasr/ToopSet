@@ -58,9 +58,11 @@ class Settings(BaseSettings):
     refresh_cookie_secure: bool = False
     refresh_cookie_samesite: str = "lax"
 
-    # Connection Pool
-    db_pool_size: int = 20
-    db_max_overflow: int = 10
+    # Connection Pool — sized for single-worker dev; scale per worker in prod
+    # (total conns ≈ workers × (pool_size + max_overflow) + background tasks,
+    # so keep this small and raise via env only with DB headroom).
+    db_pool_size: int = 5
+    db_max_overflow: int = 5
     db_pool_recycle: int = 1800
     db_pool_timeout: int = 5
 
@@ -248,7 +250,7 @@ def validate_env(settings: Settings | None = None) -> None:
     if settings.db_pool_size < 5:
         errors.append(
             f"DB_POOL_SIZE={settings.db_pool_size} is too low for production; "
-            f"recommended minimum is 10."
+            f"recommended minimum is 5 per worker."
         )
 
     # ── LOG_LEVEL ─────────────────────────────────────────────────────

@@ -95,27 +95,36 @@ async def _cancel_expired_pending():
                 slot_repo = TimeSlotRepo(db)
                 notifier = NotificationService(db)
                 now = now_utc()
-                expired = await repo.list_expired_pending(now)
+                # One query with slot+vendor preloaded — no per-row get_by_id.
+                expired = await repo.list_expired_pending_with_slots(now)
+                # Replacement originals, if any, in a single batch lookup.
+                replacement_ids = {b.replaces_booking_id for b in expired}
+                replacement_ids.discard(None)
+                old_by_id: dict[int, object] = {}
+                if replacement_ids:
+                    from sqlalchemy import select
+
+                    from app.models.booking import Booking
+
+                    rows = (
+                        await db.execute(select(Booking).where(Booking.id.in_(replacement_ids)))
+                    ).scalars()
+                    old_by_id = {row.id: row for row in rows}
                 for b in expired:
-                    slot = await slot_repo.get_by_id(b.slot_id)
+                    slot = b.slot
                     if slot:
-                        if b.replaces_booking_id:
-                            old_booking = await repo.get_by_id(b.replaces_booking_id)
-                            if (
-                                old_booking
-                                and old_booking.status == BookingStatus.PENDING_CANCELLATION
-                            ):
-                                await slot_repo.update(
-                                    slot,
-                                    {
-                                        "is_reserved": True,
-                                        "status": SlotStatus.PENDING_CANCELLATION,
-                                    },
-                                )
-                            else:
-                                await slot_repo.update(
-                                    slot, {"is_reserved": False, "status": SlotStatus.OPEN}
-                                )
+                        old_booking = old_by_id.get(b.replaces_booking_id)  # type: ignore[arg-type]
+                        if (
+                            old_booking is not None
+                            and old_booking.status == BookingStatus.PENDING_CANCELLATION
+                        ):
+                            await slot_repo.update(
+                                slot,
+                                {
+                                    "is_reserved": True,
+                                    "status": SlotStatus.PENDING_CANCELLATION,
+                                },
+                            )
                         else:
                             await slot_repo.update(
                                 slot, {"is_reserved": False, "status": SlotStatus.OPEN}
@@ -356,10 +365,19 @@ app = FastAPI(
     ],
 )
 
+if settings.cors_origins == "*":
+    # NOTE: wildcard + credentials is rejected by browsers (no
+    # Access-Control-Allow-Origin echo). Dev-only: allows LAN testing without
+    # listing every device IP. Production validation already forbids "*".
+    cors_origins = ["*"]
+    cors_credentials = False
+else:
+    cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    cors_credentials = True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

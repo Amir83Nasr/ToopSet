@@ -370,7 +370,10 @@ export default function AdminLogsPage() {
 
       {loading ? (
         <div>
-          <Table className="min-w-270 table-fixed">
+          <Table
+            className="min-w-270 table-fixed"
+            tableWrapperClassName="border-0 bg-transparent shadow-none"
+          >
             <colgroup>
               <col className="w-28" />
               <col className="w-24" />

@@ -30,7 +30,7 @@ from app.core.legal_content import LEGAL_SETTINGS
 from app.core.logger import log_action
 from app.core.pagination import decode_cursor, encode_cursor
 from app.core.phone import normalize_phone
-from app.core.security import hash_password
+from app.core.security import ahash_password
 from app.core.upload import (
     ALLOWED_EXTENSIONS,
     MAX_FILE_SIZE,
@@ -1388,7 +1388,7 @@ async def seed_admin(
     try:
         user = User(
             phone=phone,
-            password_hash=hash_password(data.password),
+            password_hash=await ahash_password(data.password),
             full_name=data.full_name,
             role=UserRole.ADMIN,
             is_active=True,

@@ -218,9 +218,6 @@ async function shareLocation(
   window.open(shareUrl, "_blank", "noopener,noreferrer")
 }
 
-// Frozen timestamp for render-time expiry checks.
-const NOW = Date.now()
-
 export default function PublicVendorDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -406,7 +403,7 @@ export default function PublicVendorDetailPage() {
 
   function handleBookSlot(slot: TimeSlot) {
     setBookingDrawerOpen(false)
-    if (new Date(slot.start_time).getTime() <= NOW) {
+    if (new Date(slot.start_time).getTime() <= Date.now()) {
       toast.error("زمان این سانس گذشته و دیگر قابل رزرو نیست")
       return
     }

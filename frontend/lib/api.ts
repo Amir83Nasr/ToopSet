@@ -73,8 +73,18 @@ export function buildVendorImageUrl(url: string | null | undefined): string {
   }
 }
 
-import * as Sentry from "@sentry/nextjs"
 import { setCookie, getCookie, removeCookie } from "./cookies"
+
+// Sentry client (~100KB+) must not land in the shared chunk: api() is imported
+// by every page. Loaded lazily, only on the error paths that report to it.
+async function reportError(err: Error, tags: Record<string, string>) {
+  try {
+    const { captureException } = await import("@sentry/nextjs")
+    captureException(err, { tags })
+  } catch {
+    // Reporting must never break the request path
+  }
+}
 
 // ── Request deduplication ───────────────────────────────────────────────────
 // Removed — sharing a single Response object between concurrent callers causes
@@ -295,9 +305,11 @@ export async function api<T>(
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Unknown error" }))
     if (res.status >= 500) {
-      Sentry.captureException(
+      void reportError(
         new Error(`Server error ${res.status}: ${body.detail}`),
-        { tags: { path } }
+        {
+          path,
+        }
       )
     }
     const parsed = parseErrorDetail(body.detail || "Unknown error")
@@ -403,9 +415,11 @@ export async function uploadAvatar(file: File): Promise<string> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Upload failed" }))
     if (res.status >= 500) {
-      Sentry.captureException(
+      void reportError(
         new Error(`Server error ${res.status}: ${body.detail}`),
-        { tags: { path: "/api/v1/auth/avatar" } }
+        {
+          path: "/api/v1/auth/avatar",
+        }
       )
     }
     throw new ApiError(

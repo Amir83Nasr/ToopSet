@@ -155,7 +155,7 @@ export default function DashboardVendorEditPage() {
       setVendorImages(vendorRes.images || [])
       setImageTempIds(Array(vendorRes.images?.length || 0).fill(""))
       api<{ slots: TimeSlot[]; total: number }>(
-        `/api/v1/vendors/${vendorId}/slots?limit=500`
+        `/api/v1/vendors/${vendorId}/slots?limit=100`
       )
         .then((slotsRes) => setAllSlots(slotsRes.slots))
         .catch(() => {})
@@ -180,7 +180,7 @@ export default function DashboardVendorEditPage() {
     try {
       const params = new URLSearchParams()
       params.set("skip", "0")
-      params.set("limit", "500")
+      params.set("limit", "100")
       params.set("vendor_id", String(vendorId))
       const res = await api<{ bookings: ManagerBooking[]; total: number }>(
         `/api/v1/manager/bookings?${params}`
@@ -203,7 +203,7 @@ export default function DashboardVendorEditPage() {
         ),
         api<{ settlements: VendorSettlement[] }>("/api/v1/manager/settlements"),
         api<{ bookings: FinanceBooking[]; total: number }>(
-          `/api/v1/manager/bookings?finance_only=true&vendor_id=${vendorId}&limit=500`
+          `/api/v1/manager/bookings?finance_only=true&vendor_id=${vendorId}&limit=100`
         ),
       ])
       setFinanceSummary(summary)

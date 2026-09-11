@@ -77,7 +77,7 @@ export default function MyReviewsPage() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="space-y-2 rounded-xl border p-4">
+            <div key={i} className="space-y-2 rounded-xl bg-card p-4">
               <div className="flex items-center justify-between gap-2">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-4 w-24" />

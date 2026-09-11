@@ -56,6 +56,11 @@ class Booking(Base):
             unique=True,
             postgresql_where=text("status = 'pending_payment'"),
         ),
+        Index(
+            "ix_bookings_pending_expires_at",
+            "expires_at",
+            postgresql_where=text("status = 'pending_payment'"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

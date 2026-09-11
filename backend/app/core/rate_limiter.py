@@ -9,7 +9,6 @@ the application continues to function under temporary Redis failures.
 from __future__ import annotations
 
 import logging
-import socket
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -22,35 +21,16 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-def _redis_is_reachable(host: str, port: int, timeout: float = 1.0) -> bool:
-    """Probe whether the Redis TCP port is reachable.
-
-    Runs synchronously at module load time (single socket connect, no event
-    loop required).  Does *not* guarantee that Redis will stay reachable for
-    the duration of the request, but covers the common case of a missing or
-    restarting Redis at startup.
-    """
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except (OSError, socket.timeout):
-        return False
-
-
-# Initialise rate-limiter storage — try Redis, fall back to in-memory
-_storage_uri = settings.redis_url
-if not _redis_is_reachable(settings.redis_host, settings.redis_port):
-    _storage_uri = "memory://"
-    logger.warning(
-        "Redis at %s:%d is not reachable — rate limiter falling back to in-memory storage",
-        settings.redis_host,
-        settings.redis_port,
-    )
-
+# Redis storage with slowapi's built-in in-memory fallback: no import-time
+# socket probe (which blocked startup ~1s when Redis was down and diverged
+# limits across workers). Connection failures at request time fall back to
+# memory automatically; in production a missing Redis is a deploy error, so
+# validate_env still requires REDIS_HOST/REDIS_URL to be set.
 limiter = Limiter(
     key_func=get_remote_address,
-    storage_uri=_storage_uri,
+    storage_uri=settings.redis_url,
     strategy="fixed-window",
+    in_memory_fallback_enabled=True,
 )
 
 

@@ -198,18 +198,12 @@ export default function AdminPendingVendorsPage() {
       </DataTableToolbar>
 
       {loading ? (
-        <Card className="min-h-0 flex-1">
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="min-h-0 flex-1 space-y-3">
+          <Skeleton className="h-5 w-32" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       ) : vendors.length === 0 ? (
         <Card className="min-h-0 flex-1">
           <CardContent className="flex h-full flex-col items-center justify-center py-16">

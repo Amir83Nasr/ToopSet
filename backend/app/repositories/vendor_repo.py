@@ -140,10 +140,35 @@ class VendorRepo:
         elif sort == "rating":
             order = Vendor.average_rating.desc()
 
+        from math import cos, radians
+
         distance_filter = (
             ref_lat is not None and ref_lon is not None and max_distance_km is not None
         )
         if distance_filter:
+            assert ref_lat is not None and ref_lon is not None and max_distance_km is not None
+            # Bounding box in DB prunes candidates; exact Haversine stays in Python.
+            # 1° lat ≈ 111 km; lon shrinks by cos(lat) (clamped at poles).
+            lat_delta = max_distance_km / 111.0
+            lon_delta = max_distance_km / (111.0 * max(cos(radians(ref_lat)), 0.01))
+            query = query.where(
+                Vendor.latitude.isnot(None),
+                Vendor.longitude.isnot(None),
+                Vendor.latitude >= ref_lat - lat_delta,
+                Vendor.latitude <= ref_lat + lat_delta,
+                Vendor.longitude >= ref_lon - lon_delta,
+                Vendor.longitude <= ref_lon + lon_delta,
+            )
+            # Same box on the count so total matches the filtered set.
+            count_q = count_q.where(
+                Vendor.latitude.isnot(None),
+                Vendor.longitude.isnot(None),
+                Vendor.latitude >= ref_lat - lat_delta,
+                Vendor.latitude <= ref_lat + lat_delta,
+                Vendor.longitude >= ref_lon - lon_delta,
+                Vendor.longitude <= ref_lon + lon_delta,
+            )
+            total = (await self.db.execute(count_q)).scalar_one()
             result = await self.db.execute(query.order_by(order))
         elif after_id is not None:
             result = await self.db.execute(query.limit(limit).order_by(order))
@@ -151,8 +176,9 @@ class VendorRepo:
             result = await self.db.execute(query.offset(skip).limit(limit).order_by(order))
         raw_vendors = list(result.mappings().all())
 
-        # Distance filter (in-memory Haversine)
+        # Exact distance filter (Haversine over box-pruned candidates only)
         if distance_filter:
+            assert ref_lat is not None and ref_lon is not None and max_distance_km is not None
             filtered = []
             for vendor in raw_vendors:
                 latitude = vendor["latitude"]

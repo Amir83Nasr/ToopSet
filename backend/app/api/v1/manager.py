@@ -120,7 +120,7 @@ def _finance_settlement_state(booking: Booking) -> str:
 async def list_manager_bookings(
     cursor: str | None = Query(None, description="Cursor for next page"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=500),
+    limit: int = Query(20, ge=1, le=100),
     status: str | None = None,
     vendor_id: int | None = Query(None, description="Filter by vendor ID"),
     court_id: int | None = Query(None, description="Legacy filter by vendor ID"),

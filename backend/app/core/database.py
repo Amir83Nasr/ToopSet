@@ -71,10 +71,11 @@ class Base(DeclarativeBase):
 
 
 async def get_db():
+    # No blanket commit here: reads must not pay a write-transaction RTT.
+    # Every write path commits explicitly at its own boundary.
     async with async_session_factory() as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise

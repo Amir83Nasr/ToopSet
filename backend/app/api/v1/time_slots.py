@@ -38,7 +38,7 @@ async def list_slots(
     cursor: str | None = Query(None, description="Cursor for next page"),
     date: Date | None = Query(None, description="Filter by date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=100),
     service: TimeSlotService = Depends(get_time_slot_service_public),
     response: Response = None,
 ):

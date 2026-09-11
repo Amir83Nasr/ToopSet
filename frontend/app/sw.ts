@@ -129,7 +129,8 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching,
   // Offline splash (app/offline) — logo only, no text.
-  // Requires "/offline" in additionalPrecacheEntries when Serwist build is wired.
+  // "/offline" is precached via additionalPrecacheEntries in next.config.mjs
+  // (revision = content hash of app/offline/page.tsx).
   fallbacks: {
     entries: [
       {

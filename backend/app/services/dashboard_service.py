@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -197,13 +198,13 @@ class DashboardService:
             total_users,
             recent_bookings,
             popular_vendors,
-        ) = (
-            await _active_vendors(),
-            await _today_bookings(),
-            await _today_revenue(),
-            await _total_users(),
-            await _recent_bookings(),
-            await _popular_vendors(),
+        ) = await asyncio.gather(
+            _active_vendors(),
+            _today_bookings(),
+            _today_revenue(),
+            _total_users(),
+            _recent_bookings(),
+            _popular_vendors(),
         )
 
         return DashboardStats(
@@ -368,19 +369,19 @@ class DashboardService:
             recent_bookings,
             popular_vendors,
             booking_trends,
-        ) = (
-            await _total_vendors(),
-            await _total_users(),
-            await _total_bookings(),
-            await _total_revenue(),
-            await _active_managers(),
-            await _pending_bookings(),
-            await _today_bookings(),
-            await _today_revenue(),
-            await _total_managers(),
-            await _recent_bookings(),
-            await _popular_vendors(),
-            await _booking_trends(),
+        ) = await asyncio.gather(
+            _total_vendors(),
+            _total_users(),
+            _total_bookings(),
+            _total_revenue(),
+            _active_managers(),
+            _pending_bookings(),
+            _today_bookings(),
+            _today_revenue(),
+            _total_managers(),
+            _recent_bookings(),
+            _popular_vendors(),
+            _booking_trends(),
         )
 
         return AdminStats(
@@ -465,12 +466,12 @@ class DashboardService:
             today_earnings,
             wallet_balance,
             recent_bookings,
-        ) = (
-            await _my_vendors(),
-            await _upcoming_bookings(),
-            await _today_earnings(),
-            await _wallet_balance(),
-            await _recent_bookings(),
+        ) = await asyncio.gather(
+            _my_vendors(),
+            _upcoming_bookings(),
+            _today_earnings(),
+            _wallet_balance(),
+            _recent_bookings(),
         )
 
         return ManagerStats(
@@ -522,13 +523,13 @@ class DashboardService:
             return r.scalar() or 0
 
         # All 6 queries (3 per month × 2 months) are independent
-        c_b, c_r, c_u, l_b, l_r, l_u = (
-            await _month_bookings(current_month_start, now),
-            await _month_revenue(current_month_start, now),
-            await _month_users(current_month_start, now),
-            await _month_bookings(last_month_start, last_month_end),
-            await _month_revenue(last_month_start, last_month_end),
-            await _month_users(last_month_start, last_month_end),
+        c_b, c_r, c_u, l_b, l_r, l_u = await asyncio.gather(
+            _month_bookings(current_month_start, now),
+            _month_revenue(current_month_start, now),
+            _month_users(current_month_start, now),
+            _month_bookings(last_month_start, last_month_end),
+            _month_revenue(last_month_start, last_month_end),
+            _month_users(last_month_start, last_month_end),
         )
 
         current = {"bookings": c_b, "revenue": c_r, "new_users": c_u}
@@ -621,11 +622,11 @@ class DashboardService:
                 for row in r
             ]
 
-        user_growth, vendor_growth, booking_trends, revenue_trends = (
-            await _user_growth(),
-            await _vendor_growth(),
-            await _booking_trends(),
-            await _revenue_trends(),
+        user_growth, vendor_growth, booking_trends, revenue_trends = await asyncio.gather(
+            _user_growth(),
+            _vendor_growth(),
+            _booking_trends(),
+            _revenue_trends(),
         )
 
         return {
@@ -709,12 +710,12 @@ class DashboardService:
             wallet_balance,
             favorite_sport,
             recent_bookings,
-        ) = (
-            await _upcoming_bookings(),
-            await _completed_bookings(),
-            await _wallet_balance(),
-            await _favorite_sport(),
-            await _recent_bookings(),
+        ) = await asyncio.gather(
+            _upcoming_bookings(),
+            _completed_bookings(),
+            _wallet_balance(),
+            _favorite_sport(),
+            _recent_bookings(),
         )
 
         return UserStats(

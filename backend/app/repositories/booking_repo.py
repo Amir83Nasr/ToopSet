@@ -299,6 +299,33 @@ class BookingRepo:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_expired_pending_with_slots(self, now: datetime) -> list[Booking]:
+        """Expired pendings with slot+vendor preloaded (batch sweeper path).
+
+        Same predicate as :meth:`list_expired_pending` but eager-loads
+        ``slot.vendor`` so the sweeper needs no per-row ``get_by_id`` calls.
+        """
+        stmt = (
+            select(Booking)
+            .options(
+                selectinload(Booking.slot).selectinload(TimeSlot.vendor),
+            )
+            .where(
+                Booking.status == BookingStatus.PENDING_PAYMENT,
+                Booking.expires_at.isnot(None),
+                Booking.expires_at < now,
+                ~select(Payment.id)
+                .where(
+                    Payment.booking_id == Booking.id,
+                    Payment.status == PaymentStatus.PENDING,
+                )
+                .exists(),
+            )
+            .with_for_update(skip_locked=True)
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
     async def count_by_status(self) -> dict[str, int]:
         """Return a dict mapping each status to its total count (e.g. ``{"confirmed": 42}``).
         Uses a single GROUP BY query instead of N separate queries."""

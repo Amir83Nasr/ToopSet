@@ -44,6 +44,7 @@ class TimeSlot(Base):
             "vendor_id", "start_time", "end_time", name="uq_time_slots_vendor_start_end"
         ),
         Index("ix_time_slots_vendor_id_start_time", "vendor_id", "start_time"),
+        Index("ix_time_slots_vendor_id_end_time", "vendor_id", "end_time"),
         Index(
             "ix_time_slots_open_vendor_price",
             "vendor_id",

@@ -98,6 +98,12 @@ function VendorsPageContent() {
 
   // Filters from URL
   const [searchText, setSearchText] = useState(searchParams.get("q") || "")
+  // Debounced query — drives API + URL sync so each keystroke isn't a fetch
+  const [debouncedSearch, setDebouncedSearch] = useState(searchText)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchText), 300)
+    return () => clearTimeout(t)
+  }, [searchText])
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
   const [availableToday, setAvailableToday] = useState(
     searchParams.get("available_today") === "1"
@@ -122,39 +128,39 @@ function VendorsPageContent() {
     params.set("skip", String(page * limit))
     params.set("limit", String(limit))
     params.set("is_active", "true")
-    if (searchText) params.set("search", searchText)
+    if (debouncedSearch) params.set("search", debouncedSearch)
     if (availableToday) params.set("available_today", "true")
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
     return params.toString()
-  }, [page, limit, searchText, availableToday, sortBy])
+  }, [page, limit, debouncedSearch, availableToday, sortBy])
 
   // Same filters but no pagination — fetches all filtered vendors for the map
   const mapApiParams = useMemo(() => {
     const params = new URLSearchParams()
     params.set("limit", "100")
     params.set("is_active", "true")
-    if (searchText) params.set("search", searchText)
+    if (debouncedSearch) params.set("search", debouncedSearch)
     if (availableToday) params.set("available_today", "true")
     if (sortBy === "price_asc") params.set("sort", "price_asc")
     if (sortBy === "price_desc") params.set("sort", "price_desc")
     if (sortBy === "rating") params.set("sort", "rating")
     if (sortBy === "distance") params.set("sort", "distance")
     return params.toString()
-  }, [searchText, availableToday, sortBy])
+  }, [debouncedSearch, availableToday, sortBy])
 
   // Sync filters to URL
   useEffect(() => {
     const params = new URLSearchParams()
-    if (searchText) params.set("q", searchText)
+    if (debouncedSearch) params.set("q", debouncedSearch)
     if (availableToday) params.set("available_today", "1")
     if (sortBy !== "default") params.set("sort", sortBy)
     const qs = params.toString()
     const url = qs ? `/vendors?${qs}` : "/vendors"
     router.replace(url, { scroll: false })
-  }, [searchText, availableToday, sortBy, router])
+  }, [debouncedSearch, availableToday, sortBy, router])
 
   const fetchVendors = useCallback(async () => {
     setVendorsLoading(true)

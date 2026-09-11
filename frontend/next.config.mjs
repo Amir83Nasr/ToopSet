@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto"
+import { readdirSync, readFileSync } from "node:fs"
 import withBundleAnalyzer from "@next/bundle-analyzer"
+import withSerwistInit from "@serwist/next"
 import { withSentryConfig } from "@sentry/nextjs"
 
 const analyzer = withBundleAnalyzer({
@@ -86,19 +89,81 @@ const sentryConfig = {
 }
 
 // ── PWA / Service Worker ──────────────────────────────────────────────────────
-// Register SW lazily from a deferred client component instead of @serwist/next
-// plugin (which injects 30KB serwist code into every page). The SW file is still
-// compiled at build time from app/sw.ts — we just register it manually.
-// Dynamic import so @serwist/next never loads in dev — avoids injecting
-// SW-registration client code that 404s on sw.js (not compiled in dev).
-// That console error drops Lighthouse best-practices to 0.
-// To test PWA locally, build first or set ENABLE_PWA_DEV=true in .env.local.
-async function withPwa(config) {
-  if (process.env.ENABLE_PWA === "false") {
-    return config
+// Compiles app/sw.ts into public/sw.js at build time via @serwist/next.
+// Registration is manual + deferred (app/sw-register.tsx, after window load)
+// so /sw.js never contends with LCP; hence `register: false` below — the
+// plugin still injects its tiny entry (~1.4KB src + @serwist/window) into the
+// shared chunk, which is the price of a working offline shell.
+// Disabled in dev (turbopack has no SW output, and a dev SW would serve stale
+// prod caches on localhost). To test PWA locally, run `pnpm build && pnpm start`.
+// Set ENABLE_PWA=false to skip the SW entirely.
+function publicPrecacheEntries() {
+  const publicDir = new URL("./public/", import.meta.url)
+  const entries = []
+  const skip = (name) =>
+    name.startsWith(".") ||
+    name === "sw.js" ||
+    name === "sw.js.map" ||
+    name.startsWith("swe-worker-")
+  const walk = (dirUrl, prefix) => {
+    const dirPath = new URL(dirUrl)
+    for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+      if (skip(entry.name)) continue
+      if (entry.isDirectory()) {
+        walk(new URL(`${entry.name}/`, dirUrl), `${prefix}${entry.name}/`)
+      } else if (entry.isFile()) {
+        const fileUrl = new URL(entry.name, dirUrl)
+        const hash = createHash("md5")
+          .update(readFileSync(fileUrl))
+          .digest("hex")
+        entries.push({
+          url: `/${prefix}${entry.name}`,
+          revision: hash.slice(0, 16),
+        })
+      }
+    }
   }
-  return config
+  try {
+    walk(publicDir, "")
+  } catch {
+    // Public dir unreadable — precache just the offline shell below.
+  }
+  entries.sort((a, b) => (a.url < b.url ? -1 : 1))
+  return entries
 }
+
+function offlineRevision() {
+  try {
+    const file = new URL("./app/offline/page.tsx", import.meta.url)
+    return createHash("md5")
+      .update(readFileSync(file))
+      .digest("hex")
+      .slice(0, 16)
+  } catch {
+    return "1.0.1"
+  }
+}
+
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  disable:
+    process.env.ENABLE_PWA === "false" ||
+    process.env.NODE_ENV === "development",
+  // Manual deferred registration (app/sw-register.tsx) — the plugin entry must
+  // not auto-register at evaluation time, in front of first paint.
+  register: false,
+  // A surprise location.reload() on reconnect loses in-flight booking state.
+  reloadOnOnline: false,
+  // History-patching nav-cache worker: unneeded for this app's offline scope.
+  cacheOnNavigation: false,
+  // Passing this replaces the plugin's public-dir auto-scan, so include the
+  // scan above plus the offline shell (a route, not a file — unscannable).
+  additionalPrecacheEntries: [
+    ...publicPrecacheEntries(),
+    { url: "/offline", revision: offlineRevision() },
+  ],
+})
 
 export default async function nextConfigFunction() {
   let config = nextConfig
@@ -106,5 +171,5 @@ export default async function nextConfigFunction() {
   if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     config = withSentryConfig(config, sentryConfig)
   }
-  return withPwa(config)
+  return withSerwist(config)
 }

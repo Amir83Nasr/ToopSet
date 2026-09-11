@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -43,6 +44,16 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+
+async def ahash_password(password: str) -> str:
+    """Hash a password without blocking the event loop (bcrypt is CPU-bound)."""
+    return await asyncio.to_thread(hash_password, password)
+
+
+async def averify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password without blocking the event loop."""
+    return await asyncio.to_thread(verify_password, plain_password, hashed_password)
 
 
 # ── JWT helpers ──────────────────────────────────────────────────────

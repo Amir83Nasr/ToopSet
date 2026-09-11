@@ -75,6 +75,10 @@ backend/uploads/*
 next-env.d.ts
 *.pid
 .playwright-mcp/
+# Serwist build output — `next build` compiles app/sw.ts over the dev stub
+frontend/public/sw.js
+frontend/public/sw.js.map
+frontend/public/swe-worker-*.js
 
 # ── AI ─────────────────────────────────────────────────────
 *-workspace/

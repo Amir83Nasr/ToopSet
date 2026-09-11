@@ -29,13 +29,14 @@ export const metadata: Metadata = {
     siteName: BRAND,
     locale: "fa_IR",
     type: "website",
+    images: [{ url: "/icons/icon-512x512.png", width: 512, height: 512 }],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: `${BRAND} | رزرو آنلاین زمین‌های ورزشی`,
     description:
       "رزرو آنلاین سالن ورزشی، زمین فوتسال و چمن مصنوعی در قم با توپ‌سِت (ToopSet)",
-    images: ["/icons/square.svg"],
+    images: ["/icons/icon-512x512.png"],
   },
   robots: {
     index: false,
@@ -132,6 +133,22 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <head>
+        {/* Preload the two weights used on first paint — CSS-discovered
+            fonts otherwise wait for the stylesheet before downloading. */}
+        <link
+          rel="preload"
+          href="/fonts/iran-yekan-x/IRANYekanX-Regular.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/iran-yekan-x/IRANYekanX-Medium.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
