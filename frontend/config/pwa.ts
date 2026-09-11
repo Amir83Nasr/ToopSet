@@ -11,7 +11,7 @@
 
 export const pwaConfig = {
   // ── App Identity ────────────────────────────────────────────────────────────
-  name: "ToopSet | توپ‌سِت",
+  name: "ToopSet",
   shortName: "ToopSet",
   description: "سامانه رزرواسیون مجموعه‌های ورزشی",
   language: "fa-IR",
@@ -22,9 +22,12 @@ export const pwaConfig = {
   orientation: "portrait-primary" as const,
 
   // ── Colors ──────────────────────────────────────────────────────────────────
-  // themeColor matches the dark theme meta color tag in layout.tsx.
+  // themeColor matches the light/dark meta color tags in layout.tsx.
+  // Exact match of Button bg-primary: --primary oklch(0.48 0.12 240) /
+  // oklch(0.85 0.08 240), gamut-clipped to sRGB.
   // backgroundColor is used as the splash-screen colour on mobile.
-  themeColor: "#212121",
+  themeColor: "#00649a",
+  themeColorDark: "#000",
   backgroundColor: "#fafafa",
 
   // ── Icon Paths (relative to /public) ────────────────────────────────────────

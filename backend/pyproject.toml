@@ -56,6 +56,15 @@ test = [
   "pytest-cov>=6.0",
 ]
 
+[dependency-groups]
+# Dev pins mirror requirements.txt so `uv sync` matches pip/CI byte-for-byte.
+dev = [
+  "ruff==0.15.16",
+  "mypy==2.1.0",
+  "pytest==9.0.3",
+  "pytest-asyncio==1.4.0",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

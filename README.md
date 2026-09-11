@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h1 align="center">توپ‌سِت | ToopSet</h1>
+<h1 align="center">ToopSet</h1>
 
 <p align="center">
   <strong>Online sports court booking platform for Qom, Iran</strong>
@@ -33,7 +33,7 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
-- [Branch Strategy & Git Workflow](#branch-strategy--git-workflow)
+- [Branch Strategy &amp; Git Workflow](#branch-strategy--git-workflow)
 - [CI Pipeline](#ci-pipeline)
 - [Deployment](#deployment)
 - [Local Development](#local-development)
@@ -47,18 +47,18 @@ ToopSet is a production-grade platform for discovering and booking sports courts
 
 ## Tech Stack
 
-| Layer          | Technology                                                             |
-| -------------- | ---------------------------------------------------------------------- |
-| **Frontend**   | Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui           |
-| **Backend**    | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic               |
-| **Database**   | PostgreSQL 17                                                          |
-| **Cache**      | Redis 7                                                                |
-| **Auth**       | JWT (HS256) + bcrypt + refresh token rotation + session management     |
-| **Maps**       | Neshan Maps SDK (Qom-bounded, CartoDB fallback)                        |
-| **Locale**     | Persian (fa-IR) — RTL layout, Jalali dates, Persian digits             |
-| **Monitoring** | Prometheus + Grafana + OpenTelemetry + Sentry                          |
-| **Infra**      | Vercel (frontend) + Railway (backend) + Docker Compose (local)         |
-| **CI/CD**      | GitHub Actions + Lefthook (pre-commit/push hooks)                      |
+| Layer                | Technology                                                         |
+| -------------------- | ------------------------------------------------------------------ |
+| **Frontend**   | Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui       |
+| **Backend**    | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic           |
+| **Database**   | PostgreSQL 17                                                      |
+| **Cache**      | Redis 7                                                            |
+| **Auth**       | JWT (HS256) + bcrypt + refresh token rotation + session management |
+| **Maps**       | Neshan Maps SDK (Qom-bounded, CartoDB fallback)                    |
+| **Locale**     | Persian (fa-IR) — RTL layout, Jalali dates, Persian digits        |
+| **Monitoring** | Prometheus + Grafana + OpenTelemetry + Sentry                      |
+| **Infra**      | Vercel (frontend) + Railway (backend) + Docker Compose (local)     |
+| **CI/CD**      | GitHub Actions + Lefthook (pre-commit/push hooks)                  |
 
 ---
 
@@ -137,13 +137,13 @@ Both jobs run in parallel. **Fail-fast**: any failing step stops the job immedia
 
 ### Local hooks (Lefthook)
 
-| Hook       | Checks                                                              |
-| ---------- | ------------------------------------------------------------------- |
-| Pre-commit | Trailing whitespace, EOF newline, merge conflicts, private keys     |
-|            | Ruff format + lint (staged Python files)                            |
-|            | Prettier + ESLint (staged frontend files)                           |
-| Pre-push   | TypeScript typecheck, full ESLint, Next.js build                    |
-|            | Ruff (full check), mypy, migration revision check, YAML validation  |
+| Hook       | Checks                                                             |
+| ---------- | ------------------------------------------------------------------ |
+| Pre-commit | Trailing whitespace, EOF newline, merge conflicts, private keys    |
+|            | Ruff format + lint (staged Python files)                           |
+|            | Prettier + ESLint (staged frontend files)                          |
+| Pre-push   | TypeScript typecheck, full ESLint, Next.js build                   |
+|            | Ruff (full check), mypy, migration revision check, YAML validation |
 
 Tests are excluded from hooks (need running PostgreSQL). CI is the safety layer.
 
@@ -153,10 +153,10 @@ Tests are excluded from hooks (need running PostgreSQL). CI is the safety layer.
 
 ### Frontend (Vercel)
 
-| Branch    | Vercel Environment | URL pattern                       |
-| --------- | ------------------ | --------------------------------- |
-| `develop` | Preview            | `toopset-git-develop.vercel.app`  |
-| `main`    | Production         | `toopset.vercel.app` (custom)     |
+| Branch      | Vercel Environment | URL pattern                        |
+| ----------- | ------------------ | ---------------------------------- |
+| `develop` | Preview            | `toopset-git-develop.vercel.app` |
+| `main`    | Production         | `toopset.vercel.app` (custom)    |
 
 **Deployment workflow** (`.github/workflows/deploy-frontend.yml`):
 
@@ -167,6 +167,7 @@ Tests are excluded from hooks (need running PostgreSQL). CI is the safety layer.
 5. Preview URL is posted as a comment on the commit
 
 **Environment variables** are set in Vercel dashboard:
+
 - **Production**: `NEXT_PUBLIC_API_URL` (Railway production), `NEXT_PUBLIC_NESHAN_API_KEY`, etc.
 - **Preview**: same keys, different values pointing to Railway staging
 
@@ -174,8 +175,8 @@ Never store secrets in `.env.production` files on disk.
 
 ### Backend (Railway)
 
-| Branch    | Railway Environment | Database         |
-| --------- | ------------------- | ---------------- |
+| Branch      | Railway Environment | Database            |
+| ----------- | ------------------- | ------------------- |
 | `develop` | Staging             | Separate PG + Redis |
 | `main`    | Production          | Separate PG + Redis |
 
@@ -216,44 +217,44 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
 ### Env file layout
 
-| File                          | Purpose                       | Committed? |
-| ----------------------------- | ----------------------------- | ---------- |
-| `.env.example`                | Reference for all env vars    | ✅ yes     |
-| `backend/.env.example`        | Backend local dev template    | ✅ yes     |
-| `frontend/.env.example`       | Frontend local dev template   | ✅ yes     |
-| `.env`                        | Docker Compose (ports only)   | ❌ no      |
-| `backend/.env`                | Backend local dev             | ❌ no      |
-| `frontend/.env.local`         | Frontend local dev            | ❌ no      |
-| `backend/.env.production`     | Deleted — use dashboards      | ❌ no      |
-| `frontend/.env.production`    | Deleted — use dashboards      | ❌ no      |
+| File                         | Purpose                     | Committed? |
+| ---------------------------- | --------------------------- | ---------- |
+| `.env.example`             | Reference for all env vars  | ✅ yes     |
+| `backend/.env.example`     | Backend local dev template  | ✅ yes     |
+| `frontend/.env.example`    | Frontend local dev template | ✅ yes     |
+| `.env`                     | Docker Compose (ports only) | ❌ no      |
+| `backend/.env`             | Backend local dev           | ❌ no      |
+| `frontend/.env.local`      | Frontend local dev          | ❌ no      |
+| `backend/.env.production`  | Deleted — use dashboards   | ❌ no      |
+| `frontend/.env.production` | Deleted — use dashboards   | ❌ no      |
 
 ### Required secrets per environment
 
 **Railway Production:**
 
-| Variable                      | Where              |
-| ----------------------------- | ------------------ |
-| `DATABASE_URL`                | Postgres add-on    |
-| `REDIS_URL`                   | Redis add-on       |
-| `SECRET_KEY`                  | Manual (64+ chars) |
-| `APP_ENVIRONMENT`             | `production`       |
-| `REFRESH_COOKIE_SECURE`       | `true`             |
-| `REFRESH_COOKIE_SAMESITE`     | `none`             |
-| `CORS_ORIGINS`                | Frontend URL       |
-| `PAYMENT_GATEWAY`             | Your choice        |
-| `SMS_PROVIDER`                | Your choice        |
-| `SMS_API_URL`                 | SMS.ir Verify URL  |
-| `SMS_API_KEY`                 | SMS.ir secret      |
-| `SMS_TEMPLATE_ID`             | Verify template ID |
+| Variable                    | Where              |
+| --------------------------- | ------------------ |
+| `DATABASE_URL`            | Postgres add-on    |
+| `REDIS_URL`               | Redis add-on       |
+| `SECRET_KEY`              | Manual (64+ chars) |
+| `APP_ENVIRONMENT`         | `production`     |
+| `REFRESH_COOKIE_SECURE`   | `true`           |
+| `REFRESH_COOKIE_SAMESITE` | `none`           |
+| `CORS_ORIGINS`            | Frontend URL       |
+| `PAYMENT_GATEWAY`         | Your choice        |
+| `SMS_PROVIDER`            | Your choice        |
+| `SMS_API_URL`             | SMS.ir Verify URL  |
+| `SMS_API_KEY`             | SMS.ir secret      |
+| `SMS_TEMPLATE_ID`         | Verify template ID |
 
 **Railway Staging:** Same variables, different values (separate DB, separate Redis).
 
 **Vercel Production:**
 
-| Variable                      | Where              |
-| ----------------------------- | ------------------ |
-| `NEXT_PUBLIC_API_URL`         | Railway production |
-| `NEXT_PUBLIC_NESHAN_API_KEY`  | Neshan dashboard   |
+| Variable                       | Where              |
+| ------------------------------ | ------------------ |
+| `NEXT_PUBLIC_API_URL`        | Railway production |
+| `NEXT_PUBLIC_NESHAN_API_KEY` | Neshan dashboard   |
 
 **Vercel Preview:** Same as production, but `NEXT_PUBLIC_API_URL` points to Railway staging.
 
@@ -312,26 +313,26 @@ make version-check   # Verify version consistency
 
 ### Makefile reference
 
-| Command                  | Description                              |
-| ------------------------ | ---------------------------------------- |
-| `make install`           | Install all dependencies                 |
-| `make dev-backend`       | Start FastAPI (auto-reload)              |
-| `make dev-frontend`      | Start Next.js (Turbopack HMR)            |
-| `make db-start`          | PostgreSQL + Redis via Docker            |
-| `make db-migrate`        | Run Alembic migrations                   |
-| `make db-seed`           | Seed with Persian test data              |
-| `make db-autogenerate`   | Create migration: `MSG="description"`    |
-| `make db-downgrade`      | Rollback: `REV=-1`                       |
-| `make lint`              | Run all linters (Ruff + ESLint)          |
-| `make format`            | Format all code (Ruff + Prettier)        |
-| `make typecheck`         | Run all type checkers (mypy + tsc)       |
-| `make test`              | Run all tests (pytest + vitest)          |
-| `make build`             | Build frontend (production, webpack)     |
-| `make start`             | Start production frontend (standalone)   |
-| `make check`             | lint + typecheck + build                 |
-| `make version-bump`      | Bump: `BUMP=patch|minor|major`           |
-| `make doctor`            | Verify system setup                      |
-| `make clean`             | Remove build artifacts                   |
+| Command                  | Description                            |
+| ------------------------ | -------------------------------------- |
+| `make install`         | Install all dependencies               |
+| `make dev-backend`     | Start FastAPI (auto-reload)            |
+| `make dev-frontend`    | Start Next.js (Turbopack HMR)          |
+| `make db-start`        | PostgreSQL + Redis via Docker          |
+| `make db-migrate`      | Run Alembic migrations                 |
+| `make db-seed`         | Seed with Persian test data            |
+| `make db-autogenerate` | Create migration:`MSG="description"` |
+| `make db-downgrade`    | Rollback:`REV=-1`                    |
+| `make lint`            | Run all linters (Ruff + ESLint)        |
+| `make format`          | Format all code (Ruff + Prettier)      |
+| `make typecheck`       | Run all type checkers (mypy + tsc)     |
+| `make test`            | Run all tests (pytest + vitest)        |
+| `make build`           | Build frontend (production, webpack)   |
+| `make start`           | Start production frontend (standalone) |
+| `make check`           | lint + typecheck + build               |
+| `make version-bump`    | Bump: `BUMP=patch                      |
+| `make doctor`          | Verify system setup                    |
+| `make clean`           | Remove build artifacts                 |
 
 ---
 
@@ -373,10 +374,10 @@ make version-check   # Verify version consistency
 
 ## Testing
 
-| Layer    | Framework | Location              |
-| -------- | --------- | --------------------- |
-| Backend  | pytest    | `backend/tests/`      |
-| Frontend | vitest    | `frontend/tests/`     |
+| Layer    | Framework | Location            |
+| -------- | --------- | ------------------- |
+| Backend  | pytest    | `backend/tests/`  |
+| Frontend | vitest    | `frontend/tests/` |
 
 ```bash
 make test          # Run all (requires running PostgreSQL)
@@ -397,24 +398,24 @@ Migration order is enforced:
 
 ## Production Readiness
 
-- [x] Multi-stage Docker builds with non-root user
-- [x] Environment validation at startup (SECRET_KEY, CORS, DB config)
-- [x] Cursor-based pagination for scalable list endpoints
-- [x] JWT with key rotation capability
-- [x] Refresh token rotation and session management
-- [x] OWASP security headers (CSP, HSTS, XFO, X-Content-Type-Options)
-- [x] File upload sanitization (MIME detection, SVG XSS stripping)
-- [x] Rate limiting (Redis-backed with in-memory fallback)
-- [x] Connection pooling with health checks and timeout
-- [x] Structured JSON logging with correlation IDs
-- [x] Prometheus metrics and Grafana dashboards
-- [x] OpenTelemetry tracing (FastAPI, SQLAlchemy, Redis, HTTPX)
-- [x] Slow query logging and request profiling
-- [x] SLO definitions (availability 99.9%, latency P99 500ms)
-- [x] Git-flow branching with branch protection
-- [x] CI pipeline (lint, typecheck, test, build) on every PR
-- [x] Automated deployments (Vercel + Railway)
-- [x] Separated staging/production databases + secrets
+- [X] Multi-stage Docker builds with non-root user
+- [X] Environment validation at startup (SECRET_KEY, CORS, DB config)
+- [X] Cursor-based pagination for scalable list endpoints
+- [X] JWT with key rotation capability
+- [X] Refresh token rotation and session management
+- [X] OWASP security headers (CSP, HSTS, XFO, X-Content-Type-Options)
+- [X] File upload sanitization (MIME detection, SVG XSS stripping)
+- [X] Rate limiting (Redis-backed with in-memory fallback)
+- [X] Connection pooling with health checks and timeout
+- [X] Structured JSON logging with correlation IDs
+- [X] Prometheus metrics and Grafana dashboards
+- [X] OpenTelemetry tracing (FastAPI, SQLAlchemy, Redis, HTTPX)
+- [X] Slow query logging and request profiling
+- [X] SLO definitions (availability 99.9%, latency P99 500ms)
+- [X] Git-flow branching with branch protection
+- [X] CI pipeline (lint, typecheck, test, build) on every PR
+- [X] Automated deployments (Vercel + Railway)
+- [X] Separated staging/production databases + secrets
 - [ ] Real payment gateway integration
 - [ ] Real SMS provider integration
 - [ ] TLS termination (Caddy config commented in compose.prod.yml)

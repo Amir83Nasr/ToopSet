@@ -3,6 +3,7 @@
 import * as React from "react"
 import { flushSync } from "react-dom"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
+import { pwaConfig } from "@/config/pwa"
 
 // ── Theme transition helpers ────────────────────────────────────────────────
 
@@ -85,6 +86,35 @@ function ThemeHotkey() {
   return null
 }
 
+// ── Sync chrome meta theme-color with resolved theme ────────────────────────
+
+function ThemeColorSync() {
+  const { resolvedTheme } = useTheme()
+
+  React.useEffect(() => {
+    // Next.js renders viewport theme-color metas via React. Removing those
+    // nodes imperatively orphans React fibers -> "null (reading
+    // 'removeChild')" on next commit. Mutate attributes in place instead;
+    // duplicate tags with identical content are harmless (browser uses last).
+    const color =
+      resolvedTheme === "dark" ? pwaConfig.themeColorDark : pwaConfig.themeColor
+    const metas = document.querySelectorAll('meta[name="theme-color"]')
+    if (metas.length === 0) {
+      const meta = document.createElement("meta")
+      meta.name = "theme-color"
+      meta.content = color
+      document.head.appendChild(meta)
+      return
+    }
+    metas.forEach((meta) => {
+      meta.setAttribute("content", color)
+      meta.removeAttribute("media")
+    })
+  }, [resolvedTheme])
+
+  return null
+}
+
 // ── Provider ───────────────────────────────────────────────────────────────
 
 function ThemeProvider({
@@ -100,6 +130,7 @@ function ThemeProvider({
     >
       <ThemeClickTracker />
       <ThemeHotkey />
+      <ThemeColorSync />
       {children}
     </NextThemesProvider>
   )

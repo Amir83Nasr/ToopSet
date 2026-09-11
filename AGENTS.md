@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Guidance for Claude Code when working on **ToopSet (توپ‌سِت)** — sports court booking platform in Qom, Iran.
 
@@ -51,7 +51,7 @@ frontend/
 
 ## Development Workflow
 
-**Setup:** `make install` (backend: `pip install -r backend/requirements.txt`, frontend: `pnpm install`).
+**Setup:** `make install` (backend: `pip install -r backend/requirements.txt`, frontend: `pnpm install`). Backend alt: `cd backend && uv sync`.
 **Run:** `make dev-backend` (uvicorn :8000), `make dev-frontend` (next --turbopack :3000), `make db-start` (docker postgres+redis).
 **Production:** `make build` → `make start` (standalone server on :3000)
 
@@ -116,17 +116,17 @@ Use box-drawing `─` (U+2500), never hyphens. Major sections (Makefile) use `�
 
 ### Naming
 
-| Layer               | Convention              | Example                     |
-| ------------------- | ----------------------- | --------------------------- |
-| Backend models      | snake_case, singular    | `time_slot.py`              |
-| Backend routes      | snake_case, plural      | `bookings.py`               |
-| Backend services    | snake_case + `_service` | `booking_service.py`        |
-| Backend repos       | snake_case + `_repo`    | `time_slot_repo.py`         |
-| Backend schemas     | snake_case              | `booking.py`                |
-| Frontend components | kebab-case              | `booking-cancel-dialog.tsx` |
-| Frontend hooks      | `use-` prefix, kebab    | `use-mobile.ts`             |
-| Frontend lib files  | kebab-case              | `neshan-map.ts`             |
-| API routes          | kebab-case              | `/api/v1/time-slots`        |
+| Layer               | Convention               | Example                       |
+| ------------------- | ------------------------ | ----------------------------- |
+| Backend models      | snake_case, singular     | `time_slot.py`              |
+| Backend routes      | snake_case, plural       | `bookings.py`               |
+| Backend services    | snake_case +`_service` | `booking_service.py`        |
+| Backend repos       | snake_case +`_repo`    | `time_slot_repo.py`         |
+| Backend schemas     | snake_case               | `booking.py`                |
+| Frontend components | kebab-case               | `booking-cancel-dialog.tsx` |
+| Frontend hooks      | `use-` prefix, kebab   | `use-mobile.ts`             |
+| Frontend lib files  | kebab-case               | `neshan-map.ts`             |
+| API routes          | kebab-case               | `/api/v1/time-slots`        |
 
 ## Git Workflow
 
