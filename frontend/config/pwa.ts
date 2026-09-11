@@ -46,7 +46,9 @@ export const pwaConfig = {
   categories: ["sports", "booking", "lifestyle"] as const,
 
   // ── Caching ─────────────────────────────────────────────────────────────────
-  cacheVersion: "v1",
+  // v2: image rule also matches /_next/image optimizer URLs (no extension)
+  // and only caches 200/opaque responses — a stale 400 must never stick.
+  cacheVersion: "v2",
   cachePrefix: "toopset",
 
   // ── Runtime Caching Rules ───────────────────────────────────────────────────

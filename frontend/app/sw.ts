@@ -17,6 +17,7 @@
 import {
   Serwist,
   CacheFirst,
+  CacheableResponsePlugin,
   NetworkFirst,
   NetworkOnly,
   StaleWhileRevalidate,
@@ -40,7 +41,11 @@ interface SwScope extends SerwistGlobalConfig {
 declare const self: SwScope
 
 const CACHE_PREFIX = "toopset"
-const CACHE_VERSION = "v1"
+const CACHE_VERSION = "v2"
+
+// Error responses (e.g. a stale 400 from a missing remotePattern) must never
+// be cached — only cache opaque (0) + OK (200) responses.
+const cacheOkOnly = () => new CacheableResponsePlugin({ statuses: [0, 200] })
 
 // ── Runtime Caching Rules ──────────────────────────────────────────────────────
 // Order matters — first match wins.
@@ -62,6 +67,7 @@ const runtimeCaching = [
     handler: new NetworkFirst({
       cacheName: `${CACHE_PREFIX}-api-public-${CACHE_VERSION}`,
       plugins: [
+        cacheOkOnly(),
         new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 60 }),
       ],
     }),
@@ -82,11 +88,16 @@ const runtimeCaching = [
   },
 
   // ── Images (PNG/JPG/SVG/WebP/ICO) — cache first ────────────────────────────
+  // Next.js optimizer URLs (/_next/image?url=…) carry no file extension, so
+  // match them explicitly alongside extension-based URLs.
   {
-    matcher: /\.(?:png|jpg|jpeg|gif|svg|webp|ico)\b/,
+    matcher: ({ url }: { url: URL }) =>
+      url.pathname === "/_next/image" ||
+      /\.(?:png|jpg|jpeg|gif|svg|webp|ico)\b/.test(url.pathname + url.search),
     handler: new CacheFirst({
       cacheName: `${CACHE_PREFIX}-images-${CACHE_VERSION}`,
       plugins: [
+        cacheOkOnly(),
         new ExpirationPlugin({
           maxEntries: 100,
           maxAgeSeconds: 60 * 60 * 24 * 14,
@@ -115,6 +126,7 @@ const runtimeCaching = [
     handler: new NetworkFirst({
       cacheName: `${CACHE_PREFIX}-pages-${CACHE_VERSION}`,
       plugins: [
+        cacheOkOnly(),
         new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }),
       ],
     }),
