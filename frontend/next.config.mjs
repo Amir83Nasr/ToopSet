@@ -51,8 +51,18 @@ const nextConfig = {
       },
       // ParsPack object storage — vendor images
       {
+        protocol: "http",
+        hostname: "*.parspack.net",
+        pathname: "/**",
+      },
+      {
         protocol: "https",
         hostname: "*.parspack.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "media.toopset.ir",
         pathname: "/**",
       },
       // Production API uploads

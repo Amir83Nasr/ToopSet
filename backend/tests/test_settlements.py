@@ -264,7 +264,7 @@ async def test_finance_bookings_only_returns_successful_online_reservations(
     )
 
     response = await client.get(
-        f"/api/v1/manager/bookings?finance_only=true&vendor_id={vendor.id}&limit=500",
+        f"/api/v1/manager/bookings?finance_only=true&vendor_id={vendor.id}&limit=100",
         headers={"Authorization": f"Bearer {manager_token['access_token']}"},
     )
 
