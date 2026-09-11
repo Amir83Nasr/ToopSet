@@ -12,6 +12,17 @@ logger = logging.getLogger(__name__)
 
 _SLOW_QUERY_THRESHOLD_MS = 200
 
+_connect_args: dict = {
+    "timeout": 5,
+    "statement_cache_size": 0,
+}
+# Neon-style DATABASE_URL carries libpq params (?sslmode=require) in the query
+# string, which asyncpg's connect() rejects — config strips them from the URL
+# and re-exposes the TLS mode here (ponytail: full verify-ca/verify-full cert
+# checking when Neon CA handling is added).
+if settings.database_url_ssl:
+    _connect_args["ssl"] = settings.database_url_ssl
+
 engine = create_async_engine(
     settings.database_url,
     echo=False,
@@ -23,10 +34,7 @@ engine = create_async_engine(
     pool_recycle=settings.db_pool_recycle,
     pool_pre_ping=True,
     pool_timeout=settings.db_pool_timeout,
-    connect_args={
-        "timeout": 5,
-        "statement_cache_size": 0,
-    },
+    connect_args=_connect_args,
 )
 
 

@@ -279,8 +279,8 @@ export default function DashboardVendorEditPage() {
     return (
       <div className="flex flex-1 flex-col gap-6">
         <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-80 rounded-lg" />
-        <Skeleton className="h-125 w-full rounded-xl" />
+        <Skeleton className="h-10 w-80" />
+        <Skeleton className="h-125 w-full" />
       </div>
     )
   }

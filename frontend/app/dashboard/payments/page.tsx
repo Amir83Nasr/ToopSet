@@ -81,23 +81,11 @@ function LoadingSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-4 shadow-xs ring-1 ring-foreground/10"
-        >
-          <div className="space-y-3">
-            <div className="flex items-start justify-between gap-3 border-b pb-3">
-              <div className="space-y-1.5">
-                <Skeleton className="h-4.5 w-36" />
-                <Skeleton className="h-3.5 w-20" />
-              </div>
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
+        <div key={i} className="rounded-md border p-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
           </div>
         </div>
       ))}

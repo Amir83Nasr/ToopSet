@@ -35,7 +35,7 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <div className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
             <Image
-              src="/icons/logo-180.webp"
+              src="/icons/square.svg"
               alt="توپ‌سِت (ToopSet)"
               width={36}
               height={36}

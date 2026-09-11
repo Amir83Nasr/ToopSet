@@ -128,6 +128,18 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,
+  // Offline splash (app/offline) — logo only, no text.
+  // Requires "/offline" in additionalPrecacheEntries when Serwist build is wired.
+  fallbacks: {
+    entries: [
+      {
+        url: "/offline",
+        matcher({ request }: { request: Request }) {
+          return request.destination === "document"
+        },
+      },
+    ],
+  },
 })
 
 serwist.addEventListeners()

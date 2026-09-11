@@ -3,10 +3,15 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
+import { cn, toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { Button } from "@/components/ui/button"
 import { Bell } from "lucide-react"
-import { cn } from "@/lib/utils"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const POLL_INTERVAL_MS = 60_000
 
@@ -47,25 +52,36 @@ export function NotificationBell({ className }: { className?: string }) {
 
   if (!isAuthenticated) return null
 
+  const label =
+    unread > 0
+      ? `اعلان‌ها — ${toPersianDigits(unread)} اعلان خوانده نشده`
+      : "اعلان‌ها"
+
   return (
-    <Link
-      href="/dashboard/notifications"
-      aria-label={
-        unread > 0
-          ? `اعلان‌ها — ${toPersianDigits(unread)} اعلان خوانده نشده`
-          : "اعلان‌ها"
-      }
-      className={cn(
-        "relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-        className
-      )}
-    >
-      <Bell className="size-5" />
-      {unread > 0 && (
-        <span className="absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] leading-none font-bold text-white tabular-nums">
-          {unread > 9 ? "۹+" : toPersianDigits(unread)}
-        </span>
-      )}
-    </Link>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          asChild
+          className={cn(
+            "relative text-muted-foreground transition-colors hover:text-foreground max-sm:size-11",
+            className
+          )}
+        >
+          <Link href="/dashboard/notifications" aria-label={label}>
+            <Bell className="size-4" />
+            {unread > 0 && (
+              <span className="absolute -start-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] leading-none font-bold text-white tabular-nums">
+                {unread > 9 ? "۹+" : toPersianDigits(unread)}
+              </span>
+            )}
+          </Link>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }

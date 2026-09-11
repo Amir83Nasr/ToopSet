@@ -1,7 +1,6 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { usePathname } from "next/navigation"
 
 // Lazy-load the actual nav bar client-side only (uses usePathname internally)
 const BottomNav = dynamic(
@@ -13,20 +12,19 @@ const BottomNav = dynamic(
 )
 
 /**
- * Renders BottomNav on mobile.
- * Displayed on public-facing pages and user dashboard pages like /dashboard/bookings.
- * Hidden only on auth pages (login, register, otp) and other admin/nested sub-dashboards.
+ * Renders BottomNav on mobile (< md breakpoint, handled inside BottomNav).
+ * Displayed on all pages, including auth pages and dashboard sub-pages.
+ * The spacer reserves flow height for the fixed bar so footer/content
+ * never slides under it — one place instead of per-page pb tweaks.
  */
 export function BottomNavWrapper() {
-  const pathname = usePathname()
-
-  // Hide bottom nav only on auth pages and deep manager/admin dashboard pages
-  const hidden =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/register") ||
-    pathname.startsWith("/otp") ||
-    (pathname.startsWith("/dashboard") && pathname !== "/dashboard/bookings")
-
-  if (hidden) return null
-  return <BottomNav />
+  return (
+    <>
+      <div
+        aria-hidden="true"
+        className="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden"
+      />
+      <BottomNav />
+    </>
+  )
 }

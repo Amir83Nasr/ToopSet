@@ -262,7 +262,7 @@ export default function SettingsPage() {
           {sections.map((section) => (
             <div key={section.title}>
               <Skeleton className="mb-4 h-4 w-24" />
-              <Skeleton className="h-40 w-full rounded-xl" />
+              <Skeleton className="h-40 w-full" />
             </div>
           ))}
         </div>

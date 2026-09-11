@@ -35,7 +35,10 @@ def do_run_migrations(connection):
 
 
 async def run_async_migrations() -> None:
-    connectable = create_async_engine(settings.database_url)
+    # Same libpq-param handling as app/core/database.py: sslmode lives in
+    # connect_args, not the URL, because asyncpg rejects it as a kwarg.
+    connect_args = {"ssl": settings.database_url_ssl} if settings.database_url_ssl else {}
+    connectable = create_async_engine(settings.database_url, connect_args=connect_args)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

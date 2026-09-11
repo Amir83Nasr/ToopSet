@@ -2,36 +2,49 @@
 // Usage:  node scripts/generate-pwa-icons.mjs
 //         pnpm generate-pwa-icons
 //
-// Generates PNG icons of required sizes from the favicon SVG source.
+// Generates PNG icons of required sizes from the logo.jpg source.
 // Icons are written to public/icons/ as referenced in config/pwa.ts.
 //
 // Dependencies: sharp (dev dependency)
 
 import sharp from "sharp"
-import { readFileSync } from "fs"
 import { resolve, dirname } from "path"
 import { fileURLToPath } from "url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, "..")
 const PUBLIC_ICONS = resolve(ROOT, "public/icons")
-const SVG_SOURCE = resolve(PUBLIC_ICONS, "favicon.svg")
+const JPG_SOURCE = resolve(PUBLIC_ICONS, "logo.jpg")
 
-// Sizes required for PWA + Apple touch icon
+// Sizes required for PWA + Apple touch icon.
+// maskable needs padding so key art survives the OS safe-zone crop —
+// logo.jpg is full-bleed, so pad 10% with white before resizing.
 const SIZES = [
-  { name: "icon-192x192.png", size: 192 },
-  { name: "icon-512x512.png", size: 512 },
-  { name: "apple-touch-icon.png", size: 180 },
+  { name: "icon-192x192.png", size: 192, pad: false },
+  { name: "icon-512x512.png", size: 512, pad: false },
+  { name: "icon-maskable-512x512.png", size: 512, pad: true },
+  { name: "apple-touch-icon.png", size: 180, pad: false },
 ]
 
 async function main() {
-  const svgBuffer = readFileSync(SVG_SOURCE)
-  console.log(`Source: ${SVG_SOURCE}`)
-  console.log(`Source size: ${(svgBuffer.byteLength / 1024).toFixed(1)} KB\n`)
+  const meta = await sharp(JPG_SOURCE).metadata()
+  console.log(`Source: ${JPG_SOURCE}`)
+  console.log(`Source size: ${meta.width}×${meta.height}\n`)
 
-  for (const { name, size } of SIZES) {
+  for (const { name, size, pad } of SIZES) {
     const outPath = resolve(PUBLIC_ICONS, name)
-    await sharp(svgBuffer).resize(size, size).png().toFile(outPath)
+    let pipeline = sharp(JPG_SOURCE)
+    if (pad) {
+      const padPx = Math.round((meta.width ?? 1024) * 0.1)
+      pipeline = pipeline.extend({
+        top: padPx,
+        bottom: padPx,
+        left: padPx,
+        right: padPx,
+        background: "#ffffff",
+      })
+    }
+    await pipeline.resize(size, size).png().toFile(outPath)
     console.log(`  ✓ ${name}  ${size}×${size}`)
   }
 

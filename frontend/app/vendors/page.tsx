@@ -420,7 +420,7 @@ function VendorsPageContent() {
                     threshold={0}
                     className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
                   >
-                    {featuredVendors.map((vendor) => {
+                    {featuredVendors.map((vendor, i) => {
                       const mainImage = vendor.main_image || vendor.images?.[0]
                       const rating =
                         vendor.average_rating > 0
@@ -442,10 +442,10 @@ function VendorsPageContent() {
                                     src={buildVendorImageUrl(mainImage)}
                                     alt={`عکس اصلی ${vendor.name}`}
                                     fill
-                                    priority
+                                    priority={i === 0}
+                                    loading={i === 0 ? undefined : "lazy"}
                                     className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                                     sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                                    unoptimized
                                   />
                                 ) : (
                                   <div className="flex size-full items-center justify-center">

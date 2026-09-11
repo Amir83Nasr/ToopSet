@@ -151,7 +151,7 @@ export function MobileNavPanel({
             <SheetTitle className="flex items-center gap-2 text-lg font-bold">
               <span className="flex size-9 items-center justify-center overflow-hidden rounded-lg">
                 <Image
-                  src="/icons/logo-180.webp"
+                  src="/icons/square.svg"
                   alt="توپ‌سِت (ToopSet)"
                   width={36}
                   height={36}

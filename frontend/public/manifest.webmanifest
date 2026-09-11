@@ -1,5 +1,5 @@
 {
-  "name": "ToopSet | توپ‌سِت",
+  "name": "ToopSet",
   "short_name": "ToopSet",
   "description": "سامانه رزرواسیون مجموعه‌های ورزشی",
   "start_url": "/",
@@ -11,15 +11,20 @@
   "categories": ["sports", "booking", "lifestyle"],
   "icons": [
     {
-      "src": "/icons/logo-1080.webp",
-      "sizes": "1080x1080",
-      "type": "image/webp",
-      "purpose": "any"
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
-      "src": "/icons/logo-512.webp",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/webp"
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

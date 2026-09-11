@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react"
+import { useCallback, useEffect, useMemo, useState, memo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -29,7 +29,6 @@ import {
   ImagePlus,
   Share2,
 } from "lucide-react"
-import dynamic from "next/dynamic"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 import {
   Stars,
@@ -53,17 +52,6 @@ import {
   ResponsiveDialogFooter,
   ResponsiveDialogClose,
 } from "@/components/ui/responsive-dialog"
-
-const VendorLocationMap = dynamic(
-  () =>
-    import("@/components/map/vendor-location-map").then(
-      (m) => m.VendorLocationMap
-    ),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-44 w-full rounded-xl" />,
-  }
-)
 
 // ── Persian week helpers ──
 
@@ -145,15 +133,14 @@ function LoadingSkeleton() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main id="main-content" className="relative flex-1 pt-16">
-        <div className="mx-auto max-w-7xl px-4 pt-8 pb-20">
-          <Skeleton className="h-24 w-full rounded-lg" />
+        <div className="mx-auto max-w-7xl px-4 pt-8 pb-8">
+          <Skeleton className="h-20 w-full" />
           <Skeleton className="mt-8 h-8 w-40" />
-          <Skeleton className="mt-6 h-64 w-full rounded-lg" />
+          <Skeleton className="mt-6 h-64 w-full" />
           <div className="mt-8 grid gap-8 lg:grid-cols-3">
-            <Skeleton className="h-48 rounded-lg lg:col-span-2" />
+            <Skeleton className="h-48 lg:col-span-2" />
             <div className="space-y-6">
-              <Skeleton className="h-44 rounded-lg" />
-              <Skeleton className="h-28 rounded-lg" />
+              <Skeleton className="h-28" />
             </div>
           </div>
         </div>
@@ -263,8 +250,6 @@ export default function PublicVendorDetailPage() {
   const [payingBookingId, setPayingBookingId] = useState<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [showMap, setShowMap] = useState(false)
-  const mapSectionRef = useRef<HTMLDivElement>(null)
 
   const canManage = user?.role === "manager" || user?.role === "admin"
 
@@ -535,7 +520,7 @@ export default function PublicVendorDetailPage() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main id="main-content" className="relative flex-1 pt-16">
-        <div className="mx-auto max-w-7xl px-4 pt-10 pb-20">
+        <div className="mx-auto max-w-7xl px-4 pt-10 pb-8">
           {/* ═══════════════════════════════════
                Vendor Hero Card
                ═══════════════════════════════════ */}
@@ -812,59 +797,6 @@ export default function PublicVendorDetailPage() {
 
             {/* ====== Right: Sidebar ====== */}
             <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
-              {/* ── Map (lazy, hidden by default) ── */}
-              {vendor.latitude != null && vendor.longitude != null && (
-                <div className="rounded-xl border bg-card" ref={mapSectionRef}>
-                  {!showMap ? (
-                    <button
-                      onClick={() => setShowMap(true)}
-                      className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/20"
-                    >
-                      <span className="flex items-center gap-1.5 text-sm font-semibold">
-                        <MapPin className="size-4 shrink-0 text-primary" />
-                        موقعیت مکانی
-                      </span>
-                      <span className="text-xs text-primary">
-                        نمایش روی نقشه
-                      </span>
-                    </button>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between border-b px-5 py-3">
-                        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                          <MapPin className="size-4 shrink-0 text-primary" />
-                          موقعیت مکانی
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={`https://neshan.org/maps/@${vendor.latitude},${vendor.longitude},15z,1p`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline"
-                          >
-                            باز کردن در نشان
-                          </a>
-                          <button
-                            onClick={() => setShowMap(false)}
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                            aria-label="بستن نقشه"
-                          >
-                            بستن
-                          </button>
-                        </div>
-                      </div>
-                      <VendorLocationMap
-                        latitude={vendor.latitude}
-                        longitude={vendor.longitude}
-                        name={vendor.name}
-                        height="200px"
-                        interactive={true}
-                      />
-                    </>
-                  )}
-                </div>
-              )}
-
               {/* ── Images ── */}
               <div className="rounded-xl border bg-card p-5">
                 <h3 className="mb-4 flex items-center gap-1.5 text-sm font-semibold">

@@ -165,7 +165,7 @@ export function BookingTable({
             >
               <div>
                 {/* Header: Venue & Status */}
-                <div className="flex items-start justify-between gap-3 border-b bg-muted/30 p-4">
+                <div className="flex items-start justify-between gap-3 bg-muted/30 p-4">
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <Building2 className="size-4 shrink-0 text-primary" />
@@ -233,7 +233,7 @@ export function BookingTable({
                   </div>
 
                   {/* Price Paid */}
-                  <div className="flex items-center justify-between border-t pt-2 text-xs">
+                  <div className="flex items-center justify-between pt-2 text-xs">
                     <span className="text-muted-foreground">مبلغ پرداختی:</span>
                     <span className="font-semibold text-foreground tabular-nums">
                       {formatPrice(b.price_paid)}
@@ -303,7 +303,7 @@ export function BookingTable({
 
               {/* Footer: Action buttons */}
               {hasAction && (
-                <div className="border-t bg-muted/20 p-3">
+                <div className="bg-muted/20 p-3">
                   {b.status === "pending_payment" && (
                     <Button
                       className="w-full"

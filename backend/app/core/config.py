@@ -1,4 +1,5 @@
 import re
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings
@@ -9,6 +10,13 @@ _VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 _SECRET_KEY_MIN_LENGTH = 32
 _SUPPORTED_PAYMENT_GATEWAYS = {"mock", "zibal"}
 _SUPPORTED_SMS_PROVIDERS = {"mock", "smsir"}
+
+
+def _strip_query_params(url: str, params: set[str]) -> str:
+    """Remove libpq-only query params (e.g. ``sslmode``) that asyncpg rejects."""
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query) if k not in params]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 class EnvValidationError(RuntimeError):
@@ -135,8 +143,20 @@ class Settings(BaseSettings):
             url = self.DATABASE_URL
             if "+asyncpg" not in url and url.startswith("postgresql://"):
                 url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-            return url
+            return _strip_query_params(url, {"sslmode", "channel_binding"})
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+
+    @property
+    def database_url_ssl(self) -> str | bool:
+        """SSL mode for asyncpg. libpq params (``sslmode``, ``channel_binding``) live
+        in the URL query string, which asyncpg's ``connect()`` rejects — so they are
+        stripped from :attr:`database_url` and re-applied here as ``connect_args``.
+        Returns ``"require"`` when Neon-style TLS params are present, else ``False``.
+        """
+        if not self.DATABASE_URL:
+            return False
+        query = dict(parse_qsl(urlsplit(self.DATABASE_URL).query))
+        return "require" if query.get("sslmode") in {"require", "verify-full"} else False
 
     @property
     def database_url_sync(self) -> str:

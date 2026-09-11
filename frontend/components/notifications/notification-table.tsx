@@ -1,6 +1,6 @@
 "use client"
 
-import { cn, formatPersianDate } from "@/lib/utils"
+import { formatPersianDate } from "@/lib/utils"
 import { notificationColorClass, notificationLabel } from "@/lib/notifications"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -61,10 +61,7 @@ export function NotificationTable({
         {notifications.map((n) => (
           <div
             key={n.id}
-            className={cn(
-              "flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10",
-              !n.is_read && "bg-muted/30"
-            )}
+            className="flex flex-col gap-3 rounded-xl border bg-card p-4 ring-1 ring-foreground/10"
           >
             <div className="flex items-start justify-between gap-2">
               <Badge
@@ -80,7 +77,7 @@ export function NotificationTable({
 
             <p className="text-sm leading-relaxed">{n.message}</p>
 
-            <div className="flex items-center justify-between gap-2 border-t pt-3">
+            <div className="flex items-center justify-between gap-2 pt-1">
               <span className="text-xs text-muted-foreground">
                 {formatDate(n.created_at)} · {formatTime(n.created_at)}
               </span>
@@ -124,7 +121,7 @@ export function NotificationTable({
         </TableHeader>
         <TableBody>
           {notifications.map((n) => (
-            <TableRow key={n.id} className={n.is_read ? "" : "bg-muted/30"}>
+            <TableRow key={n.id}>
               <TableCell className="text-center">
                 <Badge
                   className={notificationColorClass(n.type)}

@@ -134,11 +134,11 @@ export default function AccountPage() {
 
   return (
     <>
-      <div className="flex min-h-svh flex-col bg-background">
+      <div className="flex min-h-svh flex-col">
         <SiteHeader />
         <main
           id="main-content"
-          className="mx-auto w-full max-w-lg flex-1 px-4 pt-20 pb-24"
+          className="mx-auto w-full max-w-lg flex-1 px-4 pt-20 pb-8"
         >
           {/* ── User Profile Card ── */}
           <div className="mb-5 rounded-3xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent p-4">
