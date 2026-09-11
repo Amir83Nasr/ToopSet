@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, 
 from redis import asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_fresh
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
@@ -269,7 +269,7 @@ async def refresh(
 
 
 @router.get("/me", response_model=UserResponse, summary="Get current user info")
-async def me(current_user: User = Depends(get_current_user)):
+async def me(current_user: User = Depends(get_current_user_fresh)):
     return UserResponse.model_validate(current_user)
 
 
@@ -278,7 +278,7 @@ async def update_profile(
     request: Request,
     response: Response,
     body: UpdateProfileRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_fresh),
     service: AuthService = Depends(_auth_service),
 ):
     password_reset_verified = False
@@ -304,7 +304,7 @@ async def update_profile(
 @router.post("/avatar", response_model=AvatarUploadResponse, summary="Upload avatar")
 async def upload_avatar(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_fresh),
     db: AsyncSession = Depends(get_db),
 ):
     content = await file.read()
@@ -339,7 +339,7 @@ async def upload_avatar(
 
 @router.delete("/avatar", status_code=204, summary="Delete avatar")
 async def delete_avatar(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_fresh),
     db: AsyncSession = Depends(get_db),
 ):
     old_url = current_user.avatar_url
@@ -362,7 +362,7 @@ async def delete_avatar(
 @router.get("/sessions", response_model=SessionListResponse, summary="List active sessions")
 async def list_sessions(
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_fresh),
     service: AuthService = Depends(_auth_service),
 ):
     sessions = await service.list_sessions(current_user)
@@ -385,7 +385,7 @@ async def list_sessions(
 )
 async def revoke_session(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_fresh),
     service: AuthService = Depends(_auth_service),
 ):
     revoked = await service.revoke_session(current_user, session_id)
@@ -401,7 +401,7 @@ async def revoke_session(
 )
 async def logout_all_sessions(
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_fresh),
     service: AuthService = Depends(_auth_service),
 ):
     await service.logout_all_sessions(current_user)

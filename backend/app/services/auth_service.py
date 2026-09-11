@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import auth_cache
 from app.core.config import settings
 from app.core.logger import log_action
 from app.core.phone import normalize_phone
@@ -270,6 +271,7 @@ class AuthService:
         # Bump token_version to invalidate all JWTs
         current_user.token_version += 1
         await self.repo.update_user(current_user.id, {"token_version": current_user.token_version})
+        await auth_cache.invalidate_user_status(current_user.id)
         await _security_log(
             self.repo.db,
             current_user.id,
@@ -318,6 +320,8 @@ class AuthService:
         # Bump token_version to immediately invalidate all outstanding access tokens
         target_user.token_version += 1
         await self.repo.update_user(target_user_id, {"token_version": target_user.token_version})
+        # Drop cached auth status so revoked access tokens fail on the next request
+        await auth_cache.invalidate_user_status(target_user_id)
 
         await _security_log(
             db,
@@ -412,6 +416,10 @@ class AuthService:
                 f"تغییر رمز عبور | {count} نشست لغو شد و نسخه توکن افزایش یافت",
                 severity="WARNING",
             )
+
+        # Any profile change (password change bumps token_version) may make the
+        # cached auth status stale — drop it so the next request re-reads the DB.
+        await auth_cache.invalidate_user_status(updated_user.id)
 
         return updated_user
 

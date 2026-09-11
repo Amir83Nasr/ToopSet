@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import auth_cache
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.models.user import User
@@ -58,6 +59,8 @@ class UserService:
                 )
 
         updated = await self.repo.update_role(target_id, new_role)
+        # Role is part of the cached auth status — drop it so the change applies now
+        await auth_cache.invalidate_user_status(target_id)
 
         await log_action(
             self.repo.db,
@@ -101,6 +104,9 @@ class UserService:
             await refresh_repo.revoke_all_for_user(target_id)
             updated.token_version += 1
             await self.repo.update_user(target_id, {"token_version": updated.token_version})
+
+        # Cached auth status is stale in both directions (deactivate/reactivate)
+        await auth_cache.invalidate_user_status(target_id)
 
         await log_action(
             self.repo.db,

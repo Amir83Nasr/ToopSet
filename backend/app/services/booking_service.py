@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_fresh
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
@@ -2951,6 +2951,20 @@ async def get_booking_service(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> BookingService:
+    return BookingService(db=db, current_user=current_user)
+
+
+async def get_booking_service_fresh(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_fresh),
+) -> BookingService:
+    """BookingService with a DB-backed user.
+
+    For flows that read profile columns off ``current_user``
+    (``phone_verified_at`` in ``create_booking``, ``phone`` in the Zibal
+    replacement-hold payment) — the cached auth path returns an
+    identity-only ``User``.
+    """
     return BookingService(db=db, current_user=current_user)
 
 

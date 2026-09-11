@@ -3,7 +3,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_current_user_optional
+from app.api.deps import (
+    get_current_user,
+    get_current_user_fresh,
+    get_current_user_optional,
+)
 from app.core.database import get_db
 from app.core.pagination import decode_cursor
 from app.models.user import User
@@ -22,6 +26,15 @@ def get_review_service(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewService:
+    return ReviewService(db=db, current_user=current_user)
+
+
+def get_review_service_fresh(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_fresh),
+) -> ReviewService:
+    """ReviewService with a DB-backed user (``create`` reads ``full_name``
+    for notifications — the cached auth path returns an identity-only user)."""
     return ReviewService(db=db, current_user=current_user)
 
 
@@ -54,7 +67,7 @@ async def list_my_reviews(
 )
 async def create_review(
     data: ReviewCreate,
-    service: ReviewService = Depends(get_review_service),
+    service: ReviewService = Depends(get_review_service_fresh),
 ):
     return await service.create(data)
 

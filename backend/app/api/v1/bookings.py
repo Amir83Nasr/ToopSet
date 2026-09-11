@@ -19,7 +19,11 @@ from app.schemas.booking import (
     ReplacementHoldResponse,
 )
 from app.schemas.payment import PaymentStartResponse, PendingCheckoutResponse
-from app.services.booking_service import BookingService, get_booking_service
+from app.services.booking_service import (
+    BookingService,
+    get_booking_service,
+    get_booking_service_fresh,
+)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -133,7 +137,7 @@ async def get_replacement_hold(
 )
 async def pay_replacement_hold(
     hold_id: int,
-    service: BookingService = Depends(get_booking_service),
+    service: BookingService = Depends(get_booking_service_fresh),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
 
@@ -174,7 +178,7 @@ async def get_booking(
 async def create_booking(
     request: Request,
     data: BookingCreate,
-    service: BookingService = Depends(get_booking_service),
+    service: BookingService = Depends(get_booking_service_fresh),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
 

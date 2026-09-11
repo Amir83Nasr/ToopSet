@@ -45,6 +45,29 @@ from app.core.metrics import PrometheusMiddleware as _PrometheusMiddleware  # no
 app.user_middleware = [m for m in app.user_middleware if m.cls is not _PrometheusMiddleware]
 app.middleware_stack = None  # force rebuild on first request
 
+# ── Neutralize the auth-status Redis cache for tests ───────────────────
+# Tests must exercise the authoritative DB path (the pre-cache behaviour),
+# and a reachable Redis would otherwise leak user status across the
+# per-test DB rollback and authorize users the test DB no longer contains.
+from app.core import auth_cache as _auth_cache  # noqa: E402
+
+
+async def _auth_cache_disabled_get(user_id: int) -> dict | None:
+    return None
+
+
+async def _auth_cache_disabled_set(user_id: int, **kwargs: Any) -> None:
+    return None
+
+
+async def _auth_cache_disabled_invalidate(user_id: int) -> None:
+    return None
+
+
+_auth_cache.get_user_status = _auth_cache_disabled_get  # type: ignore[assignment]
+_auth_cache.set_user_status = _auth_cache_disabled_set  # type: ignore[assignment]
+_auth_cache.invalidate_user_status = _auth_cache_disabled_invalidate  # type: ignore[assignment]
+
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database():
