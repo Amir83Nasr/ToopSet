@@ -92,6 +92,7 @@ async def mark_read(
     n = await repo.mark_read_for_user(notification_id, current_user.id)
     if not n:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="اعلان یافت نشد")
+    await db.commit()
     await invalidate_admin_list_cache("notifications")
     return NotificationResponse.model_validate(n)
 
@@ -105,5 +106,6 @@ async def mark_all_read(
 
     repo = NotificationRepo(db)
     await repo.mark_all_read(current_user.id)
+    await db.commit()
     await invalidate_admin_list_cache("notifications")
     return {"success": True}

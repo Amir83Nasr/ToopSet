@@ -72,7 +72,9 @@ async def create_slot(
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.create_slot(vendor_id, data)
+    result = await service.create_slot(vendor_id, data)
+    await service.repo.db.commit()
+    return result
 
 
 @legacy_router.post(
@@ -93,7 +95,9 @@ async def generate_slots(
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.generate_slots(vendor_id, data)
+    result = await service.generate_slots(vendor_id, data)
+    await service.repo.db.commit()
+    return result
 
 
 @router.get(
@@ -120,7 +124,9 @@ async def apply_weekly_schedule(
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.apply_weekly_schedule(vendor_id, data)
+    result = await service.apply_weekly_schedule(vendor_id, data)
+    await service.repo.db.commit()
+    return result
 
 
 @legacy_router.patch("/{slot_id}", response_model=TimeSlotResponse, summary="Update time slot")
@@ -132,7 +138,9 @@ async def update_slot(
     service: TimeSlotService = Depends(get_time_slot_service),
     _: User = Depends(get_current_manager),
 ):
-    return await service.update_vendor_slot(vendor_id, slot_id, data)
+    result = await service.update_vendor_slot(vendor_id, slot_id, data)
+    await service.repo.db.commit()
+    return result
 
 
 # Dedicated slot detail router — used by the booking flow

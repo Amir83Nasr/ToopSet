@@ -34,7 +34,6 @@ from app.core.security import ahash_password
 from app.core.upload import (
     ALLOWED_EXTENSIONS,
     MAX_FILE_SIZE,
-    delete_upload,
     delete_upload_async,
     validate_upload_content,
 )
@@ -184,6 +183,7 @@ async def broadcast_notification(
     await log_action(
         db, _.id, "broadcast", f"اعلان همگانی | ارسال به {count} کاربر: {data.message[:100]}"
     )
+    await db.commit()
     return {"success": True, "count": count}
 
 
@@ -296,6 +296,7 @@ async def clear_logs(
     await log_action(
         db, _.id, "logs_cleared", f"پاکسازی لاگ‌ها | تمام لاگ‌ها توسط ادمین '{_.full_name}' پاک شد"
     )
+    await db.commit()
 
 
 @router.delete("/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete log entry")
@@ -323,6 +324,7 @@ async def delete_log(
     repo = LogRepo(db)
     await repo.delete_by_id(log_id)
     await invalidate_admin_list_cache("logs")
+    await db.commit()
 
 
 # ── Vendor approval (pending vendors) ──────────────────────────────────
@@ -423,6 +425,7 @@ async def approve_vendor(
         await NotificationService(db).vendor_approved(
             manager_id=vendor.manager_id, vendor_name=vendor.name
         )
+    await service.repo.db.commit()
     return result
 
 
@@ -469,6 +472,7 @@ async def reject_vendor(
     from app.services.notification_service import NotificationService
 
     await NotificationService(db).vendor_rejected(manager_id=manager_id, vendor_name=name)
+    await db.commit()
 
 
 # ── Hard-delete endpoints ───────────────────────────────────────────
@@ -513,6 +517,7 @@ async def hard_delete_vendor(
         "vendor_hard_deleted",
         f"حذف دائمی مجموعه | مجموعه (id={vendor_id}) توسط ادمین حذف شد",
     )
+    await db.commit()
 
 
 @router.delete(
@@ -575,13 +580,14 @@ async def hard_delete_user(
     from app.services.cache_service import invalidate_admin_list_cache
 
     name = user.full_name
-    delete_upload(user.avatar_url)
+    await delete_upload_async(user.avatar_url)
     await db.delete(user)
     await db.flush()
     await invalidate_admin_list_cache("users")
     await log_action(
         db, _.id, "user_deleted", f"حذف دائمی کاربر | '{name}' (id={user_id}) توسط ادمین حذف شد"
     )
+    await db.commit()
 
 
 @router.delete(
@@ -612,7 +618,7 @@ async def force_delete_user(
     await _guard_admin_deletion(db, actor=_, target=user)
     name = user.full_name
 
-    delete_upload(user.avatar_url)
+    await delete_upload_async(user.avatar_url)
 
     # Collect vendor IDs for this user
     vendor_ids = (
@@ -678,6 +684,7 @@ async def force_delete_user(
         "user_deleted",
         f"حذف کاربر | '{name}' (id={user_id}) به همراه تمام اطلاعات مرتبط توسط ادمین حذف شد",
     )
+    await db.commit()
 
 
 @router.delete(
@@ -697,6 +704,7 @@ async def hard_delete_review(
     await log_action(
         db, _.id, "review_deleted", f"حذف دائمی نظر | نظر (id={review_id}) توسط ادمین حذف شد"
     )
+    await db.commit()
 
 
 # ── System settings ─────────────────────────────────────────────────
@@ -793,6 +801,8 @@ async def update_setting(
         "setting_updated",
         f"ویرایش تنظیمات | '{setting.key}': '{old_value}' → '{data.value}'",
     )
+    await db.commit()
+    await db.refresh(setting)
     return setting
 
 
@@ -833,6 +843,8 @@ async def upsert_setting_by_key(
 
     await invalidate_admin_list_cache("settings")
     await log_action(db, _.id, action, detail)
+    await db.commit()
+    await db.refresh(setting)
     return setting
 
 
@@ -858,6 +870,7 @@ async def seed_default_settings(
 
     await invalidate_admin_list_cache("settings")
     await log_action(db, _.id, "settings_seeded", f"مقداردهی تنظیمات | {count} تنظیم جدید اضافه شد")
+    await db.commit()
     return {"seeded": count}
 
 
@@ -969,6 +982,7 @@ async def update_refund_status(
         refund_amount=refund.refund_amount,
         payment_tracking_code=refund.payment_tracking_code,
     )
+    await db.commit()
     return _refund_response(refund)
 
 
@@ -999,6 +1013,7 @@ async def reveal_refund_destination(
         "refund_destination_revealed",
         f"مشاهده کارت مقصد عودت | refund={refund_id}",
     )
+    await db.commit()
     response.headers["Cache-Control"] = "no-store"
     return RefundDestinationResponse(
         refund_id=refund.id,
@@ -1101,6 +1116,7 @@ async def update_admin_settlement(
         admin_note=data.admin_note,
         payment_tracking_code=data.payment_tracking_code,
     )
+    await db.commit()
     await db.refresh(settlement, ["vendor", "manager"])
     await log_action(
         db,
@@ -1108,6 +1124,8 @@ async def update_admin_settlement(
         "settlement_status_updated",
         f"تغییر وضعیت تسویه | settlement={settlement_id} → {data.status.value}",
     )
+    await db.commit()
+    await db.refresh(settlement, ["vendor", "manager"])
     return _settlement_response(settlement)
 
 
@@ -1172,6 +1190,7 @@ async def reveal_settlement_destination(
         "settlement_destination_revealed",
         f"مشاهده کارت مقصد تسویه | settlement={settlement_id}",
     )
+    await db.commit()
     response.headers["Cache-Control"] = "no-store"
     return SettlementDestinationResponse(
         settlement_id=settlement.id,
@@ -1285,6 +1304,7 @@ async def upload_hero_image(
         "hero_image_uploaded",
         f"آپلود عکس | عکس صفحه ورود/ثبت‌نام ذخیره شد: {relative_url}",
     )
+    await db.commit()
     return {"urls": json.loads(setting.value)}
 
 
@@ -1323,6 +1343,7 @@ async def delete_hero_image(
         "hero_image_deleted",
         f"حذف عکس | تصویر صفحه ورود/ثبت‌نام حذف شد: {removed}",
     )
+    await db.commit()
     return {"urls": json.loads(setting.value)}
 
 
@@ -1441,4 +1462,5 @@ async def admin_revoke_user_sessions(
     refresh_repo = RefreshTokenRepo(db)
     service = AuthService(repo, refresh_repo)
     count = await service.admin_revoke_user_sessions(db, _admin, user_id)
+    await db.commit()
     return {"revoked_sessions": count}

@@ -89,6 +89,7 @@ export default function NotificationsPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       )
+      window.dispatchEvent(new CustomEvent("notifications:changed"))
     } catch {
       toast.error("خطا در به‌روزرسانی")
     }
@@ -99,6 +100,7 @@ export default function NotificationsPage() {
     try {
       await api("/api/v1/notifications/read-all", { method: "POST" })
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+      window.dispatchEvent(new CustomEvent("notifications:changed"))
       toast.success("همه اعلان‌ها به عنوان خوانده شده علامت خوردند")
     } catch {
       toast.error("خطا در به‌روزرسانی")

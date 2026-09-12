@@ -149,7 +149,23 @@ class TestBankCards:
         assert verified.status_code == 200
         assert verified.json()["masked_card_number"] == "5892-****-****-7890"
 
+        full = await client.get("/api/v1/wallet/bank-cards/verified/full", headers=headers)
+        assert full.status_code == 200
+        assert full.json()["card_number"] == "5892101234567890"
+        assert full.json()["masked_card_number"] == "5892-****-****-7890"
+        assert full.headers["cache-control"] == "no-store"
+
+        deleted = await client.delete("/api/v1/wallet/bank-cards/verified", headers=headers)
+        assert deleted.status_code == 204
+
+        after_delete = await client.get("/api/v1/wallet/bank-cards/verified", headers=headers)
+        assert after_delete.status_code == 200
+        assert after_delete.json() is None
+
+        delete_again = await client.delete("/api/v1/wallet/bank-cards/verified", headers=headers)
+        assert delete_again.status_code == 404
+
         count = await session.scalar(
             select(func.count()).select_from(BankCard).where(BankCard.user_id == user_id)
         )
-        assert count == 1
+        assert count == 0

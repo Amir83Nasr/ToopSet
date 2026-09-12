@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { toEnglishDigits, toPersianDigits } from "@/lib/utils"
+import { toEnglishDigits, toPersianDigits, formatCardNumber } from "@/lib/utils"
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -154,7 +154,7 @@ export function BookingCancelDialog({
                       شماره کارت برای بازگشت وجه
                     </div>
                     <Input
-                      value={toPersianDigits(cardNumber)}
+                      value={formatCardNumber(cardNumber)}
                       onChange={(e) => {
                         const digits = toEnglishDigits(e.target.value).replace(
                           /\D/g,
@@ -164,8 +164,8 @@ export function BookingCancelDialog({
                       }}
                       inputMode="numeric"
                       dir="ltr"
-                      maxLength={16}
-                      className="text-end"
+                      maxLength={19}
+                      className="text-end tracking-widest"
                       placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
                     />
                     <p className="text-xs text-muted-foreground">

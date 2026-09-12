@@ -15,22 +15,20 @@
   <img src="https://img.shields.io/badge/Redis-7-DC382D" alt="Redis 7" />
 </p>
 
----
-
 ## Overview
 
 Persian-first court discovery and booking. Role-based dashboards (user, manager, admin), real-time booking, payment simulation, observability stack.
 
 ## Tech Stack
 
-| Layer | Technology |
-| ----- | ---------- |
-| Frontend | Next.js 16 + React 19 + TS + Tailwind v4 + shadcn/ui |
-| Backend | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic |
-| Data | PostgreSQL 17 + Redis 7 |
-| Auth | JWT (HS256) + bcrypt + refresh rotation |
-| Locale | fa-IR, RTL, Jalali, Persian digits |
-| Infra | Vercel (frontend) + Railway (backend) + Docker Compose (local) |
+| Layer    | Technology                                                     |
+| -------- | -------------------------------------------------------------- |
+| Frontend | Next.js 16 + React 19 + TS + Tailwind v4 + shadcn/ui           |
+| Backend  | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic       |
+| Data     | PostgreSQL 17 + Redis 7                                        |
+| Auth     | JWT (HS256) + bcrypt + refresh rotation                        |
+| Locale   | fa-IR, RTL, Jalali, Persian digits                             |
+| Infra    | Vercel (frontend) + Railway (backend) + Docker Compose (local) |
 
 ## Quickstart
 
@@ -54,14 +52,6 @@ backend/    # FastAPI (api/v1/, core/, models/, schemas/, services/, repositorie
 .github/    # ci.yml + deploy-*.yml
 compose.yml # postgres + redis
 ```
-
-## Workflow
-
-- Branches: `main` (prod) → `develop` (staging) → `feature/*`, `fix/*`, `hotfix/*`. See [BRANCH_STRATEGY.md](BRANCH_STRATEGY.md).
-- CI per PR: lint → typecheck → build → test. Secrets via dashboards, never committed `.env.production`.
-- Migrations run before app start (`alembic upgrade head`); rollback: `alembic downgrade -1`.
-
----
 
 ## License
 

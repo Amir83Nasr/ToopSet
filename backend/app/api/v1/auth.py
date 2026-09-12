@@ -9,7 +9,12 @@ from app.core.logger import log_action
 from app.core.rate_limiter import limiter
 from app.core.redis_client import get_redis
 from app.core.security import create_password_reset_token, decode_token
-from app.core.upload import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, delete_upload, save_upload
+from app.core.upload import (
+    ALLOWED_EXTENSIONS,
+    MAX_FILE_SIZE,
+    delete_upload_async,
+    save_upload_async,
+)
 from app.models.user import User
 from app.repositories.refresh_token_repo import RefreshTokenRepo
 from app.repositories.user_repo import OTP_PLACEHOLDER_HASH, UserRepository
@@ -145,7 +150,9 @@ async def verify_otp(
         code=body.code,
         full_name=body.full_name,
     )
-    # Persist refresh token from OTP login
+    # Commit the new/existing user first (OtpService owns its own session),
+    # then persist the refresh token on this endpoint's session and commit.
+    await service.repo.db.commit()
     auth_service = _auth_service(db)
     await auth_service._persist_refresh_token(
         user_id=user.id,
@@ -154,6 +161,7 @@ async def verify_otp(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    await db.commit()
     _set_refresh_cookie(response, refresh_token)
     if body.purpose == "password_reset":
         _set_password_reset_cookie(
@@ -205,6 +213,7 @@ async def register(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    await service.repo.db.commit()
     _set_refresh_cookie(response, refresh_token)
     return TokenResponse(
         access_token=access_token,
@@ -227,6 +236,7 @@ async def login(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
+    await service.repo.db.commit()
     _set_refresh_cookie(response, refresh_token)
     return TokenResponse(
         access_token=access_token,
@@ -252,6 +262,7 @@ async def refresh(
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
         )
+        await service.repo.db.commit()
     except HTTPException as exc:
         if exc.status_code == 401:
             exc.headers = {
@@ -296,6 +307,7 @@ async def update_profile(
         body,
         password_change_verified=password_reset_verified,
     )
+    await service.repo.db.commit()
     if body.new_password is not None:
         _clear_password_reset_cookie(response)
     return UserResponse.model_validate(updated_user)
@@ -316,16 +328,19 @@ async def upload_avatar(
         raise HTTPException(status_code=400, detail=f"نوع فایل .{ext} مجاز نیست")
 
     try:
-        relative_url = save_upload(content, file.filename or "image.jpg", subdir="avatars")
-    except ValueError as e:
+        relative_url = await save_upload_async(
+            content, file.filename or "image.jpg", subdir="avatars"
+        )
+    except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     repo = UserRepository(db)
     user = await repo.get_by_id(current_user.id)
     if user:
-        delete_upload(user.avatar_url)
+        await delete_upload_async(user.avatar_url)
         user.avatar_url = relative_url
         await db.flush()
+        await db.commit()
 
     await log_action(
         db,
@@ -333,6 +348,7 @@ async def upload_avatar(
         "avatar_updated",
         f"تغییر تصویر پروفایل | '{current_user.full_name}'",
     )
+    await db.commit()
 
     return AvatarUploadResponse(url=relative_url)
 
@@ -345,8 +361,9 @@ async def delete_avatar(
     old_url = current_user.avatar_url
     current_user.avatar_url = None
     await db.flush()
+    await db.commit()
 
-    delete_upload(old_url)
+    await delete_upload_async(old_url)
 
     await log_action(
         db,
@@ -354,6 +371,7 @@ async def delete_avatar(
         "avatar_deleted",
         f"حذف تصویر پروفایل | '{current_user.full_name}'",
     )
+    await db.commit()
 
 
 # ── Session management ───────────────────────────────────────────────
@@ -389,6 +407,7 @@ async def revoke_session(
     service: AuthService = Depends(_auth_service),
 ):
     revoked = await service.revoke_session(current_user, session_id)
+    await service.repo.db.commit()
     if not revoked:
         raise HTTPException(status_code=404, detail="نشست یافت نشد")
 
@@ -405,6 +424,7 @@ async def logout_all_sessions(
     service: AuthService = Depends(_auth_service),
 ):
     await service.logout_all_sessions(current_user)
+    await service.repo.db.commit()
     _clear_refresh_cookie(response)
     return LogoutResponse(detail="از تمام نشست‌ها خارج شدید")
 
@@ -418,6 +438,7 @@ async def logout(
 ):
     refresh_token = request.cookies.get(settings.refresh_cookie_name)
     await service.logout(current_user, refresh_token)
+    await service.repo.db.commit()
     _clear_refresh_cookie(response)
     return LogoutResponse()
 

@@ -72,6 +72,15 @@ export function toEnglishDigits(value: string): string {
   return value.replace(/[۰-۹]/g, (d) => englishDigits[d])
 }
 
+/** Group card digits 4 by 4 with thin space, e.g. "6037991100000000" → "۶۰۳۷ ۹۹۱۱ ۰۰۰۰ ۰۰۰۰". Keeps mask stars, drops dashes. */
+export function formatCardNumber(
+  value: string | number | null | undefined
+): string {
+  const raw = toEnglishDigits(String(value ?? "")).replace(/[^0-9*]/g, "")
+  if (!raw) return ""
+  return toPersianDigits(raw.replace(/(.{4})/g, "$1 ").trim())
+}
+
 export function getInitials(fullName: string): string {
   if (!fullName) return "?"
   return fullName

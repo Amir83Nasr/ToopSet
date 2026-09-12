@@ -101,6 +101,20 @@ class BankCardService:
         )
         return card
 
+    async def delete_verified_card(self) -> bool:
+        card = await self.repo.get_verified_for_user(self.current_user.id)
+        if card is None:
+            return False
+        await self.db.delete(card)
+        await self.db.flush()
+        await log_action(
+            self.db,
+            self.current_user.id,
+            "bank_card_deleted",
+            f"حذف کارت بانکی | card_id={card.id} | {card.masked_card_number}",
+        )
+        return True
+
     async def confirm_card(self, card_id: int) -> BankCard:
         card = await self.repo.get_by_id(card_id)
         if card is None or card.user_id != self.current_user.id:

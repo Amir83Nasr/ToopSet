@@ -84,6 +84,7 @@ async def update_user_role(
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.update_role(current_user, user_id, data.role.value)
+    await service.repo.db.commit()
     await invalidate_admin_list_cache("users")
     return result
 
@@ -101,5 +102,6 @@ async def toggle_user_active(
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.toggle_active(current_user, user_id)
+    await service.repo.db.commit()
     await invalidate_admin_list_cache("users")
     return result

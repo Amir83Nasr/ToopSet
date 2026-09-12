@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.card_security import decrypt_card_number
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.logger import log_action
 from app.models.user import User
 from app.repositories.wallet_repo import WalletRepo
-from app.schemas.bank_card import BankCardLookupRequest, BankCardResponse
+from app.schemas.bank_card import (
+    BankCardFullResponse,
+    BankCardLookupRequest,
+    BankCardResponse,
+)
 from app.schemas.wallet import (
     WalletBalanceResponse,
     WalletDepositRequest,
@@ -41,6 +47,7 @@ async def lookup_bank_card(
 ):
     service = BankCardService(db=db, current_user=current_user)
     card = await service.lookup_card(request.card_number)
+    await db.commit()
     return BankCardResponse.model_validate(card)
 
 
@@ -70,7 +77,59 @@ async def confirm_bank_card(
 ):
     service = BankCardService(db=db, current_user=current_user)
     card = await service.confirm_card(card_id)
+    await db.commit()
     return BankCardResponse.model_validate(card)
+
+
+@router.get(
+    "/bank-cards/verified/full",
+    response_model=BankCardFullResponse,
+    summary="Get current verified bank card with full number",
+)
+async def get_verified_bank_card_full(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the owner's own verified card PAN (no caching, no-store)."""
+    service = BankCardService(db=db, current_user=current_user)
+    card = await service.repo.get_verified_for_user(current_user.id)
+    if card is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کارت ثبت نشده است")
+    await log_action(
+        db,
+        current_user.id,
+        "bank_card_full_revealed",
+        f"مشاهده شماره کارت خود | card_id={card.id}",
+    )
+    await db.commit()
+    response.headers["Cache-Control"] = "no-store"
+    return BankCardFullResponse(
+        id=card.id,
+        card_number=decrypt_card_number(card.encrypted_card_number),
+        masked_card_number=card.masked_card_number,
+        holder_name=card.holder_name,
+        status=card.status,
+        verified_at=card.verified_at,
+    )
+
+
+@router.delete(
+    "/bank-cards/verified",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete current verified bank card",
+    description="Delete the caller's own verified bank card for refunds.",
+)
+async def delete_verified_bank_card(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = BankCardService(db=db, current_user=current_user)
+    deleted = await service.delete_verified_card()
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="کارت ثبت نشده است")
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/balance", response_model=WalletBalanceResponse, summary="Wallet balance")
@@ -81,6 +140,7 @@ async def get_wallet_balance(
     _require_mock_wallet_environment()
     repo = WalletRepo(db)
     wallet = await repo.get_or_create(current_user.id)
+    await db.commit()
     return WalletBalanceResponse(balance=float(wallet.balance))
 
 
@@ -98,6 +158,7 @@ async def deposit_to_wallet(
     wallet = await repo.add_balance(
         wallet, request.amount, request.description or "واریز به کیف پول"
     )
+    await db.commit()
     return WalletBalanceResponse(balance=float(wallet.balance))
 
 
@@ -117,6 +178,7 @@ async def withdraw_from_wallet(
     wallet = await repo.deduct_balance(
         wallet, request.amount, request.description or "برداشت از کیف پول"
     )
+    await db.commit()
     return WalletBalanceResponse(balance=float(wallet.balance))
 
 
@@ -133,6 +195,7 @@ async def get_wallet_transactions(
     repo = WalletRepo(db)
     wallet = await repo.get_or_create(current_user.id)
     transactions = await repo.get_transactions(wallet.id, limit, offset)
+    await db.commit()
     return [
         WalletTransactionResponse(
             id=t.id,

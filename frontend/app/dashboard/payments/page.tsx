@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
+import {
+  toPersianDigits,
+  formatPrice,
+  formatPersianDate,
+  formatCardNumber,
+} from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   SearchInput,
@@ -271,8 +276,11 @@ export default function PaymentsPage() {
                       {p.card_number && (
                         <div className="flex items-center justify-between text-muted-foreground">
                           <span>شماره کارت:</span>
-                          <span dir="ltr" className="font-mono text-foreground">
-                            {p.card_number}
+                          <span
+                            dir="ltr"
+                            className="font-mono tracking-widest text-foreground"
+                          >
+                            {formatCardNumber(p.card_number)}
                           </span>
                         </div>
                       )}

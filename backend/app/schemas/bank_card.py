@@ -19,3 +19,14 @@ class BankCardResponse(BaseModel):
     verified_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class BankCardFullResponse(BaseModel):
+    """Owner-only view: full decrypted PAN plus the masked form."""
+
+    id: int
+    card_number: str
+    masked_card_number: str
+    holder_name: str | None = None
+    status: BankCardStatus
+    verified_at: datetime | None = None

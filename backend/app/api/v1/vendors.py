@@ -180,6 +180,7 @@ async def create_vendor(
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.create_vendor(data)
+    await service.repo.db.commit()
     await invalidate_admin_list_cache("vendors")
     return result
 
@@ -194,6 +195,7 @@ async def update_vendor(
     from app.services.cache_service import invalidate_admin_list_cache
 
     result = await service.update_vendor(vendor_id, data)
+    await service.repo.db.commit()
     await invalidate_admin_list_cache("vendors")
     return result
 
@@ -210,6 +212,7 @@ async def delete_vendor(
     from app.services.cache_service import invalidate_admin_list_cache
 
     await service.delete_vendor(vendor_id)
+    await service.repo.db.commit()
     await invalidate_admin_list_cache("vendors")
 
 

@@ -206,6 +206,7 @@ async def create_manual_booking(
         phone_number=data.phone_number,
         source=BookingSource(data.source),
     )
+    await service.db.commit()
     return _booking_detail_response(booking)
 
 
@@ -221,7 +222,7 @@ async def create_recurring_bookings(
     current_user: User = Depends(get_current_manager),
 ):
     service = FinanceService(db, current_user)
-    return await service.create_recurring_manager_bookings(
+    result = await service.create_recurring_manager_bookings(
         vendor_id=data.vendor_id,
         full_name=data.full_name,
         phone_number=data.phone_number,
@@ -232,6 +233,8 @@ async def create_recurring_bookings(
         end_time=data.end_time,
         allow_partial=data.allow_partial,
     )
+    await service.db.commit()
+    return result
 
 
 @router.post(
@@ -249,6 +252,7 @@ async def cancel_manager_booking(
     cancellation = await service.cancel_booking_by_manager(
         booking_id, reason=data.reason, release_slot=data.release_slot
     )
+    await service.db.commit()
     return SlotCancellationResponse(
         id=cancellation.id,
         slot_id=cancellation.slot_id,
@@ -307,6 +311,7 @@ async def request_settlement(
         period_to=data.period_to,
         manager_note=data.manager_note,
     )
+    await service.db.commit()
     await db.refresh(settlement, ["vendor", "manager"])
     return _settlement_response(settlement)
 

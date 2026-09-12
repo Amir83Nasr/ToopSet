@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
-import { toPersianDigits, formatPersianDate } from "@/lib/utils"
+import {
+  toPersianDigits,
+  formatPersianDate,
+  formatCardNumber,
+} from "@/lib/utils"
 import { formatMoney } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -438,10 +442,12 @@ export default function AdminSettlementsPage() {
               <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <span className="text-muted-foreground">کارت مقصد:</span>
-                  <span dir="ltr" className="font-medium">
-                    {revealedCard ||
-                      detail.destination_card_masked ||
-                      "ثبت نشده"}
+                  <span dir="ltr" className="font-medium tracking-widest">
+                    {revealedCard
+                      ? formatCardNumber(revealedCard)
+                      : detail.destination_card_masked
+                        ? formatCardNumber(detail.destination_card_masked)
+                        : "ثبت نشده"}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">

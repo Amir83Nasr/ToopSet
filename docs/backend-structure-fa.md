@@ -1153,7 +1153,6 @@ backend/
 | `seed.py` | پر کردن دیتابیس با داده‌های آزمایشی |
 | `run_migrations.py` | اجرای مهاجرت‌های Alembic |
 | `check_revisions.py` | بررسی سازگاری نسخه‌های مهاجرت |
-| `generate-placeholder-court-images.py` | تولید تصاویر پیش‌فرض برای مجموعه‌ها |
 
 ---
 

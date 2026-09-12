@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
-import { toPersianDigits, formatPersianDate } from "@/lib/utils"
+import {
+  toPersianDigits,
+  formatPersianDate,
+  formatCardNumber,
+} from "@/lib/utils"
 import { formatMoney } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -379,9 +383,12 @@ export default function AdminRefundsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div dir="ltr" className="text-center text-xs">
+                    <div
+                      dir="ltr"
+                      className="text-center text-xs tracking-widest"
+                    >
                       {r.destination_card_masked
-                        ? toPersianDigits(r.destination_card_masked)
+                        ? formatCardNumber(r.destination_card_masked)
                         : "ثبت نشده"}
                     </div>
                     {r.destination_card_holder_name && (
@@ -464,11 +471,11 @@ export default function AdminRefundsPage() {
                     <div className="text-xs text-muted-foreground">
                       کارت مقصد
                     </div>
-                    <div dir="ltr" className="font-medium">
+                    <div dir="ltr" className="font-medium tracking-widest">
                       {destination
-                        ? toPersianDigits(destination.card_number)
+                        ? formatCardNumber(destination.card_number)
                         : action.refund.destination_card_masked
-                          ? toPersianDigits(
+                          ? formatCardNumber(
                               action.refund.destination_card_masked
                             )
                           : "کارت ثبت نشده"}

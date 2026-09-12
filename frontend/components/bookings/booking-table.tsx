@@ -1,7 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { toPersianDigits, formatPrice, formatPersianDate } from "@/lib/utils"
+import {
+  toPersianDigits,
+  formatPrice,
+  formatPersianDate,
+  formatCardNumber,
+} from "@/lib/utils"
 import { BOOKING_STATUS_LABELS } from "@/lib/constants"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -275,8 +280,11 @@ export function BookingTable({
                       {b.refund_destination_card_masked && (
                         <div className="flex items-center justify-between text-muted-foreground">
                           <span>کارت مقصد:</span>
-                          <span dir="ltr" className="font-mono text-foreground">
-                            {toPersianDigits(b.refund_destination_card_masked)}
+                          <span
+                            dir="ltr"
+                            className="font-mono tracking-widest text-foreground"
+                          >
+                            {formatCardNumber(b.refund_destination_card_masked)}
                           </span>
                         </div>
                       )}

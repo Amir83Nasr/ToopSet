@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, ApiError } from "@/lib/api"
 import { formatMoney } from "@/lib/i18n"
-import { toPersianDigits } from "@/lib/utils"
+import { toPersianDigits, formatCardNumber } from "@/lib/utils"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -280,9 +280,12 @@ export default function UserRefundsPage() {
                             <CreditCard className="size-3.5" />
                             کارت مقصد:
                           </span>
-                          <span dir="ltr" className="font-mono text-foreground">
+                          <span
+                            dir="ltr"
+                            className="font-mono tracking-widest text-foreground"
+                          >
                             {refund.destination_card_masked
-                              ? toPersianDigits(refund.destination_card_masked)
+                              ? formatCardNumber(refund.destination_card_masked)
                               : "ثبت نشده"}
                           </span>
                         </div>

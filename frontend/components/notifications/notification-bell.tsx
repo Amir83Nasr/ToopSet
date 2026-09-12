@@ -42,11 +42,14 @@ export function NotificationBell({ className }: { className?: string }) {
     const initial = setTimeout(() => refresh(), 0)
     const timer = window.setInterval(refresh, POLL_INTERVAL_MS)
     const onFocus = () => refresh()
+    const onChanged = () => refresh()
     window.addEventListener("focus", onFocus)
+    window.addEventListener("notifications:changed", onChanged)
     return () => {
       clearTimeout(initial)
       window.clearInterval(timer)
       window.removeEventListener("focus", onFocus)
+      window.removeEventListener("notifications:changed", onChanged)
     }
   }, [isAuthenticated, refresh])
 

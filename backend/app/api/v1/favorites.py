@@ -61,7 +61,9 @@ async def add_favorite(
     current_user: User = Depends(get_current_user),
 ):
     service = FavoriteService(db=db, current_user=current_user)
-    return await service.add_favorite(vendor_id)
+    result = await service.add_favorite(vendor_id)
+    await service.repo.db.commit()
+    return result
 
 
 @router.delete(
@@ -74,3 +76,4 @@ async def remove_favorite(
 ):
     service = FavoriteService(db=db, current_user=current_user)
     await service.remove_favorite(vendor_id)
+    await service.repo.db.commit()

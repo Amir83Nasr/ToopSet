@@ -69,7 +69,9 @@ async def create_review(
     data: ReviewCreate,
     service: ReviewService = Depends(get_review_service_fresh),
 ):
-    return await service.create(data)
+    result = await service.create(data)
+    await service.review_repo.db.commit()
+    return result
 
 
 @router.post("/{review_id}/report", summary="Report review")
@@ -77,7 +79,9 @@ async def report_review(
     review_id: int,
     service: ReviewService = Depends(get_review_service),
 ):
-    return await service.report(review_id)
+    result = await service.report(review_id)
+    await service.review_repo.db.commit()
+    return result
 
 
 @router.post(
@@ -88,7 +92,9 @@ async def respond_to_review(
     data: ReviewRespondRequest,
     service: ReviewService = Depends(get_review_service),
 ):
-    return await service.respond(review_id, data.response)
+    result = await service.respond(review_id, data.response)
+    await service.review_repo.db.commit()
+    return result
 
 
 @router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete review")
@@ -97,3 +103,4 @@ async def delete_review(
     service: ReviewService = Depends(get_review_service),
 ):
     await service.delete_review(review_id)
+    await service.review_repo.db.commit()

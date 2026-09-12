@@ -9,7 +9,12 @@ import {
   uploadAvatar,
   deleteAvatar,
 } from "@/lib/api"
-import { getInitials, toEnglishDigits, toPersianDigits } from "@/lib/utils"
+import {
+  getInitials,
+  toEnglishDigits,
+  toPersianDigits,
+  formatCardNumber,
+} from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -76,6 +81,11 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [bankCard, setBankCard] = useState<BankCard | null>(null)
+  const [fullCardNumber, setFullCardNumber] = useState<string | null>(null)
+  const [showFullCard, setShowFullCard] = useState(false)
+  const [loadingFullCard, setLoadingFullCard] = useState(false)
+  const [deletingCard, setDeletingCard] = useState(false)
+  const [editingCard, setEditingCard] = useState(false)
   const [cardNumber, setCardNumber] = useState("")
   const [pendingCard, setPendingCard] = useState<BankCard | null>(null)
   const [savingCard, setSavingCard] = useState(false)
@@ -242,6 +252,9 @@ export default function SettingsPage() {
       setBankCard(card)
       setPendingCard(null)
       setCardNumber("")
+      setEditingCard(false)
+      setShowFullCard(false)
+      setFullCardNumber(null)
       toast.success("شماره کارت ثبت شد")
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "خطا در ثبت کارت")
@@ -249,6 +262,49 @@ export default function SettingsPage() {
       setSavingCard(false)
     }
   }, [pendingCard])
+
+  const toggleFullCard = useCallback(async () => {
+    if (showFullCard) {
+      setShowFullCard(false)
+      return
+    }
+    if (fullCardNumber) {
+      setShowFullCard(true)
+      return
+    }
+    setLoadingFullCard(true)
+    try {
+      const card = await api<{ card_number: string }>(
+        "/api/v1/wallet/bank-cards/verified/full"
+      )
+      setFullCardNumber(card.card_number)
+      setShowFullCard(true)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "خطا در نمایش کارت")
+    } finally {
+      setLoadingFullCard(false)
+    }
+  }, [showFullCard, fullCardNumber])
+
+  const deleteCard = useCallback(async () => {
+    if (!bankCard) return
+    if (!window.confirm("کارت ذخیره‌شده حذف شود؟")) return
+    setDeletingCard(true)
+    try {
+      await api("/api/v1/wallet/bank-cards/verified", { method: "DELETE" })
+      setBankCard(null)
+      setFullCardNumber(null)
+      setShowFullCard(false)
+      setEditingCard(false)
+      setCardNumber("")
+      setPendingCard(null)
+      toast.success("کارت حذف شد")
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "خطا در حذف کارت")
+    } finally {
+      setDeletingCard(false)
+    }
+  }, [bankCard])
 
   // ── Loading state ──
   if (loading) {
@@ -461,13 +517,58 @@ export default function SettingsPage() {
                     شماره کارت برای بازگشت وجه
                   </span>
                 </div>
-                {bankCard ? (
+                {bankCard && !editingCard ? (
                   <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                    <div dir="ltr" className="text-end font-medium">
-                      {toPersianDigits(bankCard.masked_card_number)}
+                    <div
+                      dir="ltr"
+                      className="text-end font-medium tracking-widest"
+                    >
+                      {showFullCard && fullCardNumber
+                        ? formatCardNumber(fullCardNumber)
+                        : formatCardNumber(bankCard.masked_card_number)}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {bankCard.holder_name || "دارنده کارت"} · کارت فعلی
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={toggleFullCard}
+                        disabled={loadingFullCard}
+                      >
+                        {loadingFullCard ? (
+                          <Loader2 className="me-1.5 size-3.5 animate-spin" />
+                        ) : null}
+                        {showFullCard ? "پنهان کردن" : "نمایش کامل"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingCard(true)
+                          setCardNumber("")
+                          setPendingCard(null)
+                        }}
+                      >
+                        ویرایش
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={deleteCard}
+                        disabled={deletingCard}
+                      >
+                        {deletingCard ? (
+                          <Loader2 className="me-1.5 size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="me-1.5 size-3.5" />
+                        )}
+                        حذف
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -475,59 +576,79 @@ export default function SettingsPage() {
                     فقط یک شماره کارت برای بازگشت وجه ذخیره می‌شود.
                   </p>
                 )}
-                <Input
-                  value={toPersianDigits(cardNumber)}
-                  onChange={(e) => {
-                    setCardNumber(
-                      toEnglishDigits(e.target.value)
-                        .replace(/\D/g, "")
-                        .slice(0, 16)
-                    )
-                    setPendingCard(null)
-                  }}
-                  inputMode="numeric"
-                  dir="ltr"
-                  maxLength={16}
-                  className="h-9 bg-background text-end"
-                  placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
-                />
-                {pendingCard && (
-                  <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
-                    {pendingCard.holder_name ? (
-                      <div>دارنده کارت: {pendingCard.holder_name}</div>
-                    ) : null}
-                    <div
+                {(!bankCard || editingCard) && (
+                  <>
+                    <Input
+                      value={formatCardNumber(cardNumber)}
+                      onChange={(e) => {
+                        setCardNumber(
+                          toEnglishDigits(e.target.value)
+                            .replace(/\D/g, "")
+                            .slice(0, 16)
+                        )
+                        setPendingCard(null)
+                      }}
+                      inputMode="numeric"
                       dir="ltr"
-                      className="mt-1 text-end text-muted-foreground"
-                    >
-                      {toPersianDigits(pendingCard.masked_card_number)}
-                    </div>
-                  </div>
+                      maxLength={19}
+                      className="h-9 bg-background text-end tracking-widest"
+                      placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
+                    />
+                    {pendingCard && (
+                      <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
+                        {pendingCard.holder_name ? (
+                          <div>دارنده کارت: {pendingCard.holder_name}</div>
+                        ) : null}
+                        <div
+                          dir="ltr"
+                          className="mt-1 text-end tracking-widest text-muted-foreground"
+                        >
+                          {formatCardNumber(pendingCard.masked_card_number)}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 border-t p-4">
-              <Button
-                type="button"
-                size="sm"
-                variant={pendingCard ? "outline" : "default"}
-                onClick={lookupCard}
-                disabled={savingCard}
-              >
-                {savingCard && (
-                  <Loader2 className="me-1.5 size-3.5 animate-spin" />
+            {(!bankCard || editingCard) && (
+              <div className="flex flex-wrap items-center gap-2 border-t p-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={pendingCard ? "outline" : "default"}
+                  onClick={lookupCard}
+                  disabled={savingCard}
+                >
+                  {savingCard && (
+                    <Loader2 className="me-1.5 size-3.5 animate-spin" />
+                  )}
+                  {pendingCard ? "بررسی مجدد" : "ثبت و بررسی کارت"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={confirmCard}
+                  disabled={!pendingCard || savingCard}
+                >
+                  {bankCard ? "تایید و تغییر کارت" : "تایید و ذخیره"}
+                </Button>
+                {editingCard && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingCard(false)
+                      setCardNumber("")
+                      setPendingCard(null)
+                    }}
+                  >
+                    انصراف
+                  </Button>
                 )}
-                {pendingCard ? "بررسی مجدد" : "ثبت و بررسی کارت"}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={confirmCard}
-                disabled={!pendingCard || savingCard}
-              >
-                {bankCard ? "تایید و تغییر کارت" : "تایید و ذخیره"}
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </section>
 
