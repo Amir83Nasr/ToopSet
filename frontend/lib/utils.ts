@@ -39,13 +39,16 @@ export function toPersianDigits(value: string | number): string {
   return String(value).replace(/[0-9]/g, (d) => persianDigits[d])
 }
 
-/** Format price with Persian thousands separator (٬) and dedicated toman glyph (تومانءء). */
+/** Format price with Persian thousands separator (٬) and dedicated toman glyph (تومان). */
 export function formatPrice(price: number | null | undefined): string {
   if (price == null) return "—"
   const formattedNumber = new Intl.NumberFormat("fa-IR", {
     useGrouping: true,
-  }).format(price).replace(/٬/g, "٬").replace(/,/g, "٬")
-  return `${toPersianDigits(formattedNumber)} تومانءء`
+  })
+    .format(price)
+    .replace(/٬/g, "٬")
+    .replace(/,/g, "٬")
+  return `${toPersianDigits(formattedNumber)} تومان`
 }
 
 /** Format date in Persian using standard dot separator (٫). */

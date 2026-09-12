@@ -397,9 +397,14 @@ def random_price(min_: int = 500, max_: int = 2000) -> Decimal:
     return Decimal(str(random.randint(min_, max_) * 1000))
 
 
-# ── Vendor images served from frontend/public/images ────────────────────────
+# ── Vendor images served from ParsPack object storage ───────────────────────
+# Absolute URLs only — never local /images/ paths (no frontend serves them).
 
-VENDOR_IMAGE_FILES = ["01.jpg", "02.jpeg", "03.png"]
+VENDOR_IMAGE_URLS = [
+    "https://media.toopset.ir/c228415/vendors/seed/ba63373e7ad743428ffda24d945d5671.jpg",
+    "https://media.toopset.ir/c228415/vendors/seed/947374c6a4584aed89b63cc3ad7e743f.jpeg",
+    "https://media.toopset.ir/c228415/vendors/seed/f39235cfd4884deea8193fca3691490e.png",
+]
 
 
 def assign_gender(vendor_index: int) -> SlotGender:
@@ -447,15 +452,14 @@ async def seed():
         # ── Vendor Images ──
         vendor_images: list[VendorImage] = []
         for vi, vendor in enumerate(vendors):
-            # Each vendor gets 1-2 images, cycling through real filenames
+            # Each vendor gets 1-2 images, cycling through ParsPack seed URLs
             img_count = 2 if vi % 3 != 0 else 1
             for img_idx in range(img_count):
-                file_idx = (vi * 2 + img_idx) % len(VENDOR_IMAGE_FILES)
-                filename = VENDOR_IMAGE_FILES[file_idx]
+                url_idx = (vi * 2 + img_idx) % len(VENDOR_IMAGE_URLS)
                 vendor_images.append(
                     VendorImage(
                         vendor_id=vendor.id,
-                        url=f"/images/{filename}",
+                        url=VENDOR_IMAGE_URLS[url_idx],
                         order=img_idx,
                     )
                 )

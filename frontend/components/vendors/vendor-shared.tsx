@@ -112,7 +112,7 @@ export function formatPrice(price: number | null | undefined): string {
   })
     .format(price)
     .replace(/,/g, "٬")
-  return `${formattedNumber} تومانءء`
+  return `${formattedNumber} تومان`
 }
 
 export function formatPersianDate(iso: string): string {

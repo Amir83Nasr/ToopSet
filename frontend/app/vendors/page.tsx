@@ -78,7 +78,7 @@ function formatPrice(price: number | null): string {
   })
     .format(price)
     .replace(/,/g, "٬")
-  return `${formattedNumber} تومانءء`
+  return `${formattedNumber} تومان`
 }
 
 function VendorsPageContent() {

@@ -71,6 +71,11 @@ const nextConfig = {
         hostname: "api.toopset.ir",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "https",
+        hostname: "*.fastapicloud.dev",
+        pathname: "/uploads/**",
+      },
     ],
   },
   // Serwist injects a webpack config — explicit empty turbopack config

@@ -43,7 +43,7 @@ describe("BookingBallOption", () => {
       name: /افزودن توپ به رزرو/,
     })
     expect(checkbox).toHaveAttribute("aria-checked", "false")
-    expect(screen.getByText("۷۵٬۰۰۰ تومانءء")).toBeInTheDocument()
+    expect(screen.getByText("۷۵٬۰۰۰ تومان")).toBeInTheDocument()
     await user.click(checkbox)
     expect(onToggle).toHaveBeenCalledOnce()
   })
