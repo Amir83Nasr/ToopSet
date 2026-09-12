@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Map, CalendarPlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -12,8 +11,6 @@ const trustPoints = [
 ] as const
 
 export function HeroSection() {
-  const router = useRouter()
-
   return (
     <section>
       <div className="mx-auto max-w-7xl px-4 py-14 md:py-20 lg:py-24">
@@ -43,11 +40,13 @@ export function HeroSection() {
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
               <Button
                 size="lg"
-                onClick={() => router.push("/vendors")}
+                asChild
                 className="h-10 w-full rounded-lg px-6 text-base font-semibold shadow-sm sm:w-auto"
               >
-                <Map className="size-5 shrink-0" />
-                مشاهده مجموعه‌های ورزشی
+                <Link href="/vendors" prefetch>
+                  <Map className="size-5 shrink-0" />
+                  مشاهده مجموعه‌های ورزشی
+                </Link>
               </Button>
               <Button
                 size="lg"

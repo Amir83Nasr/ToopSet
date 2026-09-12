@@ -50,7 +50,11 @@ from app.schemas.payment import (
     PendingCheckoutResponse,
 )
 from app.services.bank_card_service import BankCardService
-from app.services.cache_service import invalidate_slot_list
+from app.services.cache_service import (
+    invalidate_admin_list_cache,
+    invalidate_response_cache,
+    invalidate_slot_list,
+)
 from app.services.finance_service import FinanceService
 from app.services.notification_service import NotificationService
 from app.services.payment_service import (
@@ -187,6 +191,8 @@ class BookingService:
                         old_slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                     )
                     await invalidate_slot_list(old_slot.vendor_id)
+                    await invalidate_admin_list_cache("vendors")
+                    await invalidate_response_cache("vendor:detail")
             elif pending:
                 payment = await self.payment_repo.get_by_booking(pending.id)
                 track_id = (
@@ -273,6 +279,8 @@ class BookingService:
                             {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
                         )
                         await invalidate_slot_list(hold.slot.vendor_id)
+                        await invalidate_admin_list_cache("vendors")
+                        await invalidate_response_cache("vendor:detail")
             else:
                 hold_slot = hold.slot
                 vendor_name = hold_slot.vendor.name if (hold_slot and hold_slot.vendor) else ""
@@ -812,6 +820,8 @@ class BookingService:
                     slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
                 )
                 await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
                 await self.db.commit()
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -860,6 +870,8 @@ class BookingService:
             )
             await self.slot_repo.update(slot, {"status": SlotStatus.RESERVING, "is_reserved": True})
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
             await log_action(
                 self.db,
                 self.current_user.id,
@@ -895,6 +907,8 @@ class BookingService:
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVING})
         await invalidate_slot_list(slot.vendor_id)
+        await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
 
         # Notify manager about new booking
         if vendor:
@@ -1023,6 +1037,8 @@ class BookingService:
                     )
             if slot:
                 await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
             await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1199,6 +1215,8 @@ class BookingService:
             else:
                 await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
 
         await log_action(
             self.db,
@@ -1533,6 +1551,8 @@ class BookingService:
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
         await invalidate_slot_list(slot.vendor_id)
+        await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
         await self.db.commit()
         await log_action(
             self.booking_repo.db,
@@ -1690,6 +1710,8 @@ class BookingService:
                     slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
                 )
                 await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
             await log_action(
                 self.db,
                 self.current_user.id,
@@ -1780,6 +1802,8 @@ class BookingService:
         )
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
         await invalidate_slot_list(slot.vendor_id)
+        await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
         await self.notifier.booking_replaced_for_user(
             user_id=original.user_id,
             vendor_name=vendor.name if vendor else "مجموعه",
@@ -1858,6 +1882,8 @@ class BookingService:
                         slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                     )
                     await invalidate_slot_list(slot.vendor_id)
+                    await invalidate_admin_list_cache("vendors")
+                    await invalidate_response_cache("vendor:detail")
             await log_action(
                 self.db,
                 self.current_user.id,
@@ -1900,6 +1926,8 @@ class BookingService:
                     slot, {"is_reserved": True, "status": SlotStatus.PENDING_CANCELLATION}
                 )
                 await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
         await log_action(
             self.db,
             self.current_user.id,
@@ -2010,6 +2038,8 @@ class BookingService:
                     )
             if slot:
                 await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
             # Persist expiry before returning 409; otherwise get_db rolls the
             # transition back because the response is an HTTPException.
             await self.db.commit()
@@ -2199,6 +2229,8 @@ class BookingService:
 
         await self.slot_repo.update(slot, {"is_reserved": True, "status": SlotStatus.RESERVED})
         await invalidate_slot_list(slot.vendor_id)
+        await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
 
         # Update booking status
         booking = await self.booking_repo.update(
@@ -2293,6 +2325,8 @@ class BookingService:
                     {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
                 )
                 await invalidate_slot_list(hold.slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
         await log_action(
             self.db,
             self.current_user.id,
@@ -2340,6 +2374,8 @@ class BookingService:
                         {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
                     )
                     await invalidate_slot_list(hold.slot.vendor_id)
+                    await invalidate_admin_list_cache("vendors")
+                    await invalidate_response_cache("vendor:detail")
             elif request:
                 original = await self.booking_repo.get_by_id(
                     request.original_booking_id, for_update=True
@@ -2360,6 +2396,8 @@ class BookingService:
                         slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
                     )
                     await invalidate_slot_list(slot.vendor_id)
+                    await invalidate_admin_list_cache("vendors")
+                    await invalidate_response_cache("vendor:detail")
         await self.notifier.replacement_payment_failed(
             user_id=self.current_user.id,
             failure_message=failure_message,
@@ -2425,6 +2463,8 @@ class BookingService:
                         {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
                     )
                     await invalidate_slot_list(hold.slot.vendor_id)
+                    await invalidate_admin_list_cache("vendors")
+                    await invalidate_response_cache("vendor:detail")
             elif request:
                 original = await self.booking_repo.get_by_id(
                     request.original_booking_id, for_update=True
@@ -2445,6 +2485,8 @@ class BookingService:
                         slot, {"status": SlotStatus.RESERVED, "is_reserved": True}
                     )
                     await invalidate_slot_list(slot.vendor_id)
+                    await invalidate_admin_list_cache("vendors")
+                    await invalidate_response_cache("vendor:detail")
             await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="مهلت پرداخت این هولد تمام شده است"
@@ -2639,6 +2681,8 @@ class BookingService:
                         slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                     )
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
             return BookingDetailResponse(
                 id=booking.id,
                 user_id=booking.user_id,
@@ -2698,6 +2742,8 @@ class BookingService:
                 {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
             )
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
             await self.replacement_repo.create_request(
                 {
                     "original_booking_id": booking.id,
@@ -2770,6 +2816,8 @@ class BookingService:
         if was_confirmed:
             await self.slot_repo.update(slot, {"is_reserved": False, "status": SlotStatus.OPEN})
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
 
         finance = FinanceService(self.booking_repo.db, self.current_user)
         await finance.create_refund(
@@ -2886,6 +2934,8 @@ class BookingService:
         if slot:
             await self.slot_repo.update(slot, {"status": SlotStatus.RESERVED, "is_reserved": True})
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
         await self.notifier.cancellation_withdrawn(
             user_id=booking.user_id,
             vendor_name=slot.vendor.name if slot.vendor else None,

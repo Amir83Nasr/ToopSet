@@ -157,8 +157,21 @@ async def list_vendor_reviews(
 async def get_vendor(
     vendor_id: int,
     service: VendorService = Depends(get_vendor_service_public),
+    response: Response = None,
 ):
-    return await service.get_vendor(vendor_id)
+    from app.services.cache_service import cache_response, get_cached_response
+
+    cached = await get_cached_response("vendor:detail", {"vendor_id": vendor_id})
+    if cached is not None:
+        if response is not None:
+            response.headers["X-Cache"] = "HIT"
+        return VendorResponse.model_validate(cached)
+
+    result = await service.get_vendor(vendor_id)
+    await cache_response("vendor:detail", {"vendor_id": vendor_id}, result.model_dump(mode="json"))
+    if response is not None:
+        response.headers["X-Cache"] = "MISS"
+    return result
 
 
 @legacy_router.post(
@@ -177,11 +190,12 @@ async def create_vendor(
     data: VendorCreate,
     service: VendorService = Depends(get_vendor_service),
 ):
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.cache_service import invalidate_admin_list_cache, invalidate_response_cache
 
     result = await service.create_vendor(data)
     await service.repo.db.commit()
     await invalidate_admin_list_cache("vendors")
+    await invalidate_response_cache("vendor:detail")
     return result
 
 
@@ -192,11 +206,12 @@ async def update_vendor(
     data: VendorUpdate,
     service: VendorService = Depends(get_vendor_service),
 ):
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.cache_service import invalidate_admin_list_cache, invalidate_response_cache
 
     result = await service.update_vendor(vendor_id, data)
     await service.repo.db.commit()
     await invalidate_admin_list_cache("vendors")
+    await invalidate_response_cache("vendor:detail")
     return result
 
 
@@ -209,11 +224,12 @@ async def delete_vendor(
     service: VendorService = Depends(get_vendor_service),
     _: User = Depends(get_current_manager),
 ):
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.cache_service import invalidate_admin_list_cache, invalidate_response_cache
 
     await service.delete_vendor(vendor_id)
     await service.repo.db.commit()
     await invalidate_admin_list_cache("vendors")
+    await invalidate_response_cache("vendor:detail")
 
 
 # ── Image management ─────────────────────────────────────────────

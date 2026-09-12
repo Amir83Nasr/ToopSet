@@ -11,7 +11,11 @@ from app.models.time_slot import SlotStatus
 from app.repositories.booking_repo import BookingRepo
 from app.repositories.replacement_repo import ReplacementRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
-from app.services.cache_service import invalidate_slot_list
+from app.services.cache_service import (
+    invalidate_admin_list_cache,
+    invalidate_response_cache,
+    invalidate_slot_list,
+)
 from app.services.notification_service import NotificationService
 
 
@@ -64,6 +68,8 @@ async def expire_replacement_work(db: AsyncSession, now: datetime) -> dict[str, 
         ):
             await slot_repo.update(slot, {"status": SlotStatus.RESERVED, "is_reserved": True})
             await invalidate_slot_list(slot.vendor_id)
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
         await log_action(
             db,
             None,
@@ -94,6 +100,8 @@ async def expire_replacement_work(db: AsyncSession, now: datetime) -> dict[str, 
                     {"status": SlotStatus.PENDING_CANCELLATION, "is_reserved": True},
                 )
                 await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
         expired_holds += 1
 
     return {"expired_requests": expired_requests, "expired_holds": expired_holds}

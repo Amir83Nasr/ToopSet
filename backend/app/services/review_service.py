@@ -163,6 +163,15 @@ class ReviewService:
         if vendor_id:
             await self._recalc_vendor_rating(vendor_id)
 
+            # Rating shows on the public vendor cards — drop list + detail caches.
+            from app.services.cache_service import (
+                invalidate_admin_list_cache,
+                invalidate_response_cache,
+            )
+
+            await invalidate_admin_list_cache("vendors")
+            await invalidate_response_cache("vendor:detail")
+
         # Tell the vendor's manager about the new review
         if slot.vendor:
             await self.notifier.review_received(
@@ -243,6 +252,15 @@ class ReviewService:
         # Recalculate vendor's average rating
         await self._recalc_vendor_rating(vendor_id)
 
+        # Rating shows on the public vendor cards — drop list + detail caches.
+        from app.services.cache_service import (
+            invalidate_admin_list_cache,
+            invalidate_response_cache,
+        )
+
+        await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
+
     async def report(self, review_id: int) -> dict:
         if self.current_user.role != UserRole.ADMIN:
             raise HTTPException(
@@ -263,6 +281,15 @@ class ReviewService:
         review.is_reported = True
         await self.review_repo.db.flush()
         await self._recalc_vendor_rating(review.vendor_id)
+
+        # Rating shows on the public vendor cards — drop list + detail caches.
+        from app.services.cache_service import (
+            invalidate_admin_list_cache,
+            invalidate_response_cache,
+        )
+
+        await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
         return {"success": True}
 
     async def _recalc_vendor_rating(self, vendor_id: int) -> None:

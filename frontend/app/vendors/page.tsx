@@ -437,7 +437,6 @@ function VendorsPageContent() {
                         <div key={vendor.id}>
                           <Link
                             href={`/vendors/${vendor.id}`}
-                            prefetch={false}
                             className="group block"
                           >
                             <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-shadow duration-300 ease-out group-hover:shadow-xl">
@@ -448,8 +447,8 @@ function VendorsPageContent() {
                                     src={buildVendorImageUrl(mainImage)}
                                     alt={`عکس اصلی ${vendor.name}`}
                                     fill
-                                    priority={i === 0}
-                                    loading={i === 0 ? undefined : "lazy"}
+                                    priority={i < 3}
+                                    loading={i < 3 ? undefined : "lazy"}
                                     className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                                     sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                   />

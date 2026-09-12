@@ -409,7 +409,7 @@ async def approve_vendor(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.cache_service import invalidate_admin_list_cache, invalidate_response_cache
     from app.services.notification_service import NotificationService
     from app.services.vendor_service import VendorService
 
@@ -417,6 +417,7 @@ async def approve_vendor(
     result = await service.toggle_vendor_status(vendor_id, is_active=True)
     await invalidate_admin_list_cache("pending_vendors")
     await invalidate_admin_list_cache("vendors")
+    await invalidate_response_cache("vendor:detail")
     await log_action(
         db, _.id, "vendor_approved", f"تایید مجموعه | مجموعه (id={vendor_id}) توسط ادمین تایید شد"
     )
@@ -443,7 +444,7 @@ async def reject_vendor(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.cache_service import invalidate_admin_list_cache, invalidate_response_cache
 
     repo = VendorRepo(db)
     vendor = await repo.get_by_id(vendor_id)
@@ -466,6 +467,7 @@ async def reject_vendor(
     await repo.delete(vendor)
     await invalidate_admin_list_cache("pending_vendors")
     await invalidate_admin_list_cache("vendors")
+    await invalidate_response_cache("vendor:detail")
     await log_action(
         db, _.id, "vendor_rejected", f"رد مجموعه | '{name}' (id={vendor_id}) توسط ادمین رد شد"
     )
@@ -507,10 +509,11 @@ async def hard_delete_vendor(
     for img in vendor.vendor_images or []:
         await delete_upload_async(img.url)
     await repo.delete(vendor)
-    from app.services.cache_service import invalidate_admin_list_cache
+    from app.services.cache_service import invalidate_admin_list_cache, invalidate_response_cache
 
     await invalidate_admin_list_cache("pending_vendors")
     await invalidate_admin_list_cache("vendors")
+    await invalidate_response_cache("vendor:detail")
     await log_action(
         db,
         _.id,

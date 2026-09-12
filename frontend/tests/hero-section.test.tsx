@@ -1,13 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { HeroSection } from "@/components/public/hero-section"
-import { mockRouter } from "./mocks/next-navigation"
 
 describe("HeroSection", () => {
-  beforeEach(() => {
-    mockRouter.push.mockReset()
-  })
 
   it("renders the title without the old description", () => {
     render(<HeroSection />)
@@ -24,10 +19,10 @@ describe("HeroSection", () => {
     expect(screen.queryByText("ثبت مجموعه جدید")).not.toBeInTheDocument()
   })
 
-  it("navigates to /vendors when 'مشاهده مجموعه‌های ورزشی' is clicked", async () => {
-    const user = userEvent.setup()
+  it("links to /vendors on 'مشاهده مجموعه‌های ورزشی'", () => {
     render(<HeroSection />)
-    await user.click(screen.getByText("مشاهده مجموعه‌های ورزشی"))
-    expect(mockRouter.push).toHaveBeenCalledWith("/vendors")
+    expect(
+      screen.getByRole("link", { name: /مشاهده مجموعه‌های ورزشی/ })
+    ).toHaveAttribute("href", "/vendors")
   })
 })

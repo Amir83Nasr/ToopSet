@@ -36,6 +36,7 @@ from app.services.cache_service import (
     cache_slot_list,
     get_cached_slot_list,
     invalidate_admin_list_cache,
+    invalidate_response_cache,
     invalidate_slot_list,
 )
 
@@ -153,6 +154,21 @@ class TimeSlotService:
         skip: int = 0,
         limit: int = 50,
     ) -> TimeSlotListResponse:
+        # Track whether response came from Redis (for X-Cache header)
+        self._from_cache = False
+
+        # Try Redis cache first (first page only) — no DB touch on HIT.
+        # Cached payloads are anonymous (ownership flags are annotated after
+        # the read), so a HIT served to a guest is safe to serve to anyone —
+        # `_annotate_own_pending_bookings` runs on both paths below.
+        if after_id is None and skip == 0 and limit <= 50:
+            cached = await get_cached_slot_list(vendor_id, date=date)
+            if cached is not None:
+                self._from_cache = True
+                result = TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
+                await self._annotate_own_pending_bookings(result.slots)
+                return result
+
         vendor = await self.vendor_repo.get_by_id(vendor_id)
         if not vendor:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
@@ -163,18 +179,6 @@ class TimeSlotService:
         start_until: datetime | None = None
         if not can_manage:
             start_from, start_until = self._public_slot_window()
-
-        # Track whether response came from Redis (for X-Cache header)
-        self._from_cache = False
-
-        # Try Redis cache (first page only for simplicity, not for cursor requests)
-        if not can_manage and after_id is None and skip == 0 and limit <= 50:
-            cached = await get_cached_slot_list(vendor_id, date=date)
-            if cached is not None:
-                self._from_cache = True
-                result = TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
-                await self._annotate_own_pending_bookings(result.slots)
-                return result
 
         slots, total = await self.repo.list_by_vendor(
             vendor_id,
@@ -188,7 +192,11 @@ class TimeSlotService:
         responses = [self._to_response(s, vendor) for s in slots]
         serialised = [response.model_dump(mode="json") for response in responses]
 
-        # Warm cache for the common case (first page, no offset)
+        # Warm cache for the common case (first page, no offset) — but only
+        # the public view. Manager/admin payloads span a wider window;
+        # caching them under the shared key would poison guest reads.
+        # (Ownership flags are annotated after this, so cached payloads stay
+        # anonymous either way.)
         if not can_manage and after_id is None and skip == 0 and limit <= 50:
             await cache_slot_list(vendor_id, serialised, date=date)
 
@@ -267,6 +275,7 @@ class TimeSlotService:
         slot = await self.repo.create(slot_data)
         await invalidate_slot_list(data.vendor_id)
         await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
         return self._to_response(slot, vendor)
 
     async def update_slot(self, slot_id: int, data: TimeSlotUpdate) -> TimeSlotResponse:
@@ -314,6 +323,7 @@ class TimeSlotService:
         updated = await self.repo.update(slot, update_data)
         await invalidate_slot_list(updated.vendor_id)
         await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
         return self._to_response(updated, slot.vendor)
 
     async def update_vendor_slot(
@@ -365,6 +375,7 @@ class TimeSlotService:
         updated = await self.repo.update(slot, update_data)
         await invalidate_slot_list(updated.vendor_id)
         await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
         return self._to_response(updated, slot.vendor)
 
     async def generate_slots(
@@ -437,6 +448,7 @@ class TimeSlotService:
         created_slots = await self.repo.create_batch(to_create)
         await invalidate_slot_list(vendor_id)
         await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
 
         return TimeSlotGenerateResponse(
             created=len(created_slots),
@@ -682,6 +694,7 @@ class TimeSlotService:
         )
         await invalidate_slot_list(vendor_id)
         await invalidate_admin_list_cache("vendors")
+        await invalidate_response_cache("vendor:detail")
 
         return WeeklyScheduleApplyResponse(
             effective_from=data.effective_from,
