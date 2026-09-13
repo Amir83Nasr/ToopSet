@@ -12,7 +12,7 @@ from app.models.time_slot import SlotStatus, TimeSlot
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
-from app.services.cache_service import get_cached_vendor_min_prices
+from app.services.cache_service import get_or_compute_vendor_min_prices
 
 
 class VendorRepo:
@@ -191,15 +191,16 @@ class VendorRepo:
             total = len(filtered)
             raw_vendors = raw_vendors[skip : skip + limit]
 
-        # Convert to mutable dicts and inject weekly min_price from Redis cache
+        # Convert to mutable dicts and inject weekly min_price: cache-first,
+        # one batched DB aggregation on miss (no per-vendor queries).
         vendors = [dict(v) for v in raw_vendors]
         if vendors:
             vendor_ids = [int(v["id"]) for v in vendors]
-            cached_prices = await get_cached_vendor_min_prices(vendor_ids)
+            prices = await get_or_compute_vendor_min_prices(self.db, vendor_ids)
             for v in vendors:
                 vid = int(v["id"])
-                if vid in cached_prices and cached_prices[vid] is not None:
-                    v["base_price"] = cached_prices[vid]
+                if vid in prices and prices[vid] is not None:
+                    v["base_price"] = prices[vid]
 
         return vendors, total
 

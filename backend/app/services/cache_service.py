@@ -129,6 +129,9 @@ async def invalidate_slot_list(vendor_id: int) -> None:
         await r.delete(_slot_list_key(vendor_id, None))
         pattern = f"slots:{vendor_id}:*"
         await _scan_delete(r, pattern)
+        # Slot writes also change the vendor card min_price — drop it so the
+        # next search read recomputes it via get_or_compute_vendor_min_prices.
+        await invalidate_vendor_min_price(vendor_id)
     except RedisError:
         pass
 
@@ -284,6 +287,16 @@ async def get_cached_vendor_min_price(vendor_id: int) -> tuple[bool, float | Non
     return False, None
 
 
+async def invalidate_vendor_min_price(vendor_id: int) -> None:
+    """Drop the cached min price for one vendor (called after slot writes)."""
+    try:
+        r = await get_redis()
+        await r.hdel(VENDOR_MIN_PRICES_HASH_KEY, str(vendor_id))
+        await r.delete(f"vendor:min_price:{vendor_id}")
+    except RedisError:
+        pass
+
+
 async def get_cached_vendor_min_prices(vendor_ids: list[int]) -> dict[int, float | None]:
     """Batch retrieve cached min prices for a list of vendor IDs."""
     if not vendor_ids:
@@ -314,6 +327,60 @@ async def get_cached_vendor_min_prices(vendor_ids: list[int]) -> dict[int, float
     except RedisError:
         pass
     return results
+
+
+async def get_or_compute_vendor_min_prices(
+    db: Any, vendor_ids: list[int]
+) -> dict[int, float | None]:
+    """Return min prices from cache; compute missing ones from DB in one query.
+
+    Misses trigger a single ``GROUP BY vendor_id`` aggregation (not N per-vendor
+    queries) and backfill Redis via ``cache_all_vendor_min_prices`` — so the
+    expensive nightly aggregation no longer has to cover every read.
+    """
+    if not vendor_ids:
+        return {}
+    cached = await get_cached_vendor_min_prices(vendor_ids)
+    missing = [vid for vid in vendor_ids if vid not in cached]
+    if not missing:
+        return cached
+
+    from datetime import timedelta
+
+    from sqlalchemy import func, select
+
+    from app.core.timezone import now_utc
+    from app.models.time_slot import SlotStatus, TimeSlot
+
+    now = now_utc()
+    one_week_later = now + timedelta(days=7)
+    stmt = (
+        select(
+            TimeSlot.vendor_id,
+            func.min(TimeSlot.base_price).label("min_price"),
+        )
+        .where(
+            TimeSlot.vendor_id.in_(missing),
+            TimeSlot.start_time >= now,
+            TimeSlot.start_time <= one_week_later,
+            TimeSlot.is_reserved == False,
+            TimeSlot.status == SlotStatus.OPEN,
+        )
+        .group_by(TimeSlot.vendor_id)
+    )
+    try:
+        result = await db.execute(stmt)
+    except Exception:
+        return cached
+    computed = {
+        row.vendor_id: float(row.min_price) if row.min_price is not None else None
+        for row in result.all()
+    }
+    # Vendors with no open slots in the next 7 days still count as resolved.
+    for vid in missing:
+        computed.setdefault(vid, None)
+    await cache_all_vendor_min_prices(computed)
+    return {**computed, **cached}
 
 
 async def compute_and_cache_weekly_min_prices(db: Any) -> dict[int, float | None]:

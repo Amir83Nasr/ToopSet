@@ -41,6 +41,7 @@ class Booking(Base):
 
     __table_args__ = (
         Index("ix_bookings_created_at", "created_at"),
+        Index("ix_bookings_status_created_at", "status", "created_at"),
         Index("ix_bookings_user_id_status", "user_id", "status"),
         Index(
             "uq_bookings_one_active_per_slot",

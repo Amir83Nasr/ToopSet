@@ -51,14 +51,14 @@ Desktop.ini
 *.key
 
 # ── Backend ───────────────────────────────────────────────
-backend/db-backups/
-backend/bin/
-backend/*.db
-backend/.coverage
-backend/htmlcov/
-backend/.mypy_cache/
-backend/.ruff_cache/
-backend/.pytest_cache/
+db-backups/
+bin/
+*.db
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
 
 # ── Lefthook generated hooks ─────────────────────────────
 .git/hooks/pre-commit

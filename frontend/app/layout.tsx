@@ -133,22 +133,6 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning className="antialiased">
       <head>
-        {/* Preload the two weights used on first paint — CSS-discovered
-            fonts otherwise wait for the stylesheet before downloading. */}
-        <link
-          rel="preload"
-          href="/fonts/iran-yekan-x/IRANYekanX-Regular.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/iran-yekan-x/IRANYekanX-Medium.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

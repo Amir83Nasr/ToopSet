@@ -51,6 +51,13 @@ class TimeSlot(Base):
             "base_price",
             postgresql_where=text("is_reserved = false AND status = 'open'"),
         ),
+        Index(
+            "ix_time_slots_open_vendor_start_price",
+            "vendor_id",
+            "start_time",
+            "base_price",
+            postgresql_where=text("is_reserved = false AND status = 'open'"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

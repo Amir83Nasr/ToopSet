@@ -1,10 +1,10 @@
-# ─── ToopSet Makefile ─────────────────────────────────────────────────────────
+# ─── TOOPSET / MAKEFILE ───────────────────────────────────
 # Developer command interface — thin wrappers around project tools.
 # See README.md for the full guide.
 
 SHELL := /bin/bash
 
-# ── ANSI colors ───────────────────────────────────────────────────────────────
+# ─── CONFIG ───────────────────────────────────────────────
 ESC    := $(shell printf '\033')
 BOLD   := $(ESC)[1m
 RESET  := $(ESC)[0m
@@ -13,7 +13,6 @@ YELLOW := $(ESC)[33m
 RED    := $(ESC)[31m
 GREY   := $(ESC)[90m
 
-# ── Project config ────────────────────────────────────────────────────────────
 COMPOSE_FILE    := compose.yml
 COMPOSE_PROJECT := toopset
 PROJECT_NAME    := ToopSet
@@ -24,86 +23,55 @@ UVICORN_PORT    ?= 8000
 .DEFAULT_GOAL := help
 
 .PHONY: help \
-        install install-backend install-frontend \
-        dev-backend dev-frontend \
-        build \
-        lint lint-backend lint-frontend \
-        format format-backend format-frontend \
-        typecheck typecheck-backend typecheck-frontend \
-        test test-backend test-frontend check \
-        db-start db-stop db-migrate db-check db-autogenerate \
-        db-downgrade db-reset db-seed \
-        clean \
-        doctor
+	install \
+	dev-backend dev-frontend build \
+	lint format typecheck test check \
+	db-start db-stop db-migrate db-check db-autogenerate \
+	db-downgrade db-reset db-seed \
+	clean doctor
 
-# ─── Install ──────────────────────────────────────────────────────────────────
-install: install-backend install-frontend ## Install all dependencies
-
-install-backend: ## Install backend Python dependencies
+# ─── INSTALL ──────────────────────────────────────────────
+install: ## Install all dependencies
 	@cd $(BACKEND_DIR) && pip3 install -r requirements.txt
-	@echo "  $(GREEN)✓$(RESET) Backend dependencies installed"
-
-install-frontend: ## Install frontend dependencies (pnpm) and git hooks
 	@cd $(FRONTEND_DIR) && pnpm install && pnpm exec lefthook install
-	@echo "  $(GREEN)✓$(RESET) Frontend dependencies installed"
+	@echo "  $(GREEN)✓$(RESET) Dependencies installed"
 
-# ─── Development ──────────────────────────────────────────────────────────────
-dev-backend: ## Start backend with auto-reload
+# ─── DEV / BUILD ──────────────────────────────────────────
+dev-backend: ## Backend API + reload
 	@cd $(BACKEND_DIR) && LOG_FORMAT=console uvicorn app.main:app --host 0.0.0.0 --port $(UVICORN_PORT) --reload
 
-dev-frontend: ## Start frontend (Turbopack HMR)
+dev-frontend: ## Frontend + HMR
 	@cd $(FRONTEND_DIR) && pnpm dev
 
-# ─── Build ────────────────────────────────────────────────────────────────────
-build: ## Build frontend for production
+build: ## Production frontend build
 	@cd $(FRONTEND_DIR) && pnpm build
 	@echo "  $(GREEN)✓$(RESET) Frontend built"
 
-# ─── Quality ──────────────────────────────────────────────────────────────────
-lint: lint-backend lint-frontend ## Lint all (never modifies source)
-
-lint-backend: ## Lint backend (Ruff)
+# ─── QUALITY / TEST ───────────────────────────────────────
+lint: ## Lint backend + frontend
 	@cd $(BACKEND_DIR) && ruff check .
-	@echo "  $(GREEN)✓$(RESET) Backend linted"
-
-lint-frontend: ## Lint frontend (ESLint)
 	@cd $(FRONTEND_DIR) && pnpm lint
-	@echo "  $(GREEN)✓$(RESET) Frontend linted"
+	@echo "  $(GREEN)✓$(RESET) Linted"
 
-format: format-backend format-frontend ## Format all code
-
-format-backend: ## Format backend (Ruff)
+format: ## Format backend + frontend
 	@cd $(BACKEND_DIR) && ruff format .
-	@echo "  $(GREEN)✓$(RESET) Backend formatted"
-
-format-frontend: ## Format frontend (Prettier)
 	@cd $(FRONTEND_DIR) && pnpm format
-	@echo "  $(GREEN)✓$(RESET) Frontend formatted"
+	@echo "  $(GREEN)✓$(RESET) Formatted"
 
-typecheck: typecheck-backend typecheck-frontend ## Type-check all
-
-typecheck-backend: ## Type-check backend (mypy)
+typecheck: ## Typecheck backend + frontend
 	@cd $(BACKEND_DIR) && mypy app
-	@echo "  $(GREEN)✓$(RESET) Backend type check passed"
-
-typecheck-frontend: ## Type-check frontend (tsc)
 	@cd $(FRONTEND_DIR) && pnpm typecheck
-	@echo "  $(GREEN)✓$(RESET) Frontend type check passed"
+	@echo "  $(GREEN)✓$(RESET) Type check passed"
 
-# ─── Testing ──────────────────────────────────────────────────────────────────
-test: test-backend test-frontend ## Run all tests
-
-test-backend: ## Run backend tests (pytest, needs running Postgres)
+test: ## Test backend + frontend
 	@cd $(BACKEND_DIR) && TEST_DATABASE_URL=$${TEST_DATABASE_URL:-postgresql+asyncpg://toopset:toopset_secret@localhost:5432/toopset_test} python3 -m pytest tests/ -v --tb=short -W ignore::DeprecationWarning
-
-test-frontend: ## Run frontend tests (Vitest)
 	@cd $(FRONTEND_DIR) && pnpm test
 
-check: lint typecheck build ## Lint + typecheck + build (CI gate)
+check: lint typecheck build ## Lint + typecheck + build
 	@echo "  $(GREEN)✓$(RESET) All checks passed"
 
-# ─── Database ─────────────────────────────────────────────────────────────────
-db-start: ## Start Postgres + Redis (Docker)
+# ─── DB ───────────────────────────────────────────────────
+db-start: ## Start Postgres + Redis
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) up -d postgres redis
 	@echo "  $(GREEN)✓$(RESET) Postgres and Redis started"
 
@@ -111,23 +79,23 @@ db-stop: ## Stop Postgres + Redis
 	@docker compose -f $(COMPOSE_FILE) -p $(COMPOSE_PROJECT) stop postgres redis
 	@echo "  $(GREEN)✓$(RESET) Postgres and Redis stopped"
 
-db-migrate: ## Apply Alembic migrations
+db-migrate: ## Apply DB migrations
 	@cd $(BACKEND_DIR) && python3 -m scripts.run_migrations upgrade
 	@echo "  $(GREEN)✓$(RESET) Alembic migrations applied"
 
-db-check: ## Static migration check (alembic check)
+db-check: ## Check migration drift
 	@cd $(BACKEND_DIR) && python3 -m scripts.run_migrations check
 	@echo "  $(GREEN)✓$(RESET) Migration check passed"
 
-db-autogenerate: ## Create autogenerated migration: make db-autogenerate MSG="msg"
+db-autogenerate: ## New migration (MSG=..)
 	@cd $(BACKEND_DIR) && python3 -m scripts.run_migrations autogenerate "$(MSG)"
 	@echo "  $(GREEN)✓$(RESET) Autogenerated migration created"
 
-db-downgrade: ## Roll back: make db-downgrade REV=-1
+db-downgrade: ## Rollback (REV=..)
 	@cd $(BACKEND_DIR) && python3 -m scripts.run_migrations downgrade "$(REV)"
 	@echo "  $(GREEN)✓$(RESET) Rollback applied"
 
-db-reset: ## Wipe and recreate DB volumes
+db-reset: ## Reset DB volumes (wipe!)
 	@echo "  $(YELLOW)WARNING$(RESET) this deletes all database data!"; \
 	read -p "  Continue? [y/N] " ans; \
 	if [ "$$ans" = "y" ] || [ "$$ans" = "Y" ]; then \
@@ -138,12 +106,12 @@ db-reset: ## Wipe and recreate DB volumes
 		echo "  $(GREY)Operation cancelled$(RESET)"; \
 	fi
 
-db-seed: ## Seed database with test data
+db-seed: ## Seed test data
 	@cd $(BACKEND_DIR) && python3 -m scripts.seed
 	@echo "  $(GREEN)✓$(RESET) Database seeded"
 
-# ─── Maintenance ──────────────────────────────────────────────────────────────
-clean: ## Remove build and cache artifacts
+# ─── SYSTEM ───────────────────────────────────────────────
+clean: ## Remove caches + builds
 	@find $(BACKEND_DIR) -type d \( -name '__pycache__' -o -name '*.egg-info' \
 		-o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '.mypy_cache' \) \
 		-prune -exec rm -rf {} +
@@ -152,7 +120,7 @@ clean: ## Remove build and cache artifacts
 	@rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/dist
 	@echo "  $(GREEN)✓$(RESET) Cleaned"
 
-doctor: ## Check system prerequisites
+doctor: ## Check prerequisites
 	@printf "\n$(BOLD)System Check - $(PROJECT_NAME)$(RESET)\n"
 	@printf -- "$(GREY)----------------------------$(RESET)\n"
 	@for c in docker python3 node pnpm; do \
@@ -165,12 +133,12 @@ doctor: ## Check system prerequisites
 			|| echo "  $(YELLOW)⚠$(RESET) port $$p free — run 'make db-start'"; \
 	done
 	@python3 -c "import fastapi" >/dev/null 2>&1 \
-		&& echo "  $(GREEN)✓$(RESET) Python deps" || echo "  $(YELLOW)⚠$(RESET) Python deps missing — run 'make install-backend'"
+		&& echo "  $(GREEN)✓$(RESET) Python deps" || echo "  $(YELLOW)⚠$(RESET) Python deps missing — run 'make install'"
 	@[ -d $(FRONTEND_DIR)/node_modules ] \
-		&& echo "  $(GREEN)✓$(RESET) Node deps" || echo "  $(YELLOW)⚠$(RESET) Node deps missing — run 'make install-frontend'"
+		&& echo "  $(GREEN)✓$(RESET) Node deps" || echo "  $(YELLOW)⚠$(RESET) Node deps missing — run 'make install'"
 	@printf -- "$(GREY)----------------------------$(RESET)\n\n"
 
-# ─── Help ─────────────────────────────────────────────────────────────────────
+# ─── HELP ─────────────────────────────────────────────────
 help: ## Show this help
 	@printf "\n"
 	@printf "\033[1;36m"
