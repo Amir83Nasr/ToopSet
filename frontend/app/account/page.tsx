@@ -7,9 +7,16 @@ import { useAuth } from "@/hooks/use-auth"
 import { buildAvatarUrl } from "@/lib/api"
 import { cn, getInitials, toPersianDigits } from "@/lib/utils"
 import { LogoutDialog } from "@/components/public/logout-dialog"
+import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { SiteHeader } from "@/components/public/site-header"
 import { navGroups, type NavItem } from "@/lib/navigation"
-import { MessageCircle, UserCircle, LogOut, ChevronLeft } from "lucide-react"
+import {
+  MessageCircle,
+  UserCircle,
+  LogOut,
+  ChevronLeft,
+  Building2,
+} from "lucide-react"
 import { usePathname } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
 
@@ -118,6 +125,7 @@ export default function AccountPage() {
   const pathname = usePathname()
   const { user, loading, isAuthenticated, logout } = useAuth()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const [registerDialogOpen, setRegisterDialogOpen] = useState(false)
 
   // Role-filtered nav groups — same source of truth as the old mobile panel.
   // The contact link rides along in whichever section holds Notifications.
@@ -221,6 +229,30 @@ export default function AccountPage() {
               </Fragment>
             ))}
 
+            {/* Manager access request — regular users only */}
+            {isAuthenticated && user?.role === "user" && (
+              <SectionCard title="همکاری با ما">
+                <button
+                  type="button"
+                  onClick={() => setRegisterDialogOpen(true)}
+                  className={cn(
+                    "group flex min-h-[52px] w-full items-center gap-3 rounded-2xl px-3",
+                    "text-sm font-semibold text-blue-600 transition-colors duration-150",
+                    "hover:bg-blue-50 active:bg-blue-100",
+                    "dark:text-blue-400 dark:hover:bg-blue-950/40 dark:active:bg-blue-950/60"
+                  )}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors duration-150 group-hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400">
+                    <Building2 className="size-4.5" />
+                  </span>
+                  <span className="flex-1 truncate text-right">
+                    ثبت مجموعه ورزشی
+                  </span>
+                  <ChevronLeft className="size-4 shrink-0 text-muted-foreground/40 transition-colors duration-150 group-hover:text-muted-foreground" />
+                </button>
+              </SectionCard>
+            )}
+
             {/* Logout */}
             {isAuthenticated && user && (
               <div className="overflow-hidden rounded-2xl border border-destructive/20 bg-card shadow-sm">
@@ -245,6 +277,11 @@ export default function AccountPage() {
           </div>
         </main>
       </div>
+
+      <RegisterComplexDialog
+        open={registerDialogOpen}
+        onOpenChange={setRegisterDialogOpen}
+      />
 
       <LogoutDialog
         open={logoutDialogOpen}

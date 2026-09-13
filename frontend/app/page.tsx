@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/public/site-footer"
 import { HeroSection } from "@/components/public/hero-section"
 import { HowItWorksSection } from "@/components/public/how-it-works-section"
 import { AboutSection } from "@/components/public/about-section"
+import { OwnerCtaSection } from "@/components/public/owner-cta-section"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function HomePage() {
         <HeroSection />
         <HowItWorksSection />
         <AboutSection />
+        <OwnerCtaSection />
       </main>
       <SiteFooter />
     </div>
