@@ -35,7 +35,9 @@ RUN groupadd --system --gid 1001 nextjs && \
     useradd --system --uid 1001 -g nextjs nextjs
 
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
+# --chown: the image optimizer writes .next/cache/images at runtime; without it
+# every /_next/image request dies with EACCES and the cache never fills.
+COPY --from=builder --chown=nextjs:nextjs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 # Runtime needs next.config.mjs (images.remotePatterns is read at runtime

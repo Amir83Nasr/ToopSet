@@ -19,6 +19,13 @@ const nextConfig = {
     : [],
   productionBrowserSourceMaps: false,
   images: {
+    // Serve originals straight from the ParsPack CDN (media.toopset.ir).
+    // The prod pod has ~50m CPU / 100M RAM — sharp optimization there costs
+    // ~10s per image, fills no cache, and OOM-kills the container. With
+    // unoptimized, next/image renders the CDN URL directly: no /_next/image,
+    // no sharp, no .next/cache writes. remotePatterns below are kept for the
+    // day resources allow re-enabling the optimizer.
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
