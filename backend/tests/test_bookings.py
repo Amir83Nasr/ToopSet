@@ -93,6 +93,38 @@ class TestCreateBooking:
         assert data["slot_id"] == slot_id
         assert data["user_id"] == user_token["user"]["id"]
 
+    async def test_create_booking_commits_transaction(
+        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+    ):
+        """Regression: create_booking must commit its writes.
+
+        get_db no longer commits on success, so a write path without an
+        explicit db.commit() rolls back when the session closes. That made
+        every booking vanish instantly and the follow-up pay request 404.
+        The transactional test fixture hides this (all writes share one
+        outer transaction), so assert on the commit call itself.
+        """
+        # Arrange: create vendor + slot
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+
+        slot_id = await _create_slot(client, session, vendor_id)
+        version = await _get_slot_version(client, slot_id)
+
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        with patch.object(
+            AsyncSession, "commit", autospec=True, side_effect=AsyncSession.commit
+        ) as commit_spy:
+            resp = await client.post(
+                "/api/v1/bookings",
+                json={"slot_id": slot_id, "version": version},
+                headers=user_headers,
+            )
+
+        assert resp.status_code == 201, resp.text
+        assert commit_spy.called, "create_booking returned success without committing"
+
     async def test_create_double_book_rejected(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):
