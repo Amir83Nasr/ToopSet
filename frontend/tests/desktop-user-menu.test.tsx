@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event"
 import { Tooltip } from "radix-ui"
 import { DesktopUserMenu } from "@/components/public/desktop-user-menu"
 import { createMockUser } from "./mocks/use-auth"
-import { mockRouter } from "./mocks/next-navigation"
 
 describe("DesktopUserMenu", () => {
   it("shows venue registration only for a regular user", async () => {
@@ -15,7 +14,6 @@ describe("DesktopUserMenu", () => {
           user={createMockUser({ role: "user" })}
           loading={false}
           isAuthenticated
-          router={mockRouter}
           onLogout={vi.fn()}
         />
       </Tooltip.Provider>
@@ -38,7 +36,6 @@ describe("DesktopUserMenu", () => {
           user={createMockUser({ role: "manager" })}
           loading={false}
           isAuthenticated
-          router={mockRouter}
           onLogout={vi.fn()}
         />
       </Tooltip.Provider>

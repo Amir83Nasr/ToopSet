@@ -36,7 +36,6 @@ interface DesktopUserMenuProps {
   user: User | null
   loading: boolean
   isAuthenticated: boolean
-  router: ReturnType<typeof import("next/navigation").useRouter>
   onLogout: () => void
 }
 
@@ -46,11 +45,26 @@ const roleLabels: Record<string, string> = {
   user: "کاربر",
 }
 
+/** Menu item rendered as a Link: prefetching starts while the menu is open,
+ *  so the target route is ready before the user clicks. */
+function MenuLinkItem({
+  href,
+  children,
+}: {
+  href: string
+  children: React.ReactNode
+}) {
+  return (
+    <DropdownMenuItem asChild className="cursor-pointer">
+      <Link href={href}>{children}</Link>
+    </DropdownMenuItem>
+  )
+}
+
 export function DesktopUserMenu({
   user,
   loading,
   isAuthenticated,
-  router,
   onLogout,
 }: DesktopUserMenuProps) {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
@@ -111,126 +125,82 @@ export function DesktopUserMenu({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() =>
-                router.push(
-                  user.role === "admin"
-                    ? "/dashboard/admin"
-                    : user.role === "manager"
-                      ? "/dashboard/manager"
-                      : "/dashboard/user"
-                )
+            <MenuLinkItem
+              href={
+                user.role === "admin"
+                  ? "/dashboard/admin"
+                  : user.role === "manager"
+                    ? "/dashboard/manager"
+                    : "/dashboard/user"
               }
-              className="cursor-pointer"
             >
               <LayoutDashboard className="me-2 size-4" />
               داشبورد
-            </DropdownMenuItem>
+            </MenuLinkItem>
 
             {/* ── Admin panel items ── */}
             {user.role === "admin" && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>داشبورد</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/reports")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/reports">
                   <BarChart3 className="me-2 size-4" />
                   گزارشات
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/admin/settings")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/admin/settings">
                   <Settings className="me-2 size-4" />
                   تنظیمات
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/admin/logs")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/admin/logs">
                   <History className="me-2 size-4" />
                   لاگ‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>شخصی</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/settings")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/settings">
                   <UserCircle className="me-2 size-4" />
                   پروفایل
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/bookings")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/bookings">
                   <Calendar className="me-2 size-4" />
                   رزروهای من
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/payments")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/payments">
                   <CreditCard className="me-2 size-4" />
                   پرداخت‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>مدیریت</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/vendors")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/vendors">
                   <Building2 className="me-2 size-4" />
                   مجموعه‌ها
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/admin/bookings")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/admin/bookings">
                   <Calendar className="me-2 size-4" />
                   رزروها
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/users")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/users">
                   <Users className="me-2 size-4" />
                   کاربران
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() =>
-                    router.push("/dashboard/admin/manager-requests")
-                  }
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/admin/manager-requests">
                   <ClipboardCheck className="me-2 size-4" />
                   درخواست‌های مدیریت مجموعه
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/admin/payments")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/admin/payments">
                   <CreditCard className="me-2 size-4" />
                   پرداخت‌ها
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/contact")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/contact">
                   <MessageSquare className="me-2 size-4" />
                   پیام‌ها
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/notifications")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/notifications">
                   <Bell className="me-2 size-4" />
                   اعلان‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
               </>
             )}
 
@@ -239,54 +209,36 @@ export function DesktopUserMenu({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>مدیریت مجموعه</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/vendors")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/vendors">
                   <Building2 className="me-2 size-4" />
                   مجموعه‌ها
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/manager/schedule")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/manager/schedule">
                   <Calendar className="me-2 size-4" />
                   زمان‌بندی
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>شخصی</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/settings")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/settings">
                   <UserCircle className="me-2 size-4" />
                   پروفایل
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/bookings")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/bookings">
                   <Calendar className="me-2 size-4" />
                   رزروهای من
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/payments")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/payments">
                   <CreditCard className="me-2 size-4" />
                   پرداخت‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>سیستم</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/notifications")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/notifications">
                   <Bell className="me-2 size-4" />
                   اعلان‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
               </>
             )}
 
@@ -294,40 +246,28 @@ export function DesktopUserMenu({
             {user.role === "user" && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/settings")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/settings">
                   <UserCircle className="me-2 size-4" />
                   پروفایل
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>رزروها</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/bookings")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/bookings">
                   <Calendar className="me-2 size-4" />
                   رزروهای من
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/payments")}
-                  className="cursor-pointer"
-                >
+                </MenuLinkItem>
+                <MenuLinkItem href="/dashboard/payments">
                   <CreditCard className="me-2 size-4" />
                   پرداخت‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>سیستم</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onSelect={() => router.push("/dashboard/notifications")}
-                  className="cursor-pointer"
-                >
+                <MenuLinkItem href="/dashboard/notifications">
                   <Bell className="me-2 size-4" />
                   اعلان‌ها
-                </DropdownMenuItem>
+                </MenuLinkItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

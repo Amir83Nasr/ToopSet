@@ -2,67 +2,64 @@ import { describe, it, expect, beforeEach, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { useAuth } from "@/hooks/use-auth"
+import { mockRouter } from "./mocks/next-navigation"
+
+const baseAuth = {
+  login: vi.fn(),
+  checkLoginOptions: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
+  refreshUser: vi.fn(),
+  sendOtp: vi.fn(),
+  verifyOtp: vi.fn(),
+}
 
 describe("AuthGuard", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReset()
+    mockRouter.replace.mockReset()
   })
 
-  it("shows a loading spinner while loading", () => {
+  it("renders children immediately while auth is loading (non-blocking)", () => {
     vi.mocked(useAuth).mockReturnValue({
+      ...baseAuth,
       user: null,
       loading: true,
-      login: vi.fn(),
-      checkLoginOptions: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-      refreshUser: vi.fn(),
-      sendOtp: vi.fn(),
-      verifyOtp: vi.fn(),
       isAuthenticated: false,
     })
 
-    const { container } = render(
+    render(
       <AuthGuard>
         <div>Protected Content</div>
       </AuthGuard>
     )
-    const spinner = container.querySelector(".animate-spin")
-    expect(spinner).toBeInTheDocument()
-    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument()
+    // Children mount right away — pages show their own skeletons while the
+    // auth check resolves in parallel; the guard must not block the route.
+    expect(screen.getByText("Protected Content")).toBeInTheDocument()
+    expect(mockRouter.replace).not.toHaveBeenCalled()
   })
 
-  it("shows a redirect message when not authenticated", () => {
+  it("redirects to login once confirmed unauthenticated", () => {
     vi.mocked(useAuth).mockReturnValue({
+      ...baseAuth,
       user: null,
       loading: false,
-      login: vi.fn(),
-      checkLoginOptions: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-      refreshUser: vi.fn(),
-      sendOtp: vi.fn(),
-      verifyOtp: vi.fn(),
       isAuthenticated: false,
     })
 
-    const { container } = render(
+    render(
       <AuthGuard>
         <div>Protected Content</div>
       </AuthGuard>
     )
-    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument()
-    expect(
-      screen.getByText(
-        "برای ادامه باید وارد شوید؛ در حال انتقال به صفحه ورود..."
-      )
-    ).toBeInTheDocument()
-    const spinner = container.querySelector(".animate-spin")
-    expect(spinner).toBeInTheDocument()
+    expect(mockRouter.replace).toHaveBeenCalledWith(
+      "/login?reason=login_required&redirect=%2F"
+    )
   })
 
   it("renders children when authenticated", () => {
     vi.mocked(useAuth).mockReturnValue({
+      ...baseAuth,
       user: {
         id: 1,
         phone: "09120000000",
@@ -74,13 +71,6 @@ describe("AuthGuard", () => {
         created_at: "2026-01-01T00:00:00",
       },
       loading: false,
-      login: vi.fn(),
-      checkLoginOptions: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-      refreshUser: vi.fn(),
-      sendOtp: vi.fn(),
-      verifyOtp: vi.fn(),
       isAuthenticated: true,
     })
 
@@ -90,5 +80,6 @@ describe("AuthGuard", () => {
       </AuthGuard>
     )
     expect(screen.getByText("Protected Content")).toBeInTheDocument()
+    expect(mockRouter.replace).not.toHaveBeenCalled()
   })
 })

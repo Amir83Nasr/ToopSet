@@ -4,7 +4,6 @@ import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/ui/mode-toggle"
@@ -25,7 +24,6 @@ const navLinks = [
 ]
 
 export function SiteHeader() {
-  const router = useRouter()
   const { user, loading, isAuthenticated, logout } = useAuth()
 
   return (
@@ -80,7 +78,6 @@ export function SiteHeader() {
                 user={user}
                 loading={loading}
                 isAuthenticated={isAuthenticated}
-                router={router}
                 onLogout={logout}
               />
             </Suspense>

@@ -5,6 +5,7 @@ import type { ComponentProps } from "react"
 import type { Toaster as SonnerToaster } from "sonner"
 import { DirectionProvider } from "@/components/ui/direction"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { RouteProgress } from "@/components/ui/route-progress"
 import { ErrorProvider } from "@/lib/error-context"
 import { SwRegister } from "./sw-register"
 
@@ -15,6 +16,7 @@ const Toaster = dynamic(() => import("@/app/toaster").then((m) => m.Toaster), {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <RouteProgress />
       <TooltipProvider>
         <DirectionProvider dir="rtl">
           <ErrorProvider>{children}</ErrorProvider>

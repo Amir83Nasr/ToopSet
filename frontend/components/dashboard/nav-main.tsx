@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -10,21 +10,43 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LogOut } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { LogOut, Loader2 } from "lucide-react"
 import { navGroups } from "@/lib/navigation"
+
+/** Icon + title inside a sidebar link; swaps to a spinner while navigating. */
+function NavItemContent({
+  icon: Icon,
+  title,
+}: {
+  icon: React.ElementType
+  title: string
+}) {
+  const { pending } = useLinkStatus()
+  return (
+    <>
+      {pending ? <Loader2 className="animate-spin" /> : <Icon />}
+      <span>{title}</span>
+    </>
+  )
+}
 
 export function NavMain({ onLogoutRequest }: { onLogoutRequest: () => void }) {
   const pathname = usePathname()
   const { user, loading } = useAuth()
 
+  // Skeleton rows instead of a text placeholder — no layout shift once the
+  // role-filtered menu renders, and the sidebar never looks broken.
   if (loading) {
     return (
       <SidebarGroup>
         <SidebarGroupLabel>منو</SidebarGroupLabel>
         <SidebarMenu>
-          <div className="p-2 text-sm text-muted-foreground">
-            در حال بارگذاری...
-          </div>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SidebarMenuItem key={i}>
+              <Skeleton className="h-8 w-full" />
+            </SidebarMenuItem>
+          ))}
         </SidebarMenu>
       </SidebarGroup>
     )
@@ -62,8 +84,7 @@ export function NavMain({ onLogoutRequest }: { onLogoutRequest: () => void }) {
                     isActive={isActive}
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <NavItemContent icon={item.icon} title={item.title} />
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

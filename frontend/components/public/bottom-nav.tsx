@@ -1,9 +1,10 @@
 "use client"
 
-import Link from "next/link"
+import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Search, Calendar, User } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Spinner } from "@/components/ui/spinner"
 
 // ── Bottom Navigation Tab Definitions ────────────────────────────────────────
 
@@ -43,10 +44,53 @@ function isTabActive(href: string, pathname: string, exact: boolean): boolean {
 
 // ── Bottom Nav Tab Item ───────────────────────────────────────────────────────
 
+function BottomNavTabContent({
+  label,
+  icon: Icon,
+  active,
+}: {
+  label: string
+  icon: React.ElementType
+  active: boolean
+}) {
+  const { pending } = useLinkStatus()
+
+  return (
+    <>
+      <span
+        aria-busy={pending || undefined}
+        className={cn(
+          "flex size-8 items-center justify-center rounded-xl transition-all duration-200",
+          active && !pending ? "scale-110 bg-primary/12" : "scale-100"
+        )}
+      >
+        {pending ? (
+          <Spinner className="size-5 text-primary" />
+        ) : (
+          <Icon
+            className={cn(
+              "size-5 transition-all duration-200",
+              active ? "stroke-[2.2]" : "stroke-[1.8]"
+            )}
+          />
+        )}
+      </span>
+      <span
+        className={cn(
+          "text-[10px] leading-none font-medium transition-all duration-200",
+          active && !pending ? "opacity-100" : "opacity-70"
+        )}
+      >
+        {label}
+      </span>
+    </>
+  )
+}
+
 function BottomNavTab({
   href,
   label,
-  icon: Icon,
+  icon,
   active,
 }: {
   href: string
@@ -57,6 +101,9 @@ function BottomNavTab({
   return (
     <Link
       href={href}
+      // Always in view on mobile — prefetch keeps these four primary
+      // destinations instant to enter.
+      prefetch
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-center transition-colors duration-150",
@@ -66,27 +113,7 @@ function BottomNavTab({
           : "text-muted-foreground hover:text-foreground active:text-foreground"
       )}
     >
-      <span
-        className={cn(
-          "flex size-8 items-center justify-center rounded-xl transition-all duration-200",
-          active ? "scale-110 bg-primary/12" : "scale-100"
-        )}
-      >
-        <Icon
-          className={cn(
-            "size-5 transition-all duration-200",
-            active ? "stroke-[2.2]" : "stroke-[1.8]"
-          )}
-        />
-      </span>
-      <span
-        className={cn(
-          "text-[10px] leading-none font-medium transition-all duration-200",
-          active ? "opacity-100" : "opacity-70"
-        )}
-      >
-        {label}
-      </span>
+      <BottomNavTabContent label={label} icon={icon} active={active} />
     </Link>
   )
 }
