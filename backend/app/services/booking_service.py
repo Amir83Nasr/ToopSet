@@ -878,6 +878,7 @@ class BookingService:
                 "replacement_hold_created",
                 f"هولد جایگزینی ساخته شد | هولد {hold.id} — رزرو قبلی {existing.id}",
             )
+            await self.db.commit()
             loaded_hold = await self.replacement_repo.get_hold(hold.id)
             assert loaded_hold is not None
             return self._hold_response(loaded_hold)
@@ -926,6 +927,7 @@ class BookingService:
             "booking_created",
             f"ایجاد رزرو | رزرو {booking.id} برای سانس {data.slot_id} - مجموعه {vendor.name}",
         )
+        await self.db.commit()
 
         return BookingDetailResponse(
             id=booking.id,
@@ -2333,6 +2335,7 @@ class BookingService:
             "replacement_hold_cancelled",
             f"هولد جایگزینی لغو شد | هولد {hold.id}",
         )
+        await self.db.commit()
         loaded_hold = await self.replacement_repo.get_hold(hold.id)
         assert loaded_hold is not None
         return self._hold_response(loaded_hold)
@@ -2948,6 +2951,7 @@ class BookingService:
             "booking_cancellation_withdrawn",
             f"انصراف از لغو رزرو | رزرو {booking.id}",
         )
+        await self.db.commit()
         return await self.get_booking(booking.id)
 
     async def list_all_bookings(
