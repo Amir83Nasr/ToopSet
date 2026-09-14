@@ -1,0 +1,5 @@
+# minted bearer tokens for test users — never commit
+manifest.json
+.secret_key
+seed_err.log
+__pycache__/

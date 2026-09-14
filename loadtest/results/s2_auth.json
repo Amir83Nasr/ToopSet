@@ -1,0 +1,146 @@
+[
+  {
+    "test": "no token → my bookings",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "وارد حساب خود نشده‌اید",
+    "note": ""
+  },
+  {
+    "test": "malformed token",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "توکن نامعتبر یا منقضی شده",
+    "note": ""
+  },
+  {
+    "test": "alg=none token",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "توکن نامعتبر یا منقضی شده",
+    "note": ""
+  },
+  {
+    "test": "tampered signature",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "توکن نامعتبر یا منقضی شده",
+    "note": ""
+  },
+  {
+    "test": "expired token (valid sig, exp −30m)",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "توکن نامعتبر یا منقضی شده",
+    "note": ""
+  },
+  {
+    "test": "refresh token as access",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "توکن نامعتبر یا منقضی شده",
+    "note": ""
+  },
+  {
+    "test": "valid token sanity check",
+    "expected": 200,
+    "got": 200,
+    "pass": true,
+    "detail": "None",
+    "note": ""
+  },
+  {
+    "test": "user B books slot (setup)",
+    "expected": 201,
+    "got": 201,
+    "pass": true,
+    "detail": "None",
+    "note": ""
+  },
+  {
+    "test": "IDOR: A reads B's booking #18",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "شما به این رزرو دسترسی ندارید",
+    "note": ""
+  },
+  {
+    "test": "IDOR: A cancels B's booking #18",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "شما به این رزرو دسترسی ندارید",
+    "note": ""
+  },
+  {
+    "test": "A lists own bookings",
+    "expected": 200,
+    "got": 200,
+    "pass": true,
+    "detail": "None",
+    "note": ""
+  },
+  {
+    "test": "user → GET /admin-style /users list",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "دسترسی ادمین لازم است",
+    "note": ""
+  },
+  {
+    "test": "user → GET /bookings/all (admin)",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "دسترسی ادمین لازم است",
+    "note": ""
+  },
+  {
+    "test": "user → GET /admin/settings",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "دسترسی ادمین لازم است",
+    "note": ""
+  },
+  {
+    "test": "user → GET /admin/logs",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "دسترسی ادمین لازم است",
+    "note": ""
+  },
+  {
+    "test": "no token → /admin/settings",
+    "expected": 401,
+    "got": 401,
+    "pass": true,
+    "detail": "وارد حساب خود نشده‌اید",
+    "note": ""
+  },
+  {
+    "test": "user → create slot (manager route)",
+    "expected": 403,
+    "got": 403,
+    "pass": true,
+    "detail": "دسترسی مدیر مجموعه یا ادمین لازم است",
+    "note": ""
+  },
+  {
+    "test": "cleanup: B cancels own booking",
+    "expected": 200,
+    "got": 409,
+    "pass": false,
+    "detail": "رزرو در انتظار پرداخت از داخل سایت قابل لغو نیست؛ وارد درگاه شوید و گزینه لغو پرداخت را انتخاب کنید",
+    "note": ""
+  }
+]

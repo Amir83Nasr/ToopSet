@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ارزیابی جامع بک‌اند توپ‌ست</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f2ee;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --accent:#2a78d6; --accent-soft:#e3edfa;
+  --good:#0ca30c; --good-text:#006300;
+  --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --crit-soft:#fae5e5;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222221;
+    --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
+    --accent:#3987e5; --accent-soft:#1c2a3d;
+    --good-text:#0ca30c; --crit-soft:#3a2222;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222221;
+  --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
+  --accent:#3987e5; --accent-soft:#1c2a3d;
+  --good-text:#0ca30c; --crit-soft:#3a2222;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--page); color:var(--ink);
+  font-family:'Vazirmatn',system-ui,sans-serif; font-size:15px; line-height:1.75;
+  padding:40px 20px 72px;
+}
+.wrap{max-width:920px;margin:0 auto}
+header.masthead{border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:28px}
+.kicker{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-size:30px;font-weight:800;line-height:1.3;margin:6px 0 10px;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--ink-2);font-size:13px}
+.meta b{color:var(--ink);font-weight:700}
+code,.mono{font-family:var(--mono);font-size:.86em;direction:ltr;unicode-bidi:embed}
+h2{font-size:20px;font-weight:800;margin:0 0 4px;display:flex;align-items:baseline;gap:10px}
+h2 .no{color:var(--accent);font-family:var(--mono);font-size:14px;font-weight:600}
+section{margin-top:44px}
+.sec-head{border-bottom:1px solid var(--baseline);padding-bottom:10px;margin-bottom:18px}
+.sec-head p{margin:0;color:var(--ink-2);font-size:13.5px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0 6px}
+.tile{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:14px 16px}
+.tile .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile .k{font-size:12px;color:var(--muted);margin-top:2px}
+.tile.ok .v{color:var(--good-text)} .tile.bad .v{color:var(--crit)}
+.verdicts{display:grid;gap:8px;margin-top:14px}
+.verdict{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--ring);border-radius:8px;padding:9px 14px;font-size:13.5px}
+.pill{flex-shrink:0;font-size:11px;font-weight:700;border-radius:99px;padding:2px 11px}
+.pill.pass{background:var(--good);color:#fff}
+.pill.fail{background:var(--crit);color:#fff}
+.verdict .what{flex:1}.verdict .why{color:var(--muted);font-size:12.5px}
+.alert{border-right:3px solid var(--crit);background:var(--crit-soft);border-radius:8px 0 0 8px;padding:12px 16px;margin:10px 0;font-size:13.5px}
+.alert b{font-weight:800}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--ring);border-radius:10px;overflow:hidden;font-size:13.5px}
+th{font-size:11.5px;font-weight:700;text-align:right;color:var(--ink-2);background:var(--surface-2);padding:9px 12px;border-bottom:1px solid var(--grid)}
+td{padding:9px 12px;border-bottom:1px solid var(--grid);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num,th.num{font-variant-numeric:tabular-nums;text-align:center;font-family:var(--mono);font-size:12.5px;direction:ltr}
+.sev{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 9px;color:#fff;white-space:nowrap}
+.sev.high{background:var(--crit)} .sev.med{background:var(--serious)} .sev.low{background:var(--muted)}
+.st{font-family:var(--mono);font-size:12px;font-weight:600;padding:1px 7px;border-radius:5px;direction:ltr;display:inline-block}
+.st.g{color:var(--good-text);background:rgba(12,163,12,.12)} .st.r{color:var(--crit);background:rgba(208,59,59,.12)}
+figure{margin:16px 0;background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:16px}
+figcaption{font-size:12.5px;color:var(--ink-2);margin-top:8px;line-height:1.6}
+.chart{direction:ltr;text-align:left}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2);margin-top:8px;direction:rtl}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:5px;vertical-align:-1px}
+.note{font-size:13px;color:var(--ink-2);background:var(--surface);border:1px solid var(--ring);border-radius:8px;padding:10px 14px;margin:12px 0}
+ol.recs{margin:0;padding-right:20px;display:grid;gap:10px}
+ol.recs li b{font-weight:800}
+.mech{display:grid;gap:8px;margin:14px 0}
+.mech div{display:flex;gap:10px;align-items:baseline;font-size:13.5px}
+.mech code{background:var(--surface-2);border:1px solid var(--ring);border-radius:5px;padding:1px 7px;white-space:nowrap}
+footer{margin-top:52px;border-top:1px solid var(--baseline);padding-top:14px;color:var(--muted);font-size:12px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (max-width:560px){
+  h1{font-size:24px}
+  .hide-sm{display:none}
+  table{font-size:12.5px}
+  td,th{padding:7px 8px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">گزارش ارزیابی امنیتی، همزمانی و کارایی</div>
+  <h1>ارزیابی جامع بک‌اند توپ‌ست</h1>
+  <div class="meta">
+    <span>محیط: <b>تولید — api.toopset.ir</b></span>
+    <span>تاریخ: <b>۲۳ شهریور ۱۴۰۵</b></span>
+    <span>حجم آزمون: <b>~۲,۷۰۰ درخواست HTTP</b></span>
+    <span>ابزار: httpx asyncio + kubectl</span>
+  </div>
+</header>
+
+<section id="summary">
+  <div class="sec-head">
+    <h2><span class="no">۰۱</span>خلاصه وضعیت (Executive Summary)</h2>
+    <p>چهار سناریوی درخواستی روی محیط تولیدِ فعال اجرا شد؛ داده‌های آزمون با نشانهٔ LOADTEST ساخته و در پایان به‌طور کامل پاک‌سازی شدند.</p>
+  </div>
+  <div class="tiles">
+    <div class="tile ok"><div class="v">۰</div><div class="k">Double Booking در ۴ اجرای همزمانی</div></div>
+    <div class="tile ok"><div class="v">۱۸/۱۸</div><div class="k">تست احراز هویت، RBAC و IDOR</div></div>
+    <div class="tile ok"><div class="v">۶/۶</div><div class="k">مسیرهای تزریق SQL پارامتری و امن</div></div>
+    <div class="tile bad"><div class="v">~۲۰ RPS</div><div class="k">سقف توان عملیاتی (هدف: ۵۰۰ کاربر همزمان)</div></div>
+    <div class="tile bad"><div class="v">۳</div><div class="k">خطر با اهمیت High</div></div>
+  </div>
+  <div class="verdicts">
+    <div class="verdict"><span class="pill pass">PASS</span><span class="what">صحت تراکنش رزرو — در هیچ اجرایی بیش از یک رزرو فعال به ازای هر سانس ثبت نشد (<code>max_active_per_slot = 1</code>)</span></div>
+    <div class="verdict"><span class="pill pass">PASS</span><span class="what">امنیت دسترسی — توکن نامعتبر/منقضی/دستکاری‌شده، IDOR و ارتقای سطح دسترسی همه مسدود</span></div>
+    <div class="verdict"><span class="pill pass">PASS</span><span class="what">تأخیر در بار سبک — لیست سانس‌ها P95=81ms (هدف 500ms)، ثبت رزرو 362ms (هدف 1000ms)</span></div>
+    <div class="verdict"><span class="pill fail">FAIL</span><span class="what">پایداری زیر بار همزمان — رگبار ۵۰تایی: ۳۴ خطای 500 و 16 تایم‌اوت، بدون حتی یک رزرو</span><span class="why">تخلیه استخر اتصال + گرسنگی CPU</span></div>
+    <div class="verdict"><span class="pill fail">FAIL</span><span class="what">هدف ۵۰۰ کاربر همزمان — نقطه شکست در ~۱۰۰ تا ۲۰۰ کاربر</span><span class="why">سهمیه CPU پاد: 150m، یک replica</span></div>
+  </div>
+  <div class="alert"><b>خطرات بحرانی:</b> (۱) تخلیه استخر اتصال دیتابیس و خطاهای 500 زیر بار همزمان؛ (۲) Deadlock واقعی Postgres در مسیر رزرو؛ (۳) کلید Rate-Limiter بر IP پاد ingress به‌جای IP واقعی کاربر — در ترافیک واقعی سقف لاگین ۵/دقیقه بین همهٔ کاربران مشترک می‌شود.</div>
+</section>
+
+<section id="race">
+  <div class="sec-head">
+    <h2><span class="no">۰۲</span>نتیجه تست همزمانی (Race Condition)</h2>
+    <p>ارسال همزمان POST /api/v1/bookings برای یک سانس باز با یک ظرفیت — هر درخواست با کاربر و توکن مجزا.</p>
+  </div>
+
+  <figure>
+    <div class="chart">
+      <svg viewBox="0 0 680 218" role="img" aria-label="نتیجه چهار اجرای تست همزمانی" font-family="Vazirmatn,sans-serif">
+        <!-- rows: 50 / 15 / 10 (post-storm) / 10 (calm); bar area x:150..650, row height 34, gap 14 -->
+        <!-- gridlines -->
+        <g stroke="var(--grid)" stroke-width="1">
+          <line x1="250" y1="8" x2="250" y2="200"/><line x1="350" y1="8" x2="350" y2="200"/>
+          <line x1="450" y1="8" x2="450" y2="200"/><line x1="550" y1="8" x2="550" y2="200"/><line x1="650" y1="8" x2="650" y2="200"/>
+        </g>
+        <g fill="var(--muted)" font-size="10" text-anchor="middle" font-family="IBM Plex Mono,monospace">
+          <text x="150" y="212">0</text><text x="250" y="212">25%</text><text x="350" y="212">50%</text>
+          <text x="450" y="212">75%</text><text x="550" y="212">100%</text>
+        </g>
+        <!-- row labels (RTL text) -->
+        <g fill="var(--ink-2)" font-size="11.5" text-anchor="end">
+          <text x="640" y="30">۵۰ کاربر همزمان</text>
+          <text x="640" y="78">۱۵ کاربر</text>
+          <text x="640" y="126">۱۰ کاربر (بعد از طوفان ۵۰)</text>
+          <text x="640" y="174">۱۰ کاربر (سیستم آرام)</text>
+        </g>
+        <!-- bars from x=150, width = pct*500. RTL rows: label right, bar left of it -->
+        <!-- 50: 500:34→340px, net:16→160px -->
+        <g>
+          <rect x="150" y="16" width="340" height="26" rx="0" fill="var(--crit)"/>
+          <rect x="492" y="16" width="158" height="26" fill="var(--muted)"/>
+          <text x="318" y="33" fill="#fff" font-size="11" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">500 × 34</text>
+          <text x="571" y="33" fill="#fff" font-size="11" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">timeout × 16</text>
+        </g>
+        <!-- 15: 201:1→10px, 409:13→130px, 500:1→10px -->
+        <g>
+          <rect x="150" y="64" width="10" height="26" fill="var(--good)"/>
+          <rect x="162" y="64" width="130" height="26" fill="var(--accent)"/>
+          <rect x="294" y="64" width="10" height="26" fill="var(--crit)"/>
+          <text x="227" y="81" fill="#fff" font-size="11" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">409 × 13</text>
+          <text x="310" y="81" fill="var(--ink-2)" font-size="10.5" font-family="IBM Plex Mono,monospace">201 × 1 · 500 × 1</text>
+        </g>
+        <!-- 10 storm: 201:1→10, 409:5→50, 500:4→40 -->
+        <g>
+          <rect x="150" y="112" width="10" height="26" fill="var(--good)"/>
+          <rect x="162" y="112" width="50" height="26" fill="var(--accent)"/>
+          <rect x="214" y="112" width="40" height="26" fill="var(--crit)"/>
+          <text x="187" y="129" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">409×5</text>
+          <text x="234" y="129" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">500×4</text>
+          <text x="264" y="129" fill="var(--ink-2)" font-size="10.5" font-family="IBM Plex Mono,monospace">201 × 1</text>
+        </g>
+        <!-- 10 calm: 201:1→10, 409:9→90 -->
+        <g>
+          <rect x="150" y="160" width="10" height="26" fill="var(--good)"/>
+          <rect x="162" y="160" width="90" height="26" fill="var(--accent)"/>
+          <text x="207" y="177" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">409 × 9</text>
+          <text x="262" y="177" fill="var(--ink-2)" font-size="10.5" font-family="IBM Plex Mono,monospace">201 × 1</text>
+        </g>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--good)"></i>201 — رزرو موفق (باید دقیقاً ۱ باشد)</span>
+      <span><i style="background:var(--accent)"></i>409 — ردِ کنترل‌شده</span>
+      <span><i style="background:var(--crit)"></i>500 — خطای سرور</span>
+      <span><i style="background:var(--muted)"></i>تایم‌اوت/شبکه</span>
+    </div>
+    <figcaption>در هر اجرایی که سیستم توان پردازش داشت، دقیقاً یک 201 صادر شده و مابقی 409 کنترل‌شده‌اند. اجرای ۵۰تایی هرگز به منطق رزرو نرسید — خطاها در مرحله احراز هویت (تخلیه استخر اتصال) رخ داد. پرس‌وجوی مستقیم دیتابیس پس از همه اجراها: حداکثر یک رزرو فعال به ازای هر سانس.</figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th>اجرا</th><th class="num">همزمان</th><th class="num">201</th><th class="num">409</th><th class="num">500</th><th class="num">تایم‌اوت</th><th class="num">دیوار (ms)</th><th class="num">تأخیر برنده (ms)</th></tr></thead>
+    <tbody>
+      <tr><td>رگبار ۵۰ کاربر</td><td class="num">50</td><td class="num">0</td><td class="num">0</td><td class="num">34</td><td class="num">16</td><td class="num">30,241</td><td class="num">—</td></tr>
+      <tr><td>۱۵ کاربر</td><td class="num">15</td><td class="num">1</td><td class="num">13</td><td class="num">1</td><td class="num">0</td><td class="num">14,291</td><td class="num">10,295</td></tr>
+      <tr><td>۱۰ کاربر — بلافاصله بعد از طوفان</td><td class="num">10</td><td class="num">1</td><td class="num">5</td><td class="num">4</td><td class="num">0</td><td class="num">19,900</td><td class="num">18,004</td></tr>
+      <tr><td>۱۰ کاربر — سیستم آرام</td><td class="num">10</td><td class="num">1</td><td class="num">9</td><td class="num">0</td><td class="num">0</td><td class="num">3,322</td><td class="num">2,580</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:13.5px">سازوکار دفاعی که این نتیجه را تضمین می‌کند (هر سه لایه در کد تأیید شد):</p>
+  <div class="mech">
+    <div><code>SELECT … FOR UPDATE</code><span>قفل سطر سانس، تراکنش‌های رقیب را صف می‌کند و پس از commit برنده، وضعیت رزروشده را می‌بینند.</span></div>
+    <div><code>uq_bookings_one_active_per_slot</code><span>ایندکس یکتای جزئی — پشتیبان سطح دیتابیس؛ حتی نقض منطق برنامه هم Double Booking نمی‌سازد.</span></div>
+    <div><code>slot.version</code><span>قفل خوش‌بینانه — عدم تطابق نسخه سانس با 409 رد می‌شود.</span></div>
+  </div>
+</section>
+
+<section id="vulns">
+  <div class="sec-head">
+    <h2><span class="no">۰۳</span>جدول آسیب‌پذیری‌ها و باگ‌ها</h2>
+    <p>همه ردیف‌ها با درخواست واقعی روی محیط تولید بازتولید شده‌اند. «انتظار» همان معیار تعریف‌شده در سناریوی ارزیابی است.</p>
+  </div>
+  <table>
+    <thead><tr><th>شدت</th><th>Endpoint</th><th class="hide-sm">Payload / شرط</th><th>انتظار</th><th>دریافتی</th></tr></thead>
+    <tbody>
+      <tr><td><span class="sev high">High</span></td>
+          <td><code>POST /api/v1/bookings</code></td>
+          <td class="hide-sm"><code>50 concurrent</code></td>
+          <td>رد کنترل‌شده 409/429</td>
+          <td><span class="st r">500 × 34</span> + 16 تایم‌اوت — <code>TimeoutError</code> تخلیه استخر اتصال (هر درخواست ۲ session؛ 50×2 &gt; pool=30) و <code>ConnectionDoesNotExistError</code></td></tr>
+      <tr><td><span class="sev high">High</span></td>
+          <td><code>POST /api/v1/bookings</code></td>
+          <td class="hide-sm">رزروهای همزمان روی یک سانس</td>
+          <td>409 کنترل‌شده</td>
+          <td><span class="st r">500</span> — <code>DeadlockDetectedError</code> واقعی Postgres در <code>time_slot_repo.get_by_id</code> زیر همزمانی</td></tr>
+      <tr><td><span class="sev high">High</span></td>
+          <td><code>POST /api/v1/auth/login</code> (و همه مسیرهای لیمیتر‌دار)</td>
+          <td class="hide-sm">15 درخواست سریع از یک IP خارجی</td>
+          <td>محدودسازی per-client</td>
+          <td>سطل مشترک بر IP پاد ingress — 10 پاس و سپس 429 مشترک؛ uvicorn بدون <code>--proxy-headers</code> اجرا می‌شود</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+          <td><code>POST /api/v1/bookings</code></td>
+          <td class="hide-sm">15 درخواست بی‌توکن</td>
+          <td>شمارش در rate limiter</td>
+          <td>limiter پس از resolve وابستگی‌های احراز هویت ارزیابی می‌شود → درخواست‌های ردشده هرگز شمرده نمی‌شوند؛ صفر 429</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+          <td><code>GET /api/v1/vendors/{id}</code></td>
+          <td class="hide-sm">ردیف نامعتبر: <code>ball_available=true, ball_price=0</code></td>
+          <td>پاسخ مقاوم (200/422)</td>
+          <td><span class="st r">500</span> خام در GET عمومی — <code>ValidationError</code> در serialization بدون دفاع</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+          <td><code>POST /api/v1/bookings</code></td>
+          <td class="hide-sm"><code>{"slot_id": 1e18}</code></td>
+          <td>422</td>
+          <td><span class="st r">500</span> — سرریز Integer در asyncpg؛ نبود کران در schema</td></tr>
+      <tr><td><span class="sev low">Low</span></td>
+          <td><code>POST /api/v1/bookings</code></td>
+          <td class="hide-sm"><code>{"with_ball": "yes"}</code></td>
+          <td>422</td>
+          <td><span class="st g">201</span> — پارس سهل‌گیرانة bool در pydantic («yes»→True) و ثبت رزرو واقعی</td></tr>
+      <tr><td><span class="sev low">Low</span></td>
+          <td><code>PATCH /api/v1/auth/profile</code></td>
+          <td class="hide-sm"><code>full_name=&lt;img onerror=…&gt;</code></td>
+          <td>پاک‌سازی ورودی</td>
+          <td>200 + ذخیره و بازتاب خام (فرانت React فرار می‌کند؛ مصرف‌کننده‌های غیر React/SMS در معرض)</td></tr>
+    </tbody>
+  </table>
+  <div class="note">موارد آزمونِ پاس‌شده که در جدول نیامده‌اند: همهٔ مسیرهای تزریق SQL (search، path param، بدنة OTP) پارامتری و بدون خطا؛ تاریخ گذشته → 409؛ خارج از پنجرة ۱۴ روزه → 409؛ null/missing/نوع نادرست → 422؛ رزرو متقاطع (IDOR) → 403؛ دسترسی کاربر عادی به <code>/api/v1/admin/*</code>، <code>/api/v1/users</code> و <code>/api/v1/bookings/all</code> → 403.</div>
+</section>
+
+<section id="auth">
+  <div class="sec-head">
+    <h2><span class="no">۰۴</span>احراز هویت، RBAC و IDOR — ۱۸/۱۸</h2>
+    <p>ماتریس کامل توکن‌های نامعتبر/دستکاری‌شده و دسترسی متقاطع، همگی با کد مورد انتظار رد شدند.</p>
+  </div>
+  <table>
+    <thead><tr><th>آزمون</th><th class="num">انتظار</th><th class="num">دریافتی</th></tr></thead>
+    <tbody>
+      <tr><td>بدون توکن → <code>GET /bookings</code></td><td class="num">401</td><td class="num"><span class="st g">401 ✓</span></td></tr>
+      <tr><td>توکن خراب چیده‌شده</td><td class="num">401</td><td class="num"><span class="st g">401 ✓</span></td></tr>
+      <tr><td>حمله <code>alg=none</code></td><td class="num">401</td><td class="num"><span class="st g">401 ✓</span></td></tr>
+      <tr><td>امضای دستکاری‌شده</td><td class="num">401</td><td class="num"><span class="st g">401 ✓</span></td></tr>
+      <tr><td>توکن منقضی (امضای معتبر، exp=‎−30m)</td><td class="num">401</td><td class="num"><span class="st g">401 ✓</span></td></tr>
+      <tr><td>refresh token در جایگاه access</td><td class="num">401</td><td class="num"><span class="st g">401 ✓</span></td></tr>
+      <tr><td>IDOR — خواندن رزرو کاربر B با توکن A</td><td class="num">403</td><td class="num"><span class="st g">403 ✓</span></td></tr>
+      <tr><td>IDOR — لغو رزرو کاربر B با توکن A</td><td class="num">403</td><td class="num"><span class="st g">403 ✓</span></td></tr>
+      <tr><td>ارتقای دسترسی — <code>/users</code>، <code>/bookings/all</code>، <code>/admin/settings</code>، <code>/admin/logs</code> با توکن کاربر عادی</td><td class="num">403</td><td class="num"><span class="st g">403 ✓ ×4</span></td></tr>
+      <tr><td>مسیر مدیر مجموعه (ایجاد سانس) با کاربر عادی</td><td class="num">403</td><td class="num"><span class="st g">403 ✓</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="perf">
+  <div class="sec-head">
+    <h2><span class="no">۰۵</span>متریک‌های عملکردی</h2>
+    <p>بنچمارک تأخیر (بار سبک، 40 درخواست در هر اندپوینت) و تست فشار پلکانی روی ترکیب واقعی مسیرهای عمومی فقط‌خواندنی.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>اندپوینت</th><th class="num">P50</th><th class="num">P95</th><th class="num">P99</th><th class="num">هدف P95</th><th>وضعیت</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /vendors/{id}/slots</code> — لیست سانس‌ها</td><td class="num">26ms</td><td class="num">81ms</td><td class="num">107ms</td><td class="num">&lt;500ms</td><td><span class="st g">PASS</span></td></tr>
+      <tr><td><code>POST /bookings</code> — ثبت رزرو (تک‌کاربر)</td><td class="num">—</td><td class="num">362ms</td><td class="num">—</td><td class="num">&lt;1000ms</td><td><span class="st g">PASS</span></td></tr>
+      <tr><td><code>GET /vendors</code> — جست‌وجوی مجموعه‌ها</td><td class="num">22ms</td><td class="num">83ms</td><td class="num">95ms</td><td class="num">—</td><td><span class="st g">سالم</span></td></tr>
+      <tr><td><code>GET /vendors/{id}</code> — جزئیات</td><td class="num">21ms</td><td class="num">63ms</td><td class="num">65ms</td><td class="num">—</td><td><span class="st g">سالم</span></td></tr>
+      <tr><td><code>GET /slots/{id}</code></td><td class="num">77ms</td><td class="num">99ms</td><td class="num">249ms</td><td class="num">—</td><td><span class="st g">سالم</span></td></tr>
+      <tr><td><code>GET /bookings</code> (احراز هویت‌شده)</td><td class="num">105ms</td><td class="num">248ms</td><td class="num">392ms</td><td class="num">—</td><td><span class="st g">سالم</span></td></tr>
+      <tr><td><code>GET /auth/me</code></td><td class="num">42ms</td><td class="num">81ms</td><td class="num">96ms</td><td class="num">—</td><td><span class="st g">سالم</span></td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <div class="chart">
+      <svg viewBox="0 0 680 300" role="img" aria-label="تأخیر P95 و نرخ توان عملیاتی در برابر کاربران همزمان" font-family="Vazirmatn,sans-serif">
+        <!-- plot area x:60..640, y:20..240 ; y scale: 0..30s linear -->
+        <g stroke="var(--grid)" stroke-width="1">
+          <line x1="60" y1="200" x2="640" y2="200"/><line x1="60" y1="140" x2="640" y2="140"/>
+          <line x1="60" y1="80" x2="640" y2="80"/><line x1="60" y1="20" x2="640" y2="20"/>
+        </g>
+        <g fill="var(--muted)" font-size="10" text-anchor="end" font-family="IBM Plex Mono,monospace">
+          <text x="54" y="244">0s</text><text x="54" y="204">5s</text><text x="54" y="144">10s</text>
+          <text x="54" y="84">15s</text><text x="54" y="24">20s+</text>
+        </g>
+        <!-- target line 500ms → y=236 -->
+        <line x1="60" y1="236" x2="640" y2="236" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="636" y="231" fill="var(--good-text)" font-size="10.5" text-anchor="end">هدف P95 &lt; 500ms</text>
+        <!-- x: c=10→x=120, 25→x=260, 50→x=400, 100→x=520, 200→x=620 (log-ish spacing) -->
+        <!-- P95 ms → y = 240 - ms/30000*220 : 700→234.9, 2408→222.3, 4413→209.6, 13598→131.3, 26933→33.2 -->
+        <path d="M120,235 L260,222 L400,210 L520,131 L620,33" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <g fill="var(--accent)" stroke="var(--surface)" stroke-width="2">
+          <circle cx="120" cy="235" r="5"/><circle cx="260" cy="222" r="5"/><circle cx="400" cy="210" r="5"/>
+          <circle cx="520" cy="131" r="5"/><circle cx="620" cy="33" r="5"/>
+        </g>
+        <g fill="var(--ink-2)" font-size="10.5" font-family="IBM Plex Mono,monospace" text-anchor="middle">
+          <text x="120" y="222">0.7s</text><text x="260" y="209">2.4s</text><text x="400" y="197">4.4s</text>
+          <text x="520" y="118">13.6s</text><text x="620" y="20" text-anchor="end">26.9s</text>
+        </g>
+        <!-- breaking point marker at c=200 -->
+        <g font-size="10.5" fill="var(--crit)" font-weight="700" text-anchor="middle">
+          <text x="596" y="58">نقطه شکست ↗</text>
+        </g>
+        <g fill="var(--muted)" font-size="10.5" text-anchor="middle" font-family="IBM Plex Mono,monospace">
+          <text x="120" y="262">10</text><text x="260" y="262">25</text><text x="400" y="262">50</text>
+          <text x="520" y="262">100</text><text x="620" y="262">200</text>
+        </g>
+        <text x="370" y="284" fill="var(--muted)" font-size="11" text-anchor="middle">کاربران همزمان — P95 تأخیر (ثانیه)</text>
+
+        <!-- RPS strip: y 270..296? use separate small bars bottom-right — instead inline row -->
+        <g font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--ink-2)" text-anchor="middle">
+          <text x="120" y="278">24.5 rps</text><text x="260" y="278">22.4</text><text x="400" y="278">20.9</text>
+          <text x="520" y="278">19.9</text><text x="620" y="278">21.4</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>توان عملیاتی صرف‌نظر از تعداد کاربران روی ~۲۰–۲۵ درخواست بر ثانیه سقف می‌خورد: مصرف CPU پاد در همه مراحل دقیقاً 3.0s به ازای هر 20s = سهمیه کامل 150m. تأخیر فقط صف می‌سازد؛ در ۲۰۰ همزمان خطاهای 5xx (12.4%) و قطع اتصال آغاز می‌شود. حافظه پایدار بود (151→164MB از سقف 300MB).</figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th>مرحله</th><th class="num">کاربران</th><th class="num">RPS</th><th class="num">P50</th><th class="num">P95</th><th class="num">P99</th><th class="num">خطا</th><th class="num">CPU پاد (Δ20s)</th></tr></thead>
+    <tbody>
+      <tr><td>۱</td><td class="num">10</td><td class="num">24.5</td><td class="num">374ms</td><td class="num">0.7s</td><td class="num">1.7s</td><td class="num">1.4%</td><td class="num">3.0s</td></tr>
+      <tr><td>۲</td><td class="num">25</td><td class="num">22.4</td><td class="num">903ms</td><td class="num">2.4s</td><td class="num">2.6s</td><td class="num">1.8%</td><td class="num">3.1s</td></tr>
+      <tr><td>۳</td><td class="num">50</td><td class="num">20.9</td><td class="num">2.1s</td><td class="num">4.4s</td><td class="num">5.5s</td><td class="num">1.2%</td><td class="num">3.1s</td></tr>
+      <tr><td>۴</td><td class="num">100</td><td class="num">19.9</td><td class="num">3.9s</td><td class="num">13.6s</td><td class="num">16.1s</td><td class="num">1.5%</td><td class="num">3.0s</td></tr>
+      <tr><td>۵ — شکست</td><td class="num">200</td><td class="num">21.4</td><td class="num">6.6s</td><td class="num">26.9s</td><td class="num">29.3s</td><td class="num">12.4%</td><td class="num">5.2s</td></tr>
+    </tbody>
+  </table>
+  <div class="note">علت خطاهای 5xx مرحلة ۵ همان الگوی سناریوی همزمانی است: <code>TimeoutError</code> استخر اتصال و <code>ConnectionDoesNotExistError</code> — زیر گرسنگی CPU، اتصال‌ها باز و پردازش‌نشده می‌مانند. پله‌های ۳۵۰ و ۵۰۰ اجرا نشدند؛ نقطه شکست پیش از آن‌ها به‌طور قطعی ثبت شده بود و ادامه فقط downtime طولانی‌تر می‌ساخت.</div>
+</section>
+
+<section id="recs">
+  <div class="sec-head">
+    <h2><span class="no">۰۶</span>توصیه‌های اصلاحی (به ترتیب اولویت)</h2>
+    <p>هر مورد به یکی از یافته‌های بالاتر گره خورده است.</p>
+  </div>
+  <ol class="recs">
+    <li><b>افزایش منابع و replicas بک‌اند.</b> یک pod با 150m CPU و یک worker، هم عامل سقف ~20 RPS است هم عامل 500های استخر اتصال. حداقل 500m–1 CPU و ۲–۳ replica با HPA؛ سپس <code>DB_POOL_SIZE</code> را متناسب با مجموع workerها بازتنظیم کنید.</li>
+    <li><b>اصلاح IP کلید rate limiter.</b> uvicorn را با <code>--proxy-headers</code> و <code>FORWARDED_ALLOW_IPS</code> (CIDR پادهای ingress) اجرا کنید تا <code>get_remote_address</code> IP واقعی کاربر را ببیند؛ وگرنه سقف ۵/دقیقه لاگین در ترافیک واقعی بین کل کاربران مشترک می‌شود.</li>
+    <li><b>انتقال ارزیابی rate limiter به قبل از وابستگی‌ها</b> (لایه middleware) تا درخواست‌های ردشده هم شمرده شوند و مسیر رزرو در برابر رگبار واقعاً محافظت شود.</li>
+    <li><b>رفع Deadlock مسیر رزرو</b> — ترتیب اخذ قفل‌ها در مسیرهای checkout/replacement را یکدست کنید (مثلاً همیشه user → slot) و برای <code>DeadlockDetected</code> retry خودکار با 409/403 در پاسخ بگذارید.</li>
+    <li><b>کران‌گذاری ورودی‌ها در schemas</b> — <code>slot_id: int = Field(ge=1, le=2**31-1)</code> و بقیه شناسه‌ها؛ جلوی 500 ناشی از سرریز Integer را می‌گیرد.</li>
+    <li><b>پارس دقیق bool</b> (<code>model_config = ConfigDict(strict=...)</code> یا validator) و <b>پاک‌سازی/escape فیلدهای متنی</b> در serialization پروفایل.</li>
+    <li><b>دفاع serialization برای ردیف‌های نامعتبر</b> — GET عمومی نباید با 500 خام پاسخ دهد؛ validator مدل پاسخ را به لایه نوشتن (create/update) منتقل و در خواندن مقاوم‌سازی کنید.</li>
+  </ol>
+</section>
+
+<footer>
+  روش‌شناسی: ۵۲ کاربر آزمایشی با شماره‌های نشانه‌گذاری‌شده، یک مجموعه و ۲۸ سانس آزمایشی ساخته شد؛ توکن‌ها داخل خود پاد با کلید امضای اپ ساخته شدند (کلید هرگز از کلاستر خارج نشد). داده‌های آزمون پس از اتمام به‌طور کامل حذف و کش‌های Redis باطل شدند (کاربران: 2، مجموعه‌ها: 1 — بازگشت به خط پایه). اسکریپت‌های اجرا در <code>loadtest/</code> برای بازاجرای پروتکل موجودند. تاریخ اجرا: 2026-09-14، ساعت 20:46 تا 21:20 UTC.
+</footer>
+
+</div>
+</body>
+</html>

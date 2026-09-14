@@ -1,0 +1,119 @@
+[
+  {
+    "endpoint": "GET /vendors (list)",
+    "n": 40,
+    "concurrency": 1,
+    "rps": 22.9,
+    "mean_ms": 44.0,
+    "p50_ms": 22.0,
+    "p95_ms": 83.0,
+    "p99_ms": 95.0,
+    "max_ms": 97.0,
+    "status": {
+      "200": 40
+    }
+  },
+  {
+    "endpoint": "GET /vendors/{id} (detail)",
+    "n": 40,
+    "concurrency": 1,
+    "rps": 3.8,
+    "mean_ms": 265.0,
+    "p50_ms": 231.0,
+    "p95_ms": 413.0,
+    "p99_ms": 671.0,
+    "max_ms": 793.0,
+    "status": {
+      "500": 40
+    }
+  },
+  {
+    "endpoint": "GET /vendors/{id}/slots",
+    "n": 40,
+    "concurrency": 1,
+    "rps": 21.7,
+    "mean_ms": 46.0,
+    "p50_ms": 26.0,
+    "p95_ms": 81.0,
+    "p99_ms": 107.0,
+    "max_ms": 112.0,
+    "status": {
+      "200": 40
+    }
+  },
+  {
+    "endpoint": "GET /slots/{id} (detail)",
+    "n": 40,
+    "concurrency": 1,
+    "rps": 13.0,
+    "mean_ms": 77.0,
+    "p50_ms": 77.0,
+    "p95_ms": 99.0,
+    "p99_ms": 249.0,
+    "max_ms": 343.0,
+    "status": {
+      "200": 35,
+      "404": 5
+    }
+  },
+  {
+    "endpoint": "GET /bookings (authed)",
+    "n": 40,
+    "concurrency": 1,
+    "rps": 7.4,
+    "mean_ms": 135.0,
+    "p50_ms": 105.0,
+    "p95_ms": 248.0,
+    "p99_ms": 392.0,
+    "max_ms": 396.0,
+    "status": {
+      "200": 40
+    }
+  },
+  {
+    "endpoint": "GET /auth/me",
+    "n": 40,
+    "concurrency": 1,
+    "rps": 19.8,
+    "mean_ms": 51.0,
+    "p50_ms": 42.0,
+    "p95_ms": 81.0,
+    "p99_ms": 96.0,
+    "max_ms": 97.0,
+    "status": {
+      "200": 40
+    }
+  },
+  {
+    "endpoint": "GET /vendors/{id}/slots @c5",
+    "n": 40,
+    "concurrency": 5,
+    "rps": 30.9,
+    "mean_ms": 155.0,
+    "p50_ms": 178.0,
+    "p95_ms": 265.0,
+    "p99_ms": 269.0,
+    "max_ms": 271.0,
+    "status": {
+      "200": 40
+    }
+  },
+  {
+    "endpoint": "POST /bookings (slot 196)",
+    "n": 1,
+    "status": 409,
+    "latency_ms": 85.0
+  },
+  {
+    "endpoint": "POST /bookings (slot 197)",
+    "n": 1,
+    "status": 409,
+    "latency_ms": 94.0
+  },
+  {
+    "endpoint": "POST /bookings (slot 198)",
+    "n": 1,
+    "status": 409,
+    "latency_ms": 111.0
+  }
+]

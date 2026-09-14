@@ -1,0 +1,93 @@
+[
+  {
+    "concurrency": 10,
+    "duration_s": 20,
+    "total_requests": 490,
+    "rps": 24.5,
+    "conn_errors": 0,
+    "error_pct": 1.4,
+    "mean_ms": 410,
+    "p50_ms": 374,
+    "p95_ms": 700,
+    "p99_ms": 1735,
+    "status": {
+      "200": 483,
+      "404": 7
+    },
+    "pod_cpu_seconds_delta": 3.0,
+    "pod_rss_mb": 153.9
+  },
+  {
+    "concurrency": 25,
+    "duration_s": 20,
+    "total_requests": 449,
+    "rps": 22.4,
+    "conn_errors": 0,
+    "error_pct": 1.8,
+    "mean_ms": 1121,
+    "p50_ms": 903,
+    "p95_ms": 2408,
+    "p99_ms": 2622,
+    "status": {
+      "200": 441,
+      "404": 8
+    },
+    "pod_cpu_seconds_delta": 3.1,
+    "pod_rss_mb": 156.8
+  },
+  {
+    "concurrency": 50,
+    "duration_s": 20,
+    "total_requests": 417,
+    "rps": 20.9,
+    "conn_errors": 0,
+    "error_pct": 1.2,
+    "mean_ms": 2413,
+    "p50_ms": 2087,
+    "p95_ms": 4413,
+    "p99_ms": 5500,
+    "status": {
+      "200": 412,
+      "404": 5
+    },
+    "pod_cpu_seconds_delta": 3.1,
+    "pod_rss_mb": 158.9
+  },
+  {
+    "concurrency": 100,
+    "duration_s": 20,
+    "total_requests": 398,
+    "rps": 19.9,
+    "conn_errors": 0,
+    "error_pct": 1.5,
+    "mean_ms": 4905,
+    "p50_ms": 3898,
+    "p95_ms": 13598,
+    "p99_ms": 16113,
+    "status": {
+      "200": 392,
+      "404": 6
+    },
+    "pod_cpu_seconds_delta": 3.0,
+    "pod_rss_mb": 162.0
+  },
+  {
+    "concurrency": 200,
+    "duration_s": 20,
+    "total_requests": 427,
+    "rps": 21.4,
+    "conn_errors": 10,
+    "error_pct": 12.4,
+    "mean_ms": 10267,
+    "p50_ms": 6596,
+    "p95_ms": 26933,
+    "p99_ms": 29302,
+    "status": {
+      "200": 374,
+      "404": 3,
+      "500": 40
+    },
+    "pod_cpu_seconds_delta": 5.2,
+    "pod_rss_mb": 164.4
+  }
+]

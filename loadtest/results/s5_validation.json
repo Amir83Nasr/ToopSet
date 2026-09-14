@@ -1,0 +1,193 @@
+[
+  {
+    "test": "book slot in the past",
+    "expected": [
+      409
+    ],
+    "got": 409,
+    "pass": true,
+    "detail": "زمان این سانس گذشته و دیگر قابل رزرو نیست",
+    "note": "spec hoped 400; app defines 409"
+  },
+  {
+    "test": "book slot 20 days ahead (window=14d)",
+    "expected": [
+      409
+    ],
+    "got": 409,
+    "pass": true,
+    "detail": "رزرو فقط برای سانس‌های دو هفته آینده امکان‌پذیر است",
+    "note": ""
+  },
+  {
+    "test": "negative slot_id",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 404,
+    "pass": true,
+    "detail": "سانس یافت نشد",
+    "note": ""
+  },
+  {
+    "test": "zero slot_id",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 404,
+    "pass": true,
+    "detail": "سانس یافت نشد",
+    "note": ""
+  },
+  {
+    "test": "slot_id as SQLi string",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 422,
+    "pass": true,
+    "detail": "اطلاعات وارد شده معتبر نیست",
+    "note": ""
+  },
+  {
+    "test": "slot_id huge int (10^18)",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 500,
+    "pass": false,
+    "detail": "خطای پایگاه داده. لطفاً بعداً تلاش کنید.",
+    "note": ""
+  },
+  {
+    "test": "with_ball as string",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 201,
+    "pass": false,
+    "detail": "None",
+    "note": ""
+  },
+  {
+    "test": "missing version",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 422,
+    "pass": true,
+    "detail": "اطلاعات وارد شده معتبر نیست",
+    "note": ""
+  },
+  {
+    "test": "null slot_id",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 422,
+    "pass": true,
+    "detail": "اطلاعات وارد شده معتبر نیست",
+    "note": ""
+  },
+  {
+    "test": "extra unknown field",
+    "expected": [
+      400,
+      404,
+      422
+    ],
+    "got": 409,
+    "pass": false,
+    "detail": "{'code': 'pending_booking_limit_reached', 'severity': 'warning', 'alert_type': 'red_warning', 'message': '⚠️ شما یک رزرو در انتظار",
+    "note": ""
+  },
+  {
+    "test": "SQLi search: ' OR '1'='1",
+    "got": 200,
+    "pass": true,
+    "detail": "resp_bytes=43",
+    "note": "parameterized query expected"
+  },
+  {
+    "test": "SQLi search: '; DROP TABLE users; --",
+    "got": 200,
+    "pass": true,
+    "detail": "resp_bytes=43",
+    "note": "parameterized query expected"
+  },
+  {
+    "test": "SQLi search: 1' AND SLEEP(5)--",
+    "got": 200,
+    "pass": true,
+    "detail": "resp_bytes=43",
+    "note": "parameterized query expected"
+  },
+  {
+    "test": "SQLi search: %' UNION SELECT password_has",
+    "got": 200,
+    "pass": true,
+    "detail": "resp_bytes=43",
+    "note": "parameterized query expected"
+  },
+  {
+    "test": "SQLi in path param",
+    "expected": [
+      404,
+      422
+    ],
+    "got": 422,
+    "pass": true,
+    "detail": "اطلاعات وارد شده معتبر نیست",
+    "note": ""
+  },
+  {
+    "test": "XSS in search param",
+    "got": 200,
+    "pass": true,
+    "detail": "reflected=False"
+  },
+  {
+    "test": "stored XSS attempt in profile name",
+    "got": 200,
+    "pass": true,
+    "detail": "reflected=True",
+    "note": "API echoes value; frontend React escapes by default"
+  },
+  {
+    "test": "null byte in search",
+    "expected": [
+      200,
+      400,
+      422
+    ],
+    "got": 200,
+    "pass": true,
+    "detail": "None",
+    "note": ""
+  },
+  {
+    "test": "SQLi/garbage in OTP phone",
+    "expected": [
+      400,
+      422
+    ],
+    "got": 422,
+    "pass": true,
+    "detail": "شماره تماس باید ۱۱ رقمی باشد و با 09 شروع شود",
+    "note": ""
+  }
+]
