@@ -140,7 +140,7 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,
-  // Offline splash (app/offline) — logo only, no text.
+  // Offline fallback (app/offline) — retry + back-home UI, JS-free.
   // "/offline" is precached via additionalPrecacheEntries in next.config.mjs
   // (revision = content hash of app/offline/page.tsx).
   fallbacks: {
