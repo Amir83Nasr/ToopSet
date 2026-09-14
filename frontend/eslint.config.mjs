@@ -12,8 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Generated PWA service worker (compiled by @serwist/next at build time)
-    "sw.js",
+    // Generated PWA service worker (compiled by @serwist/next at build time).
+    // "**/" is required — a bare "sw.js" only matches the config root and lets
+    // eslint pick up public/sw.js, racing the pre-push build that writes it.
+    "**/sw.js",
   ]),
 ])
 
