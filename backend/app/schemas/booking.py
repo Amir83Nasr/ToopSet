@@ -12,9 +12,13 @@ from app.models.replacement import BookingHoldStatus
 
 
 class BookingCreate(BaseModel):
-    slot_id: int
-    version: int
-    with_ball: bool = False
+    # Bounds keep oversized ids from reaching asyncpg as out-of-range
+    # INTEGERs (observed as a 500 instead of a validation error).
+    slot_id: int = Field(..., ge=1, le=2_147_483_647)
+    version: int = Field(..., ge=1, le=2_147_483_647)
+    # Strict: pydantic's lax mode coerces "yes"/"on"/1 into True and booked
+    # a slot the caller never asked for.
+    with_ball: bool = Field(False, strict=True)
 
 
 class BookingCancelRequest(BaseModel):

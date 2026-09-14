@@ -11,6 +11,14 @@ class RegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128, examples=["Str0ng!Pass"])
     full_name: str = Field(..., min_length=1, max_length=128, examples=["کاربر تست"])
 
+    @field_validator("full_name")
+    @classmethod
+    def reject_markup(cls, value: str) -> str:
+        """Names carry no angle brackets — refuse markup instead of storing it."""
+        if any(ch in value for ch in ("<", ">", "\x00")):
+            raise ValueError("نام وارد شده شامل کاراکترهای مجاز نیست")
+        return value
+
     @field_validator("phone")
     @classmethod
     def normalize_phone_field(cls, value: str) -> str:
@@ -75,6 +83,14 @@ class UpdateProfileRequest(BaseModel):
         None, min_length=8, max_length=128, description="Min 8 characters"
     )
     current_password: str | None = Field(None, min_length=1, max_length=128)
+
+    @field_validator("full_name")
+    @classmethod
+    def reject_markup(cls, value: str | None) -> str | None:
+        """Names carry no angle brackets — refuse markup instead of storing it."""
+        if value is not None and any(ch in value for ch in ("<", ">", "\x00")):
+            raise ValueError("نام وارد شده شامل کاراکترهای مجاز نیست")
+        return value
 
     @field_validator("phone")
     @classmethod

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.core.pagination import decode_cursor
-from app.core.rate_limiter import limiter
+from app.core.rate_limiter import pre_auth_limit
 from app.models.user import User
 from app.schemas.booking import (
     AdminBookingListResponse,
@@ -123,7 +125,7 @@ async def list_all_bookings_admin(
     description="Return a replacement payment hold owned by the current user.",
 )
 async def get_replacement_hold(
-    hold_id: int,
+    hold_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service),
 ):
     return await service.get_replacement_hold(hold_id)
@@ -136,7 +138,7 @@ async def get_replacement_hold(
     description="Pay a live replacement hold and atomically transfer the slot booking.",
 )
 async def pay_replacement_hold(
-    hold_id: int,
+    hold_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service_fresh),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
@@ -154,7 +156,7 @@ async def pay_replacement_hold(
     description="Release an active replacement hold without changing the original booking.",
 )
 async def cancel_replacement_hold(
-    hold_id: int,
+    hold_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service),
 ):
     return await service.cancel_replacement_hold(hold_id)
@@ -162,7 +164,7 @@ async def cancel_replacement_hold(
 
 @router.get("/{booking_id}", response_model=BookingDetailResponse, summary="Booking details")
 async def get_booking(
-    booking_id: int,
+    booking_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service),
 ):
     return await service.get_booking(booking_id)
@@ -174,9 +176,9 @@ async def get_booking(
     status_code=status.HTTP_201_CREATED,
     summary="Create booking",
 )
-@limiter.limit("12/minute")
 async def create_booking(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("12/minute", "bookings-create"))],
     data: BookingCreate,
     service: BookingService = Depends(get_booking_service_fresh),
 ):
@@ -192,10 +194,10 @@ async def create_booking(
     response_model=BookingDetailResponse | PaymentStartResponse,
     summary="Pay booking",
 )
-@limiter.limit("10/minute")
 async def pay_booking(
     request: Request,
-    booking_id: int,
+    _rl: Annotated[None, Depends(pre_auth_limit("10/minute", "bookings-pay"))],
+    booking_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service),
 ):
     from app.services.cache_service import invalidate_admin_list_cache
@@ -207,10 +209,10 @@ async def pay_booking(
 
 
 @router.post("/{booking_id}/cancel", response_model=BookingDetailResponse, summary="Cancel booking")
-@limiter.limit("10/minute")
 async def cancel_booking(
     request: Request,
-    booking_id: int,
+    _rl: Annotated[None, Depends(pre_auth_limit("10/minute", "bookings-cancel"))],
+    booking_id: int = Path(ge=1),
     data: BookingCancelRequest | None = None,
     service: BookingService = Depends(get_booking_service),
 ):
@@ -226,10 +228,10 @@ async def cancel_booking(
     response_model=BookingDetailResponse,
     summary="Withdraw a pending cancellation",
 )
-@limiter.limit("10/minute")
 async def withdraw_cancellation(
     request: Request,
-    booking_id: int,
+    _rl: Annotated[None, Depends(pre_auth_limit("10/minute", "bookings-withdraw"))],
+    booking_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service),
 ):
     """Cancel a pending cancellation request and keep the booking active."""
@@ -246,7 +248,7 @@ async def withdraw_cancellation(
     summary="Preview booking cancellation terms",
 )
 async def get_cancellation_terms(
-    booking_id: int,
+    booking_id: int = Path(ge=1),
     service: BookingService = Depends(get_booking_service),
 ):
     return await service.get_cancellation_terms(booking_id)

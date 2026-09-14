@@ -61,4 +61,9 @@ ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Graceful shutdown: the shell expands $PORT, then exec hands PID 1 to uvicorn
 # so SIGTERM is delivered directly (Railway injects PORT at runtime).
-CMD ["/bin/sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --timeout-graceful-shutdown 30"]
+# --proxy-headers is uvicorn's default but is stated explicitly here: behind
+# the cluster ingress the real client IP only reaches request.client.host
+# (rate-limit keys, audit ip_address) when FORWARDED_ALLOW_IPS covers the
+# ingress pod CIDR — set it in the deployment (e.g. 10.0.0.0/8), not here,
+# since it is environment-specific.
+CMD ["/bin/sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-127.0.0.1}\" --timeout-graceful-shutdown 30"]

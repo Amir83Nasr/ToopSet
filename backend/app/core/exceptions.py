@@ -162,9 +162,30 @@ async def integrity_error_handler(request: Request, exc: Exception) -> JSONRespo
     )
 
 
+def _is_postgres_deadlock(exc: BaseException) -> bool:
+    """Walk the SQLAlchemy/DBAPI cause chain looking for SQLSTATE 40P01."""
+    seen: BaseException | None = exc
+    for _ in range(6):
+        if seen is None:
+            return False
+        if getattr(seen, "sqlstate", None) == "40P01" or getattr(seen, "code", None) == "40P01":
+            return True
+        orig = getattr(seen, "orig", None)
+        seen = orig if isinstance(orig, BaseException) else seen.__cause__
+    return False
+
+
 async def statement_error_handler(request: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, StatementError):
         raise exc
+    if _is_postgres_deadlock(exc):
+        logger.exception("Deadlock detected on %s", request.url.path)
+        return _make_response(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="تداخل همزمانی در ثبت درخواست؛ لطفاً دوباره تلاش کنید",
+            request=request,
+            error_code="deadlock_retry",
+        )
     logger.exception("Database statement error on %s", request.url.path)
     return _make_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -175,6 +196,14 @@ async def statement_error_handler(request: Request, exc: Exception) -> JSONRespo
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    if _is_postgres_deadlock(exc):
+        logger.exception("Deadlock detected on %s", request.url.path)
+        return _make_response(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="تداخل همزمانی در ثبت درخواست؛ لطفاً دوباره تلاش کنید",
+            request=request,
+            error_code="deadlock_retry",
+        )
     logger.exception("Unhandled exception on %s", request.url.path)
     return _make_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

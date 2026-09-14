@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from decimal import Decimal
 from urllib.parse import urlparse
 
 from fastapi import Depends, HTTPException, status
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +31,8 @@ from app.schemas.vendor import (
 )
 from app.services.cache_service import invalidate_slot_list
 from app.services.upload_temp_service import consume_temp_uploads
+
+logger = logging.getLogger(__name__)
 
 
 def _validated_image_urls(
@@ -328,7 +332,16 @@ class VendorService:
         return self._to_response(updated)
 
     def _to_response(self, vendor: Vendor) -> VendorResponse:
-        resp = VendorResponse.model_validate(vendor)
+        try:
+            resp = VendorResponse.model_validate(vendor)
+        except ValidationError as exc:
+            # A row that violates response invariants (e.g. ball_available
+            # with a zero ball_price) must not 500 a public read endpoint.
+            logger.error("Corrupt vendor row id=%s failed response validation: %s", vendor.id, exc)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="داده‌های این مجموعه نامعتبر است و نیاز به بازبینی دارد",
+            ) from exc
         if vendor.manager:
             resp.manager_name = vendor.manager.full_name
             resp.manager_phone = vendor.manager.phone

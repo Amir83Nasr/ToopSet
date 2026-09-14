@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 from redis import asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,7 +8,7 @@ from app.api.deps import get_current_user, get_current_user_fresh
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import log_action
-from app.core.rate_limiter import limiter
+from app.core.rate_limiter import pre_auth_limit
 from app.core.redis_client import get_redis
 from app.core.security import create_password_reset_token, decode_token
 from app.core.upload import (
@@ -121,9 +123,9 @@ async def _otp_service(
 
 
 @router.post("/otp/send", response_model=SendOtpResponse, summary="Send OTP code")
-@limiter.limit("30/minute")
 async def send_otp(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("30/minute", "auth-otp-send"))],
     body: SendOtpRequest,
     service: OtpService = Depends(_otp_service),
 ):
@@ -135,9 +137,9 @@ async def send_otp(
 
 
 @router.post("/otp/verify", response_model=TokenResponse, summary="Verify OTP and login/register")
-@limiter.limit("10/minute")
 async def verify_otp(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("10/minute", "auth-otp-verify"))],
     response: Response,
     body: VerifyOtpRequest,
     redis: aioredis.Redis = Depends(get_redis),
@@ -182,9 +184,9 @@ async def verify_otp(
     response_model=LoginOptionsResponse,
     summary="Check login options for a phone number",
 )
-@limiter.limit("10/minute")
 async def login_options(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("10/minute", "auth-login-options"))],
     body: LoginOptionsRequest,
     db: AsyncSession = Depends(get_db),
 ):
@@ -198,9 +200,9 @@ async def login_options(
 @router.post(
     "/register", response_model=TokenResponse, status_code=201, summary="Register a new user"
 )
-@limiter.limit("3/minute")
 async def register(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("3/minute", "auth-register"))],
     response: Response,
     body: RegisterRequest,
     service: AuthService = Depends(_auth_service),
@@ -222,9 +224,9 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse, summary="Login user")
-@limiter.limit("5/minute")
 async def login(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("5/minute", "auth-login"))],
     response: Response,
     body: LoginRequest,
     service: AuthService = Depends(_auth_service),
@@ -245,9 +247,9 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse, summary="Refresh access token")
-@limiter.limit("10/minute")
 async def refresh(
     request: Request,
+    _rl: Annotated[None, Depends(pre_auth_limit("10/minute", "auth-refresh"))],
     response: Response,
     body: RefreshRequest | None = None,
     service: AuthService = Depends(_auth_service),
