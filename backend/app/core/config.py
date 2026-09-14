@@ -278,6 +278,23 @@ def validate_env(settings: Settings | None = None) -> None:
             errors.append("PAYMENT_RESULT_URL must be different from ZIBAL_CALLBACK_URL.")
         if not settings.zibal_base_url:
             errors.append("ZIBAL_BASE_URL must be set when PAYMENT_GATEWAY='zibal'.")
+        if is_production:
+            # Non-empty defaults mask a missing env: payment_result_url falls
+            # back to http://localhost:3000/... and silently breaks the
+            # browser-facing redirect of GET /payments/zibal/callback.
+            for label, url in (
+                ("PAYMENT_RESULT_URL", settings.payment_result_url),
+                ("ZIBAL_CALLBACK_URL", settings.zibal_callback_url),
+            ):
+                if "localhost" in url or "127.0.0.1" in url:
+                    errors.append(f"{label} must be a public URL in production, got {url!r}.")
+            if "/payments/zibal/callback" not in settings.zibal_callback_url:
+                errors.append(
+                    "ZIBAL_CALLBACK_URL must point at the backend callback endpoint "
+                    "(https://<api-host>/api/v1/payments/zibal/callback) so the browser "
+                    "redirect is resolved server-side; a frontend URL leaves confirmation "
+                    "to the periodic reconciliation job."
+                )
     if settings.sms_provider not in _SUPPORTED_SMS_PROVIDERS:
         errors.append(
             f"SMS_PROVIDER={settings.sms_provider!r} has no implementation in this build."
