@@ -4,6 +4,7 @@ description: "قبل از اجاره زمین چمن مصنوعی در قم ای
 date: "۱۴۰۳/۱۲/۱۵"
 updated: "۱۴۰۵/۰۶/۲۴"
 author: "تیم توپ‌سِت"
+cover: "/blog/turf-checklist.svg"
 ---
 
 ## چرا انتخاب چمن مهم است؟

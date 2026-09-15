@@ -14,6 +14,7 @@ export interface BlogPost {
   date: string
   updated: string
   author: string
+  cover: string
   html: string
   readingMinutes: number
 }
@@ -31,6 +32,10 @@ function escapeHtml(s: string): string {
 function inline(s: string): string {
   const out = escapeHtml(s)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(
+      /!\[([^\]]*)\]\(([^)]+)\)/g,
+      '<img src="$2" alt="$1" loading="lazy" class="blog-image" />'
+    )
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
   return out
 }
@@ -38,12 +43,17 @@ function inline(s: string): string {
 export function markdownToHtml(md: string): string {
   const html: string[] = []
   let inList = false
+  let inOrdered = false
   const quote: string[] = []
 
   function closeList() {
     if (inList) {
       html.push("</ul>")
       inList = false
+    }
+    if (inOrdered) {
+      html.push("</ol>")
+      inOrdered = false
     }
   }
 
@@ -72,11 +82,25 @@ export function markdownToHtml(md: string): string {
       closeList()
       html.push(`<h1>${inline(line.slice(2))}</h1>`)
     } else if (line.startsWith("- ")) {
+      if (inOrdered) {
+        html.push("</ol>")
+        inOrdered = false
+      }
       if (!inList) {
         html.push('<ul class="blog-list">')
         inList = true
       }
       html.push(`<li>${inline(line.slice(2))}</li>`)
+    } else if (/^\d+\.\s/.test(line)) {
+      if (inList) {
+        html.push("</ul>")
+        inList = false
+      }
+      if (!inOrdered) {
+        html.push("<ol>")
+        inOrdered = true
+      }
+      html.push(`<li>${inline(line.replace(/^\d+\.\s/, ""))}</li>`)
     } else if (line === "") {
       closeList()
     } else {
@@ -107,6 +131,25 @@ function parseFrontmatter(raw: string): {
   return { data, body: match[2] }
 }
 
+function toPost(
+  slug: string,
+  data: Record<string, string>,
+  body: string
+): BlogPost {
+  const words = body.split(/\s+/).length
+  return {
+    slug,
+    title: data.title ?? slug,
+    description: data.description ?? "",
+    date: data.date ?? "",
+    updated: data.updated ?? data.date ?? "",
+    author: data.author ?? "تیم توپ‌سِت",
+    cover: data.cover ?? "",
+    html: markdownToHtml(body),
+    readingMinutes: Math.max(1, Math.round(words / 200)),
+  }
+}
+
 export function getAllPosts(): BlogPost[] {
   let files: string[]
   try {
@@ -118,17 +161,7 @@ export function getAllPosts(): BlogPost[] {
     const slug = file.replace(/\.md$/, "")
     const raw = readFileSync(join(CONTENT_DIR, file), "utf-8")
     const { data, body } = parseFrontmatter(raw)
-    const words = body.split(/\s+/).length
-    return {
-      slug,
-      title: data.title ?? slug,
-      description: data.description ?? "",
-      date: data.date ?? "",
-      updated: data.updated ?? data.date ?? "",
-      author: data.author ?? "تیم توپ‌سِت",
-      html: markdownToHtml(body),
-      readingMinutes: Math.max(1, Math.round(words / 200)),
-    }
+    return toPost(slug, data, body)
   })
   return posts.sort((a, b) => (a.date < b.date ? 1 : -1))
 }
@@ -137,17 +170,7 @@ export function getPost(slug: string): BlogPost | null {
   try {
     const raw = readFileSync(join(CONTENT_DIR, `${slug}.md`), "utf-8")
     const { data, body } = parseFrontmatter(raw)
-    const words = body.split(/\s+/).length
-    return {
-      slug,
-      title: data.title ?? slug,
-      description: data.description ?? "",
-      date: data.date ?? "",
-      updated: data.updated ?? data.date ?? "",
-      author: data.author ?? "تیم توپ‌سِت",
-      html: markdownToHtml(body),
-      readingMinutes: Math.max(1, Math.round(words / 200)),
-    }
+    return toPost(slug, data, body)
   } catch {
     return null
   }

@@ -89,7 +89,7 @@ export default function BlogIndexPage() {
                       <div className="flex items-center gap-4 pt-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <CalendarDays className="size-3.5" />
-                          {post.date}
+                          {post.updated}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock3 className="size-3.5" />

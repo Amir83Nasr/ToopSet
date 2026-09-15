@@ -1,13 +1,9 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import Image from "next/image"
 import { getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { SITE_URL } from "@/lib/site"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
-import { Card } from "@/components/ui/card"
-import { Building2, Star, MapPin } from "lucide-react"
 import { VendorsExplorer } from "./vendors-explorer"
 import type { Vendor } from "./vendors-explorer"
 
@@ -25,16 +21,6 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/vendors`,
     images: [{ url: "/icons/square.png", width: 512, height: 512 }],
   },
-}
-
-function formatPrice(price: number | null): string {
-  if (price == null) return "—"
-  const formattedNumber = new Intl.NumberFormat("fa-IR", {
-    useGrouping: true,
-  })
-    .format(price)
-    .replace(/,/g, "٬")
-  return `${formattedNumber} تومان`
 }
 
 async function getInitialVendors(): Promise<{
@@ -94,78 +80,7 @@ export default async function VendorsServerPage() {
               </p>
             </div>
 
-            {/* ── SSR vendor list (SEO) ── */}
-            {vendors.length > 0 && (
-              <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {vendors.map((vendor) => {
-                  const rating =
-                    vendor.average_rating > 0
-                      ? vendor.average_rating.toFixed(1)
-                      : null
-                  return (
-                    <li key={vendor.id}>
-                      <Link
-                        href={`/vendors/${vendor.id}`}
-                        className="group block"
-                      >
-                        <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-shadow duration-300 ease-out group-hover:shadow-xl">
-                          <div className="relative aspect-16/11 overflow-hidden bg-muted">
-                            {vendor.main_image || vendor.images?.[0] ? (
-                              <Image
-                                src={vendor.main_image || vendor.images![0]}
-                                alt={`رزرو آنلاین ${vendor.name} — ${vendor.address}`}
-                                fill
-                                loading="lazy"
-                                className="object-cover"
-                                sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                              />
-                            ) : (
-                              <div className="flex size-full items-center justify-center">
-                                <Building2 className="size-10 text-muted-foreground/40" />
-                              </div>
-                            )}
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
-                            {rating && (
-                              <div className="absolute start-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white shadow-md backdrop-blur-sm">
-                                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-                                <span className="tabular-nums">
-                                  {toPersianDigits(rating)}
-                                </span>
-                              </div>
-                            )}
-                            <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-                              <h2 className="text-base leading-snug font-bold text-white drop-shadow-sm">
-                                {vendor.name}
-                              </h2>
-                              <p className="mt-1.5 flex items-center gap-1 text-xs text-white/75">
-                                <MapPin className="size-3.5 shrink-0" />
-                                <span className="line-clamp-1">
-                                  {vendor.address}
-                                </span>
-                              </p>
-                              {vendor.base_price != null && (
-                                <div className="mt-3 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2.5 backdrop-blur-md">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <span className="inline-flex items-center rounded bg-white/15 px-1 py-0.5 text-[11px] leading-none font-semibold text-white">
-                                      شروع قیمت از
-                                    </span>
-                                    <span className="text-sm font-bold text-white">
-                                      {formatPrice(vendor.base_price)}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </Card>
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-
-            {/* ── Interactive search/filter/map (client) ── */}
+            {/* ── Interactive search/filter/map (client, with pagination) ── */}
             <div className="mt-8">
               <VendorsExplorer />
             </div>

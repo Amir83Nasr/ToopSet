@@ -637,7 +637,7 @@ html body[data-scroll-locked] {
   will-change: transform;
 }
 
-// ── BLOG PROSE ─────────────────────────────────────────────────────────────
+/* ── BLOG PROSE ─────────────────────────────────────────────────────────── */
 .blog-prose {
   h2 {
     font-size: 1.35rem;

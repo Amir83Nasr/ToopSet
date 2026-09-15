@@ -12,21 +12,15 @@ const HIDE_FOOTER_ON_MOBILE = [/^\/book($|\/)/, /^\/vendors\/[^/]+/]
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
   { href: "/vendors", label: "جستجوی مجموعه‌ها" },
-  { href: "/blog", label: "بلاگ" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
-const sportLinks = [
-  { href: "/futsal-qom", label: "رزرو سالن فوتسال در قم" },
-  { href: "/football-qom", label: "رزرو زمین چمن مصنوعی در قم" },
-  { href: "/volleyball-qom", label: "رزرو سالن والیبال در قم" },
-  { href: "/basketball-qom", label: "رزرو سالن بسکتبال در قم" },
-]
-
 const pageLinks = [
-  { href: "/about", label: "درباره ما" },
   { href: "/terms", label: "قوانین و مقررات" },
   { href: "/privacy", label: "حریم خصوصی" },
+  { href: "/faq", label: "سوالات پرتکرار" },
+  { href: "/blog", label: "بلاگ" },
+  { href: "/about", label: "درباره ما" },
 ]
 
 export function SiteFooter() {
@@ -85,23 +79,6 @@ export function SiteFooter() {
             <div className="mb-4 text-sm font-semibold">لینک‌های سریع</div>
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Sport landings */}
-          <div>
-            <div className="mb-4 text-sm font-semibold">رزرو بر اساس رشته</div>
-            <ul className="space-y-2.5">
-              {sportLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

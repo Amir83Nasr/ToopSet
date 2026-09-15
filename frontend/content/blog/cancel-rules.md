@@ -4,6 +4,7 @@ description: "اگر سانس رزروشده را لغو کنم پولم برم�
 date: "۱۴۰۳/۱۲/۱۰"
 updated: "۱۴۰۵/۰۶/۲۴"
 author: "تیم توپ‌سِت"
+cover: "/blog/cancel-rules.svg"
 ---
 
 ## چرا قوانین لغو مهم است؟
