@@ -38,7 +38,7 @@ export function SiteHeader() {
               width={36}
               height={36}
               className="size-9"
-              priority
+              loading="eager"
             />
           </div>
           <span>توپ‌سِت</span>

@@ -1,7 +1,7 @@
 {
   "name": "ToopSet",
   "short_name": "ToopSet",
-  "description": "سامانه رزرواسیون مجموعه‌های ورزشی",
+  "description": "Sports complex booking platform",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

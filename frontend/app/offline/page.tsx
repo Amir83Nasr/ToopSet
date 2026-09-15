@@ -16,7 +16,7 @@ export default function OfflinePage() {
   return (
     <main
       aria-label="ToopSet"
-      className="flex min-h-dvh items-center justify-center bg-[#fafafa] px-4 dark:bg-black"
+      className="flex min-h-dvh items-center justify-center px-4"
     >
       <div className="w-full max-w-sm text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
