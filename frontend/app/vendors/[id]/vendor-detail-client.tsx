@@ -178,7 +178,7 @@ const GalleryImage = memo(function GalleryImage({
       ) : (
         <Image
           src={buildVendorImageUrl(img)}
-          alt={`${name} - ${index + 1}`}
+          alt={`تصویر ${name} در قم`}
           fill
           sizes="(max-width: 1024px) 50vw, 220px"
           className="object-cover transition-transform duration-300 group-hover:scale-105"
