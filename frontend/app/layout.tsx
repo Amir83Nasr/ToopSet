@@ -6,6 +6,7 @@ import { pwaConfig } from "@/config/pwa"
 import { SkipNav } from "@/components/ui/skip-nav"
 import { SITE_URL, BRAND } from "@/lib/site"
 import { BottomNavWrapper } from "@/components/public/bottom-nav-wrapper"
+import { BootSplash } from "@/components/pwa/boot-splash"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -139,6 +140,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <BootSplash />
         <SkipNav />
         <ThemeProvider>
           <div id="toopset-root" className="relative">
