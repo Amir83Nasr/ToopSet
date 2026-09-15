@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next"
 import { getApiBase } from "@/lib/api"
+import { getAllPosts } from "@/lib/blog"
 import { SITE_URL } from "@/lib/site"
 
 interface SitemapVendor {
@@ -64,6 +65,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.7,
     },
+    {
+      url: `${SITE_URL}/blog`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    ...getAllPosts().map((p) => ({
+      url: `${SITE_URL}/blog/${p.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     ...vendorIds.map((id) => ({
       url: `${SITE_URL}/vendors/${id}`,
       lastModified: now,

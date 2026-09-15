@@ -212,11 +212,11 @@
 
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root) {
-    animation: 500ms ease-out both;
+    animation: none;
     mix-blend-mode: normal;
   }
   ::view-transition-new(root) {
-    animation: 500ms ease-out both theme-spread;
+    animation: 300ms ease-out both theme-spread;
     mix-blend-mode: normal;
   }
   @keyframes theme-spread {
@@ -635,4 +635,77 @@ html body[data-scroll-locked] {
 .gpu-layer {
   transform: translateZ(0);
   will-change: transform;
+}
+
+// ── BLOG PROSE ─────────────────────────────────────────────────────────────
+.blog-prose {
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-top: 2rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+  }
+  p {
+    margin-top: 0.9rem;
+    line-height: 2;
+    color: var(--muted-foreground);
+  }
+  ul.blog-list {
+    margin-top: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    li {
+      position: relative;
+      padding-inline-start: 1.25rem;
+      line-height: 1.9;
+      &::before {
+        content: "•";
+        position: absolute;
+        inset-inline-start: 0.25rem;
+        color: var(--primary);
+        font-weight: 700;
+      }
+    }
+  }
+  ol {
+    margin-top: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    list-style: persian;
+    padding-inline-start: 1.5rem;
+    li {
+      line-height: 1.9;
+      &::marker {
+        color: var(--primary);
+        font-weight: 700;
+      }
+    }
+  }
+  blockquote {
+    margin-top: 1.25rem;
+    border-inline-start: 3px solid var(--primary);
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.9rem;
+    line-height: 1.9;
+  }
+  a {
+    color: var(--primary);
+    font-weight: 600;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  strong {
+    color: var(--foreground);
+    font-weight: 700;
+  }
 }
