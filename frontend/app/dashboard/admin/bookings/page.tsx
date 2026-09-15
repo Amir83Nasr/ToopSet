@@ -186,7 +186,7 @@ export default function AdminBookingsPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex flex-col justify-between overflow-hidden rounded-xl bg-card p-4"
+                className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card bg-linear-to-br from-primary/8 to-card p-4"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3 bg-muted/30 pb-3">
@@ -209,7 +209,7 @@ export default function AdminBookingsPage() {
           <div className="hidden lg:block">
             <Table
               className="min-w-285 table-fixed"
-              tableWrapperClassName="border-0 bg-transparent shadow-none"
+              tableWrapperClassName="border bg-card bg-linear-to-br from-primary/8 via-card to-card"
             >
               <colgroup>
                 <col className="w-44" />

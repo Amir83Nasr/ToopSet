@@ -15,7 +15,10 @@ export function NotificationTableSkeleton() {
       {/* Mobile: stacked cards */}
       <div className="flex flex-col gap-3 md:hidden">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex flex-col gap-3 rounded-xl bg-card p-4">
+          <div
+            key={i}
+            className="flex flex-col gap-3 rounded-xl border bg-card bg-linear-to-br from-notif-info-bg/60 to-card p-4"
+          >
             <div className="flex items-center justify-between gap-2">
               <Skeleton className="h-5 w-20" />
               <Skeleton className="h-5 w-16" />
@@ -35,7 +38,7 @@ export function NotificationTableSkeleton() {
       {/* Desktop / tablet: data table */}
       <Table
         className="min-w-220 table-fixed"
-        tableWrapperClassName="hidden border-0 bg-transparent shadow-none md:block"
+        tableWrapperClassName="hidden border bg-card bg-linear-to-br from-notif-info-bg/50 via-card to-card md:block"
       >
         <colgroup>
           <col className="w-32" />

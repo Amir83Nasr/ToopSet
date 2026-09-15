@@ -47,6 +47,8 @@ Desktop.ini
 .env.staging
 .env.*
 !.env.example
+# Hamravesh compose with real secrets — import manually, never commit
+compose.hamravesh.yml
 *.pem
 *.key
 

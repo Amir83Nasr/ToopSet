@@ -25,7 +25,7 @@ Persian-first court discovery and booking. Role-based dashboards (user, manager,
 | -------- | -------------------------------------------------------------- |
 | Frontend | Next.js 16 + React 19 + TS + Tailwind v4 + shadcn/ui           |
 | Backend  | Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + Alembic       |
-| Data     | PostgreSQL 17 + Redis 7                                        |
+| Data     | PostgreSQL 18 + Redis 8                                       |
 | Auth     | JWT (HS256) + bcrypt + refresh rotation                        |
 | Locale   | fa-IR, RTL, Jalali, Persian digits                             |
 | Infra    | Vercel (frontend) + Railway (backend) + Docker Compose (local) |

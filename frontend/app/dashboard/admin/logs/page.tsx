@@ -372,7 +372,7 @@ export default function AdminLogsPage() {
         <div>
           <Table
             className="min-w-270 table-fixed"
-            tableWrapperClassName="border-0 bg-transparent shadow-none"
+            tableWrapperClassName="border bg-card bg-linear-to-br from-muted/60 via-card to-card"
           >
             <colgroup>
               <col className="w-28" />

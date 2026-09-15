@@ -1,5 +1,5 @@
 # ── Stage 1: dependencies ──────────────────────────────────
-FROM node:22-slim AS deps
+FROM node:24-slim AS deps
 WORKDIR /app
 ENV COREPACK_ENABLE_STRICT=0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -7,7 +7,7 @@ RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile
 
 # ── Stage 2: build ────────────────────────────────────────
-FROM node:22-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 ENV COREPACK_ENABLE_STRICT=0
 COPY package.json pnpm-workspace.yaml ./
@@ -25,7 +25,7 @@ ENV ENABLE_PWA=${ENABLE_PWA}
 RUN echo "Building frontend with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" && pnpm build
 
 # ── Stage 3: production runner ────────────────────────────
-FROM node:22-slim AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
