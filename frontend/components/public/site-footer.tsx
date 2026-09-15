@@ -12,6 +12,7 @@ const HIDE_FOOTER_ON_MOBILE = [/^\/book($|\/)/, /^\/vendors\/[^/]+/]
 const quickLinks = [
   { href: "/", label: "صفحه اصلی" },
   { href: "/vendors", label: "جستجوی مجموعه‌ها" },
+  { href: "/about", label: "درباره ما" },
   { href: "/contact", label: "ارتباط با ما" },
 ]
 
