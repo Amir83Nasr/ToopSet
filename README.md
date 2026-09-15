@@ -11,8 +11,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/FastAPI-Latest-009688" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/PostgreSQL-17-336791" alt="PostgreSQL 17" />
-  <img src="https://img.shields.io/badge/Redis-7-DC382D" alt="Redis 7" />
+  <img src="https://img.shields.io/badge/PostgreSQL-18-336791" alt="PostgreSQL 18" />
+  <img src="https://img.shields.io/badge/Redis-8-DC382D" alt="Redis 8" />
 </p>
 
 ## Overview
