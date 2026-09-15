@@ -1,74 +1,30 @@
-"use client"
-
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import type { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
-import { api, buildVendorImageUrl } from "@/lib/api"
+import { getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Card } from "@/components/ui/card"
-import { TablePagination } from "@/components/ui/pagination"
-import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { VendorCardSkeleton } from "@/components/vendors/vendor-card-skeleton"
-import dynamic from "next/dynamic"
+import { SITE_URL } from "@/lib/site"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
+import { Card } from "@/components/ui/card"
+import { Building2, Star, MapPin } from "lucide-react"
+import { VendorsExplorer } from "./vendors-explorer"
+import type { Vendor } from "./vendors-explorer"
 
-const VendorsMap = dynamic(
-  () => import("@/components/map/vendors-map").then((m) => m.VendorsMap),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="flex items-center justify-center rounded-xl border bg-muted"
-        style={{ height: "450px" }}
-      >
-        <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
-      </div>
-    ),
-  }
-)
-import {
-  Building2,
-  Star,
-  MapPin,
-  Search,
-  X,
-  Map,
-  CalendarCheck,
-} from "lucide-react"
-
-interface Vendor {
-  id: number
-  name: string
-  sport_types: string[]
-  address: string
-  latitude: number
-  longitude: number
-  capacity: number
-  is_active: boolean
-  average_rating: number
-  base_price: number | null
-  images?: string[]
-  main_image?: string | null
+export const metadata: Metadata = {
+  title: "رزرو آنلاین سالن فوتسال و مجموعه ورزشی در قم",
+  description:
+    "لیست مجموعه‌های ورزشی قم: سالن فوتسال، زمین چمن مصنوعی، والیبال و بسکتبال. مقایسه قیمت و امکانات و رزرو آنلاین سانس بدون تماس تلفنی با توپ‌سِت (ToopSet).",
+  alternates: { canonical: "/vendors" },
+  openGraph: {
+    title: "مجموعه‌های ورزشی قم | توپ‌سِت (ToopSet)",
+    description:
+      "جستجو، مقایسه و رزرو آنلاین سانس سالن فوتسال و چمن مصنوعی در قم",
+    type: "website",
+    locale: "fa_IR",
+    url: `${SITE_URL}/vendors`,
+    images: [{ url: "/icons/square.png", width: 512, height: 512 }],
+  },
 }
 
 function formatPrice(price: number | null): string {
@@ -81,451 +37,142 @@ function formatPrice(price: number | null): string {
   return `${formattedNumber} تومان`
 }
 
-function VendorsPageContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const [featuredVendors, setFeaturedVendors] = useState<Vendor[]>([])
-  const [total, setTotal] = useState(0)
-  const [vendorsLoading, setVendorsLoading] = useState(true)
-  const [page, setPage] = useState(0)
-  const limit = 12
-
-  // Full filtered set for map markers (not paginated)
-  const [mapVendors, setMapVendors] = useState<Vendor[]>([])
-  const [mapLoading, setMapLoading] = useState(false)
-  const initialized = useRef(false)
-
-  // Filters from URL
-  const [searchText, setSearchText] = useState(searchParams.get("q") || "")
-  // Debounced query — drives API + URL sync so each keystroke isn't a fetch
-  const [debouncedSearch, setDebouncedSearch] = useState(searchText)
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchText), 300)
-    return () => clearTimeout(t)
-  }, [searchText])
-  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "default")
-  const [availableToday, setAvailableToday] = useState(
-    searchParams.get("available_today") === "1"
-  )
-
-  // Map panel visibility toggle — hidden by default
-  const [showMap, setShowMap] = useState(false)
-
-  // Sync URL -> state on mount
-  useEffect(() => {
-    if (!initialized.current) {
-      setSearchText(searchParams.get("q") || "")
-      setSortBy(searchParams.get("sort") || "default")
-      setAvailableToday(searchParams.get("available_today") === "1")
-      initialized.current = true
-    }
-  }, [searchParams])
-
-  // Build API params
-  const apiParams = useMemo(() => {
-    const params = new URLSearchParams()
-    params.set("skip", String(page * limit))
-    params.set("limit", String(limit))
-    params.set("is_active", "true")
-    if (debouncedSearch) params.set("search", debouncedSearch)
-    if (availableToday) params.set("available_today", "true")
-    if (sortBy === "price_asc") params.set("sort", "price_asc")
-    if (sortBy === "price_desc") params.set("sort", "price_desc")
-    if (sortBy === "rating") params.set("sort", "rating")
-    if (sortBy === "distance") params.set("sort", "distance")
-    return params.toString()
-  }, [page, limit, debouncedSearch, availableToday, sortBy])
-
-  // Same filters but no pagination — fetches all filtered vendors for the map
-  const mapApiParams = useMemo(() => {
-    const params = new URLSearchParams()
-    params.set("limit", "100")
-    params.set("is_active", "true")
-    if (debouncedSearch) params.set("search", debouncedSearch)
-    if (availableToday) params.set("available_today", "true")
-    if (sortBy === "price_asc") params.set("sort", "price_asc")
-    if (sortBy === "price_desc") params.set("sort", "price_desc")
-    if (sortBy === "rating") params.set("sort", "rating")
-    if (sortBy === "distance") params.set("sort", "distance")
-    return params.toString()
-  }, [debouncedSearch, availableToday, sortBy])
-
-  // Sync filters to URL
-  useEffect(() => {
-    const params = new URLSearchParams()
-    if (debouncedSearch) params.set("q", debouncedSearch)
-    if (availableToday) params.set("available_today", "1")
-    if (sortBy !== "default") params.set("sort", sortBy)
-    const qs = params.toString()
-    const url = qs ? `/vendors?${qs}` : "/vendors"
-    router.replace(url, { scroll: false })
-  }, [debouncedSearch, availableToday, sortBy, router])
-
-  const fetchVendors = useCallback(async () => {
-    setVendorsLoading(true)
-    try {
-      const pagedRes = await api<{ vendors: Vendor[]; total: number }>(
-        `/api/v1/vendors?${apiParams}`
-      )
-      setFeaturedVendors(pagedRes.vendors)
-      setTotal(pagedRes.total)
-    } catch {
-      // API may not be available
-    } finally {
-      setVendorsLoading(false)
-    }
-  }, [apiParams])
-
-  useEffect(() => {
-    const timer = setTimeout(() => fetchVendors(), 0)
-    return () => clearTimeout(timer)
-  }, [fetchVendors])
-
-  // Fetch full filtered vendors list for the map
-  const fetchMapVendors = useCallback(async () => {
-    setMapLoading(true)
-    try {
-      const res = await api<{ vendors: Vendor[]; total: number }>(
-        `/api/v1/vendors?${mapApiParams}`
-      )
-      setMapVendors(res.vendors || [])
-    } catch {
-      setMapVendors((current) =>
-        current.length === 0 ? featuredVendors : current
-      )
-    } finally {
-      setMapLoading(false)
-    }
-  }, [mapApiParams, featuredVendors])
-
-  useEffect(() => {
-    if (!showMap) return
-    const timer = setTimeout(() => fetchMapVendors(), 0)
-    return () => clearTimeout(timer)
-  }, [showMap, fetchMapVendors])
-
-  function clearFilters() {
-    setSearchText("")
-    setAvailableToday(false)
-    setSortBy("default")
-    setPage(0)
+async function getInitialVendors(): Promise<{
+  vendors: Vendor[]
+  total: number
+}> {
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/v1/vendors?is_active=true&limit=12`,
+      { next: { revalidate: 300 } }
+    )
+    if (!res.ok) return { vendors: [], total: 0 }
+    return (await res.json()) as { vendors: Vendor[]; total: number }
+  } catch {
+    return { vendors: [], total: 0 }
   }
+}
 
-  const hasActiveFilters = searchText || availableToday || sortBy !== "default"
+export default async function VendorsServerPage() {
+  const { vendors, total } = await getInitialVendors()
 
-  const totalPages = Math.ceil(total / limit)
-  const vendorsForMap = mapVendors.length > 0 ? mapVendors : featuredVendors
+  const itemListJsonLd =
+    vendors.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          itemListElement: vendors.map((v, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            url: `${SITE_URL}/vendors/${v.id}`,
+            name: v.name,
+          })),
+        }
+      : null
 
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
-
+      {itemListJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        />
+      )}
       <main id="main-content" className="relative flex-1 pt-16">
-        {/* Search & Filters */}
         <section className="relative overflow-hidden px-4 py-6 md:py-8">
           <div className="relative z-10 mx-auto max-w-7xl px-4">
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                جستجوی <span className="text-primary">سالن‌ها</span>
+                رزرو آنلاین <span className="text-primary">سالن فوتسال</span> و
+                مجموعه ورزشی در قم
               </h1>
-              <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground max-sm:hidden">
-                مجموعه ورزشی مورد نظر خود را پیدا کنید
+              <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">
+                {total > 0
+                  ? `${toPersianDigits(total)} مجموعه ورزشی فعال در قم — مقایسه کنید و آنلاین رزرو کنید`
+                  : "مجموعه ورزشی مورد نظر خود را پیدا کنید"}
               </p>
             </div>
 
-            <div
-              className={`rounded-xl border bg-card p-3 md:p-4 ${
-                hasActiveFilters ? "" : ""
-              }`}
-            >
-              {/* Row 1: Search + Sort + Near Me + Map Toggle */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="min-w-0 flex-1 max-sm:basis-full">
-                  <div className="relative">
-                    <Search className="absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="جستجوی نام مجموعه، آدرس..."
-                      value={searchText}
-                      onChange={(e) => {
-                        setSearchText(e.target.value)
-                        setPage(0)
-                      }}
-                      className="pe-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={sortBy}
-                    onValueChange={(v) => {
-                      setSortBy(v)
-                      setPage(0)
-                    }}
-                  >
-                    <SelectTrigger className="w-32 sm:w-35">
-                      <SelectValue placeholder="مرتب‌سازی" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>مرتب‌سازی</SelectLabel>
-                        <SelectItem value="default">پیش‌فرض</SelectItem>
-                        <SelectItem value="price_asc">
-                          قیمت: کم به زیاد
-                        </SelectItem>
-                        <SelectItem value="price_desc">
-                          قیمت: زیاد به کم
-                        </SelectItem>
-                        <SelectItem value="rating">امتیاز</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button
-                  type="button"
-                  variant={availableToday ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setAvailableToday((current) => !current)
-                    setPage(0)
-                  }}
-                  className="gap-1.5 max-sm:px-2"
-                >
-                  <CalendarCheck className="size-4" />
-                  <span>سانس خالی امروز</span>
-                </Button>
-
-                <Button
-                  variant={showMap ? "default" : "outline"}
-                  size="sm"
-                  className="gap-1.5 max-sm:px-2"
-                  onClick={() => setShowMap((prev) => !prev)}
-                >
-                  <Map className="size-4" />
-                  <span>{showMap ? "بستن نقشه" : "نمایش نقشه"}</span>
-                </Button>
-              </div>
-
-              {/* ── Interactive Inline Map Panel ── */}
-              {showMap && (
-                <div className="mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm">
-                  <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <Map className="size-4 text-primary" />
-                      <span>
-                        نقشه مجموعه‌های ورزشی (
-                        {toPersianDigits(vendorsForMap.length)} مجموعه)
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowMap(false)}
-                      className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="size-3.5" />
-                      بستن نقشه
-                    </Button>
-                  </div>
-                  <div className="h-[380px] sm:h-[480px]">
-                    <VendorsMap
-                      vendors={vendorsForMap}
-                      loading={mapLoading}
-                      height="100%"
-                      userLocation={null}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Filter chips */}
-              {hasActiveFilters && (
-                <div className="mt-2 flex items-center gap-1.5 border-t pt-2 max-sm:max-w-full max-sm:flex-nowrap max-sm:gap-1 max-sm:overflow-x-auto max-sm:pb-1">
-                  {/* Clear all — always first */}
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="max-sm:shrink-0"
-                  >
-                    <X />
-                    پاک کردن همه فیلتر‌ها
-                  </Button>
-                  {searchText && (
-                    <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
-                      <Search className="size-3" />
-                      {searchText}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setSearchText("")}
-                        className="text-muted-foreground hover:text-foreground"
+            {/* ── SSR vendor list (SEO) ── */}
+            {vendors.length > 0 && (
+              <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {vendors.map((vendor) => {
+                  const rating =
+                    vendor.average_rating > 0
+                      ? vendor.average_rating.toFixed(1)
+                      : null
+                  return (
+                    <li key={vendor.id}>
+                      <Link
+                        href={`/vendors/${vendor.id}`}
+                        className="group block"
                       >
-                        <X className="size-3" />
-                      </Button>
-                    </span>
-                  )}
-
-                  {availableToday && (
-                    <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
-                      <CalendarCheck className="size-3" />
-                      سانس خالی امروز
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setAvailableToday(false)}
-                        aria-label="حذف فیلتر سانس خالی امروز"
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Vendor Cards Grid */}
-            <div className="mt-8">
-              {vendorsLoading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <VendorCardSkeleton key={i} />
-                  ))}
-                </div>
-              ) : featuredVendors.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-4 rounded-full bg-muted p-4">
-                    <Building2 className="size-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-semibold">
-                    مجموعه‌ای با این مشخصات یافت نشد
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید
-                  </p>
-                  {hasActiveFilters && (
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={clearFilters}
-                    >
-                      پاک کردن همه فیلترها
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <ScrollReveal
-                    stagger={0.04}
-                    animation="fade-in-up"
-                    threshold={0}
-                    className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-                  >
-                    {featuredVendors.map((vendor, i) => {
-                      const mainImage = vendor.main_image || vendor.images?.[0]
-                      const rating =
-                        vendor.average_rating > 0
-                          ? vendor.average_rating.toFixed(1)
-                          : null
-
-                      return (
-                        <div key={vendor.id}>
-                          <Link
-                            href={`/vendors/${vendor.id}`}
-                            className="group block"
-                          >
-                            <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-shadow duration-300 ease-out group-hover:shadow-xl">
-                              {/* ── Image hero ── */}
-                              <div className="relative aspect-16/11 overflow-hidden bg-muted">
-                                {mainImage ? (
-                                  <Image
-                                    src={buildVendorImageUrl(mainImage)}
-                                    alt={`عکس اصلی ${vendor.name}`}
-                                    fill
-                                    priority={i < 3}
-                                    loading={i < 3 ? undefined : "lazy"}
-                                    className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                                  />
-                                ) : (
-                                  <div className="flex size-full items-center justify-center">
-                                    <Building2 className="size-10 text-muted-foreground/40" />
-                                  </div>
-                                )}
-
-                                {/* Bottom gradient for text legibility */}
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
-
-                                {/* Rating badge */}
-                                {rating && (
-                                  <div className="absolute start-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white shadow-md backdrop-blur-sm">
-                                    <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-                                    <span className="tabular-nums">
-                                      {toPersianDigits(rating)}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Name + address + price overlayed on image */}
-                                <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-                                  <h3 className="text-base leading-snug font-bold text-white drop-shadow-sm">
-                                    {vendor.name}
-                                  </h3>
-                                  <p className="mt-1.5 flex items-center gap-1 text-xs text-white/75">
-                                    <MapPin className="size-3.5 shrink-0" />
-                                    <span className="line-clamp-1">
-                                      {vendor.address}
-                                    </span>
-                                  </p>
-
-                                  {/* Price — minimum slot price */}
-                                  {vendor.base_price != null && (
-                                    <div className="mt-3 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2.5 backdrop-blur-md">
-                                      <div className="flex items-center justify-center gap-1">
-                                        <span className="inline-flex items-center rounded bg-white/15 px-1 py-0.5 text-[11px] leading-none font-semibold text-white">
-                                          شروع قیمت از
-                                        </span>
-                                        <span className="text-sm font-bold text-white">
-                                          {formatPrice(vendor.base_price)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
+                        <Card className="gap-0 overflow-hidden rounded-[1.25rem] border-0 bg-card p-0 shadow-sm ring-0 transition-shadow duration-300 ease-out group-hover:shadow-xl">
+                          <div className="relative aspect-16/11 overflow-hidden bg-muted">
+                            {vendor.main_image || vendor.images?.[0] ? (
+                              <Image
+                                src={vendor.main_image || vendor.images![0]}
+                                alt={`رزرو آنلاین ${vendor.name} — ${vendor.address}`}
+                                fill
+                                loading="lazy"
+                                className="object-cover"
+                                sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                              />
+                            ) : (
+                              <div className="flex size-full items-center justify-center">
+                                <Building2 className="size-10 text-muted-foreground/40" />
                               </div>
-                            </Card>
-                          </Link>
-                        </div>
-                      )
-                    })}
-                  </ScrollReveal>
+                            )}
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
+                            {rating && (
+                              <div className="absolute start-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white shadow-md backdrop-blur-sm">
+                                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                                <span className="tabular-nums">
+                                  {toPersianDigits(rating)}
+                                </span>
+                              </div>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+                              <h2 className="text-base leading-snug font-bold text-white drop-shadow-sm">
+                                {vendor.name}
+                              </h2>
+                              <p className="mt-1.5 flex items-center gap-1 text-xs text-white/75">
+                                <MapPin className="size-3.5 shrink-0" />
+                                <span className="line-clamp-1">
+                                  {vendor.address}
+                                </span>
+                              </p>
+                              {vendor.base_price != null && (
+                                <div className="mt-3 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2.5 backdrop-blur-md">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <span className="inline-flex items-center rounded bg-white/15 px-1 py-0.5 text-[11px] leading-none font-semibold text-white">
+                                      شروع قیمت از
+                                    </span>
+                                    <span className="text-sm font-bold text-white">
+                                      {formatPrice(vendor.base_price)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
 
-                  <TablePagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                  />
-                </>
-              )}
+            {/* ── Interactive search/filter/map (client) ── */}
+            <div className="mt-8">
+              <VendorsExplorer />
             </div>
           </div>
         </section>
       </main>
-
       <SiteFooter />
     </div>
-  )
-}
-
-export default function VendorsPage() {
-  return (
-    <Suspense fallback={null}>
-      <VendorsPageContent />
-    </Suspense>
   )
 }

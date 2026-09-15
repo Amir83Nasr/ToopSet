@@ -1,24 +1,7 @@
 import type { Metadata } from "next"
-import { cache } from "react"
-import { getApiBase } from "@/lib/api"
 import { SITE_URL } from "@/lib/site"
 
-interface VendorMeta {
-  name?: string
-}
-
-const getVendorName = cache(async (id: string): Promise<string | null> => {
-  try {
-    const res = await fetch(`${getApiBase()}/api/v1/vendors/${id}`, {
-      signal: AbortSignal.timeout(4000),
-    })
-    if (!res.ok) return null
-    const data = (await res.json()) as VendorMeta
-    return data.name || null
-  } catch {
-    return null
-  }
-})
+import { getVendorDetail, getVendorReviews } from "./vendor-loader"
 
 export async function generateMetadata({
   params,
@@ -26,22 +9,26 @@ export async function generateMetadata({
   params: Promise<{ id: string }>
 }): Promise<Metadata> {
   const { id } = await params
-  const name = await getVendorName(id)
-  if (!name) return {}
+  const vendor = await getVendorDetail(id)
+  if (!vendor) return {}
+
+  const description = `رزرو آنلاین سانس ${vendor.name} در قم — ${vendor.address}؛ ساعات آزاد را ببینید و بدون تماس تلفنی رزرو کنید.`
+  const image = vendor.main_image || vendor.images?.[0]
 
   return {
-    title: name,
-    description: `رزرو آنلاین سانس ${name} در قم — ساعات آزاد را ببینید و بدون تماس تلفنی رزرو کنید.`,
+    title: `رزرو ${vendor.name} در قم`,
+    description,
     alternates: { canonical: `/vendors/${id}` },
     openGraph: {
-      title: `${name} | توپ‌سِت (ToopSet)`,
-      description: `رزرو آنلاین سانس ${name} در قم`,
+      title: `${vendor.name} | توپ‌سِت (ToopSet)`,
+      description: `رزرو آنلاین سانس ${vendor.name} در قم`,
       type: "website",
       locale: "fa_IR",
-      images: [{ url: "/icons/logo.png", alt: name }],
+      url: `${SITE_URL}/vendors/${id}`,
+      ...(image ? { images: [{ url: image, alt: vendor.name }] } : {}),
     },
     robots: {
-      index: false,
+      index: true,
       follow: true,
     },
   }
@@ -55,8 +42,12 @@ export default async function VendorLayout({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const name = await getVendorName(id)
-  const breadcrumb = name
+  const [vendor, { total }] = await Promise.all([
+    getVendorDetail(id),
+    getVendorReviews(id),
+  ])
+
+  const breadcrumb = vendor
     ? {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -76,10 +67,40 @@ export default async function VendorLayout({
           {
             "@type": "ListItem",
             position: 3,
-            name,
+            name: vendor.name,
             item: `${SITE_URL}/vendors/${id}`,
           },
         ],
+      }
+    : null
+
+  const sportsLocation = vendor
+    ? {
+        "@context": "https://schema.org",
+        "@type": "SportsActivityLocation",
+        name: vendor.name,
+        url: `${SITE_URL}/vendors/${id}`,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: vendor.address,
+          addressLocality: "قم",
+          addressCountry: "IR",
+        },
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: vendor.latitude,
+          longitude: vendor.longitude,
+        },
+        ...(vendor.manager_phone ? { telephone: vendor.manager_phone } : {}),
+        ...(total > 0
+          ? {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: vendor.average_rating,
+                reviewCount: total,
+              },
+            }
+          : {}),
       }
     : null
 
@@ -89,6 +110,12 @@ export default async function VendorLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
+        />
+      )}
+      {sportsLocation && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(sportsLocation) }}
         />
       )}
       {children}
