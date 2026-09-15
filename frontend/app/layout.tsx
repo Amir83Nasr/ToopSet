@@ -49,6 +49,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // resizes-content keeps the layout viewport (which `position: fixed`
+  // bottom-0 anchors to) stable when dynamic browser chrome or the
+  // on-screen keyboard resizes the visual viewport. The default
+  // resizes-visual would shove fixed chrome around instead.
+  interactiveWidget: "resizes-content",
   colorScheme: "light dark",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: pwaConfig.themeColor },

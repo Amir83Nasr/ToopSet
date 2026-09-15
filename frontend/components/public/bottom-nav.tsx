@@ -125,6 +125,13 @@ function BottomNavTab({
  * Renders four tabs: Home, Search, My Bookings, Account.
  * The Account tab always routes to /account — that page handles both
  * logged-in and guest states, so the tab href never depends on auth state.
+ *
+ * Positioning: `fixed bottom-0` + `pb-safe` (viewport-fit=cover is set in
+ * app/layout.tsx). Do NOT add paint/offset extensions below the fold
+ * (e.g. an ::after box past the viewport edge) — overflow past the
+ * viewport edge enlarges the document scrollable area, which shows up as
+ * phantom space below the nav while scrolling on mobile browsers. body
+ * already carries bg-background, so toolbar-resize repaint needs no cover.
  */
 export function BottomNav() {
   const pathname = usePathname()
@@ -139,9 +146,13 @@ export function BottomNav() {
         "flex md:hidden",
         // Background, border and safe-area
         "pb-safe border-t bg-background/95 backdrop-blur-xl",
-        // Paint below the fold: mobile toolbar animates visual viewport
-        // while fixed anchors to layout viewport -> gap flashes page bg
-        "after:absolute after:inset-x-0 after:top-full after:h-28 after:bg-background after:content-['']",
+        // Composited layer (reuses .gpu-layer from globals.css): keeps the
+        // bar pinned to the viewport while mobile browsers repaint during
+        // momentum scroll / toolbar collapse-expand. No below-fold paint
+        // extensions here: body already carries bg-background, and overflow
+        // past the viewport edge surfaces as phantom space below the bar
+        // on mobile WebKit/Chromium.
+        "gpu-layer",
         // Prevent layout shift from scroll-lock
         "w-full"
       )}

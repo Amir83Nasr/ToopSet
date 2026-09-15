@@ -11,10 +11,11 @@ describe("BottomNav", () => {
     expect(nav.className).not.toContain("z-[999]")
   })
 
-  it("extends opaque paint below the fold so toolbar resize never flashes a gap", () => {
+  it("stays pinned via a composited layer and adds no below-fold paint that would surface as phantom space", () => {
     render(<BottomNav />)
     const nav = screen.getByRole("navigation", { name: "منوی پایین" })
-    expect(nav.className).toContain("after:top-full")
+    expect(nav.className).toContain("gpu-layer")
+    expect(nav.className).not.toContain("after:top-full")
   })
 
   it("always routes the account tab to /account (page handles guest state itself)", () => {
