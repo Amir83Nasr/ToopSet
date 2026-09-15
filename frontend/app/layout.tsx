@@ -17,9 +17,9 @@ export const metadata: Metadata = {
     "با توپ‌سِت به راحتی آنلاین سانس‌های ورزشی، سالن فوتسال، زمین چمن مصنوعی و مجموعه‌های ورزشی قم را رزرو کنید.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/icons/favicon.svg", type: "image/svg+xml" }],
-    shortcut: "/icons/favicon.svg",
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [{ url: "/icons/square.svg", type: "image/svg+xml" }],
+    shortcut: "/icons/square.svg",
+    apple: [{ url: "/icons/square.svg" }],
   },
   openGraph: {
     title: `${BRAND} | رزرو آنلاین زمین‌های ورزشی`,
@@ -29,14 +29,14 @@ export const metadata: Metadata = {
     siteName: BRAND,
     locale: "fa_IR",
     type: "website",
-    images: [{ url: "/icons/icon-512x512.png", width: 512, height: 512 }],
+    images: [{ url: "/icons/square.png", width: 512, height: 512 }],
   },
   twitter: {
     card: "summary",
     title: `${BRAND} | رزرو آنلاین زمین‌های ورزشی`,
     description:
       "رزرو آنلاین سالن ورزشی، زمین فوتسال و چمن مصنوعی در قم با توپ‌سِت (ToopSet)",
-    images: ["/icons/icon-512x512.png"],
+    images: ["/icons/square.png"],
   },
   robots: {
     index: false,
@@ -71,7 +71,7 @@ const jsonLd = [
       "توپ ست",
     ],
     url: SITE_URL,
-    logo: `${SITE_URL}/icons/logo.jpg`,
+    logo: `${SITE_URL}/icons/logo.svg`,
     description:
       "پلتفرم هوشمند رزرو آنلاین زمین‌های ورزشی، سالن فوتسال و چمن مصنوعی در قم",
     telephone: "+989306853363",

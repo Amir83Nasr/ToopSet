@@ -20,10 +20,10 @@ const JPG_SOURCE = resolve(PUBLIC_ICONS, "logo.jpg")
 // maskable needs padding so key art survives the OS safe-zone crop —
 // logo.jpg is full-bleed, so pad 10% with white before resizing.
 const SIZES = [
-  { name: "icon-192x192.png", size: 192, pad: false },
-  { name: "icon-512x512.png", size: 512, pad: false },
-  { name: "icon-maskable-512x512.png", size: 512, pad: true },
-  { name: "apple-touch-icon.png", size: 180, pad: false },
+  { name: "logo.png", size: 192, pad: false },
+  { name: "logo.png", size: 512, pad: false },
+  { name: "logo.png", size: 512, pad: true },
+  { name: "logo.png", size: 180, pad: false },
 ]
 
 async function main() {

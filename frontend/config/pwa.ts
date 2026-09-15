@@ -35,10 +35,10 @@ export const pwaConfig = {
   // (`pnpm generate-pwa-icons`). square.svg → offline splash logo only.
   icons: {
     favicon: "/icons/favicon.svg",
-    icon192: "/icons/icon-192x192.png",
-    icon512: "/icons/icon-512x512.png",
-    maskable512: "/icons/icon-maskable-512x512.png",
-    appleTouch: "/icons/apple-touch-icon.png",
+    icon192: "/icons/logo.png",
+    icon512: "/icons/logo.png",
+    maskable512: "/icons/logo.png",
+    appleTouch: "/icons/logo.png",
     splash: "/icons/square.svg",
   } as const,
 

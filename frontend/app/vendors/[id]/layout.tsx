@@ -38,7 +38,7 @@ export async function generateMetadata({
       description: `رزرو آنلاین سانس ${name} در قم`,
       type: "website",
       locale: "fa_IR",
-      images: [{ url: "/icons/logo.jpg", alt: name }],
+      images: [{ url: "/icons/logo.png", alt: name }],
     },
     robots: {
       index: false,
