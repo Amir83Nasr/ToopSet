@@ -64,6 +64,16 @@ class NotificationRepo:
         await self.db.flush()
         return len(user_ids)
 
+    async def create_for_admins(self, type_: str, message: str) -> int:
+        from app.models.user import User, UserRole
+
+        result = await self.db.execute(select(User.id).where(User.role == UserRole.ADMIN))
+        admin_ids = [row[0] for row in result.all()]
+        for admin_id in admin_ids:
+            self.db.add(Notification(user_id=admin_id, type_=type_, message=message))
+        await self.db.flush()
+        return len(admin_ids)
+
     async def create(self, user_id: int, type_: str, message: str) -> Notification:
         n = Notification(user_id=user_id, type=type_, message=message)
         self.db.add(n)

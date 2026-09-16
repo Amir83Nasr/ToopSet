@@ -66,6 +66,13 @@ async def submit_manager_request(
             detail="شما قبلاً یک درخواست ثبت کرده‌اید. در انتظار بررسی ادمین باشید.",
         ) from exc
     await db.refresh(request)
+    from app.services.notification_service import NotificationService
+
+    await NotificationService(db).manager_request_submitted(
+        vendor_name=request.vendor_name,
+        phone=request.phone,
+    )
+    await db.commit()
     return request
 
 

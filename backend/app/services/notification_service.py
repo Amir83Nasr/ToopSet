@@ -100,6 +100,14 @@ class NotificationService:
         await self._invalidate_cache()
         return count
 
+    async def notify_admins(self, type_: str, message: str) -> int:
+        try:
+            count = await self.repo.create_for_admins(type_=type_, message=message)
+        except Exception:  # pragma: no cover - defensive: never break the business flow
+            return 0
+        await self._invalidate_cache()
+        return count
+
     @staticmethod
     async def _invalidate_cache() -> None:
         await invalidate_notification_list_cache()
@@ -405,6 +413,15 @@ class NotificationService:
         )
 
     # ── Account & vendor lifecycle ───────────────────────────────────────────
+
+    async def manager_request_submitted(self, vendor_name: str, phone: str) -> None:
+        await self.notify_admins(
+            type_="manager_request_submitted",
+            message=(
+                f"درخواست مدیریت مجموعه جدید از {vendor_name} "
+                f"(شماره {_to_persian_digits(phone)}) در انتظار بررسی است."
+            ),
+        )
 
     async def manager_request_decided(
         self, user_id: int, approved: bool, admin_note: str | None = None

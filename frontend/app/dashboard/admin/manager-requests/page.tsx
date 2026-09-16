@@ -134,10 +134,6 @@ export default function AdminManagerRequestsPage() {
     })
   }, [requests, search, statusFilter])
 
-  const pendingCount = requests.filter(
-    (request) => request.status === "pending"
-  ).length
-
   function openDecision(
     request: ManagerRequest,
     status: DecisionTarget["status"]
@@ -199,9 +195,6 @@ export default function AdminManagerRequestsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={statusClasses.pending}>
-            {toPersianDigits(pendingCount)} درخواست در انتظار
-          </Badge>
           <MobileBackButton />
         </div>
       </div>

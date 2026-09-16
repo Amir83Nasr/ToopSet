@@ -93,6 +93,11 @@ const NOTIFICATION_TYPES: Record<string, NotificationTypeMeta> = {
     color: "success",
     group: "حساب و مجموعه",
   },
+  manager_request_submitted: {
+    label: "درخواست مدیریت جدید",
+    color: "info",
+    group: "حساب و مجموعه",
+  },
   manager_request_rejected: {
     label: "رد درخواست مدیریت",
     color: "error",
