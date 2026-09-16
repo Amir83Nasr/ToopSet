@@ -231,12 +231,12 @@ export default function AdminPendingVendorsPage() {
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
                 <Table
-                  className="min-w-270 table-fixed"
+                  className="min-w-275 table-fixed"
                   tableWrapperClassName="overflow-visible rounded-none border-0"
                 >
                   <colgroup>
                     <col className="w-52" />
-                    <col className="w-40" />
+                    <col className="w-60" />
                     <col className="w-48" />
                     <col className="w-24" />
                     <col className="w-28" />
@@ -269,7 +269,7 @@ export default function AdminPendingVendorsPage() {
                         </TableCell>
                         <TableCell>{vendor.manager_name}</TableCell>
                         <TableCell className="text-center">
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-nowrap gap-1">
                             {vendor.sport_types.map((sport) => (
                               <Badge
                                 key={sport}

@@ -254,12 +254,12 @@ export default function VendorsPage() {
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
             <Table
-              className="min-w-280 table-fixed"
+              className="min-w-284 table-fixed"
               tableWrapperClassName="overflow-visible rounded-none border-0"
             >
               <colgroup>
                 <col className="w-52" />
-                <col className="w-48" />
+                <col className="w-64" />
                 <col className="w-64" />
                 <col className="w-24" />
                 <col className="w-28" />
@@ -295,7 +295,7 @@ export default function VendorsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-nowrap gap-1">
                         {vendor.sport_types?.map((st) => (
                           <Badge
                             key={st}
