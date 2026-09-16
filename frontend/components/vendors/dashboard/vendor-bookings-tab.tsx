@@ -386,7 +386,6 @@ export function VendorBookingsTab({
       {/* Booking detail / cancel dialog */}
       <ResponsiveDialog
         open={!!selectedBookedSlot}
-        mobileAsSheet={false}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedBookedSlot(null)
@@ -513,7 +512,6 @@ export function VendorBookingsTab({
       {/* Manual booking dialog */}
       <ResponsiveDialog
         open={!!manualBookingSlot}
-        mobileAsSheet={false}
         onOpenChange={(open) => {
           if (!open) setManualBookingSlot(null)
         }}

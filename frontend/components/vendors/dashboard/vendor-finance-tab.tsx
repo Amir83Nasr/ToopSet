@@ -40,7 +40,15 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog"
-import { RefreshCw, Loader2, Wallet, Receipt } from "lucide-react"
+import {
+  RefreshCw,
+  Loader2,
+  Wallet,
+  Receipt,
+  BadgeCheck,
+  Hourglass,
+  CalendarClock,
+} from "lucide-react"
 
 const bookingStatusLabels: Record<string, string> = {
   confirmed: "تأییدشده",
@@ -49,7 +57,13 @@ const bookingStatusLabels: Record<string, string> = {
   transferred: "منتقل‌شده",
 }
 
-const settlementStatusLabels: Record<string, string> = {
+const settlementRequestStatusLabels: Record<string, string> = {
+  pending: "در انتظار بررسی",
+  approved: "تأییدشده",
+  rejected: "ردشده",
+  paid: "پرداخت‌شده",
+}
+const bookingSettlementStatusLabels: Record<string, string> = {
   not_settled: "تسویه نشده",
   settlement_requested: "درخواست تسویه",
   included_in_settlement: "در تسویه",
@@ -115,7 +129,7 @@ export function VendorFinanceTab({
             فقط رزروهای آنلاین تأییدشده با پرداخت موفق نمایش داده می‌شوند.
           </p>
         </div>
-        <div className="grid w-full gap-2 min-[400px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -148,62 +162,77 @@ export function VendorFinanceTab({
       {/* Stats cards */}
       <div className="grid gap-3 min-[400px]:grid-cols-2 xl:grid-cols-5">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardDescription>رزرو آنلاین موفق</CardDescription>
-            <CardTitle className="text-2xl">
-              {toPersianDigits(financeSummary?.successful_online_bookings ?? 0)}
-            </CardTitle>
+            <Receipt className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {formatMoney(financeSummary?.total_online_revenue ?? 0)}
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-semibold">
+              {toPersianDigits(financeSummary?.successful_online_bookings ?? 0)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatMoney(financeSummary?.total_online_revenue ?? 0)}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardDescription>قابل تسویه</CardDescription>
-            <CardTitle className="text-2xl">
+            <Wallet className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-semibold">
               {toPersianDigits(
                 financeSummary?.available_for_settlement_bookings ?? 0
               )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {formatMoney(financeSummary?.available_for_settlement ?? 0)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatMoney(financeSummary?.available_for_settlement ?? 0)}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardDescription>در جریان تسویه</CardDescription>
-            <CardTitle className="text-2xl">
+            <Hourglass className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-semibold">
               {toPersianDigits(
                 financeSummary?.settlement_requested_bookings ?? 0
               )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {formatMoney(financeSummary?.settlement_requested_amount ?? 0)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatMoney(financeSummary?.settlement_requested_amount ?? 0)}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardDescription>تسویه شده</CardDescription>
-            <CardTitle className="text-2xl">
-              {toPersianDigits(financeSummary?.settled_bookings ?? 0)}
-            </CardTitle>
+            <BadgeCheck className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {formatMoney(financeSummary?.settled_amount ?? 0)}
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-semibold">
+              {toPersianDigits(financeSummary?.settled_bookings ?? 0)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatMoney(financeSummary?.settled_amount ?? 0)}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardDescription>هنوز موعد نرسیده</CardDescription>
-            <CardTitle className="text-2xl">
-              {toPersianDigits(financeSummary?.not_due_bookings ?? 0)}
-            </CardTitle>
+            <CalendarClock className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            قابل تسویه بعد از برگزاری سانس
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-semibold">
+              {toPersianDigits(financeSummary?.not_due_bookings ?? 0)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              قابل تسویه بعد از برگزاری سانس
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -309,40 +338,70 @@ export function VendorFinanceTab({
         <CardHeader>
           <CardTitle>تاریخچه درخواست‌های تسویه</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-4">
           {settlements.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="px-2 text-sm text-muted-foreground sm:px-0">
               هنوز درخواستی ثبت نشده است.
             </p>
           ) : (
-            <div className="space-y-2">
-              {settlements.map((settlement) => (
-                <div
-                  key={settlement.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
-                >
-                  <span>
-                    {new Date(settlement.requested_at).toLocaleDateString(
-                      "fa-IR"
-                    )}
-                  </span>
-                  <span>{formatMoney(settlement.requested_amount)}</span>
-                  <Badge variant="outline">{settlement.status}</Badge>
-                  {settlement.payment_tracking_code && (
-                    <span dir="ltr">
-                      {settlement.payment_tracking_code}
-                    </span>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openSettlementDetail(settlement.id)}
-                    disabled={settlementDetailLoading}
-                  >
-                    جزئیات
-                  </Button>
-                </div>
-              ))}
+            <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
+              <Table className="min-w-170 table-fixed">
+                <colgroup>
+                  <col className="w-28" />
+                  <col className="w-32" />
+                  <col className="w-32" />
+                  <col className="w-40" />
+                  <col className="w-20" />
+                </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>تاریخ</TableHead>
+                    <TableHead className="text-center">مبلغ</TableHead>
+                    <TableHead className="text-center">وضعیت</TableHead>
+                    <TableHead className="text-center">کد رهگیری</TableHead>
+                    <TableHead className="text-center">عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {settlements.map((settlement) => (
+                    <TableRow key={settlement.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {new Date(settlement.requested_at).toLocaleDateString(
+                          "fa-IR"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
+                        {formatMoney(settlement.requested_amount)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">
+                          {settlementRequestStatusLabels[settlement.status] ??
+                            settlement.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {settlement.payment_tracking_code ? (
+                          <span dir="ltr" className="block truncate">
+                            {settlement.payment_tracking_code}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openSettlementDetail(settlement.id)}
+                          disabled={settlementDetailLoading}
+                        >
+                          جزئیات
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -350,13 +409,15 @@ export function VendorFinanceTab({
 
       <ResponsiveDialog
         open={settlementDetailOpen}
-        mobileAsSheet={false}
         onOpenChange={(open) => {
           setSettlementDetailOpen(open)
           if (!open) setSelectedSettlement(null)
         }}
       >
-        <ResponsiveDialogContent className="sm:max-w-3xl">
+        <ResponsiveDialogContent
+          className="sm:max-w-3xl"
+          mobileMaxHeight="calc(100dvh - 2rem)"
+        >
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>
               جزئیات تسویه
@@ -394,14 +455,29 @@ export function VendorFinanceTab({
                   </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">کد رهگیری</span>
-                  <div className="font-medium" dir="ltr">
-                    {selectedSettlement.payment_tracking_code || "ثبت نشده"}
+                  <span className="text-muted-foreground">کارمزد درگاه</span>
+                  <div className="font-medium">
+                    {formatMoney(selectedSettlement.gateway_fee)}
                   </div>
                 </div>
                 <div>
+                  <span className="text-muted-foreground">کد رهگیری</span>
+                  {selectedSettlement.payment_tracking_code ? (
+                    <div className="text-end font-medium" dir="ltr">
+                      {selectedSettlement.payment_tracking_code}
+                    </div>
+                  ) : (
+                    <div className="font-medium text-muted-foreground">
+                      ثبت نشده
+                    </div>
+                  )}
+                </div>
+                <div>
                   <span className="text-muted-foreground">وضعیت</span>
-                  <div className="font-medium">{selectedSettlement.status}</div>
+                  <div className="font-medium">
+                    {settlementRequestStatusLabels[selectedSettlement.status] ??
+                      selectedSettlement.status}
+                  </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">تعداد رزروها</span>
@@ -411,39 +487,55 @@ export function VendorFinanceTab({
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <Table>
+              <div className="-mx-2 overflow-x-auto px-2">
+                <Table className="min-w-160">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>رزرو</TableHead>
-                      <TableHead>مشتری</TableHead>
-                      <TableHead>زمان سانس</TableHead>
-                      <TableHead className="text-center">وضعیت رزرو</TableHead>
-                      <TableHead className="text-center">وضعیت تسویه</TableHead>
-                      <TableHead className="text-center">مبلغ خالص</TableHead>
+                      <TableHead className="whitespace-nowrap">رزرو</TableHead>
+                      <TableHead className="whitespace-nowrap">مشتری</TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        زمان سانس
+                      </TableHead>
+                      <TableHead className="text-center whitespace-nowrap">
+                        وضعیت رزرو
+                      </TableHead>
+                      <TableHead className="text-center whitespace-nowrap">
+                        وضعیت تسویه
+                      </TableHead>
+                      <TableHead className="text-center whitespace-nowrap">
+                        مبلغ خالص
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {selectedSettlement.items.map((item) => (
                       <TableRow key={item.booking_id}>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {toPersianDigits(item.booking_id)}
                         </TableCell>
-                        <TableCell>{item.customer_name}</TableCell>
-                        <TableCell>
-                          {new Date(item.slot_start_time).toLocaleString(
-                            "fa-IR"
-                          )}
+                        <TableCell className="whitespace-nowrap">
+                          {item.customer_name}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
+                          <div>{formatBookingDate(item.slot_start_time)}</div>
+                          <div
+                            className="text-xs text-muted-foreground"
+                            dir="ltr"
+                          >
+                            {formatBookingTime(item.slot_start_time)} -{" "}
+                            {formatBookingTime(item.slot_end_time)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
                           {bookingStatusLabels[item.booking_status] ??
                             item.booking_status}
                         </TableCell>
-                        <TableCell className="text-center">
-                          {settlementStatusLabels[item.settlement_status] ??
-                            item.settlement_status}
+                        <TableCell className="text-center whitespace-nowrap">
+                          {bookingSettlementStatusLabels[
+                            item.settlement_status
+                          ] ?? item.settlement_status}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center whitespace-nowrap">
                           {formatMoney(item.amount)}
                         </TableCell>
                       </TableRow>

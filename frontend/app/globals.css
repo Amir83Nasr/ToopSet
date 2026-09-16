@@ -352,6 +352,18 @@
   padding-right: max(env(safe-area-inset-right), 1rem);
 }
 
+/* ── Offline shell (app/offline) ── */
+/* JS-free SW fallback — server markup only. Hides bottom nav + its spacer so
+   the shell stays centered with no scroll, even when the fallback document
+   keeps another page's URL (fallback matcher hides by content, not pathname). */
+body:has([data-offline-shell]) {
+  overflow: hidden;
+}
+body:has([data-offline-shell]) [data-bottom-nav],
+body:has([data-offline-shell]) [data-bottom-nav-spacer] {
+  display: none;
+}
+
 /* ── Text selection ── */
 
 ::selection {

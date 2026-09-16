@@ -139,6 +139,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="منوی پایین"
+      data-bottom-nav
       className={cn(
         // Layout
         "fixed inset-x-0 bottom-0 z-40",

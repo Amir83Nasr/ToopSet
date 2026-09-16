@@ -32,14 +32,14 @@ export function VendorHeader({
         </p>
       </div>
 
-      <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
-        <Button variant="outline" size="sm" className="w-full" asChild>
+      <div className="flex flex-wrap items-center gap-2 sm:w-auto">
+        <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/vendors">
             <ArrowRight className="size-4 shrink-0 sm:me-1.5" />
             بازگشت
           </Link>
         </Button>
-        <Button variant="outline" size="sm" className="w-full" asChild>
+        <Button variant="outline" size="sm" asChild>
           <Link href={`/vendors/${vendorId}`}>
             <Eye className="size-4 shrink-0 sm:me-1.5" />
             صفحه عمومی
@@ -50,7 +50,6 @@ export function VendorHeader({
             type="submit"
             form="edit-form"
             size="sm"
-            className="w-full"
             disabled={!isFormValid || isSubmitting || saving}
           >
             {saving || isSubmitting ? (
