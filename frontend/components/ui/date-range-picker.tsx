@@ -16,17 +16,29 @@ import { Calendar01Icon } from "@hugeicons/core-free-icons"
 interface DateRangePickerProps {
   value?: DateRange
   onChange?: (range: DateRange | undefined) => void
-  placeholder?: string
+  placeholder?: React.ReactNode
   className?: string
 }
+
+const defaultPlaceholder = (
+  <span className="flex items-center gap-1.5">
+    <span>از تاریخ</span>
+    <span aria-hidden="true" className="opacity-50">
+      تا
+    </span>
+    <span>تا تاریخ</span>
+  </span>
+)
 
 function DateRangePicker({
   value,
   onChange,
-  placeholder = "انتخاب بازه",
+  placeholder = defaultPlaceholder,
   className,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
+  const [draft, setDraft] = React.useState<DateRange | undefined>(value)
+  const [pickingEnd, setPickingEnd] = React.useState(false)
 
   const rangeText = React.useMemo(() => {
     if (!value?.from && !value?.to) return null
@@ -38,14 +50,38 @@ function DateRangePicker({
     return `تا ${toStr}`
   }, [value])
 
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      setDraft(value)
+      setPickingEnd(Boolean(value?.from))
+    }
+    setOpen(next)
+  }
+
+  function handleSelect(date: Date | undefined) {
+    if (!date) return
+    if (!pickingEnd) {
+      setDraft({ from: date, to: undefined })
+      return
+    }
+    // Picking an end before the start restarts the range from that day.
+    if (draft?.from && date.getTime() < draft.from.getTime()) {
+      setDraft({ from: date, to: undefined })
+      return
+    }
+    setDraft({ from: draft?.from, to: date })
+  }
+
+  const canConfirm = Boolean(draft?.from && draft?.to)
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           data-empty={!rangeText}
           className={cn(
-            "h-8 w-fit min-w-40 justify-start gap-2 rounded-md border border-input bg-background px-2.5 text-right text-base font-normal transition-colors md:text-sm",
+            "w-fit min-w-40 justify-start gap-1.5 rounded-md border border-input bg-background px-2.5 text-right text-sm font-normal transition-colors max-md:px-2.5 dark:bg-background",
             "data-[empty=true]:text-muted-foreground",
             className
           )}
@@ -58,37 +94,67 @@ function DateRangePicker({
           <span>{rangeText ?? placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+      <PopoverContent
+        className="w-auto max-w-[calc(100vw-2rem)] p-0"
+        align="center"
+        sideOffset={8}
+        collisionPadding={16}
+      >
         <div dir="rtl">
-          <div className="border-b px-4 py-2 text-xs text-muted-foreground">
-            {value?.from
-              ? `انتخاب تاریخ پایان — شروع: ${formatPersianDate(value.from)}`
-              : "تاریخ شروع را انتخاب کنید"}
+          <div className="flex items-center justify-between gap-2 border-b px-4 py-2 text-xs text-muted-foreground">
+            {pickingEnd && draft?.from ? (
+              <>
+                <span>
+                  {`انتخاب تاریخ پایان — شروع: ${formatPersianDate(draft.from)}`}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setPickingEnd(false)}
+                >
+                  تغییر
+                </Button>
+              </>
+            ) : draft?.from ? (
+              `شروع انتخاب‌شده: ${formatPersianDate(draft.from)}`
+            ) : (
+              "تاریخ شروع را انتخاب کنید"
+            )}
           </div>
           <Calendar
-            mode="range"
-            defaultMonth={value?.from}
-            selected={
-              value?.from
-                ? { from: value.from, to: value.to ?? value.from }
-                : undefined
+            mode="single"
+            defaultMonth={draft?.from ?? value?.from}
+            selected={pickingEnd ? draft?.to : draft?.from}
+            disabled={
+              pickingEnd && draft?.from ? { before: draft.from } : undefined
             }
-            onSelect={(dayPickerRange) => {
-              if (!dayPickerRange?.from) {
-                onChange?.(undefined)
-                return
-              }
-              const isAutoFill =
-                !dayPickerRange.to ||
-                dayPickerRange.from.getTime() === dayPickerRange.to.getTime()
-              const newRange: DateRange = {
-                from: dayPickerRange.from,
-                to: isAutoFill ? value?.to : dayPickerRange.to,
-              }
-              onChange?.(newRange)
-            }}
-            numberOfMonths={2}
+            onSelect={handleSelect}
           />
+          <div className="flex justify-between gap-2 border-t p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => setOpen(false)}
+            >
+              انصراف
+            </Button>
+            <Button
+              size="sm"
+              disabled={pickingEnd ? !canConfirm : !draft?.from}
+              onClick={() => {
+                if (pickingEnd) {
+                  onChange?.(draft)
+                  setOpen(false)
+                } else {
+                  setPickingEnd(true)
+                }
+              }}
+            >
+              {pickingEnd ? "تایید بازه تاریخ" : "تایید تاریخ شروع"}
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

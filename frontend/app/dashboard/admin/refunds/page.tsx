@@ -46,7 +46,7 @@ import {
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
-import { toLocalDateStr, todayStr } from "@/lib/utils"
+import { toLocalDateStr } from "@/lib/utils"
 
 interface Refund {
   id: number
@@ -101,7 +101,7 @@ export default function AdminRefundsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState(todayStr())
+  const [dateTo, setDateTo] = useState("")
   const [action, setAction] = useState<{
     refund: Refund
     status: "approved" | "rejected" | "paid"
@@ -164,12 +164,15 @@ export default function AdminRefundsPage() {
   }, [fetchRefunds])
 
   const hasActiveFilter =
-    statusFilter !== "all" || dateFrom !== "" || debouncedSearch !== ""
+    statusFilter !== "all" ||
+    dateFrom !== "" ||
+    dateTo !== "" ||
+    debouncedSearch !== ""
 
   function clearFilters() {
     setStatusFilter("all")
     setDateFrom("")
-    setDateTo(todayStr())
+    setDateTo("")
     setSearch("")
   }
 
@@ -278,13 +281,19 @@ export default function AdminRefundsPage() {
             </Select>
           </div>
           <DateRangePicker
-            value={{
-              from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
-              to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
-            }}
+            value={
+              dateFrom || dateTo
+                ? {
+                    from: dateFrom
+                      ? new Date(dateFrom + "T12:00:00")
+                      : undefined,
+                    to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+                  }
+                : undefined
+            }
             onChange={(range) => {
               setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
-              setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
+              setDateTo(range?.to ? toLocalDateStr(range.to) : "")
             }}
             className="w-fit"
           />

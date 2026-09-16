@@ -27,7 +27,10 @@ export default function DashboardLayout({
               variant="inset"
               className="top-16 h-[calc(100svh-4rem)]"
             />
-            <SidebarInset>
+            {/* min-w-0 lets the inset shrink below its content's min-content
+                width, so wide inner scrollers (tables) scroll inside their own
+                container instead of pushing the whole page sideways. */}
+            <SidebarInset className="min-w-0">
               <div className="flex flex-col gap-4 p-4">{children}</div>
             </SidebarInset>
           </SidebarProvider>

@@ -33,7 +33,7 @@ export function BootSplash() {
     <div
       aria-hidden="true"
       className={cn(
-        "fixed inset-0 z-100 flex items-center justify-center bg-white transition-opacity duration-300 dark:bg-black",
+        "fixed inset-0 z-100 flex items-center justify-center bg-white transition-opacity duration-300 md:hidden dark:bg-black",
         hide && "pointer-events-none opacity-0"
       )}
     >

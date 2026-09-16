@@ -3,12 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import * as React from "react"
 import { api } from "@/lib/api"
-import {
-  toPersianDigits,
-  toLocalDateStr,
-  todayStr,
-  formatPersianDate,
-} from "@/lib/utils"
+import { toPersianDigits, toLocalDateStr, formatPersianDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { usePaginationLimit } from "@/hooks/use-pagination-limit"
 import { Button } from "@/components/ui/button"
@@ -166,7 +161,7 @@ export default function AdminLogsPage() {
   const [page, setPage] = useState(0)
   const [actionFilter, setActionFilter] = useState("")
   const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState(todayStr())
+  const [dateTo, setDateTo] = useState("")
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingLogId, setDeletingLogId] = useState<number | null>(null)
@@ -226,12 +221,13 @@ export default function AdminLogsPage() {
     }
   }
 
-  const hasActiveFilter = actionFilter !== "" || dateFrom !== ""
+  const hasActiveFilter =
+    actionFilter !== "" || dateFrom !== "" || dateTo !== ""
 
   function clearFilters() {
     setActionFilter("")
     setDateFrom("")
-    setDateTo(todayStr())
+    setDateTo("")
     setPage(0)
   }
 
@@ -288,13 +284,19 @@ export default function AdminLogsPage() {
           </div>
 
           <DateRangePicker
-            value={{
-              from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
-              to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
-            }}
+            value={
+              dateFrom || dateTo
+                ? {
+                    from: dateFrom
+                      ? new Date(dateFrom + "T12:00:00")
+                      : undefined,
+                    to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+                  }
+                : undefined
+            }
             onChange={(range) => {
               setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
-              setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
+              setDateTo(range?.to ? toLocalDateStr(range.to) : "")
               setPage(0)
             }}
             className="w-fit"

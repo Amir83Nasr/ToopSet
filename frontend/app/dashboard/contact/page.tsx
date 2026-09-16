@@ -45,7 +45,7 @@ import {
   DataTableToolbar,
 } from "@/components/ui/data-table-toolbar"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
-import { toLocalDateStr, todayStr } from "@/lib/utils"
+import { toLocalDateStr } from "@/lib/utils"
 
 interface ContactMessage {
   id: number
@@ -76,7 +76,7 @@ export default function ContactMessagesPage() {
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState(todayStr())
+  const [dateTo, setDateTo] = useState("")
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,11 +119,12 @@ export default function ContactMessagesPage() {
   )
   const totalPages = Math.ceil(filteredMessages.length / limit)
 
-  const hasActiveFilter = dateFrom !== "" || debouncedSearch !== ""
+  const hasActiveFilter =
+    dateFrom !== "" || dateTo !== "" || debouncedSearch !== ""
 
   function clearFilters() {
     setDateFrom("")
-    setDateTo(todayStr())
+    setDateTo("")
     setSearch("")
   }
 
@@ -181,13 +182,19 @@ export default function ContactMessagesPage() {
         />
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker
-            value={{
-              from: dateFrom ? new Date(dateFrom + "T12:00:00") : undefined,
-              to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
-            }}
+            value={
+              dateFrom || dateTo
+                ? {
+                    from: dateFrom
+                      ? new Date(dateFrom + "T12:00:00")
+                      : undefined,
+                    to: dateTo ? new Date(dateTo + "T12:00:00") : undefined,
+                  }
+                : undefined
+            }
             onChange={(range) => {
               setDateFrom(range?.from ? toLocalDateStr(range.from) : "")
-              setDateTo(range?.to ? toLocalDateStr(range.to) : todayStr())
+              setDateTo(range?.to ? toLocalDateStr(range.to) : "")
             }}
             className="w-fit"
           />
