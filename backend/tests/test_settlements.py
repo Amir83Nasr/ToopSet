@@ -21,9 +21,16 @@ from app.models.time_slot import SlotStatus, TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.schemas.finance import SettlementStatusUpdate
-from app.services.finance_service import FinanceService
+from app.services.finance_service import FinanceService, round_settlement_amount
 
 pytestmark = pytest.mark.asyncio
+
+
+async def test_round_settlement_amount_to_nearest_10k() -> None:
+    assert round_settlement_amount(Decimal("1230000")) == Decimal("1230000.00")
+    assert round_settlement_amount(Decimal("1236000")) == Decimal("1240000.00")
+    assert round_settlement_amount(Decimal("89000")) == Decimal("90000.00")
+    assert round_settlement_amount(Decimal("0")) == Decimal("0.00")
 
 
 async def test_partial_settlement_input_is_rejected() -> None:
@@ -119,7 +126,7 @@ async def test_settlement_is_full_net_snapshot_and_paid_is_immutable(
     assert settlement.gross_amount == Decimal("100000")
     assert settlement.commission_amount == Decimal("10000.00")
     assert settlement.gateway_fee == Decimal("1000")
-    assert settlement.requested_amount == Decimal("89000.00")
+    assert settlement.requested_amount == Decimal("90000.00")
     assert item.amount == settlement.requested_amount
     assert settlement.destination_card_masked == mask_card_number(card_number)
 

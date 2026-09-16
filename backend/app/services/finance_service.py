@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -30,6 +30,19 @@ from app.services.notification_service import (
     invalidate_notification_list_cache,
 )
 from app.services.sms_provider import get_sms_provider, send_booking_confirmation_sms
+
+# ── SETTLEMENT ROUNDING ──────────────────────────────────
+# ponytail: ceiling is fixed 10k step; add when configurable per-vendor.
+SETTLEMENT_ROUND_STEP = Decimal("10000")
+
+
+def round_settlement_amount(value: Decimal) -> Decimal:
+    """Round payable settlement to nearest 10k toman (HALF_UP)."""
+    return (
+        (value / SETTLEMENT_ROUND_STEP).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        * SETTLEMENT_ROUND_STEP
+    ).quantize(Decimal("0.01"))
+
 
 # Frontend weekday convention in this project: 0=Saturday ... 6=Friday.
 _WEEKDAY_MAP = [5, 6, 0, 1, 2, 3, 4]
@@ -530,11 +543,13 @@ class FinanceService:
                 )
             )
         ).scalar_one()
-        return max(
-            gross
-            - (gross * percent / Decimal("100")).quantize(Decimal("0.01"))
-            - Decimal(str(fees)),
-            Decimal("0"),
+        return round_settlement_amount(
+            max(
+                gross
+                - (gross * percent / Decimal("100")).quantize(Decimal("0.01"))
+                - Decimal(str(fees)),
+                Decimal("0"),
+            )
         )
 
     async def _refund_status_amounts(
@@ -633,7 +648,11 @@ class FinanceService:
         )
         fee_by_booking = {booking_id: Decimal(str(fee or 0)) for booking_id, fee in payment_rows}
         gateway_fee = sum(fee_by_booking.values(), Decimal("0"))
-        amount = max(gross_amount - commission_amount - Decimal(str(gateway_fee)), Decimal("0"))
+        amount = round_settlement_amount(
+            max(gross_amount - commission_amount - Decimal(str(gateway_fee)), Decimal("0"))
+        )
+        if amount <= 0:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail="مبلغ قابل تسویه‌ای وجود ندارد")
         settlement = Settlement(
             manager_id=vendor.manager_id,
             vendor_id=vendor_id,

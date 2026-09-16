@@ -385,7 +385,8 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
     ("post", "/api/v1/manager/settlements"): (
         "Creates a settlement request for eligible online bookings of a vendor. "
         "Only confirmed, paid, not-settled bookings whose slot end time has "
-        "passed are included."
+        "passed are included. The payable amount is rounded to the nearest "
+        "10,000 toman."
     ),
     ("get", "/api/v1/manager/settlements"): (
         "Lists settlement requests submitted by the current manager, including "
