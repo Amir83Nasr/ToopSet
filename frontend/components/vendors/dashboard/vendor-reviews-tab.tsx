@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, MessageSquareText, RefreshCw, Star } from "lucide-react"
+import { Loader2, MessageSquareText, RefreshCw } from "lucide-react"
 
 interface VendorReview {
   id: number
@@ -213,10 +213,8 @@ export function VendorReviewsTab({
                     onClick={() => submitResponse(review.id)}
                     disabled={submitting || !responseText.trim()}
                   >
-                    {submitting ? (
+                    {submitting && (
                       <Loader2 className="me-1 size-4 animate-spin" />
-                    ) : (
-                      <Star className="me-1 size-4" />
                     )}
                     ثبت پاسخ
                   </Button>
