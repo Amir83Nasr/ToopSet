@@ -408,7 +408,7 @@ function BookPageContent() {
                     available={slot.ball_available}
                     price={slot.ball_price}
                     selected={withBall}
-                    onToggle={() => setWithBall((current) => !current)}
+                    onSelect={setWithBall}
                     formatPrice={formatPrice}
                   />
                   <div className="flex items-center justify-between border-t pt-3">

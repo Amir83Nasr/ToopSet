@@ -1,21 +1,65 @@
-import { AlertTriangle } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useId } from "react"
+import { AlertTriangle, CircleCheck, Volleyball } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+/** Minimal line-art icon of a hand holding a ball, drawn in the lucide
+ *  style (24×24 grid, 2px strokes, round caps) so it blends with the
+ *  icon pack and stays crisp at small sizes. */
+function HandWithBallIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* ball with two curved seams */}
+      <circle cx="12" cy="6.5" r="4" />
+      <path d="M9 4.9a4 4 0 0 1 6 0" />
+      <path d="M10 8.5a3 3 0 0 0 4 0" />
+      {/* open hand cradling the ball */}
+      <path d="M3.7 17.8 6 13.5c1.8 2.4 4 3.2 6 3.2s4.2-.8 6-3.2l2.3 4.3" />
+    </svg>
+  )
+}
 
 interface BookingBallOptionProps {
   available: boolean
   price: number
+  /** Whether the "rent a ball" option is currently chosen */
   selected: boolean
-  onToggle: () => void
+  onSelect: (withBall: boolean) => void
   formatPrice: (price: number) => string
+}
+
+const cardBase =
+  "relative flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border p-4 text-center transition-all duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background"
+
+function SelectedBadge({ visible }: { visible: boolean }) {
+  return (
+    <CircleCheck
+      aria-hidden="true"
+      className={cn(
+        "absolute start-2.5 top-2.5 size-5 fill-primary text-primary-foreground transition-all duration-150",
+        visible ? "scale-100 opacity-100" : "scale-50 opacity-0"
+      )}
+    />
+  )
 }
 
 export function BookingBallOption({
   available,
   price,
   selected,
-  onToggle,
+  onSelect,
   formatPrice,
 }: BookingBallOptionProps) {
+  const groupName = useId()
+
   if (!available) {
     return (
       <div
@@ -35,26 +79,64 @@ export function BookingBallOption({
   }
 
   return (
-    <label
-      className={`flex w-full cursor-pointer items-center justify-between rounded-lg border p-3 text-right transition-colors ${
-        selected
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-primary/40"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <Checkbox
-          checked={selected}
-          onCheckedChange={() => onToggle()}
-          aria-label="افزودن توپ به رزرو"
-        />
-        <div>
-          <span className="block text-sm font-medium">افزودن توپ به رزرو</span>
+    <fieldset>
+      <legend className="text-sm font-semibold text-foreground">
+        آیا نیاز به توپ دارید؟{" "}
+        <span aria-hidden="true" className="text-destructive">
+          *
+        </span>
+      </legend>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* Rent a ball — rendered first so it sits on the right in RTL */}
+        <label
+          className={cn(
+            cardBase,
+            selected
+              ? "border-primary bg-primary/5 shadow-md shadow-primary/15"
+              : "border-input bg-card hover:border-zinc-400 dark:hover:border-zinc-600"
+          )}
+        >
+          <input
+            type="radio"
+            name={groupName}
+            checked={selected}
+            onChange={() => onSelect(true)}
+            className="sr-only"
+            aria-label="اجاره توپ"
+          />
+          <SelectedBadge visible={selected} />
+          <Volleyball aria-hidden="true" className="size-10 text-primary" />
+          <span className="text-sm leading-5 font-medium">اجاره توپ</span>
           <span className="text-xs text-muted-foreground">
-            {formatPrice(price)}
+            ({formatPrice(price)})
           </span>
-        </div>
+        </label>
+
+        {/* Bring my own ball */}
+        <label
+          className={cn(
+            cardBase,
+            !selected
+              ? "border-primary bg-primary/5 shadow-md shadow-primary/15"
+              : "border-input bg-card hover:border-zinc-400 dark:hover:border-zinc-600"
+          )}
+        >
+          <input
+            type="radio"
+            name={groupName}
+            checked={!selected}
+            onChange={() => onSelect(false)}
+            className="sr-only"
+            aria-label="خیر، خودم توپ دارم"
+          />
+          <SelectedBadge visible={!selected} />
+          <HandWithBallIcon className="size-10 text-muted-foreground" />
+          <span className="text-sm leading-5 font-medium">
+            خیر، خودم توپ دارم
+          </span>
+        </label>
       </div>
-    </label>
+    </fieldset>
   )
 }
