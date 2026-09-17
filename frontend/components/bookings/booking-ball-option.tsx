@@ -30,8 +30,8 @@ function HandWithBallIcon({ className }: { className?: string }) {
 interface BookingBallOptionProps {
   available: boolean
   price: number
-  /** Whether the "rent a ball" option is currently chosen */
-  selected: boolean
+  /** Whether the "rent a ball" option is chosen; null = nothing picked yet */
+  selected: boolean | null
   onSelect: (withBall: boolean) => void
   formatPrice: (price: number) => string
 }
@@ -92,7 +92,7 @@ export function BookingBallOption({
         <label
           className={cn(
             cardBase,
-            selected
+            selected === true
               ? "border-primary bg-primary/5 shadow-md shadow-primary/15"
               : "border-input bg-card hover:border-zinc-400 dark:hover:border-zinc-600"
           )}
@@ -100,12 +100,12 @@ export function BookingBallOption({
           <input
             type="radio"
             name={groupName}
-            checked={selected}
+            checked={selected === true}
             onChange={() => onSelect(true)}
             className="sr-only"
             aria-label="اجاره توپ"
           />
-          <SelectedBadge visible={selected} />
+          <SelectedBadge visible={selected === true} />
           <Volleyball aria-hidden="true" className="size-10 text-primary" />
           <span className="text-sm leading-5 font-medium">اجاره توپ</span>
           <span className="text-xs text-muted-foreground">
@@ -117,7 +117,7 @@ export function BookingBallOption({
         <label
           className={cn(
             cardBase,
-            !selected
+            selected === false
               ? "border-primary bg-primary/5 shadow-md shadow-primary/15"
               : "border-input bg-card hover:border-zinc-400 dark:hover:border-zinc-600"
           )}
@@ -125,12 +125,12 @@ export function BookingBallOption({
           <input
             type="radio"
             name={groupName}
-            checked={!selected}
+            checked={selected === false}
             onChange={() => onSelect(false)}
             className="sr-only"
             aria-label="خیر، خودم توپ دارم"
           />
-          <SelectedBadge visible={!selected} />
+          <SelectedBadge visible={selected === false} />
           <HandWithBallIcon className="size-10 text-muted-foreground" />
           <span className="text-sm leading-5 font-medium">
             خیر، خودم توپ دارم

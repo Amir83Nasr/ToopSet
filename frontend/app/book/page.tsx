@@ -142,7 +142,7 @@ function BookPageContent() {
     sport_type: string
     address: string
   } | null>(null)
-  const [withBall, setWithBall] = useState(false)
+  const [withBall, setWithBall] = useState<boolean | null>(null)
   const [errorMsg, setErrorMsg] = useState<string>("")
   const [pendingCheckout, setPendingCheckout] =
     useState<PendingCheckout | null>(null)
@@ -198,7 +198,7 @@ function BookPageContent() {
           throw new ApiError(409, "زمان این سانس گذشته و دیگر قابل رزرو نیست")
         }
         setSlot(slotRes)
-        setWithBall(false)
+        setWithBall(null)
         setVendor({
           id: slotRes.vendor_id,
           name: slotRes.vendor_name,
@@ -246,7 +246,7 @@ function BookPageContent() {
         body: JSON.stringify({
           slot_id: slot.id,
           version: slot.version,
-          with_ball: withBall,
+          with_ball: withBall ?? false,
         }),
       })
 
@@ -425,10 +425,20 @@ function BookPageContent() {
                 </CardContent>
               </Card>
 
-              <Button className="w-full" size="lg" onClick={handleConfirm}>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleConfirm}
+                disabled={slot.ball_available && withBall === null}
+              >
                 <CreditCard className="me-2 size-5" />
                 تأیید و پرداخت
               </Button>
+              {slot.ball_available && withBall === null && (
+                <p className="text-center text-xs text-muted-foreground">
+                  برای ادامه، وضعیت توپ را انتخاب کنید.
+                </p>
+              )}
             </div>
           )}
 

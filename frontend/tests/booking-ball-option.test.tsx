@@ -11,7 +11,7 @@ describe("BookingBallOption", () => {
       <BookingBallOption
         available={false}
         price={0}
-        selected={false}
+        selected={null}
         onSelect={vi.fn()}
         formatPrice={formatPrice}
       />
@@ -26,6 +26,23 @@ describe("BookingBallOption", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("starts with no option chosen — the choice is mandatory", () => {
+    render(
+      <BookingBallOption
+        available
+        price={75000}
+        selected={null}
+        onSelect={vi.fn()}
+        formatPrice={formatPrice}
+      />
+    )
+
+    expect(screen.getByRole("radio", { name: "اجاره توپ" })).not.toBeChecked()
+    expect(
+      screen.getByRole("radio", { name: "خیر، خودم توپ دارم" })
+    ).not.toBeChecked()
+  })
+
   it("shows the configured price and lets the user pick ball rental", async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
@@ -33,21 +50,15 @@ describe("BookingBallOption", () => {
       <BookingBallOption
         available
         price={75000}
-        selected={false}
+        selected={null}
         onSelect={onSelect}
         formatPrice={formatPrice}
       />
     )
 
-    // "Bring my own ball" is the default selection
-    expect(
-      screen.getByRole("radio", { name: "خیر، خودم توپ دارم" })
-    ).toBeChecked()
-    const rentRadio = screen.getByRole("radio", { name: "اجاره توپ" })
-    expect(rentRadio).not.toBeChecked()
     expect(screen.getByText("(۷۵٬۰۰۰ تومان)")).toBeInTheDocument()
 
-    await user.click(rentRadio)
+    await user.click(screen.getByRole("radio", { name: "اجاره توپ" }))
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(true)
   })
 
