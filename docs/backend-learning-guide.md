@@ -425,7 +425,7 @@ UNIQUE(user_id) WHERE status = 'pending_payment'
 | `Log` | audit trail امنیتی | user_id با SET NULL → با حذف کاربر، لاگ‌ها زنده می‌مونن |
 | `ManagerRequest` | درخواست تبدیل شدن به مدیر | partial unique: فقط یک درخواست pending باز per user |
 | `Setting` | key/value تنظیمات سیستم | مقادیر JSON هم به صورت string ذخیره می‌شن |
-| `Notification` + `NotificationDelivery` | اعلان درون‌برنامه‌ای + audit ارسال SMS | type رشتهٔ آزاد (booking_created و...) |
+| `Notification` + `NotificationDelivery` | اعلان درون‌برنامه‌ای + audit ارسال SMS | type رشتهٔ آزاد (booking_confirmed و...) |
 | `ContactMessage` | فرمت تماس با ما | مستقل، بدون FK |
 
 ## ۲.۱۲ — نقشهٔ روابط (FK Graph)

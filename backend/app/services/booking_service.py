@@ -911,16 +911,6 @@ class BookingService:
         await invalidate_admin_list_cache("vendors")
         await invalidate_response_cache("vendor:detail")
 
-        # Notify manager about new booking
-        if vendor:
-            await self.notifier.booking_created_for_manager(
-                manager_id=vendor.manager_id,
-                vendor_name=vendor.name,
-                start_time=slot.start_time,
-                booking_id=booking.id,
-                end_time=slot.end_time,
-            )
-
         await log_action(
             self.booking_repo.db,
             self.current_user.id,
@@ -959,10 +949,6 @@ class BookingService:
                 "gateway_transaction_id": None,
                 "status": "failed",
             }
-        )
-        await self.notifier.booking_failed(
-            user_id=self.current_user.id,
-            reason=reason,
         )
         await log_action(
             self.booking_repo.db,
@@ -1226,12 +1212,6 @@ class BookingService:
             "payment_expired",
             f"مهلت پرداخت زیبال پایان یافت | رزرو {booking.id}",
             severity="WARNING",
-        )
-        await self.notifier.booking_expired(
-            user_id=booking.user_id,
-            vendor_name=slot.vendor.name if slot and slot.vendor else "مجموعه",
-            start_time=slot.start_time if slot else None,
-            end_time=slot.end_time if slot else None,
         )
         await self.db.commit()
         return True
@@ -1567,15 +1547,12 @@ class BookingService:
             user_id=booking.user_id,
             vendor_name=slot.vendor.name if slot.vendor else "مجموعه",
             start_time=slot.start_time,
-            end_time=slot.end_time,
         )
         if slot.vendor:
             await self.notifier.booking_confirmed_for_manager(
                 manager_id=slot.vendor.manager_id,
                 vendor_name=slot.vendor.name,
                 start_time=slot.start_time,
-                booking_id=booking.id,
-                end_time=slot.end_time,
             )
         await send_booking_confirmation_sms_for_booking(booking)
         return await self.get_booking(booking.id)
@@ -1809,22 +1786,18 @@ class BookingService:
         await self.notifier.booking_replaced_for_user(
             user_id=original.user_id,
             vendor_name=vendor.name if vendor else "مجموعه",
-            refund_amount=request.refund_amount,
             start_time=slot.start_time,
-            end_time=slot.end_time,
         )
         await self.notifier.booking_confirmed_for_user(
             user_id=hold.user_id,
             vendor_name=vendor.name if vendor else "مجموعه",
             start_time=slot.start_time,
-            end_time=slot.end_time,
         )
         if vendor:
             await self.notifier.booking_replaced_for_manager(
                 manager_id=vendor.manager_id,
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
-                end_time=slot.end_time,
             )
         await log_action(
             self.db,
@@ -1892,10 +1865,6 @@ class BookingService:
                 "payment_failed",
                 f"پرداخت زیبال ناموفق بود | رزرو {payment.booking_id} — {message}",
                 severity="WARNING",
-            )
-            await self.notifier.booking_failed(
-                user_id=booking.user_id,
-                reason=message,
             )
             await self.db.commit()
             return
@@ -2244,15 +2213,12 @@ class BookingService:
             user_id=self.current_user.id,
             vendor_name=vendor.name if vendor else "زمین",
             start_time=slot.start_time,
-            end_time=slot.end_time,
         )
         if vendor:
             await self.notifier.booking_confirmed_for_manager(
                 manager_id=vendor.manager_id,
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
-                booking_id=booking.id,
-                end_time=slot.end_time,
             )
 
         await log_action(
@@ -2401,10 +2367,6 @@ class BookingService:
                     await invalidate_slot_list(slot.vendor_id)
                     await invalidate_admin_list_cache("vendors")
                     await invalidate_response_cache("vendor:detail")
-        await self.notifier.replacement_payment_failed(
-            user_id=self.current_user.id,
-            failure_message=failure_message,
-        )
         await log_action(
             self.db,
             self.current_user.id,
@@ -2761,16 +2723,12 @@ class BookingService:
                 user_id=booking.user_id,
                 vendor_name=vendor.name if vendor else "مجموعه",
                 start_time=slot.start_time,
-                refund_amount=refund_amount,
-                end_time=slot.end_time,
             )
             if vendor:
                 await self.notifier.booking_pending_replacement_for_manager(
                     manager_id=vendor.manager_id,
                     vendor_name=vendor.name,
                     start_time=slot.start_time,
-                    booking_id=booking.id,
-                    end_time=slot.end_time,
                 )
             payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
@@ -2845,17 +2803,12 @@ class BookingService:
             user_id=booking.user_id,
             vendor_name=vendor.name if vendor else "مجموعه",
             start_time=slot.start_time,
-            refund_amount=refund_amount,
-            penalty_amount=penalty_amount,
-            end_time=slot.end_time,
         )
         if vendor:
             await self.notifier.booking_cancelled_for_manager(
                 manager_id=vendor.manager_id,
                 vendor_name=vendor.name,
                 start_time=slot.start_time,
-                booking_id=booking.id,
-                end_time=slot.end_time,
             )
 
         await log_action(
@@ -2941,9 +2894,8 @@ class BookingService:
             await invalidate_response_cache("vendor:detail")
         await self.notifier.cancellation_withdrawn(
             user_id=booking.user_id,
-            vendor_name=slot.vendor.name if slot.vendor else None,
+            vendor_name=slot.vendor.name if slot.vendor else "مجموعه",
             start_time=slot.start_time,
-            end_time=slot.end_time,
         )
         await log_action(
             self.db,

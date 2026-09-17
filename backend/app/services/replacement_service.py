@@ -60,7 +60,6 @@ async def expire_replacement_work(db: AsyncSession, now: datetime) -> dict[str, 
                 user_id=original.user_id,
                 vendor_name=slot.vendor.name if slot and slot.vendor else None,
                 start_time=slot.start_time if slot else None,
-                end_time=slot.end_time if slot else None,
             )
         if slot and slot.status in (
             SlotStatus.PENDING_CANCELLATION,

@@ -343,17 +343,18 @@ class TestJalaliFormatting:
             "جمعه",
         )
 
-    async def test_format_slot_label_includes_time_window(self) -> None:
+    async def test_format_slot_label_day_date_start_time(self) -> None:
         from datetime import datetime, timezone
 
         from app.services.notification_service import format_slot_label
 
+        # 2026-09-09 14:30 UTC == Wednesday 18:00 Iran == چهارشنبه ۱۸ شهریور ۱۴۰۵
         start = datetime(2026, 9, 9, 14, 30, tzinfo=timezone.utc)
-        end = datetime(2026, 9, 9, 16, 30, tzinfo=timezone.utc)
-        label = format_slot_label(start, end)
-        assert "ساعت" in label
-        assert "تا" in label
-        assert "۱۸" in label and "۲۰" in label  # Iran local hours
+        label = format_slot_label(start)
+        assert label.startswith("روز چهارشنبه")
+        assert "۱۸ شهریور ۱۴۰۵" in label
+        assert "ساعت ۱۸:۰۰" in label
+        assert "تا" not in label, "message carries the start time only"
 
     async def test_format_toman(self) -> None:
         from decimal import Decimal
@@ -478,18 +479,18 @@ class TestBookingEventNotifications:
 
         notification = await _last_notification(session, user_id, "booking_cancelled")
         assert notification is not None, "user must be notified about their cancellation"
-        assert "لغو" in notification.message
-        assert "۹۰٬۰۰۰" in notification.message, "message must state the refund amount"
-        # Precision: weekday + Jalali date + the slot's time window (Jalali digits)
+        # One terse template: «رزرو مجموعه X در روز … ساعت … لغو شد.» — nothing more
+        assert notification.message.startswith("رزرو مجموعه ")
+        assert "لغو شد." in notification.message
+        assert "۹۰٬۰۰۰" not in notification.message, "refund is tracked by its own notifications"
         from app.core.timezone import utc_to_iran
         from app.services.notification_service import _to_persian_digits
 
+        assert "روز" in notification.message
         assert "ساعت" in notification.message
-        assert "تا" in notification.message
+        assert "تا" not in notification.message
         expected_start = _to_persian_digits(utc_to_iran(start).strftime("%H:%M"))
-        expected_end = _to_persian_digits(utc_to_iran(start + timedelta(hours=2)).strftime("%H:%M"))
         assert expected_start in notification.message
-        assert expected_end in notification.message
 
         manager_notification = await _last_notification(session, manager_id, "booking_cancelled")
         assert manager_notification is not None, "manager must be notified about the cancellation"

@@ -24,7 +24,6 @@ export const NOTIFICATION_GROUPS = [
 
 const NOTIFICATION_TYPES: Record<string, NotificationTypeMeta> = {
   // ── رزروها ──
-  booking_created: { label: "رزرو جدید", color: "info", group: "رزروها" },
   booking_confirmed: { label: "تایید رزرو", color: "success", group: "رزروها" },
   booking_cancelled: { label: "لغو رزرو", color: "error", group: "رزروها" },
   booking_pending_replacement: {
@@ -37,16 +36,9 @@ const NOTIFICATION_TYPES: Record<string, NotificationTypeMeta> = {
     color: "success",
     group: "رزروها",
   },
-  booking_failed: { label: "پرداخت ناموفق", color: "error", group: "رزروها" },
-  booking_expired: { label: "انقضای رزرو", color: "error", group: "رزروها" },
   cancellation_withdrawn: {
     label: "انصراف از لغو",
     color: "success",
-    group: "رزروها",
-  },
-  replacement_payment_failed: {
-    label: "پرداخت جایگزین ناموفق",
-    color: "error",
     group: "رزروها",
   },
   replacement_not_found: {

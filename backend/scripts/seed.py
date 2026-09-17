@@ -29,6 +29,7 @@ from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
+from app.services.notification_service import format_slot_label
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -895,7 +896,10 @@ async def seed():
         cancellation_note = Notification(
             user_id=manager_cancel_user.id,
             type="slot_cancelled_by_manager",
-            message="سانس شما توسط سالندار لغو شد. وضعیت عودت وجه در حال بررسی است.",
+            message=(
+                f"رزرو مجموعه {vendors[2].name} "
+                f"در {format_slot_label(manager_cancel_slot.start_time)} لغو شد."
+            ),
             is_read=False,
         )
         db.add(cancellation_note)
@@ -1123,14 +1127,20 @@ async def seed():
 
         # ── Notifications ──
         notes: list[Notification] = []
+        vendor_name_by_id = {v.id: v.name for v in vendors}
         for b in bookings:
             if b.status in (BookingStatus.CONFIRMED, BookingStatus.CANCELLED):
-                status_text = "تأیید شد" if b.status == BookingStatus.CONFIRMED else "لغو شد"
+                slot = slot_by_id[b.slot_id]
+                confirmed = b.status == BookingStatus.CONFIRMED
                 notes.append(
                     Notification(
                         user_id=b.user_id,
-                        type="booking_status",
-                        message=f"رزرو شما با وضعیت {status_text} به‌روزرسانی شد",
+                        type="booking_confirmed" if confirmed else "booking_cancelled",
+                        message=(
+                            f"رزرو مجموعه {vendor_name_by_id[slot.vendor_id]} "
+                            f"در {format_slot_label(slot.start_time)} "
+                            f"{'انجام شد' if confirmed else 'لغو شد'}."
+                        ),
                     )
                 )
         # broadcast

@@ -51,14 +51,12 @@ def format_jalali_date(dt: datetime) -> str:
     )
 
 
-def format_slot_label(start_time: datetime, end_time: datetime | None = None) -> str:
-    """Render a slot window in Jalali, e.g. «شنبه ۲۰ شهریور ۱۴۰۴ ساعت ۱۸:۰۰ تا ۲۰:۰۰»."""
-    start_local = utc_to_iran(start_time) if start_time.tzinfo else start_time
-    label = f"{format_jalali_date(start_time)} ساعت {start_local.strftime('%H:%M')}"
-    if end_time is not None:
-        end_local = utc_to_iran(end_time) if end_time.tzinfo else end_time
-        label += f" تا {end_local.strftime('%H:%M')}"
-    return _to_persian_digits(label)
+def format_slot_label(start_time: datetime) -> str:
+    """Render a slot in Jalali, e.g. «روز شنبه ۲۰ شهریور ۱۴۰۴ ساعت ۱۸:۰۰»."""
+    local = utc_to_iran(start_time) if start_time.tzinfo else start_time
+    return _to_persian_digits(
+        f"روز {format_jalali_date(start_time)} ساعت {local.strftime('%H:%M')}"
+    )
 
 
 def format_toman(amount: Decimal | float | int) -> str:
@@ -113,201 +111,107 @@ class NotificationService:
         await invalidate_notification_list_cache()
 
     # ── Booking lifecycle ────────────────────────────────────────────────────
-
-    async def booking_created_for_manager(
-        self,
-        manager_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        booking_id: int,
-        end_time: datetime | None = None,
-    ) -> None:
-        await self.create(
-            user_id=manager_id,
-            type_="booking_created",
-            message=(
-                f"رزرو جدید برای {vendor_name} — {format_slot_label(start_time, end_time)} "
-                f"(کد رزرو {_to_persian_digits(str(booking_id))})"
-            ),
-        )
+    # Booking notifications fire only once a booking's payment is confirmed —
+    # never at creation, on a failed payment, or on payment-window expiry.
+    # Every message follows one template:
+    # «رزرو مجموعه X در روز … تاریخ … ساعت … <رخداد>»
 
     async def booking_confirmed_for_user(
-        self, user_id: int, vendor_name: str, start_time: datetime, end_time: datetime | None
+        self, user_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=user_id,
             type_="booking_confirmed",
-            message=(
-                f"رزرو شما برای {vendor_name} در {format_slot_label(start_time, end_time)} "
-                "پرداخت و نهایی شد. وقت بخیر!"
-            ),
+            message=f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} انجام شد.",
         )
 
     async def booking_confirmed_for_manager(
-        self,
-        manager_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        booking_id: int,
-        end_time: datetime | None = None,
+        self, manager_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=manager_id,
             type_="booking_confirmed",
-            message=(
-                f"پرداخت رزرو {vendor_name} — {format_slot_label(start_time, end_time)} انجام شد "
-                f"و رزرو (کد {_to_persian_digits(str(booking_id))}) قطعی است."
-            ),
+            message=f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} انجام شد.",
         )
 
     async def booking_cancelled_for_user(
-        self,
-        user_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        refund_amount: Decimal | float,
-        penalty_amount: Decimal | float,
-        end_time: datetime | None = None,
+        self, user_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=user_id,
             type_="booking_cancelled",
-            message=(
-                f"رزرو شما برای {vendor_name} در {format_slot_label(start_time, end_time)} لغو شد. "
-                f"{format_toman(refund_amount)} در انتظار عودت است "
-                f"(جریمه لغو: {format_toman(penalty_amount)})."
-            ),
+            message=f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} لغو شد.",
         )
 
     async def booking_cancelled_for_manager(
-        self,
-        manager_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        booking_id: int,
-        end_time: datetime | None = None,
+        self, manager_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=manager_id,
             type_="booking_cancelled",
             message=(
-                f"رزرو {vendor_name} در {format_slot_label(start_time, end_time)} توسط کاربر لغو شد "
-                f"(کد رزرو {_to_persian_digits(str(booking_id))})."
+                f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} توسط کاربر لغو شد."
             ),
         )
 
     async def booking_pending_replacement_for_user(
-        self,
-        user_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        refund_amount: Decimal | float,
-        end_time: datetime | None = None,
+        self, user_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=user_id,
             type_="booking_pending_replacement",
             message=(
-                f"درخواست لغو رزرو {vendor_name} در {format_slot_label(start_time, end_time)} ثبت شد. "
-                "سانس تا پیدا شدن جایگزین در اختیار شماست؛ پس از جایگزینی، "
-                f"{format_toman(refund_amount)} عودت داده می‌شود."
+                f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} "
+                "در انتظار جایگزین است."
             ),
         )
 
     async def booking_pending_replacement_for_manager(
-        self,
-        manager_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        booking_id: int,
-        end_time: datetime | None = None,
+        self, manager_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=manager_id,
             type_="booking_pending_replacement",
             message=(
-                f"رزرو {vendor_name} در {format_slot_label(start_time, end_time)} در انتظار جایگزین است "
-                f"(کد رزرو {_to_persian_digits(str(booking_id))})."
+                f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} "
+                "در انتظار جایگزین است."
             ),
         )
 
     async def booking_replaced_for_user(
-        self,
-        user_id: int,
-        vendor_name: str,
-        refund_amount: Decimal | float,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        self, user_id: int, vendor_name: str, start_time: datetime
     ) -> None:
-        slot_label = f" ({format_slot_label(start_time, end_time)})" if start_time else ""
         await self.create(
             user_id=user_id,
             type_="booking_replaced",
             message=(
-                f"برای سانس شما در {vendor_name}{slot_label} جایگزین پیدا شد و "
-                f"{format_toman(refund_amount)} در انتظار عودت است."
+                f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} "
+                "به متقاضی جایگزین منتقل شد."
             ),
         )
 
     async def booking_replaced_for_manager(
-        self,
-        manager_id: int,
-        vendor_name: str,
-        start_time: datetime,
-        end_time: datetime | None = None,
+        self, manager_id: int, vendor_name: str, start_time: datetime
     ) -> None:
         await self.create(
             user_id=manager_id,
             type_="booking_replaced",
             message=(
-                f"رزرو {vendor_name} در {format_slot_label(start_time, end_time)} "
+                f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} "
                 "به متقاضی جایگزین منتقل شد."
             ),
         )
 
-    async def booking_failed(self, user_id: int, reason: str) -> None:
-        await self.create(
-            user_id=user_id,
-            type_="booking_failed",
-            message=f"پرداخت رزرو شما ناموفق بود: {reason}",
-        )
-
-    async def booking_expired(
-        self,
-        user_id: int,
-        vendor_name: str,
-        start_time: datetime | None,
-        end_time: datetime | None = None,
-    ) -> None:
-        slot_label = format_slot_label(start_time, end_time) if start_time else "سانس موردنظر"
-        await self.create(
-            user_id=user_id,
-            type_="booking_expired",
-            message=(f"مهلت پرداخت رزرو {vendor_name} ({slot_label}) تمام شد و رزرو لغو گردید."),
-        )
-
     async def cancellation_withdrawn(
-        self,
-        user_id: int,
-        vendor_name: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        self, user_id: int, vendor_name: str, start_time: datetime
     ) -> None:
-        slot_label = f" ({format_slot_label(start_time, end_time)})" if start_time else ""
-        vendor_label = f" {vendor_name}" if vendor_name else ""
         await self.create(
             user_id=user_id,
             type_="cancellation_withdrawn",
             message=(
-                f"درخواست لغو پس گرفته شد؛ سانس{vendor_label}{slot_label} همچنان برای شما قطعی است."
+                f"درخواست لغو رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} "
+                "پس گرفته شد."
             ),
-        )
-
-    async def replacement_payment_failed(self, user_id: int, failure_message: str) -> None:
-        await self.create(
-            user_id=user_id,
-            type_="replacement_payment_failed",
-            message=f"پرداخت سانس جایگزین ناموفق بود: {failure_message}",
         )
 
     async def replacement_not_found(
@@ -315,31 +219,21 @@ class NotificationService:
         user_id: int,
         vendor_name: str | None = None,
         start_time: datetime | None = None,
-        end_time: datetime | None = None,
     ) -> None:
-        slot_label = f" ({format_slot_label(start_time, end_time)})" if start_time else ""
-        vendor_label = f" {vendor_name}" if vendor_name else ""
+        slot_label = f" در {format_slot_label(start_time)}" if start_time else ""
         await self.create(
             user_id=user_id,
             type_="replacement_not_found",
-            message=(
-                f"برای سانس شما در{vendor_label}{slot_label} جایگزین پیدا نشد؛ "
-                "رزرو همچنان متعلق به شماست."
-            ),
+            message=f"برای رزرو مجموعه {vendor_name or 'مجموعه'}{slot_label} جایگزین پیدا نشد.",
         )
 
     async def slot_cancelled_by_manager(
-        self,
-        user_id: int,
-        vendor_name: str,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        self, user_id: int, vendor_name: str, start_time: datetime
     ) -> None:
-        slot_label = f" ({format_slot_label(start_time, end_time)})" if start_time else ""
         await self.create(
             user_id=user_id,
             type_="slot_cancelled_by_manager",
-            message=f"سانس شما در مجموعه {vendor_name}{slot_label} لغو شد.",
+            message=f"رزرو مجموعه {vendor_name} در {format_slot_label(start_time)} لغو شد.",
         )
 
     # ── Finance ──────────────────────────────────────────────────────────────
