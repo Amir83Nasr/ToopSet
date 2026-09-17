@@ -37,14 +37,14 @@ interface BookingBallOptionProps {
 }
 
 const cardBase =
-  "relative flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border p-4 text-center transition-all duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background"
+  "relative flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-all duration-150 sm:p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background"
 
 function SelectedBadge({ visible }: { visible: boolean }) {
   return (
     <CircleCheck
       aria-hidden="true"
       className={cn(
-        "absolute start-2.5 top-2.5 size-5 fill-primary text-primary-foreground transition-all duration-150",
+        "absolute start-2 top-2 size-4 fill-primary text-primary-foreground transition-all duration-150 sm:start-2.5 sm:top-2.5 sm:size-5",
         visible ? "scale-100 opacity-100" : "scale-50 opacity-0"
       )}
     />
@@ -87,7 +87,7 @@ export function BookingBallOption({
         </span>
       </legend>
 
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
         {/* Rent a ball — rendered first so it sits on the right in RTL */}
         <label
           className={cn(
@@ -106,7 +106,10 @@ export function BookingBallOption({
             aria-label="اجاره توپ"
           />
           <SelectedBadge visible={selected === true} />
-          <Volleyball aria-hidden="true" className="size-10 text-primary" />
+          <Volleyball
+            aria-hidden="true"
+            className="size-8 text-primary sm:size-10"
+          />
           <span className="text-sm leading-5 font-medium">اجاره توپ</span>
           <span className="text-xs text-muted-foreground">
             ({formatPrice(price)})
@@ -131,7 +134,7 @@ export function BookingBallOption({
             aria-label="خیر، خودم توپ دارم"
           />
           <SelectedBadge visible={selected === false} />
-          <HandWithBallIcon className="size-10 text-muted-foreground" />
+          <HandWithBallIcon className="size-8 text-muted-foreground sm:size-10" />
           <span className="text-sm leading-5 font-medium">
             خیر، خودم توپ دارم
           </span>
