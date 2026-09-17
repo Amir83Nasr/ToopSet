@@ -157,11 +157,11 @@ class TimeSlotService:
         # Track whether response came from Redis (for X-Cache header)
         self._from_cache = False
 
-        # Try Redis cache first (first page only) — no DB touch on HIT.
-        # Cached payloads are anonymous (ownership flags are annotated after
-        # the read), so a HIT served to a guest is safe to serve to anyone —
-        # `_annotate_own_pending_bookings` runs on both paths below.
-        if after_id is None and skip == 0 and limit <= 50:
+        # Try Redis cache first for non-staff (first page only) — no DB touch on HIT.
+        # Managers/admins may view slots beyond the public 14-day window or inactive slots,
+        # so staff reads must not blindly consume the public cache.
+        is_staff = bool(self.current_user and self.current_user.role in ("admin", "manager"))
+        if not is_staff and after_id is None and skip == 0 and limit <= 50:
             cached = await get_cached_slot_list(vendor_id, date=date)
             if cached is not None:
                 self._from_cache = True
@@ -175,6 +175,16 @@ class TimeSlotService:
         if not vendor.is_active and not self._can_manage_vendor(vendor):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
         can_manage = self._can_manage_vendor(vendor)
+
+        # Staff user viewing as non-manager can still benefit from public cache
+        if not can_manage and after_id is None and skip == 0 and limit <= 50:
+            cached = await get_cached_slot_list(vendor_id, date=date)
+            if cached is not None:
+                self._from_cache = True
+                result = TimeSlotListResponse(slots=cached, total=len(cached))  # type: ignore[arg-type]
+                await self._annotate_own_pending_bookings(result.slots)
+                return result
+
         start_from: datetime | None = None
         start_until: datetime | None = None
         if not can_manage:

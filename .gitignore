@@ -48,7 +48,8 @@ Desktop.ini
 .env.*
 !.env.example
 # Hamravesh compose with real secrets — import manually, never commit
-compose.hamravesh.yml
+compose-hamravesh.yml
+config-toopset.yml
 *.pem
 *.key
 
