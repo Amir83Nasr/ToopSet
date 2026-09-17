@@ -28,6 +28,7 @@ import {
   Info,
   ImagePlus,
   Share2,
+  Loader2,
 } from "lucide-react"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 import {
@@ -43,6 +44,7 @@ import {
   type Review,
 } from "@/components/vendors/vendor-shared"
 import { SlotRow } from "@/components/vendors/public-slot-row"
+import { BookingBallOption } from "@/components/bookings/booking-ball-option"
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -250,6 +252,10 @@ export default function PublicVendorDetailPage({
   })
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [bookingDrawerOpen, setBookingDrawerOpen] = useState(false)
+  // Ball choice inside the booking dialog; null = nothing picked yet
+  const [withBall, setWithBall] = useState<boolean | null>(null)
+  // Create + pay request in flight from the booking dialog
+  const [bookingBusy, setBookingBusy] = useState(false)
   // Booking currently being sent to the payment gateway (own pending slot)
   const [payingBookingId, setPayingBookingId] = useState<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -422,8 +428,11 @@ export default function PublicVendorDetailPage({
     fetchSlots(effectiveDate)
   }, [effectiveDate, vendorId, fetchSlots])
 
-  function handleBookSlot(slot: TimeSlot) {
-    setBookingDrawerOpen(false)
+  // Complete the booking straight from the vendor page dialog: create the
+  // booking with the ball choice, then hand off to the payment gateway.
+  async function confirmBooking() {
+    const slot = selectedSlot
+    if (!slot || bookingBusy) return
     if (new Date(slot.start_time).getTime() <= Date.now()) {
       toast.error("زمان این سانس گذشته و دیگر قابل رزرو نیست")
       return
@@ -432,12 +441,45 @@ export default function PublicVendorDetailPage({
       toast.info("برای رزرو سانس باید اول وارد شوید", {
         description: "بعد از ورود، همین سانس برای ادامه رزرو باز می‌شود.",
       })
+      const ballParam = withBall !== null ? `&with_ball=${withBall}` : ""
       router.push(
-        `/login?reason=login_required&redirect=${encodeURIComponent(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)}`
+        `/login?reason=login_required&redirect=${encodeURIComponent(`/book?slot_id=${slot.id}&vendor_id=${vendorId}${ballParam}`)}`
       )
       return
     }
-    router.push(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)
+    if (user && user.role === "user" && !user.phone_verified_at) {
+      router.replace(
+        `/otp?reason=phone_verification_required&phone=${encodeURIComponent(user.phone)}&redirect=${encodeURIComponent(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)}`
+      )
+      return
+    }
+    setBookingBusy(true)
+    try {
+      const res = await api<{ id: number }>("/api/v1/bookings", {
+        method: "POST",
+        body: JSON.stringify({
+          slot_id: slot.id,
+          version: slot.version,
+          with_ball: withBall ?? false,
+        }),
+      })
+      const payRes = await api<{
+        payment_gateway?: string
+        start_url?: string
+      }>(`/api/v1/bookings/${res.id}/pay`, { method: "POST" })
+      if (payRes?.payment_gateway === "zibal" && payRes.start_url) {
+        window.location.assign(payRes.start_url)
+        return
+      }
+      toast.success("رزرو با موفقیت ثبت و پرداخت شد")
+      router.push("/dashboard/bookings")
+    } catch {
+      // /book re-checks everything server-side and shows the right screen:
+      // pending-checkout conflict, slot taken/expired, or its own error UI.
+      router.push(`/book?slot_id=${slot.id}&vendor_id=${vendorId}`)
+    } finally {
+      setBookingBusy(false)
+    }
   }
 
   // Resume the payment of the user's own pending booking straight from the
@@ -486,6 +528,7 @@ export default function PublicVendorDetailPage({
       return
     }
     setSelectedSlot(slot)
+    setWithBall(null)
     setBookingDrawerOpen(true)
   }
 
@@ -963,12 +1006,33 @@ export default function PublicVendorDetailPage({
                   {vendor?.name}
                 </ResponsiveDialogDescription>
               </ResponsiveDialogHeader>
-              <div className="py-2">
+              <div className="space-y-4 py-2">
                 {selectedSlot && (
-                  <SlotInfo
-                    slot={selectedSlot}
-                    dateLabel={`${selectedDayInfo?.dayName || ""}‌ - ${selectedDayInfo?.fullPersian || selectedDate}`}
-                  />
+                  <>
+                    <SlotInfo
+                      slot={selectedSlot}
+                      dateLabel={`${selectedDayInfo?.dayName || ""}‌ - ${selectedDayInfo?.fullPersian || selectedDate}`}
+                    />
+                    <BookingBallOption
+                      available={selectedSlot.ball_available}
+                      price={selectedSlot.ball_price}
+                      selected={withBall}
+                      onSelect={setWithBall}
+                      formatPrice={formatPrice}
+                    />
+                    {selectedSlot.ball_available && withBall === true && (
+                      <div className="flex items-center justify-between rounded-lg bg-primary/5 px-4 py-3">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          مبلغ نهایی (با توپ)
+                        </span>
+                        <span className="text-base font-bold text-primary">
+                          {formatPrice(
+                            selectedSlot.base_price + selectedSlot.ball_price
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               <ResponsiveDialogFooter className="gap-2">
@@ -976,6 +1040,7 @@ export default function PublicVendorDetailPage({
                   <Button
                     type="button"
                     variant="outline"
+                    disabled={bookingBusy}
                     onClick={() => {
                       setBookingDrawerOpen(false)
                       setSelectedSlot(null)
@@ -986,11 +1051,17 @@ export default function PublicVendorDetailPage({
                 </ResponsiveDialogClose>
                 <Button
                   type="button"
-                  onClick={() => {
-                    if (selectedSlot) handleBookSlot(selectedSlot)
-                  }}
+                  onClick={() => void confirmBooking()}
+                  disabled={
+                    bookingBusy ||
+                    (!!selectedSlot?.ball_available && withBall === null)
+                  }
                 >
-                  <CheckCircle2 className="me-1.5 size-4" />
+                  {bookingBusy ? (
+                    <Loader2 className="me-1.5 size-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="me-1.5 size-4" />
+                  )}
                   {isAuthenticated ? "تکمیل رزرو" : "ورود و رزرو"}
                 </Button>
               </ResponsiveDialogFooter>

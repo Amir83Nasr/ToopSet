@@ -126,6 +126,13 @@ function formatJalaliDate(value: string): string {
   return toPersianDigits(value).replace(/[\/\-\.]/g, "٫")
 }
 
+/** Ball choice handed off from the vendor page booking dialog via the
+ *  with_ball query param (e.g. through the login redirect); null = absent. */
+function withBallFromParams(params: URLSearchParams): boolean | null {
+  const wb = params.get("with_ball")
+  return wb === null ? null : wb === "true"
+}
+
 function BookPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -142,7 +149,11 @@ function BookPageContent() {
     sport_type: string
     address: string
   } | null>(null)
-  const [withBall, setWithBall] = useState<boolean | null>(null)
+  // Ball choice may arrive via the with_ball query param when handed off
+  // from the vendor page booking dialog (e.g. after the login redirect).
+  const [withBall, setWithBall] = useState<boolean | null>(() =>
+    withBallFromParams(searchParams)
+  )
   const [errorMsg, setErrorMsg] = useState<string>("")
   const [pendingCheckout, setPendingCheckout] =
     useState<PendingCheckout | null>(null)
@@ -198,7 +209,7 @@ function BookPageContent() {
           throw new ApiError(409, "زمان این سانس گذشته و دیگر قابل رزرو نیست")
         }
         setSlot(slotRes)
-        setWithBall(null)
+        setWithBall(withBallFromParams(searchParams))
         setVendor({
           id: slotRes.vendor_id,
           name: slotRes.vendor_name,
@@ -216,7 +227,7 @@ function BookPageContent() {
       }
     }
     fetchDetails()
-  }, [slotId, vendorId, isAuthenticated])
+  }, [slotId, vendorId, isAuthenticated, searchParams])
 
   // Add type inside the file to avoid import issues
   interface ZibalPaymentStartResponse {
