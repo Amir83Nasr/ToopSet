@@ -201,9 +201,10 @@ async def test_only_one_actor_can_reserve_a_slot_under_real_concurrency(competit
         await _cleanup_committed_world(ids)
 
 
-async def test_pending_payment_cannot_be_cancelled_while_checkout_is_live(
+async def test_pending_payment_can_be_cancelled_from_site_while_checkout_is_live(
     client, session: AsyncSession, manager_token: dict, user_token: dict
 ) -> None:
+    """In-site cancel mirrors the gateway cancel: slot freed, no refund recorded."""
     vendor_id, slot_id = await _api_vendor_and_slot(client, session, manager_token, hours=72)
     del vendor_id
     headers = {"Authorization": f"Bearer {user_token['access_token']}"}
@@ -216,7 +217,8 @@ async def test_pending_payment_cannot_be_cancelled_while_checkout_is_live(
     cancelled = await client.post(
         f"/api/v1/bookings/{created.json()['id']}/cancel", headers=headers
     )
-    assert cancelled.status_code == 409
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "cancelled"
 
     row = (
         (
@@ -227,7 +229,7 @@ async def test_pending_payment_cannot_be_cancelled_while_checkout_is_live(
         .mappings()
         .one()
     )
-    assert row == {"status": "reserving", "is_reserved": True}
+    assert row == {"status": "open", "is_reserved": False}
     assert (
         await session.scalar(
             text("SELECT count(*) FROM refunds WHERE booking_id = :id"),

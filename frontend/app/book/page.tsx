@@ -157,6 +157,7 @@ function BookPageContent() {
   const [errorMsg, setErrorMsg] = useState<string>("")
   const [pendingCheckout, setPendingCheckout] =
     useState<PendingCheckout | null>(null)
+  const [cancellingCheckout, setCancellingCheckout] = useState(false)
 
   // Redirect to login only if we're sure there's no auth (no token cookie)
   useEffect(() => {
@@ -183,51 +184,81 @@ function BookPageContent() {
     )
   }, [authLoading, router, slotId, user, vendorId])
 
-  // Fetch slot + vendor details
-  useEffect(() => {
+  // Fetch slot + vendor details (re-run after resolving a checkout conflict)
+  const loadDetails = useCallback(async () => {
     if (!slotId || !vendorId || !isAuthenticated) return
-
-    async function fetchDetails() {
-      try {
-        const currentCheckout = await api<PendingCheckout | null>(
-          "/api/v1/bookings/pending-checkout"
-        )
-        if (currentCheckout) {
-          setPendingCheckout(currentCheckout)
-          setErrorMsg(currentCheckout.message)
-          setStep("conflict")
-          return
-        }
-        const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
-        if (slotRes.status === "reserving")
-          throw new ApiError(409, RESERVING_HINT)
-        if (isSlotInactive(slotRes))
-          throw new ApiError(409, "این سانس غیرفعال شده است")
-        if (!isSlotBookable(slotRes))
-          throw new ApiError(409, "این سانس قبلاً رزرو شده است")
-        if (new Date(slotRes.start_time).getTime() <= Date.now()) {
-          throw new ApiError(409, "زمان این سانس گذشته و دیگر قابل رزرو نیست")
-        }
-        setSlot(slotRes)
-        setWithBall(withBallFromParams(searchParams))
-        setVendor({
-          id: slotRes.vendor_id,
-          name: slotRes.vendor_name,
-          sport_type: slotRes.vendor_sport_type,
-          address: slotRes.vendor_address,
-        })
-        setStep("confirm")
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setErrorMsg(err.message)
-        } else {
-          setErrorMsg("خطا در دریافت اطلاعات")
-        }
-        setStep("error")
+    try {
+      const currentCheckout = await api<PendingCheckout | null>(
+        "/api/v1/bookings/pending-checkout"
+      )
+      if (currentCheckout) {
+        setPendingCheckout(currentCheckout)
+        setErrorMsg(currentCheckout.message)
+        setStep("conflict")
+        return
       }
+      const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
+      if (slotRes.status === "reserving")
+        throw new ApiError(409, RESERVING_HINT)
+      if (isSlotInactive(slotRes))
+        throw new ApiError(409, "این سانس غیرفعال شده است")
+      if (!isSlotBookable(slotRes))
+        throw new ApiError(409, "این سانس قبلاً رزرو شده است")
+      if (new Date(slotRes.start_time).getTime() <= Date.now()) {
+        throw new ApiError(409, "زمان این سانس گذشته و دیگر قابل رزرو نیست")
+      }
+      setSlot(slotRes)
+      setWithBall(withBallFromParams(searchParams))
+      setVendor({
+        id: slotRes.vendor_id,
+        name: slotRes.vendor_name,
+        sport_type: slotRes.vendor_sport_type,
+        address: slotRes.vendor_address,
+      })
+      setStep("confirm")
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message)
+      } else {
+        setErrorMsg("خطا در دریافت اطلاعات")
+      }
+      setStep("error")
     }
-    fetchDetails()
   }, [slotId, vendorId, isAuthenticated, searchParams])
+
+  useEffect(() => {
+    const timer = setTimeout(() => loadDetails(), 0)
+    return () => clearTimeout(timer)
+  }, [loadDetails])
+
+  /** Cancel the blocking checkout the same way the gateway cancel button does,
+   *  then retry booking the originally selected slot. */
+  const handleCancelPendingCheckout = useCallback(async () => {
+    if (!pendingCheckout) return
+    setCancellingCheckout(true)
+    try {
+      if (pendingCheckout.checkout_type === "booking") {
+        await api(`/api/v1/bookings/${pendingCheckout.booking_id}/cancel`, {
+          method: "POST",
+          body: JSON.stringify({ expected_mode: "pending_payment" }),
+        })
+      } else {
+        await api(
+          `/api/v1/bookings/replacement-holds/${pendingCheckout.booking_id}`,
+          { method: "DELETE" }
+        )
+      }
+      toast.success("رزرو قبلی لغو شد و سانس آزاد شد")
+      setPendingCheckout(null)
+      setStep("loading")
+      await loadDetails()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو قبلی"
+      toast.error(msg)
+    } finally {
+      setCancellingCheckout(false)
+    }
+  }, [pendingCheckout, loadDetails])
 
   // Add type inside the file to avoid import issues
   interface ZibalPaymentStartResponse {
@@ -491,7 +522,7 @@ function BookPageContent() {
                   </CardTitle>
                   <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                     {pendingCheckout
-                      ? "یه روز هنوز در انتظار پرداخت گذاشتی، یا رزروش کن یا برو تو درگاه گزینه لغو رو بزن."
+                      ? "یه رزرو هنوز در انتظار پرداخت گذاشتی؛ یا پرداختش رو کامل کن یا همین‌جا لغوش کن."
                       : errorMsg ||
                         "این سانس توسط کاربر دیگری رزرو شده است. لطفاً سانس دیگری را انتخاب کنید."}
                   </p>
@@ -587,6 +618,19 @@ function BookPageContent() {
                         ادامه و تکمیل پرداخت رزرو قبلی
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      className="w-full text-destructive hover:text-destructive"
+                      disabled={cancellingCheckout}
+                      onClick={handleCancelPendingCheckout}
+                    >
+                      {cancellingCheckout ? (
+                        <Loader2 className="me-2 size-4 animate-spin" />
+                      ) : (
+                        <XCircle className="me-2 size-4" />
+                      )}
+                      لغو رزرو قبلی و آزادسازی سانس
+                    </Button>
                     <Button variant="outline" asChild className="w-full">
                       <Link href="/dashboard/bookings">
                         مشاهده لیست رزروهای من

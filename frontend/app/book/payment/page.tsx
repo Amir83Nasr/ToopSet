@@ -19,7 +19,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
-import { ArrowRight, LayoutDashboard, AlertTriangle } from "lucide-react"
+import {
+  ArrowRight,
+  LayoutDashboard,
+  AlertTriangle,
+  Loader2,
+  XCircle,
+} from "lucide-react"
 import { toast } from "@/lib/toast"
 
 interface BookingDetail {
@@ -82,6 +88,7 @@ function PaymentPageContent() {
   const [booking, setBooking] = useState<BookingDetail | null>(null)
   const [error, setError] = useState<string>("")
   const [paying, setPaying] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [clock, setClock] = useState(() => Date.now())
 
   useEffect(() => {
@@ -169,21 +176,29 @@ function PaymentPageContent() {
 
   const handleCancelBooking = async () => {
     if (!booking) return
+    setCancelling(true)
     try {
-      const path =
-        checkoutType === "replacement_hold"
-          ? `/api/v1/bookings/replacement-holds/${booking.id}`
-          : `/api/v1/bookings/${booking.id}/cancel`
-      await api(path, {
-        method: checkoutType === "replacement_hold" ? "DELETE" : "POST",
-      })
+      if (checkoutType === "replacement_hold") {
+        await api(`/api/v1/bookings/replacement-holds/${booking.id}`, {
+          method: "DELETE",
+        })
+      } else {
+        await api(`/api/v1/bookings/${booking.id}/cancel`, {
+          method: "POST",
+          body: JSON.stringify({ expected_mode: "pending_payment" }),
+        })
+      }
       toast.success(
-        checkoutType === "replacement_hold" ? "هولد آزاد شد" : "رزرو لغو شد"
+        checkoutType === "replacement_hold"
+          ? "هولد آزاد شد"
+          : "رزرو لغو شد و سانس آزاد شد"
       )
       router.push("/dashboard/bookings")
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "خطا در لغو رزرو"
       toast.error(msg)
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -356,20 +371,21 @@ function PaymentPageContent() {
                 مشاهده رزروهای من
               </Link>
             </Button>
-            {checkoutType === "replacement_hold" ? (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleCancelBooking}
-              >
-                آزاد کردن درخواست جایگزینی
-              </Button>
-            ) : (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800">
-                برای لغو این رزرو، وارد درگاه شوید و گزینه لغو پرداخت را انتخاب
-                کنید. دکمه بازگشت مرورگر پرداخت را لغو نمی‌کند.
-              </p>
-            )}
+            <Button
+              variant="outline"
+              className="w-full text-destructive hover:text-destructive"
+              disabled={cancelling}
+              onClick={handleCancelBooking}
+            >
+              {cancelling ? (
+                <Loader2 className="me-2 size-4 animate-spin" />
+              ) : (
+                <XCircle className="me-2 size-4" />
+              )}
+              {checkoutType === "replacement_hold"
+                ? "آزاد کردن درخواست جایگزینی"
+                : "لغو رزرو و آزادسازی سانس"}
+            </Button>
           </div>
         </div>
       </main>

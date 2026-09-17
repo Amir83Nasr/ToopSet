@@ -21,6 +21,7 @@ import {
   MessageSquarePlus,
   Star,
   Undo2,
+  XCircle,
 } from "lucide-react"
 import type { BookingDetail } from "@/components/bookings/types"
 
@@ -313,18 +314,28 @@ export function BookingTable({
               {hasAction && (
                 <div className="bg-muted/20 p-3">
                   {b.status === "pending_payment" && (
-                    <Button
-                      className="w-full"
-                      disabled={payingId === b.id || !canResumePayment}
-                      onClick={() => onPay(b.id)}
-                    >
-                      {payingId === b.id ? (
-                        <Loader2 className="me-1.5 size-4 animate-spin" />
-                      ) : (
-                        <CreditCard className="me-1.5 size-4" />
-                      )}
-                      ادامه پرداخت
-                    </Button>
+                    <div className="space-y-2">
+                      <Button
+                        className="w-full"
+                        disabled={payingId === b.id || !canResumePayment}
+                        onClick={() => onPay(b.id)}
+                      >
+                        {payingId === b.id ? (
+                          <Loader2 className="me-1.5 size-4 animate-spin" />
+                        ) : (
+                          <CreditCard className="me-1.5 size-4" />
+                        )}
+                        ادامه پرداخت
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full text-destructive hover:text-destructive"
+                        onClick={() => onCancelClick(b)}
+                      >
+                        <XCircle className="me-1.5 size-4" />
+                        لغو رزرو
+                      </Button>
+                    </div>
                   )}
                   {canCancel && b.status === "confirmed" && (
                     <Button

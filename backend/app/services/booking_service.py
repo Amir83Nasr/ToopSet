@@ -225,7 +225,7 @@ class BookingService:
 
                 message = (
                     "⚠️ شما یک رزرو در انتظار پرداخت دارید!\n"
-                    "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                    "لطفاً یا آن رزرو را پرداخت کنید یا آن را از همین‌جا لغو کنید تا بتوانید رزرو جدید انجام دهید."
                     f"{booking_details_text}"
                 )
 
@@ -305,7 +305,7 @@ class BookingService:
 
                 message = (
                     "⚠️ شما یک فرایند جایگزینی در انتظار پرداخت دارید!\n"
-                    "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                    "لطفاً یا آن رزرو را پرداخت کنید یا آن را از همین‌جا لغو کنید تا بتوانید رزرو جدید انجام دهید."
                     f"{hold_details_text}"
                 )
 
@@ -370,7 +370,7 @@ class BookingService:
                 message = (
                     (
                         "⚠️ شما یک رزرو در انتظار پرداخت دارید!\n"
-                        "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                        "لطفاً یا آن رزرو را پرداخت کنید یا آن را از همین‌جا لغو کنید تا بتوانید رزرو جدید انجام دهید."
                         f"{booking_details_text}"
                     )
                     if can_resume
@@ -428,7 +428,7 @@ class BookingService:
             message = (
                 (
                     "⚠️ شما یک فرایند جایگزینی در انتظار پرداخت دارید!\n"
-                    "لطفاً یا آن رزرو را پرداخت کنید یا داخل درگاه پرداخت انصراف را بزنید تا بتوانید رزرو جدید انجام دهید."
+                    "لطفاً یا آن رزرو را پرداخت کنید یا آن را از همین‌جا لغو کنید تا بتوانید رزرو جدید انجام دهید."
                     f"{hold_details_text}"
                 )
                 if can_resume
@@ -463,7 +463,7 @@ class BookingService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="سانس یافت نشد")
 
         rules = [
-            "رزرو در انتظار پرداخت فقط از داخل درگاه یا پس از پایان مهلت پرداخت تعیین تکلیف می‌شود.",
+            "رزرو در انتظار پرداخت را می‌توانید از داخل سایت لغو کنید؛ پیش از لغو از عدم پرداخت در درگاه مطمئن می‌شویم و سانس آزاد می‌شود.",
             "برای رزروهای تأییدشده، ثبت کارت بانکی تأییدشده جهت بازگشت وجه الزامی است.",
             "اگر بیش از ۴۸ ساعت تا شروع سانس باقی مانده باشد، رزرو لغو می‌شود و ۹۰٪ مبلغ پرداختی عودت می‌شود.",
             "اگر ۴۸ ساعت یا کمتر تا شروع سانس باقی مانده باشد، رزرو در انتظار جایگزین قرار می‌گیرد و فقط در صورت جایگزینی با کسر ۱۰٪ عودت می‌شود.",
@@ -521,17 +521,13 @@ class BookingService:
         if booking.status == BookingStatus.PENDING_PAYMENT:
             return BookingCancellationTermsResponse(
                 booking_id=booking.id,
-                can_cancel=False,
+                can_cancel=True,
                 requires_bank_card=False,
                 has_verified_bank_card=bool(await self._get_verified_bank_card(booking.user_id)),
                 mode="pending_payment",
                 refund_amount=0,
                 penalty_amount=0,
                 rules=rules,
-                blocking_reason=(
-                    "برای لغو، وارد درگاه پرداخت شوید و گزینه لغو پرداخت را انتخاب کنید. "
-                    "استفاده از دکمه بازگشت مرورگر، پرداخت را لغو نمی‌کند."
-                ),
             )
 
         has_card = bool(await self._get_verified_bank_card(booking.user_id))
@@ -1215,6 +1211,37 @@ class BookingService:
         )
         await self.db.commit()
         return True
+
+    async def _ensure_zibal_checkout_unpaid(self, track_id: str) -> None:
+        """Safety gate for an explicit in-site cancel of a live Zibal checkout.
+
+        The gateway's own cancel button can only be pressed while no money has
+        moved; replicate that guarantee by trusting only Zibal's inquiry state.
+        """
+        gateway = ZibalGatewayService()
+        try:
+            inquiry = await gateway.inquiry_payment(track_id)
+        except ZibalGatewayError:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="ارتباط با درگاه پرداخت برقرار نشد؛ لطفاً چند لحظه دیگر دوباره تلاش کنید",
+            )
+        if inquiry.verified or inquiry.payment_status in {1, 2}:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="پرداخت این رزرو نهایی شده است؛ لغو آن تابع قوانین بازپرداخت است",
+            )
+        if inquiry.payment_status is None:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="نتیجه پرداخت درگاه هنوز قطعی نیست؛ چند لحظه دیگر دوباره تلاش کنید",
+            )
+        # inquiry.payment_status -1 (awaiting payment) or 3 (cancelled by the
+        # payer) means Zibal reports no money moved, so the local hold can be
+        # released exactly like a gateway cancel.
 
     async def resolve_zibal_payment(self, track_id: str) -> PaymentResolutionResponse:
         """Resolve a Zibal transaction into a stable, client-safe outcome."""
@@ -2603,22 +2630,35 @@ class BookingService:
                         status_code=status.HTTP_409_CONFLICT,
                         detail="پرداخت این رزرو موفق شده و لغو آن تابع قوانین بازپرداخت است",
                     )
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="نتیجه پرداخت درگاه هنوز قطعی نیست؛ تراکنش به صورت خودکار بررسی می‌شود",
-                )
-            if payment and payment.status == PaymentStatus.PENDING and payment.processing_token:
+                # The gateway outcome is still undecided (the checkout deadline
+                # has not passed). An explicit in-site cancel mirrors what the
+                # gateway's own cancel button does, so only proceed once Zibal
+                # confirms no money has moved for this track id.
+                await self._ensure_zibal_checkout_unpaid(track_id)
+            elif payment and payment.status == PaymentStatus.PENDING and payment.processing_token:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="درخواست پرداخت هنوز در حال ایجاد است؛ چند لحظه دیگر دوباره تلاش کنید",
                 )
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    "رزرو در انتظار پرداخت از داخل سایت قابل لغو نیست؛ وارد درگاه شوید "
-                    "و گزینه لغو پرداخت را انتخاب کنید"
-                ),
-            )
+
+            # Re-acquire the row after the gateway round-trips: the booking may
+            # have been paid, expired or cancelled while the locks were released.
+            booking = await self.booking_repo.get_by_id(booking_id, for_update=True)
+            if not booking:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="رزرو یافت نشد")
+            if booking.status != BookingStatus.PENDING_PAYMENT:
+                return await self.get_booking(booking_id)
+            slot = booking.slot
+            payment = await self.payment_repo.get_by_booking(booking_id)
+            if payment and payment.status == PaymentStatus.PENDING:
+                await self.payment_repo.update(
+                    payment,
+                    {
+                        "status": PaymentStatus.FAILED,
+                        "processing_token": None,
+                        "failure_code": "cancelled_by_user",
+                    },
+                )
             replaces_booking_id = booking.replaces_booking_id
             booking = await self.booking_repo.update(
                 booking,
@@ -2627,7 +2667,7 @@ class BookingService:
                     "settlement_status": SettlementStatus.EXCLUDED_DUE_TO_CANCELLATION,
                 },
             )
-            if slot.status == SlotStatus.RESERVING:
+            if slot and slot.status == SlotStatus.RESERVING:
                 if replaces_booking_id:
                     old_booking = await self.booking_repo.get_by_id(
                         replaces_booking_id, for_update=True
@@ -2645,28 +2685,17 @@ class BookingService:
                     await self.slot_repo.update(
                         slot, {"is_reserved": False, "status": SlotStatus.OPEN}
                     )
-            await invalidate_slot_list(slot.vendor_id)
-            await invalidate_admin_list_cache("vendors")
-            await invalidate_response_cache("vendor:detail")
-            return BookingDetailResponse(
-                id=booking.id,
-                user_id=booking.user_id,
-                slot_id=booking.slot_id,
-                status=booking.status,
-                price_paid=float(booking.price_paid),
-                slot_price=float(booking.slot_price) if booking.slot_price is not None else None,
-                ball_price=float(booking.ball_price or 0),
-                with_ball=booking.with_ball,
-                penalty_amount=float(booking.penalty_amount) if booking.penalty_amount else None,
-                created_at=booking.created_at,
-                updated_at=booking.updated_at,
-                expires_at=booking.expires_at,
-                vendor_name=vendor.name if vendor else "",
-                vendor_address=vendor.address if vendor else "",
-                slot_start_time=slot.start_time if slot else None,
-                slot_end_time=slot.end_time if slot else None,
-                payment=PaymentResponse.model_validate(payment) if payment else None,
+                await invalidate_slot_list(slot.vendor_id)
+                await invalidate_admin_list_cache("vendors")
+                await invalidate_response_cache("vendor:detail")
+            await log_action(
+                self.db,
+                self.current_user.id,
+                "booking_cancelled",
+                f"لغو رزرو پرداخت‌نشده از داخل سایت | رزرو {booking_id} — سانس آزاد شد",
             )
+            await self.db.commit()
+            return await self.get_booking(booking_id)
 
         now = now_utc()
         time_until_slot = slot.start_time - now

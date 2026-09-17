@@ -93,32 +93,44 @@ export function BookingCancelDialog({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="space-y-2 rounded-lg border p-4 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">نوع لغو</span>
-                    <span className="font-medium">{modeLabel(terms.mode)}</span>
+                {terms.mode === "pending_payment" ? (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                    این رزرو هنوز پرداخت نشده است؛ با تأیید لغو، مثل فشردن دکمه
+                    لغو در درگاه پرداخت رفتار می‌شود، سانس آزاد می‌شود و مبلغی
+                    از شما کسر نمی‌گردد.
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">مبلغ پرداختی</span>
-                    <span>{formatMoney(booking.price_paid)}</span>
+                ) : (
+                  <div className="space-y-2 rounded-lg border p-4 text-sm">
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">نوع لغو</span>
+                      <span className="font-medium">
+                        {modeLabel(terms.mode)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">
+                        مبلغ پرداختی
+                      </span>
+                      <span>{formatMoney(booking.price_paid)}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">
+                        {terms.mode === "pending_replacement"
+                          ? "مبلغ در صورت جایگزینی"
+                          : "مبلغ بازگشتی"}
+                      </span>
+                      <span className="font-medium text-status-confirmed">
+                        {formatMoney(terms.refund_amount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">جریمه</span>
+                      <span className="font-medium text-destructive">
+                        {formatMoney(terms.penalty_amount)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">
-                      {terms.mode === "pending_replacement"
-                        ? "مبلغ در صورت جایگزینی"
-                        : "مبلغ بازگشتی"}
-                    </span>
-                    <span className="font-medium text-status-confirmed">
-                      {formatMoney(terms.refund_amount)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">جریمه</span>
-                    <span className="font-medium text-destructive">
-                      {formatMoney(terms.penalty_amount)}
-                    </span>
-                  </div>
-                </div>
+                )}
 
                 {terms.mode === "pending_replacement" && (
                   <div className="rounded-lg border border-status-pending/30 bg-status-pending-bg p-3 text-sm text-status-pending">

@@ -5,8 +5,9 @@ import { BookingTable } from "@/components/bookings/booking-table"
 import type { BookingDetail } from "@/components/bookings/types"
 
 describe("BookingTable", () => {
-  it("resumes a pending gateway payment without offering site cancellation", async () => {
+  it("resumes a pending gateway payment and offers in-site cancellation", async () => {
     const onPay = vi.fn()
+    const onCancelClick = vi.fn()
     const booking: BookingDetail = {
       id: 24,
       user_id: 7,
@@ -45,17 +46,22 @@ describe("BookingTable", () => {
         onPageChange={vi.fn()}
         payingId={null}
         onPay={onPay}
-        onCancelClick={vi.fn()}
+        onCancelClick={onCancelClick}
         withdrawingId={null}
         onWithdrawCancellation={vi.fn()}
         category="current"
       />
     )
 
-    expect(screen.queryByRole("button", { name: "لغو رزرو" })).toBeNull()
     const continueButton = screen.getByRole("button", { name: /ادامه پرداخت/ })
     await userEvent.click(continueButton)
     expect(onPay).toHaveBeenCalledWith(24)
+
+    const cancelButton = screen.getByRole("button", { name: "لغو رزرو" })
+    await userEvent.click(cancelButton)
+    expect(onCancelClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 24 })
+    )
   })
 
   it("lets a user withdraw a pending cancellation", async () => {
