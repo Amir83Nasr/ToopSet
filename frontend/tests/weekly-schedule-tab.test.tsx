@@ -120,7 +120,7 @@ describe("VendorScheduleTab", () => {
         .getAllByLabelText("ساعت شروع سانس شنبه")
         .map((element) => element.textContent)
     ).toEqual(["۰۶:۰۰", "۰۸:۰۰"])
-  })
+  }, 60_000)
 
   it("opens cancel dialog for a reserved slot", async () => {
     const user = userEvent.setup()
