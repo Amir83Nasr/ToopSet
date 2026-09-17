@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import type { TimeSlot } from "@/components/vendors/vendor-shared"
 import { formatPrice, formatTime } from "@/components/vendors/vendor-shared"
 import {
+  type ManagerBooking,
+  formatBookingDate,
+  formatBookingTime,
+  formatMoney,
   getPersianDayIndex,
   getTimeInputValue,
 } from "@/components/vendors/dashboard/vendor-utils"
@@ -22,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import {
   ResponsiveDialog as Dialog,
   ResponsiveDialogContent as DialogContent,
@@ -48,6 +53,7 @@ import {
   Power,
   RefreshCw,
   UserPlus,
+  XCircle,
 } from "lucide-react"
 
 interface WeeklyScheduleItem {
@@ -113,9 +119,12 @@ function SlotStatusBadge({ slot, now }: { slot: TimeSlot; now: number }) {
   }
   if (isBlockedStatus(slot)) {
     return (
-      <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
+      <Badge
+        variant="destructive"
+        className="h-6 px-2.5 text-[10px] font-semibold"
+      >
         غیرفعال
-      </span>
+      </Badge>
     )
   }
   if (isBooked(slot)) {
@@ -172,6 +181,13 @@ export function VendorScheduleTab({
   const [manualWeeks, setManualWeeks] = useState("1")
   const [manualLoading, setManualLoading] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
+  const [cancelSlot, setCancelSlot] = useState<TimeSlot | null>(null)
+  const [cancelBooking, setCancelBooking] = useState<ManagerBooking | null>(
+    null
+  )
+  const [cancelReason, setCancelReason] = useState("")
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const [cancelLookupLoading, setCancelLookupLoading] = useState(false)
 
   const loadTemplate = useCallback(async () => {
     setTemplateLoading(true)
@@ -271,6 +287,65 @@ export function VendorScheduleTab({
       )
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  function closeCancelDialog() {
+    setCancelSlot(null)
+    setCancelBooking(null)
+    setCancelReason("")
+  }
+
+  async function openCancelDialog(slot: TimeSlot) {
+    setCancelSlot(slot)
+    setCancelBooking(null)
+    setCancelReason("")
+    setCancelLookupLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.set("vendor_id", String(vendorId))
+      params.set("date_from", toLocalDateStr(new Date(slot.start_time)))
+      params.set("date_to", toLocalDateStr(new Date(slot.start_time)))
+      params.set("limit", "100")
+      const res = await api<{ bookings: ManagerBooking[] }>(
+        `/api/v1/manager/bookings?${params}`
+      )
+      const match = res.bookings.find(
+        (booking) =>
+          booking.slot_id === slot.id &&
+          booking.status !== "cancelled" &&
+          booking.status !== "expired"
+      )
+      setCancelBooking(match ?? null)
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "خطا در دریافت اطلاعات رزرو"
+      )
+      setCancelSlot(null)
+    } finally {
+      setCancelLookupLoading(false)
+    }
+  }
+
+  async function handleCancelBooking(releaseSlot: boolean) {
+    if (!cancelBooking) return
+    setCancelLoading(true)
+    try {
+      await api(`/api/v1/manager/bookings/${cancelBooking.id}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({
+          release_slot: releaseSlot,
+          reason: cancelReason || undefined,
+        }),
+      })
+      toast.success("رزرو لغو شد")
+      closeCancelDialog()
+      void loadDaySlots()
+      onRefresh()
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "خطا در لغو رزرو")
+    } finally {
+      setCancelLoading(false)
     }
   }
 
@@ -391,8 +466,13 @@ export function VendorScheduleTab({
               <span>مشاهده امروز</span>
             </Button>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-3">
-            <Button variant="outline" size="sm" onClick={onPrevWeek}>
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={onPrevWeek}
+            >
               <ChevronRight />
               <span>هفته قبل</span>
             </Button>
@@ -404,7 +484,12 @@ export function VendorScheduleTab({
             >
               {weekLabel}
             </button>
-            <Button variant="outline" size="sm" onClick={onNextWeek}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={onNextWeek}
+            >
               <span>هفته بعد</span>
               <ChevronLeft />
             </Button>
@@ -490,20 +575,21 @@ export function VendorScheduleTab({
                 const booked = isBooked(slot)
                 const free = !past && !blocked && !booked
                 const toggling = togglingId === slot.id
-                const showActions = canManage && (free || (!past && blocked))
+                const showActions =
+                  canManage && (free || (!past && (blocked || booked)))
                 return (
                   <div
                     key={slot.id}
                     className={`grid grid-cols-2 items-center gap-x-3 gap-y-2.5 px-4 py-3 sm:grid-cols-[11rem_12rem_1fr_auto] sm:gap-x-6 sm:px-5 sm:py-3.5 ${
-                      past ? "opacity-50" : ""
+                      past ? "opacity-35" : ""
                     }`}
                   >
                     <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 sm:col-auto sm:row-auto">
                       <div
                         className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
-                          past || blocked
-                            ? "bg-muted text-muted-foreground"
-                            : booked
+                          blocked
+                            ? "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"
+                            : past || booked
                               ? "bg-muted text-muted-foreground"
                               : "bg-primary/10 text-primary"
                         }`}
@@ -539,10 +625,10 @@ export function VendorScheduleTab({
                     <div className="col-span-2 flex items-center gap-1.5 pt-1 sm:col-auto sm:row-auto sm:justify-start sm:pt-0">
                       {showActions ? (
                         free ? (
-                          <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                             <Button
                               variant="destructive"
-                              className="h-10 shrink-0 text-sm sm:h-7 sm:px-3 sm:text-xs"
+                              className="h-10 w-fit shrink-0 text-sm sm:h-7 sm:px-3 sm:text-xs"
                               disabled={toggling}
                               title="غیرفعال کردن سانس"
                               onClick={() => void toggleSlotStatus(slot)}
@@ -556,7 +642,7 @@ export function VendorScheduleTab({
                             </Button>
                             <Button
                               variant="outline"
-                              className="h-10 shrink-0 text-sm sm:h-7 sm:px-3 sm:text-xs"
+                              className="h-10 w-fit shrink-0 text-sm sm:h-7 sm:px-3 sm:text-xs"
                               onClick={() => {
                                 setManualSlot(slot)
                                 setManualName("")
@@ -568,10 +654,19 @@ export function VendorScheduleTab({
                               رزرو دستی
                             </Button>
                           </div>
+                        ) : booked ? (
+                          <Button
+                            variant="destructive"
+                            className="h-10 w-fit shrink-0 text-sm sm:h-7 sm:px-3 sm:text-xs"
+                            onClick={() => void openCancelDialog(slot)}
+                          >
+                            <XCircle className="size-3.5" />
+                            لغو رزرو
+                          </Button>
                         ) : (
                           <Button
                             variant="outline"
-                            className="h-10 w-full shrink-0 text-sm sm:h-7 sm:w-auto sm:px-3 sm:text-xs"
+                            className="h-10 w-fit shrink-0 text-sm sm:h-7 sm:px-3 sm:text-xs"
                             disabled={toggling}
                             onClick={() => void toggleSlotStatus(slot)}
                           >
@@ -689,6 +784,128 @@ export function VendorScheduleTab({
               )}
               ثبت رزرو
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={cancelSlot !== null}
+        onOpenChange={(value) => !value && closeCancelDialog()}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>جزئیات رزرو سانس</DialogTitle>
+            <DialogDescription>
+              اطلاعات رزروکننده و عملیات لغو این سانس
+            </DialogDescription>
+          </DialogHeader>
+          {cancelLookupLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            cancelSlot && (
+              <div className="space-y-4">
+                <div className="rounded-lg border p-3 text-sm">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <span className="text-muted-foreground">تاریخ: </span>
+                      {formatBookingDate(cancelSlot.start_time)}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ساعت: </span>
+                      {formatBookingTime(cancelSlot.start_time)} -{" "}
+                      {formatBookingTime(cancelSlot.end_time)}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">نام: </span>
+                      {cancelBooking?.user_name ||
+                        cancelBooking?.customer_full_name ||
+                        "نامشخص"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">تماس: </span>
+                      {cancelBooking?.user_phone ||
+                      cancelBooking?.customer_phone
+                        ? toPersianDigits(
+                            cancelBooking?.user_phone ||
+                              cancelBooking?.customer_phone ||
+                              ""
+                          )
+                        : "نامشخص"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">نوع رزرو: </span>
+                      {cancelBooking?.source === "manager_manual"
+                        ? "دستی سالندار"
+                        : "آنلاین کاربر"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">مبلغ: </span>
+                      {formatMoney(cancelBooking?.price_paid ?? 0)}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="schedule-cancel-reason">علت لغو</Label>
+                  <Textarea
+                    id="schedule-cancel-reason"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="مثلاً تعمیرات، مشکل مجموعه، تعطیلی..."
+                  />
+                </div>
+                {new Date(cancelSlot.start_time).getTime() <= clock && (
+                  <p className="text-sm text-destructive">
+                    زمان این سانس شروع شده یا گذشته است و دیگر قابل لغو نیست.
+                  </p>
+                )}
+                {!cancelBooking && (
+                  <p className="text-sm text-destructive">
+                    رزرو فعال این سانس پیدا نشد.
+                  </p>
+                )}
+              </div>
+            )
+          )}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" onClick={closeCancelDialog}>
+              بستن
+            </Button>
+            <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
+              <Button
+                variant="outline"
+                disabled={
+                  !cancelBooking ||
+                  cancelLoading ||
+                  cancelLookupLoading ||
+                  (!!cancelSlot &&
+                    new Date(cancelSlot.start_time).getTime() <= clock)
+                }
+                onClick={() => void handleCancelBooking(false)}
+              >
+                {cancelLoading && (
+                  <Loader2 className="me-1 size-4 animate-spin" />
+                )}
+                لغو بدون آزادسازی
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={
+                  !cancelBooking ||
+                  cancelLoading ||
+                  cancelLookupLoading ||
+                  (!!cancelSlot &&
+                    new Date(cancelSlot.start_time).getTime() <= clock)
+                }
+                onClick={() => void handleCancelBooking(true)}
+              >
+                {cancelLoading && (
+                  <Loader2 className="me-1 size-4 animate-spin" />
+                )}
+                لغو و آزادسازی
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -37,7 +37,7 @@ import {
   amenityLabels,
   formatPrice,
   formatTime,
-  isSlotBookable,
+  isSlotInactive,
   type VendorData,
   type TimeSlot,
   type Review,
@@ -348,6 +348,12 @@ export default function PublicVendorDetailPage({
         ?.date || ""
     )
   }, [selectedDate, weekDays, publicMinDate, publicMaxDate])
+
+  // Filter out inactive/disabled slots for public display
+  const visibleSlots = useMemo(
+    () => slots.filter((slot) => !isSlotInactive(slot)),
+    [slots]
+  )
 
   // ── Fetch vendor + reviews (client fallback when no SSR data) ──
 
@@ -754,7 +760,7 @@ export default function PublicVendorDetailPage({
                       <Skeleton key={i} className="h-14 w-full" />
                     ))}
                   </div>
-                ) : slots.length === 0 ? (
+                ) : visibleSlots.length === 0 ? (
                   <div className="flex flex-col items-center gap-3 py-20 text-center">
                     <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                       <Clock className="size-6 text-muted-foreground/50" />
@@ -790,7 +796,7 @@ export default function PublicVendorDetailPage({
 
                       {/* Slot rows (memoized) */}
                       <div className="*:last:border-b-0">
-                        {slots.map((slot) => (
+                        {visibleSlots.map((slot) => (
                           <SlotRow
                             key={slot.id}
                             slot={slot}

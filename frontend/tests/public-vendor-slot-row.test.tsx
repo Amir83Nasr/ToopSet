@@ -42,10 +42,9 @@ describe("public vendor slot row", () => {
     expect(onSelect).toHaveBeenCalledWith(openSlot)
   })
 
-  it("disables a closed slot with an inactive label", async () => {
-    const user = userEvent.setup()
+  it("does not render a closed or inactive slot on public page", () => {
     const onSelect = vi.fn()
-    render(
+    const { container } = render(
       <TooltipProvider>
         <SlotRow
           slot={{ ...openSlot, is_reserved: false, status: "closed" }}
@@ -55,12 +54,7 @@ describe("public vendor slot row", () => {
       </TooltipProvider>
     )
 
-    const button = screen.getByRole("button")
-    expect(button).toBeDisabled()
-    expect(screen.getByText("غیرفعال")).toBeInTheDocument()
-
-    await user.click(button)
-    expect(onSelect).not.toHaveBeenCalled()
+    expect(container.firstChild).toBeNull()
   })
 
   it("labels an unavailable reserved slot correctly", () => {

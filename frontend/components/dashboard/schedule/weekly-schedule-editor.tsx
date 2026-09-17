@@ -433,7 +433,7 @@ export function WeeklyScheduleEditor({
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className="sm:max-h-[90vh] sm:max-w-3xl sm:overflow-y-auto">
           <DialogHeader>
             <DialogTitle>ویرایش برنامه هفتگی سالن</DialogTitle>
             <DialogDescription>
@@ -500,13 +500,14 @@ export function WeeklyScheduleEditor({
               {dayItems.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 rounded-lg border bg-card p-3 sm:grid-cols-[7rem_7rem_1fr_8.5rem_auto]"
+                  className="grid grid-cols-2 items-end gap-2 rounded-lg border bg-card p-3 sm:grid-cols-[7rem_7rem_1fr_8.5rem_auto]"
                 >
                   <div className="space-y-1">
                     <Label className="text-xs">شروع</Label>
                     <TimePicker
                       value={item.start_time || undefined}
                       ariaLabel={`ساعت شروع سانس ${PERSIAN_DAY_NAMES[selectedDay]}`}
+                      className="w-full"
                       onChange={(value) =>
                         updateItem(item.id, "start_time", value)
                       }
@@ -517,12 +518,13 @@ export function WeeklyScheduleEditor({
                     <TimePicker
                       value={item.end_time || undefined}
                       ariaLabel={`ساعت پایان سانس ${PERSIAN_DAY_NAMES[selectedDay]}`}
+                      className="w-full"
                       onChange={(value) =>
                         updateItem(item.id, "end_time", value)
                       }
                     />
                   </div>
-                  <div className="col-span-2 space-y-1 sm:col-span-1">
+                  <div className="space-y-1">
                     <Label className="text-xs">قیمت</Label>
                     <PersianInput
                       value={item.base_price}
@@ -558,6 +560,7 @@ export function WeeklyScheduleEditor({
                     variant="destructive"
                     size="icon-sm"
                     aria-label="حذف سانس"
+                    className="col-span-2 w-full sm:col-span-1 sm:w-auto"
                     onClick={() =>
                       setItems((current) =>
                         current.filter((row) => row.id !== item.id)
@@ -578,6 +581,7 @@ export function WeeklyScheduleEditor({
                     <TimePicker
                       value={draftStart || undefined}
                       ariaLabel="ساعت شروع"
+                      className="w-full"
                       onChange={setDraftStart}
                     />
                   </div>
@@ -588,10 +592,11 @@ export function WeeklyScheduleEditor({
                     <TimePicker
                       value={draftEnd || undefined}
                       ariaLabel="ساعت پایان"
+                      className="w-full"
                       onChange={setDraftEnd}
                     />
                   </div>
-                  <div className="col-span-2 space-y-1 sm:col-span-1">
+                  <div className="space-y-1">
                     <Label htmlFor="draft-slot-price" className="text-xs">
                       قیمت سانس
                     </Label>

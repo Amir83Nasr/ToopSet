@@ -121,4 +121,137 @@ describe("VendorScheduleTab", () => {
         .map((element) => element.textContent)
     ).toEqual(["۰۶:۰۰", "۰۸:۰۰"])
   })
+
+  it("opens cancel dialog for a reserved slot", async () => {
+    const user = userEvent.setup()
+    const start = new Date()
+    start.setDate(start.getDate() + 1)
+    start.setHours(10, 0, 0, 0)
+    const end = new Date(start)
+    end.setHours(11, 30, 0, 0)
+    const slot = {
+      id: 44,
+      vendor_id: 9,
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+      base_price: 500000,
+      ball_price: 0,
+      ball_available: false,
+      status: "reserved",
+      gender: "male",
+      is_reserved: true,
+      version: 1,
+    }
+    const booking = {
+      id: 77,
+      user_id: 3,
+      slot_id: slot.id,
+      status: "confirmed",
+      source: "online",
+      price_paid: slot.base_price,
+      penalty_amount: null,
+      created_at: slot.start_time,
+      updated_at: slot.start_time,
+      expires_at: null,
+      vendor_name: "سالن تست",
+      vendor_address: "تهران",
+      user_name: "کاربر تست",
+      user_phone: "09120000000",
+      slot_start_time: slot.start_time,
+      slot_end_time: slot.end_time,
+    }
+    mockApi.mockImplementation((url: string) => {
+      if (typeof url === "string" && url.includes("weekly-schedule-template"))
+        return Promise.resolve({
+          source: "saved_version",
+          minimum_effective_date: toLocalDateStr(new Date()),
+          items: [],
+        })
+      if (typeof url === "string" && url.includes("/manager/bookings?"))
+        return Promise.resolve({ bookings: [booking], total: 1 })
+      if (typeof url === "string" && url.includes("limit=1"))
+        return Promise.resolve({ slots: [], total: 1 })
+      return Promise.resolve({ slots: [slot], total: 1 })
+    })
+
+    render(
+      <VendorScheduleTab
+        vendorId={9}
+        weekStart={start}
+        weekLabel="هفته بعد"
+        canManage
+        onPrevWeek={vi.fn()}
+        onNextWeek={vi.fn()}
+        onThisWeek={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    const dayButtons = await screen.findAllByRole("button")
+    const dayButton = dayButtons.find((el) =>
+      el.textContent?.includes(
+        start.toLocaleDateString("fa-IR", { day: "numeric" })
+      )
+    )
+    if (dayButton) await user.click(dayButton)
+
+    expect(await screen.findByText("رزرو شده")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "لغو رزرو" }))
+
+    expect(
+      await screen.findByRole("heading", { name: "جزئیات رزرو سانس" })
+    ).toBeInTheDocument()
+    expect(screen.getByText("کاربر تست")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "لغو و آزادسازی" })
+    ).toBeInTheDocument()
+  })
+
+  it("shows a destructive inactive badge", async () => {
+    const start = new Date()
+    start.setDate(start.getDate() + 1)
+    start.setHours(18, 0, 0, 0)
+    const end = new Date(start)
+    end.setHours(19, 30, 0, 0)
+    const slot = {
+      id: 12,
+      vendor_id: 9,
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+      base_price: 200000,
+      ball_price: 0,
+      ball_available: false,
+      status: "closed",
+      gender: "male",
+      is_reserved: false,
+      version: 1,
+    }
+    mockApi.mockImplementation((url: string) => {
+      if (typeof url === "string" && url.includes("weekly-schedule-template"))
+        return Promise.resolve({
+          source: "saved_version",
+          minimum_effective_date: toLocalDateStr(new Date()),
+          items: [],
+        })
+      if (typeof url === "string" && url.includes("limit=1"))
+        return Promise.resolve({ slots: [], total: 1 })
+      return Promise.resolve({ slots: [slot], total: 1 })
+    })
+
+    render(
+      <VendorScheduleTab
+        vendorId={9}
+        weekStart={start}
+        weekLabel="هفته بعد"
+        canManage
+        onPrevWeek={vi.fn()}
+        onNextWeek={vi.fn()}
+        onThisWeek={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    const badge = await screen.findByText("غیرفعال")
+    expect(badge).toHaveAttribute("data-variant", "destructive")
+  })
 })

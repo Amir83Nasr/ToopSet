@@ -12,12 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/lib/toast"
-import {
-  type VendorData,
-  type TimeSlot,
-} from "@/components/vendors/vendor-shared"
+import type { VendorData } from "@/components/vendors/vendor-shared"
 import type {
-  ManagerBooking,
   FinanceBooking,
   FinanceSummary,
   VendorSettlement,
@@ -29,14 +25,12 @@ import {
 import { VendorHeader } from "@/components/vendors/dashboard/vendor-header"
 import { VendorDetailsTab } from "@/components/vendors/dashboard/vendor-details-tab"
 import { VendorScheduleTab } from "@/components/vendors/dashboard/vendor-schedule-tab"
-import { VendorBookingsTab } from "@/components/vendors/dashboard/vendor-bookings-tab"
 import { VendorFinanceTab } from "@/components/vendors/dashboard/vendor-finance-tab"
 import { VendorReviewsTab } from "@/components/vendors/dashboard/vendor-reviews-tab"
 import {
   Building2,
   CalendarDays,
   ArrowRight,
-  CalendarCheck,
   MessageSquareText,
   Wallet,
 } from "lucide-react"
@@ -54,10 +48,9 @@ export default function DashboardVendorEditPage() {
   const [activeTab, setActiveTab] = useState("schedule")
 
   // Slot state
-  const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
 
   // Delete vendor
-  // Week navigation (shared between schedule + bookings tabs)
+  // Week navigation (shared between schedule + finance tabs)
   const [weekStart, setWeekStart] = useState<Date>(() => {
     const today = new Date()
     const daysSinceSaturday = (today.getDay() + 1) % 7
@@ -66,9 +59,7 @@ export default function DashboardVendorEditPage() {
     return saturday
   })
 
-  // Bookings + Finance state
-  const [bookings, setBookings] = useState<ManagerBooking[]>([])
-  const [bookingsLoading, setBookingsLoading] = useState(false)
+  // Finance state
   const [financeBookings, setFinanceBookings] = useState<FinanceBooking[]>([])
   const [financeSummary, setFinanceSummary] = useState<FinanceSummary | null>(
     null
@@ -159,11 +150,6 @@ export default function DashboardVendorEditPage() {
       })
       setVendorImages(vendorRes.images || [])
       setImageTempIds(Array(vendorRes.images?.length || 0).fill(""))
-      api<{ slots: TimeSlot[]; total: number }>(
-        `/api/v1/vendors/${vendorId}/slots?limit=100`
-      )
-        .then((slotsRes) => setAllSlots(slotsRes.slots))
-        .catch(() => {})
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) setNotFound(true)
       else toast.error("خطا در دریافت اطلاعات")
@@ -177,26 +163,7 @@ export default function DashboardVendorEditPage() {
     return () => clearTimeout(timer)
   }, [fetchData])
 
-  // ── Bookings + Finance fetch ──
-
-  const fetchBookings = useCallback(async () => {
-    if (!canManage) return
-    setBookingsLoading(true)
-    try {
-      const params = new URLSearchParams()
-      params.set("skip", "0")
-      params.set("limit", "100")
-      params.set("vendor_id", String(vendorId))
-      const res = await api<{ bookings: ManagerBooking[]; total: number }>(
-        `/api/v1/manager/bookings?${params}`
-      )
-      setBookings(res.bookings)
-    } catch {
-      toast.error("خطا در دریافت رزروها")
-    } finally {
-      setBookingsLoading(false)
-    }
-  }, [vendorId, canManage])
+  // ── Finance fetch ──
 
   const fetchFinance = useCallback(async () => {
     if (!canManage) return
@@ -222,11 +189,6 @@ export default function DashboardVendorEditPage() {
       setFinanceLoading(false)
     }
   }, [vendorId, canManage])
-
-  useEffect(() => {
-    const timer = setTimeout(() => fetchBookings(), 0)
-    return () => clearTimeout(timer)
-  }, [fetchBookings])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchFinance(), 0)
@@ -274,7 +236,6 @@ export default function DashboardVendorEditPage() {
       })
       toast.success("درخواست تسویه ثبت شد")
       fetchFinance()
-      fetchBookings()
     } catch (err) {
       const msg =
         err instanceof ApiError ? err.message : "خطا در ثبت درخواست تسویه"
@@ -349,13 +310,6 @@ export default function DashboardVendorEditPage() {
           {canManage && (
             <>
               <TabsTrigger
-                value="bookings"
-                className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
-              >
-                <CalendarCheck className="size-4 sm:size-5" />
-                رزروها
-              </TabsTrigger>
-              <TabsTrigger
                 value="finance"
                 className="h-11 gap-1.5 px-2 py-2 text-sm sm:gap-2.5 sm:px-6 sm:py-3 sm:text-base"
               >
@@ -404,41 +358,17 @@ export default function DashboardVendorEditPage() {
         {canManage && (
           <>
             <TabsContent
-              value="bookings"
-              className="mt-4 min-w-0 flex-1 sm:mt-8"
-            >
-              <VendorBookingsTab
-                vendorId={vendorId}
-                allSlots={allSlots}
-                bookings={bookings}
-                bookingsLoading={bookingsLoading}
-                weekLabel={weekLabel}
-                weekDays={weekDays}
-                onPrevWeek={goPrevWeek}
-                onNextWeek={goNextWeek}
-                onThisWeek={goThisWeek}
-                onRefresh={() => {
-                  fetchData()
-                  fetchBookings()
-                }}
-              />
-            </TabsContent>
-
-            <TabsContent
               value="finance"
               className="mt-4 min-w-0 flex-1 sm:mt-8"
             >
               <VendorFinanceTab
                 bookings={financeBookings}
-                bookingsLoading={financeLoading}
+                bookingsLoading={false}
                 financeSummary={financeSummary}
                 financeLoading={financeLoading}
                 settlementRequesting={settlementRequesting}
                 settlements={settlements}
-                onRefresh={() => {
-                  fetchFinance()
-                  fetchBookings()
-                }}
+                onRefresh={fetchFinance}
                 onRequestSettlement={handleRequestSettlement}
               />
             </TabsContent>

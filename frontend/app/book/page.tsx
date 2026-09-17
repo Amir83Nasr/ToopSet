@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api"
 import { toast } from "@/lib/toast"
 import { useAuth } from "@/hooks/use-auth"
 import { getCookie } from "@/lib/cookies"
+import { formatPrice, toPersianDigits } from "@/lib/utils"
 import {
   isSlotBookable,
   isSlotInactive,
@@ -104,19 +105,25 @@ const sportLabels: Record<string, string> = {
 
 function formatTime(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+  return toPersianDigits(
+    d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+  )
 }
-
-import { formatPrice } from "@/lib/utils"
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleDateString("fa-IR", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+  return toPersianDigits(
+    d.toLocaleDateString("fa-IR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  )
+}
+
+function formatJalaliDate(value: string): string {
+  return toPersianDigits(value).replace(/[\/\-\.]/g, "٫")
 }
 
 function BookPageContent() {
@@ -477,7 +484,7 @@ function BookPageContent() {
                         <span>اطلاعات رزرو نهایی‌نشده</span>
                       </div>
                       <Badge className="bg-amber-600 px-2.5 py-0.5 font-mono text-xs text-white shadow-xs hover:bg-amber-700">
-                        کد رزرو: #{pendingCheckout.booking_id}
+                        کد رزرو: #{toPersianDigits(pendingCheckout.booking_id)}
                       </Badge>
                     </div>
 
@@ -507,10 +514,11 @@ function BookPageContent() {
                               </span>
                             </div>
                             <span className="dir-rtl text-xs font-bold text-foreground">
-                              {pendingCheckout.slot_date ||
-                                (pendingCheckout.slot_start_time
+                              {pendingCheckout.slot_date
+                                ? formatJalaliDate(pendingCheckout.slot_date)
+                                : pendingCheckout.slot_start_time
                                   ? formatDate(pendingCheckout.slot_start_time)
-                                  : "-")}
+                                  : "-"}
                             </span>
                           </div>
                         )}
@@ -525,11 +533,12 @@ function BookPageContent() {
                               </span>
                             </div>
                             <span className="dir-rtl text-xs font-bold text-foreground">
-                              {pendingCheckout.slot_time ||
-                                (pendingCheckout.slot_start_time &&
-                                pendingCheckout.slot_end_time
+                              {pendingCheckout.slot_time
+                                ? toPersianDigits(pendingCheckout.slot_time)
+                                : pendingCheckout.slot_start_time &&
+                                    pendingCheckout.slot_end_time
                                   ? `${formatTime(pendingCheckout.slot_start_time)} تا ${formatTime(pendingCheckout.slot_end_time)}`
-                                  : "-")}
+                                  : "-"}
                             </span>
                           </div>
                         )}

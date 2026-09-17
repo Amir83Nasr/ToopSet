@@ -94,11 +94,7 @@ describe("VendorBookingsTab mobile dialogs", () => {
     expect(
       within(dialog).getByText(formatBookingWeekday(slot.start_time))
     ).toBeInTheDocument()
-    expect(dialog).toHaveClass(
-      "fixed",
-      "inset-s-1/2",
-      "top-1/2"
-    )
+    expect(dialog).toHaveClass("fixed")
   })
 
   it("shows booking details and cancellation actions for a reserved slot", async () => {

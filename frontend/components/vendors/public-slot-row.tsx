@@ -33,6 +33,8 @@ export const SlotRow = memo(function SlotRow({
   /** Booking id currently being sent to the gateway — disables the row while paying. */
   payingBookingId?: number | null
 }) {
+  if (isSlotInactive(slot)) return null
+
   const isSelected = selectedSlot?.id === slot.id
   const isPast = new Date(slot.start_time).getTime() <= NOW
   const isReserving = slot.status === "reserving"
@@ -41,10 +43,8 @@ export const SlotRow = memo(function SlotRow({
     isReserving && !!slot.reserved_by_me && !!slot.my_booking_id
   const isPaying =
     !!slot.my_booking_id && payingBookingId === slot.my_booking_id
-  const isInactive = isSlotInactive(slot)
-  const bookable = isSlotBookable(slot) && !isInactive
-  const disabled =
-    isPast || isInactive || (!bookable && !isMinePending) || isPaying
+  const bookable = isSlotBookable(slot)
+  const disabled = isPast || (!bookable && !isMinePending) || isPaying
   const hint = isMinePending ? MY_RESERVING_HINT : RESERVING_HINT
   const slotDay = new Date(slot.start_time).toLocaleDateString("fa-IR", {
     weekday: "long",
@@ -118,10 +118,6 @@ export const SlotRow = memo(function SlotRow({
         {isPast ? (
           <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
             گذشته
-          </span>
-        ) : isInactive ? (
-          <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
-            غیرفعال
           </span>
         ) : isReserving ? (
           <span
