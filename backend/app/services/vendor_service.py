@@ -8,9 +8,11 @@ from urllib.parse import urlparse
 from fastapi import Depends, HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_manager, get_current_user_optional
+from app.core import auth_cache
 from app.core.database import get_db
 from app.core.logger import log_action
 from app.core.redis_client import get_redis
@@ -20,6 +22,7 @@ from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import SportType, Vendor
 from app.models.vendor_image import VendorImage
+from app.repositories.user_repo import UserRepository
 from app.repositories.vendor_repo import VendorRepo
 from app.schemas.vendor import (
     VendorCreate,
@@ -204,6 +207,43 @@ class VendorService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="تغییر وضعیت تأیید مجموعه فقط توسط ادمین امکان‌پذیر است",
             )
+        manager_name = update_data.pop("manager_name", None)
+        manager_phone = update_data.pop("manager_phone", None)
+        if (
+            manager_name is not None
+            and vendor.manager is not None
+            and manager_name == vendor.manager.full_name
+        ):
+            manager_name = None
+        if (
+            manager_phone is not None
+            and vendor.manager is not None
+            and manager_phone == vendor.manager.phone
+        ):
+            manager_phone = None
+        manager_profile_update: dict[str, str] = {}
+        if manager_name is not None:
+            manager_profile_update["full_name"] = manager_name
+        if manager_phone is not None:
+            manager_profile_update["phone"] = manager_phone
+        if manager_profile_update:
+            user_repo = UserRepository(self.repo.db)
+            if "phone" in manager_profile_update:
+                owner = await user_repo.get_by_phone(manager_profile_update["phone"])
+                if owner is not None and owner.id != vendor.manager_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="این شماره تماس قبلاً ثبت شده است",
+                    )
+            try:
+                await user_repo.update_user(vendor.manager_id, manager_profile_update)
+            except IntegrityError as exc:
+                await self.repo.db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="این شماره تماس قبلاً ثبت شده است",
+                ) from exc
+            await auth_cache.invalidate_user_status(vendor.manager_id)
         updated = await self.repo.update(vendor, update_data)
         if "ball_available" in update_data or "ball_price" in update_data:
             await invalidate_slot_list(vendor_id)
@@ -268,6 +308,8 @@ class VendorService:
             await self.repo.db.flush()
         await self.repo.db.refresh(updated, ["vendor_images", "manager"])
         details_parts = [f"ویرایش مجموعه | '{updated.name}' (id={vendor_id})"]
+        if manager_profile_update:
+            details_parts.append("اطلاعات تماس به‌روزرسانی شد")
         if data.images:
             details_parts.append(f"{len(data.images)} تصویر جدید")
         if data.image_ids_to_remove:

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.phone import normalize_phone
 from app.models.vendor import SportType
 
 
@@ -69,9 +70,32 @@ class VendorUpdate(BaseModel):
     amenities: dict | None = None
     ball_available: bool | None = None
     ball_price: Decimal | None = Field(None, ge=0, decimal_places=2)
+    manager_name: str | None = Field(None, min_length=1, max_length=128)
+    manager_phone: str | None = Field(None, min_length=11, max_length=11)
     images: list[str] | None = None
     temp_ids: list[str] | None = None
     image_ids_to_remove: list[int] | None = None
+
+    @field_validator("manager_name")
+    @classmethod
+    def _reject_manager_name_markup(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if stripped == "":
+            return None
+        if any(ch in stripped for ch in ("<", ">", "\x00")):
+            raise ValueError("نام وارد شده شامل کاراکترهای مجاز نیست")
+        return stripped
+
+    @field_validator("manager_phone", mode="before")
+    @classmethod
+    def _normalize_manager_phone(cls, value: object) -> object:
+        if value is None or isinstance(value, str) and value.strip() == "":
+            return None
+        if isinstance(value, str):
+            return normalize_phone(value)
+        return value
 
     @model_validator(mode="after")
     def validate_ball_configuration(self) -> "VendorUpdate":

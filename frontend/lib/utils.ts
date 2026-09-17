@@ -69,7 +69,9 @@ export function formatPersianDate(dateInput: string | Date): string {
  *  Passes through non-digit characters unchanged.
  */
 export function toEnglishDigits(value: string): string {
-  return value.replace(/[۰-۹]/g, (d) => englishDigits[d])
+  return value
+    .replace(/[۰-۹]/g, (d) => englishDigits[d])
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
 }
 
 /** Group card digits 4 by 4 with thin space, e.g. "6037991100000000" → "۶۰۳۷ ۹۹۱۱ ۰۰۰۰ ۰۰۰۰". Keeps mask stars, drops dashes. */

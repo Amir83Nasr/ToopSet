@@ -8,9 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   formatTime,
-  getSlotStatus,
-} from "@/components/dashboard/schedule/utils"
-import type { TimeSlot } from "@/components/dashboard/schedule/types"
+  isSlotBookable,
+  type TimeSlot,
+} from "@/components/vendors/vendor-shared"
+
+function todaySlotStatus(slot: TimeSlot): "available" | "reserved" | "past" {
+  if (new Date(slot.end_time) < new Date()) return "past"
+  return isSlotBookable(slot) ? "available" : "reserved"
+}
 
 interface TodayPreviewProps {
   slots: TimeSlot[]
@@ -31,10 +36,10 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
   }, [slots])
 
   const available = todaySlots.filter(
-    (s) => getSlotStatus(s) === "available"
+    (s) => todaySlotStatus(s) === "available"
   ).length
   const reserved = todaySlots.filter(
-    (s) => getSlotStatus(s) === "reserved"
+    (s) => todaySlotStatus(s) === "reserved"
   ).length
 
   if (loading) {
@@ -91,7 +96,7 @@ export function TodayPreview({ slots, loading }: TodayPreviewProps) {
       <CardContent>
         <div className="flex flex-wrap gap-2">
           {todaySlots.slice(0, 8).map((slot) => {
-            const status = getSlotStatus(slot)
+            const status = todaySlotStatus(slot)
             return (
               <div
                 key={slot.id}

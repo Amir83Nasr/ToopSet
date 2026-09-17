@@ -11,6 +11,7 @@ import {
   formatPrice,
   formatTime,
   isSlotBookable,
+  isSlotInactive,
   MY_RESERVING_HINT,
   RESERVING_HINT,
   type TimeSlot,
@@ -40,8 +41,10 @@ export const SlotRow = memo(function SlotRow({
     isReserving && !!slot.reserved_by_me && !!slot.my_booking_id
   const isPaying =
     !!slot.my_booking_id && payingBookingId === slot.my_booking_id
-  const bookable = isSlotBookable(slot)
-  const disabled = isPast || (!bookable && !isMinePending) || isPaying
+  const isInactive = isSlotInactive(slot)
+  const bookable = isSlotBookable(slot) && !isInactive
+  const disabled =
+    isPast || isInactive || (!bookable && !isMinePending) || isPaying
   const hint = isMinePending ? MY_RESERVING_HINT : RESERVING_HINT
   const slotDay = new Date(slot.start_time).toLocaleDateString("fa-IR", {
     weekday: "long",
@@ -115,6 +118,10 @@ export const SlotRow = memo(function SlotRow({
         {isPast ? (
           <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
             گذشته
+          </span>
+        ) : isInactive ? (
+          <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground">
+            غیرفعال
           </span>
         ) : isReserving ? (
           <span

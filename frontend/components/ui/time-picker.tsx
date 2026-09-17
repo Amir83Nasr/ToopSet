@@ -8,6 +8,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn, toPersianDigits } from "@/lib/utils"
 
 /* ─── helpers ─── */
@@ -16,12 +23,8 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0")
 }
 
-function persianPad(n: number): string {
-  return toPersianDigits(pad(n))
-}
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i)
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5) // 0,5,10,...,55
+const HOURS = Array.from({ length: 24 }, (_, i) => pad(i))
+const MINUTES = Array.from({ length: 6 }, (_, i) => pad(i * 10))
 
 /* ─── props ─── */
 
@@ -31,6 +34,7 @@ interface TimePickerProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  ariaLabel?: string
 }
 
 /* ─── component ─── */
@@ -38,43 +42,26 @@ interface TimePickerProps {
 export function TimePicker({
   value,
   onChange,
-  placeholder = "--:--",
+  placeholder = "دقیقه : ساعت",
   className,
   disabled,
+  ariaLabel,
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false)
-  const [hour, setHour] = React.useState<number>(12)
-  const [minute, setMinute] = React.useState<number>(0)
-  const hourRef = React.useRef<HTMLDivElement>(null)
-  const minuteRef = React.useRef<HTMLDivElement>(null)
 
-  // Parse initial value
-  React.useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (value && /^\d{2}:\d{2}$/.test(value)) {
-      const [h, m] = value.split(":").map(Number)
-      setHour(h)
-      setMinute(m)
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [value])
+  const parsed = value && /^\d{2}:\d{2}$/.test(value) ? value.split(":") : null
+  const hour = parsed?.[0]
+  const minute = parsed?.[1]
 
-  // Auto-scroll to selected hour/minute when popover opens
-  React.useEffect(() => {
-    if (!open) return
-    const hEl = hourRef.current?.querySelector(`[data-hour="${hour}"]`)
-    hEl?.scrollIntoView({ block: "center" })
-    const mEl = minuteRef.current?.querySelector(`[data-minute="${minute}"]`)
-    mEl?.scrollIntoView({ block: "center" })
-  }, [open, hour, minute])
-
-  function handleConfirm() {
-    onChange?.(`${pad(hour)}:${pad(minute)}`)
-    setOpen(false)
+  function handleHour(h: string) {
+    onChange?.(`${h}:${minute ?? "00"}`)
   }
 
-  const displayText =
-    value && /^\d{2}:\d{2}$/.test(value) ? toPersianDigits(value) : placeholder
+  function handleMinute(m: string) {
+    onChange?.(`${hour ?? "00"}:${m}`)
+  }
+
+  const displayText = parsed ? toPersianDigits(value as string) : placeholder
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -82,14 +69,15 @@ export function TimePicker({
         <Button
           variant="outline"
           disabled={disabled}
+          aria-label={ariaLabel}
           className={cn(
             "w-fit min-w-25 justify-start gap-1.5 rounded-md border border-input bg-background px-2.5 text-start text-sm font-normal transition-colors max-md:px-2.5 dark:bg-background",
-            !value && "text-muted-foreground",
+            !parsed && "text-muted-foreground",
             className
           )}
         >
           <Clock className="size-4 shrink-0" />
-          <span>{displayText}</span>
+          <span className="tabular-nums">{displayText}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -98,86 +86,68 @@ export function TimePicker({
         sideOffset={8}
         collisionPadding={16}
       >
-        <div className="p-4" dir="ltr">
-          {/* Large time display — hours : minutes */}
-          <div className="mb-4 flex items-center justify-center gap-1 rounded-md bg-muted/60 py-3 text-center">
+        <div className="p-4" dir="rtl">
+          {/* Large time display — hours : minutes, 24h, no seconds */}
+          <div
+            className="mb-4 flex items-center justify-center gap-1 rounded-md bg-muted/60 py-3 text-center"
+            dir="ltr"
+          >
             <span className="min-w-[3ch] text-2xl font-bold tracking-wider tabular-nums">
-              {persianPad(hour)}
+              {hour ? toPersianDigits(hour) : "--"}
             </span>
             <span className="text-lg text-muted-foreground">:</span>
             <span className="min-w-[3ch] text-2xl font-bold tracking-wider tabular-nums">
-              {persianPad(minute)}
+              {minute ? toPersianDigits(minute) : "--"}
             </span>
           </div>
 
-          {/* Scrollable columns — hours left, minutes right */}
+          {/* Minute right, hour left (RTL first = right) */}
           <div className="flex gap-3">
-            <div className="flex-1">
-              <p className="mb-1 text-center text-[11px] font-medium text-muted-foreground">
-                ساعت
-              </p>
-              <div
-                ref={hourRef}
-                className="h-44 scrollbar-none overflow-y-auto rounded-md border"
-              >
-                {HOURS.map((h) => (
-                  <button
-                    key={h}
-                    data-hour={h}
-                    type="button"
-                    onClick={() => setHour(h)}
-                    className={cn(
-                      "flex w-full items-center justify-center px-2 py-1.5 text-sm transition-colors",
-                      hour === h
-                        ? "bg-primary font-semibold text-primary-foreground"
-                        : "text-foreground hover:bg-muted"
-                    )}
-                  >
-                    <span className="tabular-nums">{persianPad(h)}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="flex-1">
               <p className="mb-1 text-center text-[11px] font-medium text-muted-foreground">
                 دقیقه
               </p>
-              <div
-                ref={minuteRef}
-                className="h-44 scrollbar-none overflow-y-auto rounded-md border"
+              <Select
+                value={minute}
+                onValueChange={handleMinute}
+                disabled={disabled}
+                dir="rtl"
               >
-                {MINUTES.map((m) => (
-                  <button
-                    key={m}
-                    data-minute={m}
-                    type="button"
-                    onClick={() => setMinute(m)}
-                    className={cn(
-                      "flex w-full items-center justify-center px-2 py-1.5 text-sm transition-colors",
-                      minute === m
-                        ? "bg-primary font-semibold text-primary-foreground"
-                        : "text-foreground hover:bg-muted"
-                    )}
-                  >
-                    <span className="tabular-nums">{persianPad(m)}</span>
-                  </button>
-                ))}
-              </div>
+                <SelectTrigger aria-label="دقیقه" className="w-full">
+                  <SelectValue placeholder="دقیقه" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MINUTES.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      <span className="tabular-nums">{toPersianDigits(m)}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="mt-4 flex justify-between gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground"
-              onClick={() => setOpen(false)}
-            >
-              انصراف
-            </Button>
-            <Button onClick={handleConfirm}>تایید</Button>
+            <div className="flex-1">
+              <p className="mb-1 text-center text-[11px] font-medium text-muted-foreground">
+                ساعت
+              </p>
+              <Select
+                value={hour}
+                onValueChange={handleHour}
+                disabled={disabled}
+                dir="rtl"
+              >
+                <SelectTrigger aria-label="ساعت" className="w-full">
+                  <SelectValue placeholder="ساعت" />
+                </SelectTrigger>
+                <SelectContent>
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h}>
+                      <span className="tabular-nums">{toPersianDigits(h)}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </PopoverContent>

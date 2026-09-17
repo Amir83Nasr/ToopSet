@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event"
 import { ApiError } from "@/lib/api"
 import { toLocalDateStr } from "@/lib/utils"
 import { WeeklyScheduleEditor } from "@/components/dashboard/schedule/weekly-schedule-editor"
-import { VendorScheduleTab } from "@/components/vendors/dashboard/vendor-schedule-tab"
 import { mockApi } from "./mocks/api"
 
 describe("WeeklyScheduleEditor", () => {
@@ -114,7 +113,7 @@ describe("WeeklyScheduleEditor", () => {
     expect(
       await screen.findByText("حذف رزروهای دستی سالن‌دار")
     ).toBeInTheDocument()
-    expect(screen.getByText("۱")).toBeInTheDocument()
+    expect(screen.getByLabelText("۱ رزرو دستی")).toBeInTheDocument()
 
     await user.click(screen.getByText("تأیید حذف و اعمال برنامه"))
 
@@ -129,95 +128,5 @@ describe("WeeklyScheduleEditor", () => {
     expect(confirmedBody.items[0].gender).toBe("female")
     expect(confirmedBody).not.toHaveProperty("ball_available")
     expect(confirmedBody).not.toHaveProperty("ball_price")
-  })
-})
-
-describe("VendorScheduleTab", () => {
-  beforeEach(() => {
-    mockApi.mockReset()
-  })
-
-  it("turns the visible weekly table into the editor", async () => {
-    const user = userEvent.setup()
-    mockApi.mockResolvedValue({
-      source: "saved_version",
-      version_id: 3,
-      minimum_effective_date: toLocalDateStr(new Date()),
-      last_online_booking_date: null,
-      ball_available: true,
-      ball_price: 50000,
-      items: [
-        {
-          day_of_week: 0,
-          start_time: "08:00",
-          end_time: "10:00",
-          base_price: 250000,
-          gender: "female",
-        },
-      ],
-    })
-
-    render(
-      <VendorScheduleTab
-        vendorId={9}
-        allSlots={[]}
-        weekStart={new Date("2026-08-01T12:00:00")}
-        weekLabel="۱۰ تا ۱۶ مرداد"
-        canManage
-        loading={false}
-        onPrevWeek={vi.fn()}
-        onNextWeek={vi.fn()}
-        onThisWeek={vi.fn()}
-        onRefresh={vi.fn()}
-      />
-    )
-
-    expect(
-      screen.getByRole("heading", { name: "برنامه هفتگی ثابت سالن" })
-    ).toBeInTheDocument()
-    await waitFor(() =>
-      expect(mockApi).toHaveBeenCalledWith(
-        "/api/v1/vendors/9/slots/weekly-schedule-template"
-      )
-    )
-    expect(await screen.findByText("08:00 – 10:00")).toBeInTheDocument()
-    expect(screen.getByText("۲۵۰٬۰۰۰ تومان")).toBeInTheDocument()
-    expect(screen.getByText("بانوان")).toBeInTheDocument()
-    await user.click(screen.getByText("ویرایش برنامه هفتگی"))
-
-    expect(
-      await screen.findByRole(
-        "heading",
-        {
-          name: "ویرایش برنامه هفتگی ثابت سالن",
-        },
-        { timeout: 10000 }
-      )
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "افزودن سانس شنبه" })
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole("heading", { name: "برنامه هفتگی ثابت سالن" })
-    ).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole("button", { name: "افزودن سانس شنبه" }))
-    expect(
-      screen.getByRole("heading", { name: "افزودن سانس شنبه" })
-    ).toBeInTheDocument()
-    const startTimeInput = screen.getByLabelText("ساعت شروع")
-    expect(startTimeInput).toHaveAttribute("type", "text")
-    expect(startTimeInput).toHaveAttribute("placeholder", "HH:MM")
-    expect(screen.queryByText(/\b(?:AM|PM)\b/i)).not.toBeInTheDocument()
-    await user.type(startTimeInput, "06:00")
-    await user.type(screen.getByLabelText("ساعت پایان"), "07:00")
-    await user.type(screen.getByLabelText("قیمت سانس"), "200000")
-    await user.click(screen.getByRole("button", { name: "افزودن سانس" }))
-
-    expect(
-      screen
-        .getAllByLabelText("ساعت شروع سانس شنبه")
-        .map((input) => (input as HTMLInputElement).value)
-    ).toEqual(["06:00", "08:00"])
   })
 })

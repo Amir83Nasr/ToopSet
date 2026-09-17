@@ -3,17 +3,17 @@
 import { Controller, type UseFormReturn } from "react-hook-form"
 import type { VendorUpdateInput } from "@/lib/validations"
 import type { VendorData } from "@/components/vendors/vendor-shared"
-import { toPersianDigits } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 import { PersianInput } from "@/components/ui/persian-input"
+import { toPersianDigits } from "@/lib/utils"
 import { AmenityCheckboxes } from "@/components/vendors/amenity-checkboxes"
 import { ImageUpload } from "@/components/vendors/image-upload"
-import { MapPin, Phone, User, Volleyball } from "lucide-react"
 import dynamic from "next/dynamic"
 
 const LocationPicker = dynamic(
@@ -31,15 +31,6 @@ const sportTypes = [
   { value: "handball", label: "هندبال" },
   { value: "football", label: "فوتبال" },
 ]
-
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="h-6 w-1 rounded-full bg-primary/60" />
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-    </div>
-  )
-}
 
 interface VendorDetailsTabProps {
   vendor: VendorData
@@ -90,17 +81,17 @@ export function VendorDetailsTab({
     <form
       id="edit-form"
       onSubmit={handleSubmit(onSubmit)}
-      className="min-w-0 space-y-4 sm:space-y-6"
+      className="min-w-0 space-y-4"
     >
-      {/* ── اطلاعات اصلی ── */}
+      {/* ── مشخصات مجموعه ── */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            <SectionTitle title="اطلاعات اصلی مجموعه" />
+          <CardTitle className="text-base font-semibold">
+            مشخصات مجموعه
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">نام مجموعه</Label>
               <Input
@@ -141,171 +132,155 @@ export function VendorDetailsTab({
             />
           </div>
 
-          {/* وضعیت */}
-          <div className="flex items-center gap-3">
-            <Label>وضعیت مجموعه</Label>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">وضعیت</span>
             <Badge variant={vendor.is_active ? "default" : "secondary"}>
               {vendor.is_active ? "فعال" : "غیرفعال"}
             </Badge>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* ── ورزش‌های قابل ارائه ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <SectionTitle title="ورزش‌های قابل ارائه" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {sportTypes.map((sport) => {
-              const checked = watchSportTypes.includes(sport.value)
-              return (
-                <button
-                  type="button"
-                  key={sport.value}
-                  onClick={() => toggleSportType(sport.value)}
-                  className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 p-4 text-center transition-all ${
-                    checked
-                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                      : "border-border bg-card hover:border-primary/50 hover:bg-muted/50"
-                  }`}
-                >
-                  <div
-                    className={`flex size-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+          <Separator />
+
+          <div className="space-y-3">
+            <Label>ورزش‌ها</Label>
+            <div className="flex flex-wrap gap-2">
+              {sportTypes.map((sport) => {
+                const checked = watchSportTypes.includes(sport.value)
+                return (
+                  <button
+                    type="button"
+                    key={sport.value}
+                    onClick={() => toggleSportType(sport.value)}
+                    aria-pressed={checked}
+                    className={`rounded-full border px-4 py-2 text-[13px] transition-colors ${
                       checked
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        ? "border-primary bg-primary/5 font-medium text-foreground"
+                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
-                    {/* Add icons here based on sport */}
-                    <span className="text-xl">
-                      {sport.value === "volleyball" ? "🏐" : sport.value === "basketball" ? "🏀" : sport.value === "futsal" ? "⚽" : "🏀"}
-                    </span>
-                  </div>
-                  <span className="text-sm font-semibold text-foreground/90">
                     {sport.label}
-                  </span>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })}
+            </div>
+            {errors.sport_types?.message && (
+              <p className="text-xs text-destructive">
+                {String(errors.sport_types.message)}
+              </p>
+            )}
           </div>
-          {errors.sport_types?.message && (
-            <p className="mt-4 text-xs text-destructive">
-              {String(errors.sport_types.message)}
-            </p>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* ── توپ مجموعه ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <SectionTitle title="توپ مجموعه" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <Controller
-            name="ball_available"
-            control={control}
-            render={({ field }) => (
-              <label className="flex min-w-0 cursor-pointer items-start gap-2.5 rounded-xl border p-3 sm:gap-3 sm:p-4">
-                <Checkbox
-                  checked={field.value === true}
-                  onCheckedChange={(checked) => {
-                    const enabled = checked === true
-                    field.onChange(enabled)
-                    if (!enabled) {
-                      setValue("ball_price", 0, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      })
-                    }
-                  }}
-                  aria-label="مجموعه توپ برای رزرو دارد"
-                />
-                <Volleyball className="size-5 shrink-0 text-primary" />
-                <span className="min-w-0 space-y-1">
-                  <span className="block text-sm font-medium">
-                    مجموعه توپ برای رزرو دارد
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    در صورت فعال بودن، کاربر می‌تواند هنگام رزرو سانس توپ را با
-                    هزینه جداگانه اضافه کند.
-                  </span>
-                </span>
-              </label>
-            )}
-          />
+          <Separator />
 
-          <Controller
-            name="ball_price"
-            control={control}
-            render={({ field }) => (
-              <div className="max-w-sm space-y-2">
-                <Label htmlFor="vendor-ball-price">هزینه توپ (تومان)</Label>
-                <PersianInput
-                  id="vendor-ball-price"
-                  value={field.value ?? 0}
-                  formatThousands
-                  disabled={!ballAvailable}
-                  placeholder="مثلاً ۵۰٬۰۰۰"
-                  onChange={(event) =>
-                    field.onChange(Number(event.target.value) || 0)
-                  }
-                  onBlur={field.onBlur}
-                />
-                {errors.ball_price?.message && (
-                  <p className="text-xs text-destructive">
-                    {String(errors.ball_price.message)}
-                  </p>
+          <div className="space-y-3">
+            <Controller
+              name="ball_available"
+              control={control}
+              render={({ field }) => (
+                <label className="flex cursor-pointer items-center gap-2.5">
+                  <Checkbox
+                    checked={field.value === true}
+                    onCheckedChange={(checked) => {
+                      const enabled = checked === true
+                      field.onChange(enabled)
+                      if (!enabled) {
+                        setValue("ball_price", 0, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                    }}
+                    aria-label="مجموعه توپ برای رزرو دارد"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">ارائه توپ</span>
+                    <span className="block text-xs text-muted-foreground">
+                      با هزینه جداگانه هنگام رزرو
+                    </span>
+                  </span>
+                </label>
+              )}
+            />
+
+            {ballAvailable && (
+              <Controller
+                name="ball_price"
+                control={control}
+                render={({ field }) => (
+                  <div className="max-w-xs space-y-2">
+                    <Label htmlFor="vendor-ball-price">هزینه توپ (تومان)</Label>
+                    <PersianInput
+                      id="vendor-ball-price"
+                      value={field.value ?? 0}
+                      formatThousands
+                      placeholder="مثلاً ۵۰٬۰۰۰"
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value) || 0)
+                      }
+                      onBlur={field.onBlur}
+                    />
+                    {errors.ball_price?.message && (
+                      <p className="text-xs text-destructive">
+                        {String(errors.ball_price.message)}
+                      </p>
+                    )}
+                  </div>
                 )}
-                {!ballAvailable && (
-                  <p className="text-xs text-muted-foreground">
-                    برای مجموعه بدون توپ، هزینه صفر در نظر گرفته می‌شود.
-                  </p>
-                )}
-              </div>
+              />
             )}
-          />
+          </div>
         </CardContent>
       </Card>
 
       {/* ── اطلاعات تماس ── */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            <SectionTitle title="اطلاعات تماس" />
+          <CardTitle className="text-base font-semibold">
+            اطلاعات تماس
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <User className="size-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground">نام مدیر</div>
-                <div className="truncate text-sm font-medium">
-                  {vendor.manager_name || "ثبت نشده"}
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="manager_name">نام مدیر</Label>
+              <Input
+                id="manager_name"
+                placeholder="نام و نام خانوادگی"
+                className="h-10"
+                {...register("manager_name")}
+              />
+              {errors.manager_name?.message && (
+                <p className="text-xs text-destructive">
+                  {String(errors.manager_name.message)}
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <Phone className="size-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground">شماره تماس</div>
-                <div className="truncate text-sm font-medium" dir="ltr">
-                  {vendor.manager_phone
-                    ? toPersianDigits(vendor.manager_phone)
-                    : "ثبت نشده"}
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="manager_phone">شماره تماس</Label>
+              <Controller
+                name="manager_phone"
+                control={control}
+                render={({ field }) => (
+                  <PersianInput
+                    id="manager_phone"
+                    dir="ltr"
+                    placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                    className="h-10 text-left"
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+              {errors.manager_phone?.message && (
+                <p className="text-xs text-destructive">
+                  {String(errors.manager_phone.message)}
+                </p>
+              )}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            اطلاعات تماس از پروفایل مدیر مجموعه دریافت می‌شود.
+            تغییر شماره تماس، شماره ورود به حساب مدیر را هم تغییر می‌دهد.
           </p>
         </CardContent>
       </Card>
@@ -313,18 +288,28 @@ export function VendorDetailsTab({
       {/* ── موقعیت مکانی ── */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            <SectionTitle title="موقعیت مکانی" />
+          <CardTitle className="text-base font-semibold">
+            موقعیت مکانی
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="address">آدرس</Label>
-            <Textarea
-              id="address"
-              placeholder="استان، شهر، خیابان، پلاک"
-              className="min-h-24"
-              {...register("address")}
+            <Controller
+              name="address"
+              control={control}
+              render={({ field }) => (
+                <Textarea
+                  id="address"
+                  placeholder="استان، شهر، خیابان، پلاک"
+                  className="min-h-24"
+                  value={field.value ?? ""}
+                  onChange={(e) =>
+                    field.onChange(toPersianDigits(e.target.value))
+                  }
+                  onBlur={field.onBlur}
+                />
+              )}
             />
             {errors.address?.message && (
               <p className="text-xs text-destructive">
@@ -333,12 +318,6 @@ export function VendorDetailsTab({
             )}
           </div>
           <div className="space-y-2">
-            <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 text-sm text-muted-foreground">
-                موقعیت روی نقشه — کلیک کنید یا نشانگر را بکشید
-              </span>
-            </div>
             <LocationPicker
               latitude={latitudeWatch ?? null}
               longitude={longitudeWatch ?? null}
@@ -358,6 +337,9 @@ export function VendorDetailsTab({
                   })
               }}
             />
+            <p className="text-xs text-muted-foreground">
+              برای تغییر، روی نقشه کلیک کنید یا نشانگر را بکشید.
+            </p>
             {(errors.latitude?.message || errors.longitude?.message) && (
               <p className="text-xs text-destructive">
                 {String(errors.latitude?.message || errors.longitude?.message)}
@@ -367,15 +349,16 @@ export function VendorDetailsTab({
         </CardContent>
       </Card>
 
-      {/* ── امکانات + تصاویر ── */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <SectionTitle title="امکانات" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* ── امکانات و تصاویر ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">
+            امکانات و تصاویر
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <Label>امکانات</Label>
             <Controller
               name="amenities"
               control={control}
@@ -386,24 +369,19 @@ export function VendorDetailsTab({
                 />
               )}
             />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <SectionTitle title="تصاویر" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <Separator />
+          <div className="space-y-3">
+            <Label>تصاویر</Label>
             <ImageUpload
               images={vendorImages}
               onChange={onImagesChange}
               tempIds={imageTempIds}
               onTempIdsChange={onTempIdsChange}
             />
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </form>
   )
 }

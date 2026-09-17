@@ -6,6 +6,7 @@ import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { vendorUpdateSchema, type VendorUpdateInput } from "@/lib/validations"
 import { api, ApiError } from "@/lib/api"
+import { toEnglishDigits, toPersianDigits } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -50,7 +51,7 @@ export default function DashboardVendorEditPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState("basic")
+  const [activeTab, setActiveTab] = useState("schedule")
 
   // Slot state
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([])
@@ -93,6 +94,8 @@ export default function DashboardVendorEditPage() {
       amenities: {},
       ball_available: false,
       ball_price: 0,
+      manager_name: "",
+      manager_phone: "",
     },
   })
   const watchSportTypes =
@@ -144,13 +147,15 @@ export default function DashboardVendorEditPage() {
       form.reset({
         name: vendorRes.name,
         sport_types: vendorRes.sport_types as VendorUpdateInput["sport_types"],
-        address: vendorRes.address,
+        address: vendorRes.address ? toPersianDigits(vendorRes.address) : "",
         latitude: vendorRes.latitude,
         longitude: vendorRes.longitude,
         capacity: vendorRes.capacity,
         amenities: vendorRes.amenities || {},
         ball_available: vendorRes.ball_available,
         ball_price: vendorRes.ball_available ? vendorRes.ball_price : 0,
+        manager_name: vendorRes.manager_name || "",
+        manager_phone: vendorRes.manager_phone || "",
       })
       setVendorImages(vendorRes.images || [])
       setImageTempIds(Array(vendorRes.images?.length || 0).fill(""))
@@ -233,10 +238,16 @@ export default function DashboardVendorEditPage() {
   async function onSubmit(data: VendorUpdateInput) {
     setSaving(true)
     try {
+      const managerName = data.manager_name?.trim()
+      const managerPhone = data.manager_phone
+        ? toEnglishDigits(data.manager_phone).trim()
+        : ""
       await api(`/api/v1/vendors/${vendorId}`, {
         method: "PATCH",
         body: JSON.stringify({
           ...data,
+          manager_name: managerName || undefined,
+          manager_phone: managerPhone || undefined,
           images: vendorImages,
           temp_ids: imageTempIds.filter(Boolean),
         }),
@@ -380,11 +391,9 @@ export default function DashboardVendorEditPage() {
         <TabsContent value="schedule" className="mt-4 min-w-0 flex-1 sm:mt-8">
           <VendorScheduleTab
             vendorId={vendorId}
-            allSlots={allSlots}
             weekStart={weekStart}
             weekLabel={weekLabel}
             canManage={canManage}
-            loading={loading}
             onPrevWeek={goPrevWeek}
             onNextWeek={goNextWeek}
             onThisWeek={goThisWeek}

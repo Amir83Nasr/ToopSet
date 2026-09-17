@@ -1,36 +1,23 @@
 "use client"
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   CalendarDays,
-  Clock,
   Loader2,
   Plus,
   Save,
   Trash2,
+  X,
 } from "lucide-react"
 import { api, ApiError } from "@/lib/api"
-import { toEnglishDigits } from "@/lib/utils"
+import { toPersianDigits } from "@/lib/utils"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PersianDatePicker } from "@/components/ui/persian-date-picker"
 import { PersianInput } from "@/components/ui/persian-input"
+import { TimePicker } from "@/components/ui/time-picker"
 import {
   ResponsiveDialog as Dialog,
   ResponsiveDialogContent as DialogContent,
@@ -51,14 +38,6 @@ import { PERSIAN_DAY_NAMES } from "./utils"
 interface WeeklyItem {
   id: string
   day_of_week: number
-  start_time: string
-  end_time: string
-  base_price: string
-  gender: "male" | "female"
-}
-
-interface NewSlotDraft {
-  day: number
   start_time: string
   end_time: string
   base_price: string
@@ -112,9 +91,7 @@ interface WeeklyTemplateResponse {
 interface WeeklyScheduleEditorProps {
   vendorId: number
   open?: boolean
-  embedded?: boolean
   onOpenChange?: (open: boolean) => void
-  onCancel?: () => void
   onApplied: () => void
 }
 
@@ -168,99 +145,10 @@ function sortWeeklyItems(items: WeeklyItem[]): WeeklyItem[] {
   )
 }
 
-interface KeyboardTimeInputProps {
-  id?: string
-  value: string
-  onChange: (value: string) => void
-  ariaLabel?: string
-  autoFocus?: boolean
-}
-
-function KeyboardTimeInput({
-  id,
-  value,
-  onChange,
-  ariaLabel,
-  autoFocus,
-}: KeyboardTimeInputProps) {
-  return (
-    <Input
-      id={id}
-      type="text"
-      inputMode="numeric"
-      dir="ltr"
-      maxLength={5}
-      placeholder="HH:MM"
-      value={value}
-      aria-label={ariaLabel}
-      autoFocus={autoFocus}
-      className="text-center font-mono tabular-nums"
-      onChange={(event) => {
-        const digits = toEnglishDigits(event.target.value)
-          .replace(/\D/g, "")
-          .slice(0, 4)
-        onChange(
-          digits.length > 2
-            ? `${digits.slice(0, 2)}:${digits.slice(2)}`
-            : digits
-        )
-      }}
-    />
-  )
-}
-
-interface ScheduleEditorContainerProps {
-  children: ReactNode
-  embedded: boolean
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-function ScheduleEditorContainer({
-  children,
-  embedded,
-  open,
-  onOpenChange,
-}: ScheduleEditorContainerProps) {
-  const title = embedded
-    ? "ویرایش برنامه هفتگی ثابت سالن"
-    : "ویرایش برنامه هفتگی سالن"
-  const description =
-    "این الگو پس از آخرین رزرو کاربر عادی اعمال می‌شود و رزروهای آنلاین موجود را تغییر نمی‌دهد."
-
-  if (embedded) {
-    return (
-      <Card className="overflow-hidden border-primary/30">
-        <CardHeader className="border-b bg-primary/5">
-          <CardTitle role="heading" aria-level={2}>
-            {title}
-          </CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 p-4">{children}</CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 export function WeeklyScheduleEditor({
   vendorId,
   open = false,
-  embedded = false,
   onOpenChange,
-  onCancel,
   onApplied,
 }: WeeklyScheduleEditorProps) {
   const [baseline, setBaseline] = useState<WeeklyItem[]>([])
@@ -294,7 +182,12 @@ export function WeeklyScheduleEditor({
   const [submitting, setSubmitting] = useState(false)
   const [loadingTemplate, setLoadingTemplate] = useState(false)
   const [conflicts, setConflicts] = useState<ApplyConflict[]>([])
-  const [newSlot, setNewSlot] = useState<NewSlotDraft | null>(null)
+  const [selectedDay, setSelectedDay] = useState(0)
+  const [adding, setAdding] = useState(false)
+  const [draftStart, setDraftStart] = useState("")
+  const [draftEnd, setDraftEnd] = useState("")
+  const [draftPrice, setDraftPrice] = useState("")
+  const [draftGender, setDraftGender] = useState<"male" | "female">("male")
 
   const summary = useMemo(() => {
     const oldTimes = new Map(
@@ -314,6 +207,20 @@ export function WeeklyScheduleEditor({
     for (const key of oldTimes.keys()) if (!newTimes.has(key)) removed++
     return { added, removed, changed }
   }, [baseline, items])
+
+  const countsByDay = useMemo(() => {
+    const counts = Array.from({ length: 7 }, () => 0)
+    for (const item of items) counts[item.day_of_week]++
+    return counts
+  }, [items])
+
+  const dayItems = useMemo(
+    () =>
+      items
+        .filter((item) => item.day_of_week === selectedDay)
+        .sort((a, b) => a.start_time.localeCompare(b.start_time)),
+    [items, selectedDay]
+  )
 
   const loadTemplate = useCallback(async () => {
     setLoadingTemplate(true)
@@ -345,47 +252,41 @@ export function WeeklyScheduleEditor({
   }, [minimumDate, vendorId])
 
   useEffect(() => {
-    if (!open && !embedded) return
+    if (!open) return
     const timer = window.setTimeout(() => void loadTemplate(), 0)
     return () => window.clearTimeout(timer)
-  }, [embedded, loadTemplate, open])
+  }, [loadTemplate, open])
 
-  function openNewSlot(day: number) {
-    setNewSlot({
-      day,
-      start_time: "",
-      end_time: "",
-      base_price: "",
-      gender: "male",
-    })
+  function resetDraft() {
+    setAdding(false)
+    setDraftStart("")
+    setDraftEnd("")
+    setDraftPrice("")
+    setDraftGender("male")
   }
 
-  function addNewSlot() {
-    if (!newSlot) return
-    if (
-      !TIME_PATTERN.test(newSlot.start_time) ||
-      !TIME_PATTERN.test(newSlot.end_time)
-    ) {
+  function addDraftSlot() {
+    if (!TIME_PATTERN.test(draftStart) || !TIME_PATTERN.test(draftEnd)) {
       toast.error("ساعت شروع و پایان را با فرمت صحیح وارد کنید")
       return
     }
-    if (newSlot.start_time >= newSlot.end_time) {
+    if (draftStart >= draftEnd) {
       toast.error("ساعت شروع باید قبل از ساعت پایان باشد")
       return
     }
-    if (!Number(newSlot.base_price)) {
+    if (!Number(draftPrice)) {
       toast.error("قیمت سانس را وارد کنید")
       return
     }
     const overlaps = items.some(
       (item) =>
-        item.day_of_week === newSlot.day &&
-        newSlot.start_time < item.end_time &&
-        newSlot.end_time > item.start_time
+        item.day_of_week === selectedDay &&
+        draftStart < item.end_time &&
+        draftEnd > item.start_time
     )
     if (overlaps) {
       toast.error(
-        `این بازه با یکی از سانس‌های ${PERSIAN_DAY_NAMES[newSlot.day]} هم‌پوشانی دارد`
+        `این بازه با یکی از سانس‌های ${PERSIAN_DAY_NAMES[selectedDay]} هم‌پوشانی دارد`
       )
       return
     }
@@ -394,15 +295,15 @@ export function WeeklyScheduleEditor({
         ...current,
         {
           id: crypto.randomUUID(),
-          day_of_week: newSlot.day,
-          start_time: newSlot.start_time,
-          end_time: newSlot.end_time,
-          base_price: newSlot.base_price,
-          gender: newSlot.gender,
+          day_of_week: selectedDay,
+          start_time: draftStart,
+          end_time: draftEnd,
+          base_price: draftPrice,
+          gender: draftGender,
         },
       ])
     )
-    setNewSlot(null)
+    resetDraft()
   }
 
   function updateItem(id: string, field: keyof WeeklyItem, value: string) {
@@ -429,11 +330,11 @@ export function WeeklyScheduleEditor({
       return false
     }
     for (let day = 0; day < 7; day++) {
-      const dayItems = items
+      const dayItemsList = items
         .filter((item) => item.day_of_week === day)
         .sort((a, b) => a.start_time.localeCompare(b.start_time))
-      for (let index = 0; index < dayItems.length; index++) {
-        if (dayItems[index].start_time >= dayItems[index].end_time) {
+      for (let index = 0; index < dayItemsList.length; index++) {
+        if (dayItemsList[index].start_time >= dayItemsList[index].end_time) {
           toast.error(
             `زمان شروع سانس ${PERSIAN_DAY_NAMES[day]} باید قبل از پایان باشد`
           )
@@ -441,7 +342,7 @@ export function WeeklyScheduleEditor({
         }
         if (
           index > 0 &&
-          dayItems[index].start_time < dayItems[index - 1].end_time
+          dayItemsList[index].start_time < dayItemsList[index - 1].end_time
         ) {
           toast.error(`سانس‌های ${PERSIAN_DAY_NAMES[day]} هم‌پوشانی دارند`)
           return false
@@ -521,78 +422,108 @@ export function WeeklyScheduleEditor({
 
   return (
     <>
-      <ScheduleEditorContainer
-        embedded={embedded}
+      <Dialog
         open={open}
         onOpenChange={(value) => {
           onOpenChange?.(value)
           if (!value) {
             setConfirming(false)
             setConfirmingManagerDeletion(false)
+            resetDraft()
           }
         }}
       >
-        {loadingTemplate && (
-          <div className="flex items-center justify-center gap-2 rounded-lg border p-8 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin" /> در حال دریافت برنامه
-            هفته...
-          </div>
-        )}
-        {!loadingTemplate && templateSource && (
-          <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-            {templateSource === "saved_version"
-              ? "مبنای ویرایش: آخرین نسخه ذخیره‌شده برنامه هفتگی"
-              : "مبنای اولیه: نزدیک‌ترین هفته کامل آینده؛ پس از ذخیره، نسخه مستقل برنامه نگهداری می‌شود"}
-          </p>
-        )}
-        <div
-          className={`grid gap-3 md:grid-cols-7 ${loadingTemplate ? "pointer-events-none opacity-50" : ""}`}
-        >
-          {PERSIAN_DAY_NAMES.map((dayName, day) => (
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>ویرایش برنامه هفتگی سالن</DialogTitle>
+            <DialogDescription>
+              این الگو پس از آخرین رزرو کاربر عادی اعمال می‌شود و رزروهای آنلاین
+              موجود را تغییر نمی‌دهد.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingTemplate && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border p-8 text-muted-foreground">
+              <Loader2 className="size-5 animate-spin" /> در حال دریافت برنامه
+              هفته...
+            </div>
+          )}
+          {!loadingTemplate && templateSource && (
+            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              {templateSource === "saved_version"
+                ? "مبنای ویرایش: آخرین نسخه ذخیره‌شده برنامه هفتگی"
+                : "مبنای اولیه: نزدیک‌ترین هفته کامل آینده؛ پس از ذخیره، نسخه مستقل برنامه نگهداری می‌شود"}
+            </p>
+          )}
+
+          <div
+            className={`space-y-4 ${loadingTemplate ? "pointer-events-none opacity-50" : ""}`}
+          >
             <div
-              key={dayName}
-              className="space-y-2 rounded-lg border bg-muted/20 p-2"
+              className="flex border-b"
+              role="tablist"
+              aria-label="روزهای هفته"
             >
-              <div className="flex items-center justify-between">
-                <Label>{dayName}</Label>
-                <Button
-                  type="button"
-                  size="icon-xs"
-                  variant="outline"
-                  aria-label={`افزودن سانس ${dayName}`}
-                  onClick={() => openNewSlot(day)}
-                >
-                  <Plus className="size-3.5" />
-                </Button>
-              </div>
-              {items
-                .filter((item) => item.day_of_week === day)
-                .sort((a, b) => a.start_time.localeCompare(b.start_time))
-                .map((item) => (
-                  <div
-                    key={item.id}
-                    className="space-y-2 rounded-md border bg-card p-2"
+              {PERSIAN_DAY_NAMES.map((dayName, day) => {
+                const isActive = day === selectedDay
+                return (
+                  <button
+                    key={dayName}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      setSelectedDay(day)
+                      resetDraft()
+                    }}
+                    className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-center transition-colors ${
+                      isActive
+                        ? "border-b-2 border-primary text-foreground"
+                        : "border-b-2 border-transparent text-muted-foreground hover:border-muted-foreground/20 hover:text-foreground"
+                    }`}
                   >
-                    <div className="space-y-1">
-                      <Label className="text-xs">شروع</Label>
-                      <KeyboardTimeInput
-                        value={item.start_time}
-                        ariaLabel={`ساعت شروع سانس ${dayName}`}
-                        onChange={(value) =>
-                          updateItem(item.id, "start_time", value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">پایان</Label>
-                      <KeyboardTimeInput
-                        value={item.end_time}
-                        ariaLabel={`ساعت پایان سانس ${dayName}`}
-                        onChange={(value) =>
-                          updateItem(item.id, "end_time", value)
-                        }
-                      />
-                    </div>
+                    <span className="text-xs font-medium">{dayName}</span>
+                    <span className="rounded-full bg-muted px-2 py-px text-[10px] font-semibold">
+                      {toPersianDigits(countsByDay[day])}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="space-y-2">
+              {dayItems.length === 0 && !adding && (
+                <p className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+                  برای {PERSIAN_DAY_NAMES[selectedDay]} سانسی تعیین نشده است
+                </p>
+              )}
+              {dayItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 rounded-lg border bg-card p-3 sm:grid-cols-[7rem_7rem_1fr_8.5rem_auto]"
+                >
+                  <div className="space-y-1">
+                    <Label className="text-xs">شروع</Label>
+                    <TimePicker
+                      value={item.start_time || undefined}
+                      ariaLabel={`ساعت شروع سانس ${PERSIAN_DAY_NAMES[selectedDay]}`}
+                      onChange={(value) =>
+                        updateItem(item.id, "start_time", value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">پایان</Label>
+                    <TimePicker
+                      value={item.end_time || undefined}
+                      ariaLabel={`ساعت پایان سانس ${PERSIAN_DAY_NAMES[selectedDay]}`}
+                      onChange={(value) =>
+                        updateItem(item.id, "end_time", value)
+                      }
+                    />
+                  </div>
+                  <div className="col-span-2 space-y-1 sm:col-span-1">
+                    <Label className="text-xs">قیمت</Label>
                     <PersianInput
                       value={item.base_price}
                       formatThousands
@@ -601,6 +532,9 @@ export function WeeklyScheduleEditor({
                       }
                       placeholder="قیمت"
                     />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">نوع سانس</Label>
                     <Select
                       value={item.gender}
                       onValueChange={(value) =>
@@ -609,7 +543,7 @@ export function WeeklyScheduleEditor({
                     >
                       <SelectTrigger
                         className="w-full"
-                        aria-label={`جنسیت سانس ${dayName}`}
+                        aria-label={`جنسیت سانس ${PERSIAN_DAY_NAMES[selectedDay]}`}
                       >
                         <SelectValue />
                       </SelectTrigger>
@@ -618,190 +552,181 @@ export function WeeklyScheduleEditor({
                         <SelectItem value="female">بانوان</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                      onClick={() =>
-                        setItems((current) =>
-                          current.filter((row) => row.id !== item.id)
-                        )
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon-sm"
+                    aria-label="حذف سانس"
+                    onClick={() =>
+                      setItems((current) =>
+                        current.filter((row) => row.id !== item.id)
+                      )
+                    }
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))}
+
+              {adding ? (
+                <div className="grid grid-cols-[1fr_1fr] gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 sm:grid-cols-[7rem_7rem_1fr_8.5rem_auto] sm:items-end">
+                  <div className="space-y-1">
+                    <Label htmlFor="draft-slot-start" className="text-xs">
+                      ساعت شروع
+                    </Label>
+                    <TimePicker
+                      value={draftStart || undefined}
+                      ariaLabel="ساعت شروع"
+                      onChange={setDraftStart}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="draft-slot-end" className="text-xs">
+                      ساعت پایان
+                    </Label>
+                    <TimePicker
+                      value={draftEnd || undefined}
+                      ariaLabel="ساعت پایان"
+                      onChange={setDraftEnd}
+                    />
+                  </div>
+                  <div className="col-span-2 space-y-1 sm:col-span-1">
+                    <Label htmlFor="draft-slot-price" className="text-xs">
+                      قیمت سانس
+                    </Label>
+                    <PersianInput
+                      id="draft-slot-price"
+                      value={draftPrice}
+                      formatThousands
+                      placeholder="مثلاً ۵۰۰٬۰۰۰"
+                      onChange={(event) => setDraftPrice(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">نوع سانس</Label>
+                    <Select
+                      value={draftGender}
+                      onValueChange={(value: "male" | "female") =>
+                        setDraftGender(value)
                       }
                     >
-                      <Trash2 className="ml-1 size-3.5" /> حذف
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">آقایان</SelectItem>
+                        <SelectItem value="female">بانوان</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2 flex gap-2 sm:col-span-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="flex-1"
+                      onClick={addDraftSlot}
+                    >
+                      <Plus className="ml-1 size-4" /> افزودن
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="انصراف از افزودن"
+                      onClick={resetDraft}
+                    >
+                      <X className="size-4" />
                     </Button>
                   </div>
-                ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>شروع اعمال برنامه</Label>
-            <PersianDatePicker
-              value={effectiveFromDate}
-              minDate={minimumDateValue}
-              onChange={(date) => setEffectiveFrom(localDate(date))}
-            />
-            <p className="text-xs text-muted-foreground">
-              {lastOnlineBookingDate
-                ? `آخرین رزرو کاربر عادی: ${parseLocalDate(lastOnlineBookingDate).toLocaleDateString("fa-IR-u-ca-persian")} — شروع مجاز از `
-                : "رزرو آنلاین آینده‌ای وجود ندارد — شروع مجاز از "}
-              {minimumDateValue.toLocaleDateString("fa-IR-u-ca-persian")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label>مدت ایجاد تقویم</Label>
-            <Select
-              value={duration}
-              onValueChange={(value) => setDuration(value as Duration)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">۱ ماه</SelectItem>
-                <SelectItem value="3">۳ ماه</SelectItem>
-                <SelectItem value="6">۶ ماه</SelectItem>
-                <SelectItem value="12">۱ سال</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="rounded-md bg-muted p-3 text-sm">
-            <div>سانس جدید: {summary.added.toLocaleString("fa-IR")}</div>
-            <div>
-              تغییر قیمت/جنسیت: {summary.changed.toLocaleString("fa-IR")}
-            </div>
-            <div>حذف از الگو: {summary.removed.toLocaleString("fa-IR")}</div>
-          </div>
-        </div>
-
-        {conflicts.length > 0 && (
-          <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-            <p className="font-medium text-destructive">تداخل‌های رزرو</p>
-            {conflicts.slice(0, 20).map((conflict) => (
-              <div
-                key={`${conflict.slot_id}-${conflict.reason}`}
-                className="text-xs"
-              >
-                {new Date(`${conflict.date}T12:00:00`).toLocaleDateString(
-                  "fa-IR"
-                )}
-                : {conflict.reason}
-                {conflict.booking_id
-                  ? ` (رزرو ${conflict.booking_id.toLocaleString("fa-IR")})`
-                  : ""}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => (embedded ? onCancel?.() : onOpenChange?.(false))}
-          >
-            {embedded ? "انصراف از ویرایش" : "انصراف"}
-          </Button>
-          <Button
-            disabled={loadingTemplate}
-            onClick={() => validate() && setConfirming(true)}
-          >
-            <Save className="ml-1 size-4" /> مشاهده خلاصه و تأیید
-          </Button>
-        </DialogFooter>
-      </ScheduleEditorContainer>
-
-      <Dialog
-        open={newSlot !== null}
-        onOpenChange={(value) => !value && setNewSlot(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="items-center text-center">
-            <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Clock className="size-5" />
-            </div>
-            <DialogTitle className="text-center">
-              افزودن سانس {newSlot ? PERSIAN_DAY_NAMES[newSlot.day] : ""}
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              ساعت‌ها را در قالب ۲۴ ساعته وارد کنید؛ برای مثال ۱۸:۳۰.
-            </DialogDescription>
-          </DialogHeader>
-          {newSlot && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="new-slot-start">ساعت شروع</Label>
-                  <KeyboardTimeInput
-                    id="new-slot-start"
-                    autoFocus
-                    value={newSlot.start_time}
-                    onChange={(value) =>
-                      setNewSlot((current) =>
-                        current ? { ...current, start_time: value } : null
-                      )
-                    }
-                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-slot-end">ساعت پایان</Label>
-                  <KeyboardTimeInput
-                    id="new-slot-end"
-                    value={newSlot.end_time}
-                    onChange={(value) =>
-                      setNewSlot((current) =>
-                        current ? { ...current, end_time: value } : null
-                      )
-                    }
-                  />
-                </div>
-              </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed"
+                  aria-label={`افزودن سانس ${PERSIAN_DAY_NAMES[selectedDay]}`}
+                  onClick={() => setAdding(true)}
+                >
+                  <Plus className="ml-1 size-4" /> افزودن سانس{" "}
+                  {PERSIAN_DAY_NAMES[selectedDay]}
+                </Button>
+              )}
+            </div>
+
+            <div className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="new-slot-price">قیمت سانس</Label>
-                <PersianInput
-                  id="new-slot-price"
-                  value={newSlot.base_price}
-                  formatThousands
-                  placeholder="مثلاً ۵۰۰٬۰۰۰"
-                  onChange={(event) =>
-                    setNewSlot((current) =>
-                      current
-                        ? { ...current, base_price: event.target.value }
-                        : null
-                    )
-                  }
+                <Label>شروع اعمال برنامه</Label>
+                <PersianDatePicker
+                  value={effectiveFromDate}
+                  minDate={minimumDateValue}
+                  onChange={(date) => setEffectiveFrom(localDate(date))}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {lastOnlineBookingDate
+                    ? `آخرین رزرو کاربر عادی: ${parseLocalDate(lastOnlineBookingDate).toLocaleDateString("fa-IR-u-ca-persian")} — شروع مجاز از `
+                    : "رزرو آنلاین آینده‌ای وجود ندارد — شروع مجاز از "}
+                  {minimumDateValue.toLocaleDateString("fa-IR-u-ca-persian")}
+                </p>
               </div>
               <div className="space-y-2">
-                <Label>نوع سانس</Label>
+                <Label>مدت ایجاد تقویم</Label>
                 <Select
-                  value={newSlot.gender}
-                  onValueChange={(value: "male" | "female") =>
-                    setNewSlot((current) =>
-                      current ? { ...current, gender: value } : null
-                    )
-                  }
+                  value={duration}
+                  onValueChange={(value) => setDuration(value as Duration)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="male">آقایان</SelectItem>
-                    <SelectItem value="female">بانوان</SelectItem>
+                    <SelectItem value="1">۱ ماه</SelectItem>
+                    <SelectItem value="3">۳ ماه</SelectItem>
+                    <SelectItem value="6">۶ ماه</SelectItem>
+                    <SelectItem value="12">۱ سال</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              <div className="rounded-md bg-muted p-3 text-sm">
+                <div>سانس جدید: {summary.added.toLocaleString("fa-IR")}</div>
+                <div>
+                  تغییر قیمت/جنسیت: {summary.changed.toLocaleString("fa-IR")}
+                </div>
+                <div>
+                  حذف از الگو: {summary.removed.toLocaleString("fa-IR")}
+                </div>
+              </div>
             </div>
-          )}
+
+            {conflicts.length > 0 && (
+              <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+                <p className="font-medium text-destructive">تداخل‌های رزرو</p>
+                {conflicts.slice(0, 20).map((conflict) => (
+                  <div
+                    key={`${conflict.slot_id}-${conflict.reason}`}
+                    className="text-xs"
+                  >
+                    {new Date(`${conflict.date}T12:00:00`).toLocaleDateString(
+                      "fa-IR"
+                    )}
+                    : {conflict.reason}
+                    {conflict.booking_id
+                      ? ` (رزرو ${conflict.booking_id.toLocaleString("fa-IR")})`
+                      : ""}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewSlot(null)}>
+            <Button variant="outline" onClick={() => onOpenChange?.(false)}>
               انصراف
             </Button>
-            <Button onClick={addNewSlot}>
-              <Plus className="ml-1 size-4" /> افزودن سانس
+            <Button
+              disabled={loadingTemplate}
+              onClick={() => validate() && setConfirming(true)}
+            >
+              <Save className="ml-1 size-4" /> مشاهده خلاصه و تأیید
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -857,10 +782,13 @@ export function WeeklyScheduleEditor({
               <AlertTriangle className="size-5" /> حذف رزروهای دستی سالن‌دار
             </DialogTitle>
             <DialogDescription>
-              تغییر بازه‌های زمانی باعث حذف دائمی
-              <strong className="px-1 text-foreground">
+              تغییر بازه‌های زمانی باعث حذف دائمی{" "}
+              <strong
+                className="px-1 text-foreground"
+                aria-label={`${managerBookingCount.toLocaleString("fa-IR")} رزرو دستی`}
+              >
                 {managerBookingCount.toLocaleString("fa-IR")}
-              </strong>
+              </strong>{" "}
               رزرو دستی سالن‌دار می‌شود. این رزروها پرداخت آنلاین ندارند و
               بازپرداختی انجام نمی‌شود.
             </DialogDescription>

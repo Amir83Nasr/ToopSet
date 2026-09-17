@@ -11,7 +11,7 @@ import {
 } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react"
+import { ImagePlus, Loader2, Star, Trash2, Check } from "lucide-react"
 
 interface ImageUploadProps {
   images: string[]
@@ -91,15 +91,18 @@ export function ImageUpload({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {images.map((url, index) => {
           const normalizedUrl = buildVendorImageUrl(url)
           const hasFailed = failedImages.has(url)
+          const isMain = index === 0
           return (
             <div
               key={url}
-              className={`group relative aspect-square overflow-hidden rounded-xl border-2 bg-muted/40 transition-all ${
-                index === 0 ? "border-primary shadow-md ring-2 ring-primary/20" : "border-border hover:border-primary/50"
+              className={`group relative aspect-4/3 overflow-hidden rounded-xl border bg-muted/40 transition-colors ${
+                isMain
+                  ? "border-primary ring-1 ring-primary/30"
+                  : "border-border hover:border-primary/50"
               }`}
             >
               {hasFailed ? (
@@ -112,17 +115,17 @@ export function ImageUpload({
                   alt={`تصویر ${index + 1}`}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 768px) 50vw, 200px"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   unoptimized
                   onError={() => {
                     setFailedImages((prev) => new Set(prev).add(url))
                   }}
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-80 group-hover:opacity-100 transition-opacity" />
-              {index === 0 ? (
-                <span className="absolute inset-x-2 bottom-2 flex h-7 items-center justify-center gap-1.5 rounded-lg bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md">
-                  <Star className="size-3.5 fill-current" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              {isMain ? (
+                <span className="absolute inset-s-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                  <Check className="size-3.5" />
                   عکس اصلی
                 </span>
               ) : (
@@ -130,10 +133,10 @@ export function ImageUpload({
                   type="button"
                   aria-label={`انتخاب تصویر ${toPersianDigits(index + 1)} به عنوان عکس اصلی`}
                   onClick={() => setMainImage(index)}
-                  className="absolute inset-x-2 bottom-2 flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-black/75 px-2 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-primary"
+                  className="absolute inset-x-2 bottom-2 flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/25 bg-black/55 px-2 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:border-primary hover:bg-primary"
                 >
                   <Star className="size-3.5" />
-                  انتخاب اصلی
+                  انتخاب به‌عنوان عکس اصلی
                 </button>
               )}
               <Button
@@ -152,7 +155,7 @@ export function ImageUpload({
 
         {/* Upload placeholder */}
         {canUpload && (
-          <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/20 text-muted-foreground transition-all hover:border-primary hover:bg-primary/5 hover:text-primary">
+          <label className="flex aspect-4/3 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary">
             {uploading ? (
               <Loader2 className="size-8 animate-spin text-primary" />
             ) : (

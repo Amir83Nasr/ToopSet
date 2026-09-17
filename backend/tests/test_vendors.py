@@ -289,6 +289,54 @@ class TestUpdateVendor:
         )
         assert resp.status_code == 404
 
+    async def test_update_contact_updates_manager_profile(
+        self, client: AsyncClient, manager_token: dict
+    ):
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        create = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
+        vendor_id = create.json()["id"]
+
+        resp = await client.patch(
+            f"/api/v1/vendors/{vendor_id}",
+            json={"manager_name": "مدیر جدید", "manager_phone": "09123334455"},
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["manager_name"] == "مدیر جدید"
+        assert resp.json()["manager_phone"] == "09123334455"
+
+        profile = await client.get("/api/v1/auth/me", headers=headers)
+        assert profile.json()["full_name"] == "مدیر جدید"
+        assert profile.json()["phone"] == "09123334455"
+
+    async def test_update_contact_duplicate_phone_conflicts(
+        self, client: AsyncClient, manager_token: dict, user_token: dict
+    ):
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        create = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
+        vendor_id = create.json()["id"]
+
+        resp = await client.patch(
+            f"/api/v1/vendors/{vendor_id}",
+            json={"manager_phone": user_token["user"]["phone"]},
+            headers=headers,
+        )
+        assert resp.status_code == 409
+
+    async def test_update_contact_invalid_phone_rejected(
+        self, client: AsyncClient, manager_token: dict
+    ):
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        create = await client.post("/api/v1/vendors", json=COURT_CREATE_PAYLOAD, headers=headers)
+        vendor_id = create.json()["id"]
+
+        resp = await client.patch(
+            f"/api/v1/vendors/{vendor_id}",
+            json={"manager_phone": "123"},
+            headers=headers,
+        )
+        assert resp.status_code == 422
+
 
 class TestVendorImages:
     async def test_attach_s3_temp_upload_accepts_matching_absolute_url(

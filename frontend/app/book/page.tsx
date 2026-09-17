@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { getCookie } from "@/lib/cookies"
 import {
   isSlotBookable,
+  isSlotInactive,
   RESERVING_HINT,
 } from "@/components/vendors/vendor-shared"
 import { BookingBallOption } from "@/components/bookings/booking-ball-option"
@@ -182,6 +183,8 @@ function BookPageContent() {
         const slotRes = await api<SlotDetail>(`/api/v1/slots/${slotId}`)
         if (slotRes.status === "reserving")
           throw new ApiError(409, RESERVING_HINT)
+        if (isSlotInactive(slotRes))
+          throw new ApiError(409, "این سانس غیرفعال شده است")
         if (!isSlotBookable(slotRes))
           throw new ApiError(409, "این سانس قبلاً رزرو شده است")
         if (new Date(slotRes.start_time).getTime() <= Date.now()) {

@@ -10,8 +10,16 @@ import L, {
   createDefaultPinIcon,
 } from "@/lib/neshan-map"
 import "leaflet/dist/leaflet.css"
-import { Loader2, MapPin, Maximize2, Minimize2 } from "lucide-react"
+import {
+  Loader2,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Plus,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toPersianDigits } from "@/lib/utils"
 
 interface LocationPickerProps {
   latitude: number | null
@@ -45,51 +53,10 @@ async function reverseGeocode(
     )
     if (!res.ok) return null
     const data = await res.json()
-    if (data.address) return simplifyAddress(data.address)
-    return data.display_name || null
+    if (data.address) return toPersianDigits(simplifyAddress(data.address))
+    return data.display_name ? toPersianDigits(data.display_name) : null
   } catch {
     return null
-  }
-}
-
-/* ── Custom zoom control ── */
-
-function addZoomControls(map: any) {
-  const ZoomControl = L.Control.extend({
-    options: { position: "bottomleft" },
-    onAdd() {
-      const container = L.DomUtil.create("div")
-      container.className =
-        "flex flex-col gap-0.5 [&_button]:!relative [&_button]:!static"
-
-      const inBtn = L.DomUtil.create("button")
-      inBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5v14"/></svg>`
-      inBtn.className =
-        "flex items-center justify-center w-9 h-9 rounded-lg border bg-card text-muted-foreground shadow-sm hover:bg-accent cursor-pointer"
-      inBtn.type = "button"
-      inBtn.onclick = () => map.zoomIn()
-
-      const outBtn = L.DomUtil.create("button")
-      outBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>`
-      outBtn.className =
-        "flex items-center justify-center w-9 h-9 rounded-lg border bg-card text-muted-foreground shadow-sm hover:bg-accent cursor-pointer"
-      outBtn.type = "button"
-      outBtn.onclick = () => map.zoomOut()
-
-      container.appendChild(inBtn)
-      container.appendChild(outBtn)
-      return container
-    },
-  })
-
-  const control = new ZoomControl()
-  map.addControl(control)
-  return () => {
-    try {
-      map.removeControl(control)
-    } catch {
-      /* ignore */
-    }
   }
 }
 
@@ -142,11 +109,11 @@ export function LocationPicker({
           center: QOM_CENTER,
           zoom: DEFAULT_ZOOM,
           zoomControl: false,
+          scrollWheelZoom: false,
         })
 
         mapRef.current = map
         initializedRef.current = true
-        addZoomControls(map)
         setReady(true)
 
         // Invalidate size after a short delay to ensure container has settled
@@ -278,7 +245,7 @@ export function LocationPicker({
   return (
     <div
       ref={containerRef}
-      className={`relative ${fullscreen ? "fixed inset-0 z-9999 bg-background" : ""}`}
+      className={`relative ${fullscreen ? "fixed inset-0 z-9999 bg-background" : "isolate z-0"}`}
     >
       {geocoding && (
         <div className="pointer-events-none absolute top-3 right-3 z-1000 flex items-center gap-1.5 rounded-full border bg-background/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
@@ -296,47 +263,73 @@ export function LocationPicker({
 
         {/* Loading overlay — shown while map initializes */}
         {!ready && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
+          <div className="absolute inset-0 z-500 flex items-center justify-center bg-muted">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
         )}
 
         {/* Empty state overlay — shown when map is ready but no coordinates set */}
         {ready && !hasLocation && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-muted/30">
+          <div className="pointer-events-none absolute inset-0 z-500 flex items-center justify-center bg-muted/30">
             <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
               <MapPin className="size-8 text-muted-foreground/40" />
               <span>روی نقشه کلیک کنید تا موقعیت را مشخص کنید</span>
             </div>
           </div>
         )}
+
+        {ready && (
+          <div className="absolute end-3 bottom-3 z-1000 flex gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="بزرگ‌نمایی نقشه"
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                mapRef.current?.zoomIn()
+              }}
+              className="pointer-events-auto bg-background text-foreground shadow-md hover:bg-accent"
+            >
+              <Plus className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="کوچک‌نمایی نقشه"
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                mapRef.current?.zoomOut()
+              }}
+              className="pointer-events-auto bg-background text-foreground shadow-md hover:bg-accent"
+            >
+              <Minus className="size-4" />
+            </Button>
+            {hasLocation && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label={
+                  fullscreen ? "خروج از تمام‌صفحه" : "نمایش تمام‌صفحه نقشه"
+                }
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  toggleFullscreen()
+                }}
+                className="pointer-events-auto bg-background text-foreground shadow-md hover:bg-accent"
+              >
+                {fullscreen ? (
+                  <Minimize2 className="size-4" />
+                ) : (
+                  <Maximize2 className="size-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
-
-      {hasLocation && ready && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            toggleFullscreen()
-          }}
-          className="absolute right-3 bottom-3 z-1000 bg-card text-muted-foreground shadow-sm hover:bg-accent"
-        >
-          {fullscreen ? (
-            <Minimize2 className="size-4" />
-          ) : (
-            <Maximize2 className="size-4" />
-          )}
-        </Button>
-      )}
-
-      {!hasLocation && ready && (
-        <div className="pointer-events-none absolute bottom-3 left-1/2 z-1000 flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
-          <MapPin className="size-3.5" />
-          روی نقشه کلیک کنید تا موقعیت را مشخص کنید
-        </div>
-      )}
     </div>
   )
 }

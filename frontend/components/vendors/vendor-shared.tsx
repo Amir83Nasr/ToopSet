@@ -28,6 +28,8 @@ export interface TimeSlot {
   ball_price: number
   ball_available: boolean
   status?: string
+  /** Slot gender from the API (weekly template + slot list both return it). */
+  gender?: "male" | "female" | string
   is_reserved: boolean
   version: number
   // Set only when this reserving slot is held by the current user's
@@ -42,7 +44,14 @@ export const RESERVING_HINT =
 export const MY_RESERVING_HINT =
   "این سانس رزرو نهایی‌نشدهٔ خودتان است؛ برای ادامه پرداخت کلیک کنید."
 
+const INACTIVE_SLOT_STATUSES = ["closed", "blocked", "disabled"]
+
+export function isSlotInactive(slot: Pick<TimeSlot, "status">) {
+  return !!slot.status && INACTIVE_SLOT_STATUSES.includes(slot.status)
+}
+
 export function isSlotBookable(slot: Pick<TimeSlot, "is_reserved" | "status">) {
+  if (isSlotInactive(slot)) return false
   return !slot.is_reserved || slot.status === "pending_cancellation"
 }
 

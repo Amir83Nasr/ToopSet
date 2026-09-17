@@ -489,3 +489,52 @@ class TestOwnPendingSlotAnnotation:
         other_slot = next(s for s in other_view.json()["slots"] if s["id"] == slot_id)
         assert other_slot["reserved_by_me"] is False
         assert other_slot["my_booking_id"] is None
+
+
+class TestDisabledSlotPublicVisibility:
+    """Manager-disabled slots must surface as inactive to guests; booking 409s."""
+
+    async def test_closed_slot_surfaced_as_inactive_and_booking_rejected(
+        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+    ) -> None:
+        vendor_id = await _create_vendor(client, manager_token, session)
+        start = datetime.now(timezone.utc) + timedelta(hours=4)
+        result = await session.execute(
+            text(
+                """INSERT INTO time_slots (vendor_id, start_time, end_time, base_price, is_reserved, version)
+                   VALUES (:vendor_id, :start, :end, 100.00, false, 1)
+                   RETURNING id"""
+            ),
+            {"vendor_id": vendor_id, "start": start, "end": start + timedelta(hours=2)},
+        )
+        slot_id = result.fetchone()[0]
+        await session.flush()
+
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        patched = await client.patch(
+            f"/api/v1/vendors/{vendor_id}/slots/{slot_id}",
+            json={"status": "closed"},
+            headers=headers,
+        )
+        assert patched.status_code == 200, patched.text
+        assert patched.json()["status"] == "closed"
+        assert patched.json()["is_reserved"] is False
+
+        # Public list still returns the row (frontend renders it «غیرفعال»),
+        # but never as a bookable open slot.
+        public_resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots")
+        assert public_resp.status_code == 200
+        public_slot = next(s for s in public_resp.json()["slots"] if s["id"] == slot_id)
+        assert public_slot["status"] == "closed"
+        assert public_slot["is_reserved"] is False
+
+        # Booking a closed slot is rejected even if the client bypasses the UI.
+        version = (await client.get(f"/api/v1/slots/{slot_id}")).json()["version"]
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        booking_resp = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": version},
+            headers=user_headers,
+        )
+        assert booking_resp.status_code == 409
+        assert "بسته" in booking_resp.text

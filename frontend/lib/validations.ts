@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { toEnglishDigits } from "@/lib/utils"
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -90,6 +92,23 @@ export const vendorCreateSchema = z
 export const vendorUpdateSchema = z
   .object(vendorFields)
   .partial()
+  .extend({
+    manager_name: z
+      .string()
+      .max(128, "نام مدیر حداکثر ۱۲۸ کاراکتر می‌تواند باشد")
+      .refine(
+        (val) => val === "" || val.trim().length >= 1,
+        "نام مدیر الزامی است"
+      )
+      .optional(),
+    manager_phone: z
+      .string()
+      .refine((val) => {
+        if (val === "") return true
+        return /^09[0-9]{9}$/.test(toEnglishDigits(val))
+      }, "شماره تماس باید با ۰۹ شروع شود و ۱۱ رقم باشد")
+      .optional(),
+  })
   .superRefine(validateBallConfiguration)
 
 // ---------------------------------------------------------------------------
