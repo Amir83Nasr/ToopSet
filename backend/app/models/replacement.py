@@ -12,7 +12,6 @@ from sqlalchemy import (
     Index,
     Numeric,
     String,
-    UniqueConstraint,
     func,
     text,
 )
@@ -45,8 +44,14 @@ class ReplacementRequest(Base):
     __table_args__ = (
         CheckConstraint("penalty_amount >= 0", name="ck_replacement_requests_penalty_nonnegative"),
         CheckConstraint("refund_amount >= 0", name="ck_replacement_requests_refund_nonnegative"),
-        UniqueConstraint(
-            "original_booking_id", name="replacement_requests_original_booking_id_key"
+        # One LIVE request per original booking; terminal rows (revoked,
+        # expired, completed) stay as history so a withdraw→re-cancel cycle
+        # can open a fresh request for the same booking.
+        Index(
+            "uq_replacement_requests_one_live_per_original",
+            "original_booking_id",
+            unique=True,
+            postgresql_where=text("status IN ('open', 'held')"),
         ),
         Index("ix_replacement_requests_original_booking_id", "original_booking_id"),
         Index("ix_replacement_requests_slot_status", "slot_id", "status"),

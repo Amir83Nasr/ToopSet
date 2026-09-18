@@ -331,6 +331,40 @@ async def test_user_can_withdraw_open_near_term_cancellation(
     )
 
 
+async def test_booking_can_be_recancelled_after_withdrawal(
+    client, session: AsyncSession, manager_token: dict, user_token: dict
+) -> None:
+    """Withdrawing revokes the request; a fresh cancel must open a new one."""
+    _, slot_id = await _api_vendor_and_slot(client, session, manager_token, hours=24)
+    booking_id = await _create_and_pay_online(client, user_token, slot_id)
+    user = await session.get(User, user_token["user"]["id"])
+    assert user is not None
+    service = BookingService(session, user)
+    with patch.object(service, "_ensure_verified_bank_card", new=AsyncMock()):
+        first = await service.cancel_booking(BookingCancelRequest(accepted_terms=True), booking_id)
+    assert first.status == BookingStatus.PENDING_CANCELLATION
+    restored = await service.withdraw_cancellation(booking_id)
+    assert restored.status == BookingStatus.CONFIRMED
+    with patch.object(service, "_ensure_verified_bank_card", new=AsyncMock()):
+        second = await service.cancel_booking(BookingCancelRequest(accepted_terms=True), booking_id)
+    assert second.status == BookingStatus.PENDING_CANCELLATION
+
+    statuses = (
+        (
+            await session.execute(
+                text(
+                    "SELECT status FROM replacement_requests "
+                    "WHERE original_booking_id = :id ORDER BY id"
+                ),
+                {"id": booking_id},
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert statuses == ["revoked", "open"]
+
+
 async def test_early_user_cancellation_creates_exact_penalty_and_refund(
     client, session: AsyncSession, manager_token: dict, user_token: dict
 ) -> None:

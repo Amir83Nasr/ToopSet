@@ -44,9 +44,22 @@ class ReplacementRepo:
     async def get_request_by_original(
         self, booking_id: int, *, for_update: bool = False
     ) -> ReplacementRequest | None:
+        """Return the live (open/held) request for a booking, if any.
+
+        A booking accumulates terminal (revoked/expired/completed) request rows
+        across cancel/withdraw cycles; only one live request may exist at a
+        time — enforced by the partial unique index on this table.
+        """
         stmt = (
             select(ReplacementRequest)
-            .where(ReplacementRequest.original_booking_id == booking_id)
+            .where(
+                ReplacementRequest.original_booking_id == booking_id,
+                ReplacementRequest.status.in_(
+                    (ReplacementRequestStatus.OPEN, ReplacementRequestStatus.HELD)
+                ),
+            )
+            .order_by(ReplacementRequest.id.desc())
+            .limit(1)
             .options(
                 selectinload(ReplacementRequest.original_booking),
                 selectinload(ReplacementRequest.slot).selectinload(TimeSlot.vendor),
