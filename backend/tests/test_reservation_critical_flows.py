@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings
 from app.models.booking import Booking, BookingSource, BookingStatus
+from app.models.payment import Payment, PaymentStatus
 from app.models.replacement import (
     BookingHold,
     BookingHoldStatus,
@@ -372,6 +373,148 @@ async def test_early_user_cancellation_creates_exact_penalty_and_refund(
     assert refund["status"] == "pending"
     assert refund["penalty_charged_to_user"] is True
     assert refund["site_bears_penalty"] is False
+
+
+async def _seed_committed_paid_booking(hours_to_start: int) -> dict[str, int]:
+    """Create a fully committed paid booking visible to independent sessions."""
+    session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
+    async with session_factory() as db:
+        manager = User(
+            full_name="persist manager",
+            phone=_phone(5),
+            password_hash="test",
+            role=UserRole.MANAGER,
+        )
+        user = User(
+            full_name="persist user",
+            phone=_phone(6),
+            password_hash="test",
+            role=UserRole.USER,
+            phone_verified_at=datetime.now(timezone.utc),
+        )
+        db.add_all([manager, user])
+        await db.flush()
+        vendor = Vendor(
+            manager_id=manager.id,
+            name=f"persist vendor {uuid4().hex[:8]}",
+            sport_types=["futsal"],
+            address="تهران",
+            latitude=35.7,
+            longitude=51.4,
+            capacity=10,
+            is_active=True,
+        )
+        db.add(vendor)
+        await db.flush()
+        start = datetime.now(timezone.utc) + timedelta(hours=hours_to_start)
+        slot = TimeSlot(
+            vendor_id=vendor.id,
+            start_time=start,
+            end_time=start + timedelta(hours=2),
+            base_price=Decimal("100000"),
+            status=SlotStatus.RESERVED,
+            is_reserved=True,
+        )
+        db.add(slot)
+        await db.flush()
+        booking = Booking(
+            user_id=user.id,
+            slot_id=slot.id,
+            status=BookingStatus.CONFIRMED,
+            price_paid=Decimal("100000"),
+            slot_price=Decimal("100000"),
+        )
+        db.add(booking)
+        await db.flush()
+        db.add(
+            Payment(
+                booking_id=booking.id,
+                amount=Decimal("100000"),
+                status=PaymentStatus.SUCCESS,
+                gateway_name="mock",
+            )
+        )
+        await db.commit()
+        return {
+            "user_id": user.id,
+            "manager_id": manager.id,
+            "vendor_id": vendor.id,
+            "slot_id": slot.id,
+            "booking_id": booking.id,
+        }
+
+
+async def _cleanup_committed_paid_booking(ids: dict[str, int]) -> None:
+    session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
+    async with session_factory() as db:
+        await db.execute(text("DELETE FROM bookings WHERE id = :id"), {"id": ids["booking_id"]})
+        await db.execute(text("DELETE FROM vendors WHERE id = :id"), {"id": ids["vendor_id"]})
+        await db.execute(
+            text("DELETE FROM users WHERE id IN (:user, :manager)"),
+            {"user": ids["user_id"], "manager": ids["manager_id"]},
+        )
+        await db.commit()
+
+
+@pytest.mark.parametrize(
+    ("hours_to_start", "expected_status"),
+    [
+        (24, BookingStatus.PENDING_CANCELLATION),
+        (72, BookingStatus.CANCELLED),
+    ],
+)
+async def test_paid_cancellation_survives_its_request_session(
+    hours_to_start: int, expected_status: BookingStatus
+) -> None:
+    """The cancel endpoint's session closes on return; paid-cancel writes must commit."""
+    ids = await _seed_committed_paid_booking(hours_to_start)
+    try:
+        session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
+        async with session_factory() as db:
+            user = await db.get(User, ids["user_id"])
+            assert user is not None
+            service = BookingService(db, user)
+            with patch.object(service, "_ensure_verified_bank_card", new=AsyncMock()):
+                result = await service.cancel_booking(
+                    BookingCancelRequest(accepted_terms=True), ids["booking_id"]
+                )
+            assert result.status == expected_status
+        # The request session is closed above: without a real commit the whole
+        # cancellation silently rolled back while the API still reported success.
+        async with session_factory() as db:
+            assert (
+                await db.execute(
+                    text("SELECT status FROM bookings WHERE id = :id"),
+                    {"id": ids["booking_id"]},
+                )
+            ).scalar_one() == expected_status.value
+            slot_status = (
+                await db.execute(
+                    text("SELECT status FROM time_slots WHERE id = :id"),
+                    {"id": ids["slot_id"]},
+                )
+            ).scalar_one()
+            if expected_status is BookingStatus.PENDING_CANCELLATION:
+                assert slot_status == "pending_cancellation"
+                assert (
+                    await db.execute(
+                        text(
+                            "SELECT status FROM replacement_requests "
+                            "WHERE original_booking_id = :id"
+                        ),
+                        {"id": ids["booking_id"]},
+                    )
+                ).scalar_one() == "open"
+            else:
+                assert slot_status == "open"
+                assert (
+                    await db.execute(
+                        text("SELECT status FROM refunds WHERE booking_id = :id"),
+                        {"id": ids["booking_id"]},
+                    )
+                ).scalar_one() == "pending"
+    finally:
+        await _cleanup_committed_paid_booking(ids)
 
 
 async def test_manager_cancels_paid_online_booking_with_full_refund(

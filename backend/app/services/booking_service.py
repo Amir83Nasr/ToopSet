@@ -2763,6 +2763,7 @@ class BookingService:
                     vendor_name=vendor.name,
                     start_time=slot.start_time,
                 )
+            await self.db.commit()
             payment = await self.payment_repo.get_by_booking(booking_id)
             return BookingDetailResponse(
                 id=booking.id,
@@ -2850,6 +2851,7 @@ class BookingService:
             "booking_cancelled",
             f"لغو رزرو | رزرو {booking_id} لغو شد — {refund_amount} تومان در انتظار عودت است (جریمه: {penalty_amount} تومان)",
         )
+        await self.db.commit()
 
         payment = await self.payment_repo.get_by_booking(booking_id)
         return BookingDetailResponse(
