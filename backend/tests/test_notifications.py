@@ -484,12 +484,12 @@ class TestBookingEventNotifications:
         assert "لغو شد." in notification.message
         assert "۹۰٬۰۰۰" not in notification.message, "refund is tracked by its own notifications"
         from app.core.timezone import utc_to_iran
-        from app.services.notification_service import _to_persian_digits
+        from app.services.notification_service import to_persian_digits
 
         assert "روز" in notification.message
         assert "ساعت" in notification.message
         assert "تا" not in notification.message
-        expected_start = _to_persian_digits(utc_to_iran(start).strftime("%H:%M"))
+        expected_start = to_persian_digits(utc_to_iran(start).strftime("%H:%M"))
         assert expected_start in notification.message
 
         manager_notification = await _last_notification(session, manager_id, "booking_cancelled")

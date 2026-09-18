@@ -35,6 +35,12 @@ settings.refresh_cookie_secure = False
 settings.bootstrap_admin_secret = "test-bootstrap-secret"
 settings.allow_audit_log_deletion = True
 settings.sms_provider = "mock"
+# Keep optional outbound integrations off regardless of the developer's .env,
+# so tests that assert on the set of background jobs stay deterministic.
+from pydantic import SecretStr as _SecretStr  # noqa: E402
+
+settings.eitaa_bot_token = _SecretStr("")
+settings.eitaa_channel_id = ""
 
 # ── Strip PrometheusMiddleware for tests ──────────────────────────────
 # BaseHTTPMiddleware wraps requests in an anyio TaskGroup whose tasks can

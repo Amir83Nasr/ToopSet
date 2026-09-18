@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.timezone import iran_to_utc, now_utc
-from app.models.time_slot import TimeSlot
+from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.vendor import Vendor
 
 
 class TimeSlotRepo:
@@ -108,6 +109,25 @@ class TimeSlotRepo:
             .where(TimeSlot.vendor_id == vendor_id, TimeSlot.start_time > now)
             .order_by(TimeSlot.start_time)
             .options(selectinload(TimeSlot.vendor))
+        )
+        return list(result.scalars().all())
+
+    async def list_open_between(
+        self, start_from: datetime, start_until: datetime
+    ) -> list[TimeSlot]:
+        """Open, unreserved slots in [start_from, start_until) across active vendors."""
+        result = await self.db.execute(
+            select(TimeSlot)
+            .join(TimeSlot.vendor)
+            .where(
+                Vendor.is_active == True,
+                TimeSlot.is_reserved == False,
+                TimeSlot.status == SlotStatus.OPEN,
+                TimeSlot.start_time >= start_from,
+                TimeSlot.start_time < start_until,
+            )
+            .order_by(TimeSlot.vendor_id, TimeSlot.start_time)
+            .options(joinedload(TimeSlot.vendor))
         )
         return list(result.scalars().all())
 

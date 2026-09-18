@@ -1,6 +1,7 @@
 from app.models.bank_card import BankCard
 from app.models.booking import Booking
 from app.models.contact import ContactMessage
+from app.models.eitaa_digest import EitaaDigestMessage
 from app.models.favorite import Favorite
 from app.models.log import Log
 from app.models.manager_request import ManagerRequest
@@ -44,6 +45,7 @@ __all__ = [
     "Notification",
     "NotificationDelivery",
     "ContactMessage",
+    "EitaaDigestMessage",
     "Favorite",
     "RefreshToken",
     "ReplacementRequest",

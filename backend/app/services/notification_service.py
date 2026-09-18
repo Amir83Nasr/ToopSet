@@ -11,7 +11,7 @@ from app.models.notification import Notification
 from app.repositories.notification_repo import NotificationRepo
 
 # Persian weekday names indexed by jdatetime date.weekday() (Saturday = 0)
-_WEEKDAYS = ("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه")
+PERSIAN_WEEKDAYS = ("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه")
 
 _MONTHS = (
     "فروردین",
@@ -37,7 +37,7 @@ _ROLE_LABELS = {
 _PERSIAN_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 
 
-def _to_persian_digits(text: str) -> str:
+def to_persian_digits(text: str) -> str:
     """Convert Latin digits to Persian digits (user-facing numbers must be Persian)."""
     return text.translate(_PERSIAN_DIGITS)
 
@@ -46,17 +46,15 @@ def format_jalali_date(dt: datetime) -> str:
     """Render a UTC datetime as a Persian Jalali date, e.g. «شنبه ۲۰ شهریور ۱۴۰۴»."""
     local = utc_to_iran(dt) if dt.tzinfo else dt
     jdate = jdatetime.date.fromgregorian(date=local.date())
-    return _to_persian_digits(
-        f"{_WEEKDAYS[jdate.weekday()]} {jdate.day} {_MONTHS[jdate.month - 1]} {jdate.year}"
+    return to_persian_digits(
+        f"{PERSIAN_WEEKDAYS[jdate.weekday()]} {jdate.day} {_MONTHS[jdate.month - 1]} {jdate.year}"
     )
 
 
 def format_slot_label(start_time: datetime) -> str:
     """Render a slot in Jalali, e.g. «روز شنبه ۲۰ شهریور ۱۴۰۴ ساعت ۱۸:۰۰»."""
     local = utc_to_iran(start_time) if start_time.tzinfo else start_time
-    return _to_persian_digits(
-        f"روز {format_jalali_date(start_time)} ساعت {local.strftime('%H:%M')}"
-    )
+    return to_persian_digits(f"روز {format_jalali_date(start_time)} ساعت {local.strftime('%H:%M')}")
 
 
 def format_toman(amount: Decimal | float | int) -> str:
@@ -65,7 +63,7 @@ def format_toman(amount: Decimal | float | int) -> str:
         value = int(amount)
     except (TypeError, ValueError):
         return f"{amount} تومان"
-    return _to_persian_digits(f"{value:,}".replace(",", "٬")) + " تومان"
+    return to_persian_digits(f"{value:,}".replace(",", "٬")) + " تومان"
 
 
 async def invalidate_notification_list_cache() -> None:
@@ -294,7 +292,7 @@ class NotificationService:
             user_id=manager_id,
             type_="review_received",
             message=(
-                f"{user_name} برای {vendor_name} نظر {_to_persian_digits(str(rating))} ستاره ثبت کرد. "
+                f"{user_name} برای {vendor_name} نظر {to_persian_digits(str(rating))} ستاره ثبت کرد. "
                 "از داشبورد مجموعه می‌توانید پاسخ دهید."
             ),
         )
@@ -313,7 +311,7 @@ class NotificationService:
             type_="manager_request_submitted",
             message=(
                 f"درخواست مدیریت مجموعه جدید از {vendor_name} "
-                f"(شماره {_to_persian_digits(phone)}) در انتظار بررسی است."
+                f"(شماره {to_persian_digits(phone)}) در انتظار بررسی است."
             ),
         )
 

@@ -234,6 +234,28 @@ async def _update_vendor_min_prices_nightly():
             await asyncio.sleep(3600)
 
 
+async def _post_eitaa_empty_slots_daily():
+    """Background task: post today's & tomorrow's empty slots to the Eitaa channel.
+
+    Sleeps until 07:00 Asia/Tehran each day — deliberately no run at startup,
+    so dev restarts never spam the channel. One attempt per day: a failed
+    post is logged and retried the next morning (re-sending would duplicate
+    already-published vendor messages).
+    """
+    from app.services.eitaa_service import publish_daily_empty_slots, seconds_until_next_daily_post
+
+    while True:
+        try:
+            await asyncio.sleep(seconds_until_next_daily_post())
+            async with async_session_factory() as db:
+                sent = await publish_daily_empty_slots(db)
+                logger.info("Eitaa daily empty-slots job completed messages_sent=%s", sent)
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("_post_eitaa_empty_slots_daily failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -312,12 +334,17 @@ async def lifespan(app: FastAPI):
     payment_reconciliation_task = asyncio.create_task(_reconcile_zibal_payments_periodically())
     replacement_task = asyncio.create_task(_expire_replacement_work_periodically())
     min_price_task = asyncio.create_task(_update_vendor_min_prices_nightly())
+    eitaa_task: asyncio.Task | None = None
+    if settings.eitaa_configured:
+        eitaa_task = asyncio.create_task(_post_eitaa_empty_slots_daily())
     yield
     metrics_task.cancel()
     cancel_task.cancel()
     payment_reconciliation_task.cancel()
     replacement_task.cancel()
     min_price_task.cancel()
+    if eitaa_task is not None:
+        eitaa_task.cancel()
     await close_redis()
     await engine.dispose()
 

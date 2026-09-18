@@ -55,6 +55,7 @@ from app.services.cache_service import (
     invalidate_response_cache,
     invalidate_slot_list,
 )
+from app.services.eitaa_service import sync_digest_after_payment
 from app.services.finance_service import FinanceService
 from app.services.notification_service import NotificationService
 from app.services.payment_service import (
@@ -1582,6 +1583,7 @@ class BookingService:
                 start_time=slot.start_time,
             )
         await send_booking_confirmation_sms_for_booking(booking)
+        await sync_digest_after_payment(self.db, slot.vendor_id)
         return await self.get_booking(booking.id)
 
     async def _verify_zibal_replacement_hold(
@@ -1833,6 +1835,7 @@ class BookingService:
             f"انتقال رزرو کامل شد | رزرو {original.id} ← رزرو {replacement.id}",
         )
         await self.db.commit()
+        await sync_digest_after_payment(self.db, slot.vendor_id)
         replacement_booking = await self.booking_repo.get_by_id(replacement.id)
         if replacement_booking:
             await send_booking_confirmation_sms_for_booking(replacement_booking)
@@ -2255,6 +2258,7 @@ class BookingService:
             f"تایید رزرو | رزرو {booking_id} به مبلغ {booking.price_paid} تومان پرداخت و تایید شد",
         )
         await send_booking_confirmation_sms_for_booking(booking)
+        await sync_digest_after_payment(self.db, slot.vendor_id)
 
         return BookingDetailResponse(
             id=booking.id,
@@ -2933,6 +2937,8 @@ class BookingService:
             f"انصراف از لغو رزرو | رزرو {booking.id}",
         )
         await self.db.commit()
+        if slot:
+            await sync_digest_after_payment(self.db, slot.vendor_id)
         return await self.get_booking(booking.id)
 
     async def list_all_bookings(

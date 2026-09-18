@@ -80,6 +80,16 @@ class Settings(BaseSettings):
     sms_template_id: int = 0
     sms_booking_template_id: int = 625366
 
+    # Eitaa channel — daily empty-slots digest posted to the channel at 07:00 Iran time.
+    # Enabled only when both the bot token and the channel id are set.
+    eitaa_api_base_url: str = "https://api.uniom.ir"
+    eitaa_bot_token: SecretStr = SecretStr("")
+    eitaa_channel_id: str = ""
+
+    # Public site base URL used for links inside outbound messages;
+    # falls back to the origin of PAYMENT_RESULT_URL when empty.
+    site_base_url: str = ""
+
     # Monitoring
     sentry_dsn: str = ""
     sentry_traces_sample_rate: float = 0.2
@@ -104,6 +114,21 @@ class Settings(BaseSettings):
             and self.parspack_secret_key.get_secret_value()
             and self.parspack_bucket_name
         )
+
+    @property
+    def eitaa_configured(self) -> bool:
+        """True when both Eitaa credentials are present (enables the daily channel digest)."""
+        return bool(self.eitaa_bot_token.get_secret_value() and self.eitaa_channel_id)
+
+    @property
+    def frontend_base_url(self) -> str:
+        """Public frontend origin for building links in outbound messages."""
+        if self.site_base_url:
+            return self.site_base_url.rstrip("/")
+        parts = urlsplit(self.payment_result_url)
+        if parts.scheme and parts.netloc:
+            return f"{parts.scheme}://{parts.netloc}"
+        return ""
 
     # Logging
     log_level: str = "INFO"
@@ -310,6 +335,13 @@ def validate_env(settings: Settings | None = None) -> None:
             errors.append(
                 "SMS_BOOKING_TEMPLATE_ID must be a positive integer when SMS_PROVIDER='smsir'."
             )
+
+    # ── EITAA channel (optional) ────────────────────────────────────────
+    if bool(settings.eitaa_bot_token.get_secret_value()) != bool(settings.eitaa_channel_id):
+        errors.append(
+            "EITAA_BOT_TOKEN and EITAA_CHANNEL_ID must be set together "
+            "for the daily Eitaa empty-slots digest."
+        )
 
     if is_production:
         if settings.cors_origins == "*":
