@@ -292,9 +292,14 @@ function BookPageContent() {
         }),
       })
 
-      // 2. Immediately pay/finalize booking
+      // 2. Immediately pay/finalize — a pending-cancellation slot returns a
+      // replacement hold whose id only resolves via the hold pay endpoint.
+      const payPath =
+        res.checkout_type === "replacement_hold"
+          ? `/api/v1/bookings/replacement-holds/${res.id}/pay`
+          : `/api/v1/bookings/${res.id}/pay`
       const payRes = await api<BookingResult | ZibalPaymentStartResponse>(
-        `/api/v1/bookings/${res.id}/pay`,
+        payPath,
         {
           method: "POST",
         }

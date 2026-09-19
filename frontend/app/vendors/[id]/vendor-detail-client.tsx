@@ -455,18 +455,27 @@ export default function PublicVendorDetailPage({
     }
     setBookingBusy(true)
     try {
-      const res = await api<{ id: number }>("/api/v1/bookings", {
-        method: "POST",
-        body: JSON.stringify({
-          slot_id: slot.id,
-          version: slot.version,
-          with_ball: withBall ?? false,
-        }),
-      })
+      const res = await api<{ id: number; checkout_type?: string }>(
+        "/api/v1/bookings",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            slot_id: slot.id,
+            version: slot.version,
+            with_ball: withBall ?? false,
+          }),
+        }
+      )
+      // A pending-cancellation slot returns a replacement hold whose id only
+      // resolves via the hold pay endpoint, not the booking pay endpoint.
+      const payPath =
+        res.checkout_type === "replacement_hold"
+          ? `/api/v1/bookings/replacement-holds/${res.id}/pay`
+          : `/api/v1/bookings/${res.id}/pay`
       const payRes = await api<{
         payment_gateway?: string
         start_url?: string
-      }>(`/api/v1/bookings/${res.id}/pay`, { method: "POST" })
+      }>(payPath, { method: "POST" })
       if (payRes?.payment_gateway === "zibal" && payRes.start_url) {
         window.location.assign(payRes.start_url)
         return
