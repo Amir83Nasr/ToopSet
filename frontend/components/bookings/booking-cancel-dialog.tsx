@@ -61,10 +61,13 @@ export function BookingCancelDialog({
   const needsCard = Boolean(
     terms?.requires_bank_card && !terms.has_verified_bank_card
   )
+  // Unpaid bookings have nothing to refund — no cancellation terms to accept.
+  const isUnpaid = terms?.mode === "pending_payment"
   const canSubmit =
     Boolean(terms?.can_cancel) &&
-    acceptedTerms &&
-    (!needsCard || cardNumber.replace(/\D/g, "").length === 16)
+    (isUnpaid ||
+      (acceptedTerms &&
+        (!needsCard || cardNumber.replace(/\D/g, "").length === 16)))
 
   return (
     <ResponsiveDialog
@@ -82,14 +85,16 @@ export function BookingCancelDialog({
             <ResponsiveDialogHeader>
               <ResponsiveDialogTitle>لغو رزرو</ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                شروط لغو رزرو {booking.vendor_name} را بررسی و تایید کنید.
+                {terms?.mode === "pending_payment"
+                  ? `رزرو پرداخت‌نشده ${booking.vendor_name} را لغو می‌کنید.`
+                  : `شروط لغو رزرو ${booking.vendor_name} را بررسی و تایید کنید.`}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
 
             {!terms ? (
               <div className="flex items-center justify-center gap-2 rounded-lg border p-6 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                در حال دریافت شروط لغو...
+                در حال بررسی رزرو...
               </div>
             ) : (
               <div className="space-y-4">
@@ -147,17 +152,19 @@ export function BookingCancelDialog({
                   </div>
                 )}
 
-                <div className="rounded-lg border p-4">
-                  <p className="mb-2 text-sm font-medium">شروط لغو</p>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {terms.rules.map((rule) => (
-                      <li key={rule} className="flex gap-2">
-                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
-                        <span>{rule}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {terms.mode !== "pending_payment" && (
+                  <div className="rounded-lg border p-4">
+                    <p className="mb-2 text-sm font-medium">شروط لغو</p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {terms.rules.map((rule) => (
+                        <li key={rule} className="flex gap-2">
+                          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
+                          <span>{rule}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {needsCard && (
                   <div className="space-y-2 rounded-lg border p-4">
@@ -186,16 +193,18 @@ export function BookingCancelDialog({
                   </div>
                 )}
 
-                <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-                  <Checkbox
-                    checked={acceptedTerms}
-                    disabled={!terms.can_cancel}
-                    onCheckedChange={(checked) =>
-                      onAcceptedTermsChange(checked === true)
-                    }
-                  />
-                  <span>شروط لغو را مطالعه کردم و تایید می‌کنم.</span>
-                </label>
+                {terms.mode !== "pending_payment" && (
+                  <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+                    <Checkbox
+                      checked={acceptedTerms}
+                      disabled={!terms.can_cancel}
+                      onCheckedChange={(checked) =>
+                        onAcceptedTermsChange(checked === true)
+                      }
+                    />
+                    <span>شروط لغو را مطالعه کردم و تایید می‌کنم.</span>
+                  </label>
+                )}
               </div>
             )}
 

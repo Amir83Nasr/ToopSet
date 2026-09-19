@@ -193,7 +193,9 @@ export default function BookingsPage() {
       toast.success(
         result.status === "pending_cancellation"
           ? "درخواست ثبت شد؛ رزرو در انتظار جایگزین است"
-          : "رزرو لغو شد"
+          : cancellingBooking.status === "pending_payment"
+            ? "رزرو پرداخت‌نشده لغو شد و سانس آزاد شد"
+            : "رزرو لغو شد"
       )
       setCancellingBooking(null)
       setCancelTerms(null)
