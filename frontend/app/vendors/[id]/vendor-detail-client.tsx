@@ -361,23 +361,28 @@ export default function PublicVendorDetailPage({
     [slots]
   )
 
-  // ── Fetch vendor + reviews (client fallback when no SSR data) ──
+  // ── Fetch vendor + reviews ──
+  // SSR data (Next.js data cache, revalidate: 300) paints instantly; the
+  // background refetch then replaces it so contact edits (manager name/phone)
+  // show up without waiting out the SSR cache window.
 
   useEffect(() => {
-    if (initialVendor) return
     let cancelled = false
     async function init() {
       try {
         const [vendorRes, revRes] = await Promise.all([
           api<VendorData>(`/api/v1/vendors/${vendorId}`),
-          api<{ reviews: Review[]; total: number }>(
+          api<{ reviews: Review[]; total: number } | null>(
             `/api/v1/vendors/${vendorId}/reviews?limit=5`
-          ).catch(() => ({ reviews: [], total: 0 })),
+          ).catch(() => null),
         ])
         if (cancelled) return
         setVendor(vendorRes)
-        setReviews(revRes.reviews || [])
-        setReviewsTotal(revRes.total || 0)
+        // A failed reviews refresh must not wipe what SSR already rendered
+        if (revRes) {
+          setReviews(revRes.reviews || [])
+          setReviewsTotal(revRes.total || 0)
+        }
       } catch (err) {
         if (cancelled) return
         if (err instanceof ApiError && err.status === 404) {
