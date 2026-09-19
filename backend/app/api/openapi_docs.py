@@ -261,6 +261,12 @@ OPERATION_DESCRIPTIONS: Mapping[OperationKey, str] = {
         "stored under vendor uploads, and a temporary upload token plus absolute "
         "URL are returned."
     ),
+    ("post", "/api/v1/uploads/vendor-images"): (
+        "Uploads 1-10 temporary vendor images for a manager in a single request. "
+        "All files are validated before any is stored; if one file is invalid the "
+        "whole batch is rejected. Returns a list of temporary upload tokens and "
+        "absolute URLs in the order the files were sent."
+    ),
     ("get", "/api/v1/users"): (
         "Admin endpoint that lists users with pagination, search, role filter, "
         "and active-status filter. Responses include cache headers."

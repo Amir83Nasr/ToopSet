@@ -396,7 +396,8 @@ export default function CreateVendorPage() {
             <div>
               <h2 className="text-sm font-semibold">تصاویر</h2>
               <p className="text-xs text-muted-foreground">
-                حداقل ۳ تصویر از مجموعه آپلود کنید
+                تصاویر مجموعه (اختیاری) — می‌توانید چند تصویر را همزمان انتخاب و
+                در یک درخواست آپلود کنید
               </p>
             </div>
           </div>

@@ -69,7 +69,7 @@ const vendorFields = {
     .number()
     .nonnegative("قیمت توپ نمی‌تواند منفی باشد")
     .optional(),
-  images: z.array(z.string()).min(3, "حداقل ۳ تصویر از مجموعه الزامی است"),
+  images: z.array(z.string()).max(10, "حداکثر ۱۰ تصویر برای مجموعه مجاز است"),
 }
 
 function validateBallConfiguration(

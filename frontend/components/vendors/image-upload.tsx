@@ -5,7 +5,7 @@ import Image from "next/image"
 import { toast } from "@/lib/toast"
 import {
   buildVendorImageUrl,
-  uploadFile,
+  uploadFiles,
   type UploadResult,
   ApiError,
 } from "@/lib/api"
@@ -28,22 +28,34 @@ export function ImageUpload({
   tempIds,
   onTempIdsChange,
   maxImages = 10,
-  minImages = 3,
+  minImages = 0,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+      const selected = Array.from(e.target.files ?? [])
+      if (selected.length === 0) return
+
+      const remaining = maxImages - images.length
+      if (selected.length > remaining) {
+        toast.error(
+          `حداکثر ${toPersianDigits(remaining)} تصویر دیگر قابل آپلود است`
+        )
+      }
+      const files = selected.slice(0, remaining)
+      if (files.length === 0) {
+        e.target.value = ""
+        return
+      }
 
       setUploading(true)
       try {
-        const result: UploadResult = await uploadFile(file)
-        onChange([...images, result.url])
+        const results: UploadResult[] = await uploadFiles(files)
+        onChange([...images, ...results.map((r) => r.url)])
         if (onTempIdsChange && tempIds) {
-          onTempIdsChange([...tempIds, result.temp_id])
+          onTempIdsChange([...tempIds, ...results.map((r) => r.temp_id)])
         }
       } catch (err) {
         console.error("Upload error:", err)
@@ -59,7 +71,7 @@ export function ImageUpload({
         e.target.value = ""
       }
     },
-    [images, onChange, tempIds, onTempIdsChange]
+    [images, maxImages, onChange, tempIds, onTempIdsChange]
   )
 
   const removeImage = useCallback(
@@ -164,11 +176,15 @@ export function ImageUpload({
                   <ImagePlus className="size-6" />
                 </div>
                 <span className="text-xs font-medium">افزودن تصویر</span>
+                <span className="text-[11px] text-muted-foreground">
+                  می‌توانید چند تصویر را همزمان انتخاب کنید
+                </span>
               </>
             )}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              multiple
               className="sr-only"
               onChange={handleUpload}
               disabled={uploading}
@@ -189,7 +205,7 @@ export function ImageUpload({
           )}
         </div>
       )}
-      {minImages && images.length < minImages && (
+      {minImages > 0 && images.length < minImages && (
         <p className="text-xs text-destructive">
           حداقل {toPersianDigits(minImages)} تصویر الزامی است (
           {toPersianDigits(minImages - images.length)} تصویر دیگر)
