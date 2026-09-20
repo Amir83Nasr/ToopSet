@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.schedule import SLOT_DAY_CUTOFF, slot_operational_day
 from app.core.timezone import iran_to_utc, now_iran, now_utc, utc_to_iran
 from app.models.time_slot import TimeSlot
 from app.models.vendor import SportType, Vendor
@@ -186,7 +187,7 @@ def render_empty_slots_message(
 
     for day in days:
         day_slots = sorted(
-            (slot for slot in slots if utc_to_iran(slot.start_time).date() == day),
+            (slot for slot in slots if slot_operational_day(utc_to_iran(slot.start_time)) == day),
             key=lambda slot: slot.start_time,
         )
         if not day_slots:
@@ -229,7 +230,9 @@ async def collect_daily_empty_slot_messages(
     current = now or now_utc()
     today = utc_to_iran(current).date()
     days = [today, today + timedelta(days=1)]
-    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), time.min))
+    # include the night tail: 00:00-03:00 of day+2 belongs to tomorrow's
+    # operational day, so the digest's "tomorrow" section stays complete
+    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
 
     slots_by_vendor = await _open_slots_by_vendor(db, current, window_end)
 
@@ -312,7 +315,9 @@ async def refresh_vendor_digest(
         return False  # no digest posted for this vendor today — nothing to edit
 
     days = [today, today + timedelta(days=1)]
-    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), time.min))
+    # include the night tail: 00:00-03:00 of day+2 belongs to tomorrow's
+    # operational day, so the digest's "tomorrow" section stays complete
+    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
     _, vendor_slots = (await _open_slots_by_vendor(db, current, window_end)).get(
         vendor_id, (None, [])
     )

@@ -482,3 +482,283 @@ async def test_accepts_all_supported_schedule_durations(
     )
 
     assert response.status_code == 200, response.text
+
+
+async def test_replaced_schedule_cascades_slots_with_cancelled_booking_history(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    """A cancelled (historical) booking on a retired slot must not crash the apply.
+
+    Regression: the ORM used to null bookings.slot_id when deleting the slot,
+    violating the NOT NULL column and turning the schedule replace into a 500.
+    """
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    start = iran_to_utc(datetime.combine(effective, datetime.strptime("18:00", "%H:%M").time()))
+    end = iran_to_utc(datetime.combine(effective, datetime.strptime("20:00", "%H:%M").time()))
+    slot_id = await session.scalar(
+        text(
+            """
+            INSERT INTO time_slots
+                (vendor_id, start_time, end_time, base_price, is_reserved, status, version)
+            VALUES (:vendor_id, :start, :end, 150000, false, 'open', 1)
+            RETURNING id
+            """
+        ),
+        {"vendor_id": vendor_id, "start": start, "end": end},
+    )
+    await session.execute(
+        text(
+            """
+            INSERT INTO bookings
+                (user_id, slot_id, status, source, settlement_status,
+                 price_paid, slot_price, ball_price, with_ball)
+            VALUES (:user_id, :slot_id, 'cancelled', 'online',
+                    'excluded_due_to_cancellation', 0, 150000, 0, false)
+            """
+        ),
+        {"user_id": manager_token["user"]["id"], "slot_id": slot_id},
+    )
+    await session.flush()
+
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=_payload(
+            effective,
+            items=[
+                {
+                    "day_of_week": _persian_weekday(effective),
+                    "start_time": "21:00",
+                    "end_time": "22:30",
+                    "base_price": 100_000,
+                }
+            ],
+        ),
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted"] == 1
+    assert response.json()["created"] >= 1
+    # The retired slot and its cancelled booking disappear via the DB cascade.
+    assert (
+        await session.scalar(
+            text("SELECT count(*) FROM time_slots WHERE id = :id"), {"id": slot_id}
+        )
+        == 0
+    )
+    assert (
+        await session.scalar(
+            text("SELECT count(*) FROM bookings WHERE slot_id = :id"), {"id": slot_id}
+        )
+        == 0
+    )
+
+
+async def test_wrap_item_creates_cross_midnight_slot_on_start_day(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    """A 22:30 -> 00:00 item materialises a slot owned by its start day."""
+    from datetime import time
+
+    from app.core.timezone import iran_to_utc
+
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=_payload(
+            effective,
+            items=[
+                {
+                    "day_of_week": _persian_weekday(effective),
+                    "start_time": "22:30",
+                    "end_time": "00:00",
+                    "base_price": 600000,
+                }
+            ],
+        ),
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["created"] >= 1
+
+    wrapped = await session.scalar(
+        text(
+            """
+            SELECT count(*) FROM time_slots
+            WHERE vendor_id = :vendor_id
+              AND start_time = :start AND end_time = :end
+            """
+        ),
+        {
+            "vendor_id": vendor_id,
+            "start": iran_to_utc(datetime.combine(effective, time(22, 30))),
+            "end": iran_to_utc(datetime.combine(effective + timedelta(days=1), time(0, 0))),
+        },
+    )
+    assert wrapped == 1
+
+
+async def test_night_item_materialises_next_calendar_day_and_roundtrips(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    """A 00:00 -> 01:30 item on row D is the tail of D's night (slot on D+1)."""
+    from datetime import time
+
+    from app.core.timezone import iran_to_utc
+
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=_payload(
+            effective,
+            items=[
+                {
+                    "day_of_week": _persian_weekday(effective),
+                    "start_time": "00:00",
+                    "end_time": "01:30",
+                    "base_price": 600000,
+                }
+            ],
+        ),
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert response.status_code == 200, response.text
+
+    night = await session.scalar(
+        text(
+            """
+            SELECT count(*) FROM time_slots
+            WHERE vendor_id = :vendor_id
+              AND start_time = :start AND end_time = :end
+            """
+        ),
+        {
+            "vendor_id": vendor_id,
+            "start": iran_to_utc(datetime.combine(effective + timedelta(days=1), time(0, 0))),
+            "end": iran_to_utc(datetime.combine(effective + timedelta(days=1), time(1, 30))),
+        },
+    )
+    assert night == 1
+
+    # The saved template keeps the item on its night's row day, so the editor
+    # round-trips: bootstrapping maps the D+1 slot back to row D.
+    template = await client.get(
+        f"/api/v1/vendors/{vendor_id}/slots/weekly-schedule-template",
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert template.status_code == 200, template.text
+    items = template.json()["items"]
+    assert items == [
+        {
+            "day_of_week": _persian_weekday(effective),
+            "start_time": "00:00",
+            "end_time": "01:30",
+            "base_price": "600000.00",
+            "gender": "male",
+        }
+    ]
+
+
+async def test_wrapped_item_overlapping_night_item_is_rejected(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    """A slot wrapping past midnight must still not overlap the night tail."""
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    day = _persian_weekday(effective)
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=_payload(
+            effective,
+            items=[
+                {
+                    "day_of_week": day,
+                    "start_time": "21:00",
+                    "end_time": "01:00",
+                    "base_price": 100000,
+                },
+                {
+                    "day_of_week": day,
+                    "start_time": "00:30",
+                    "end_time": "02:00",
+                    "base_price": 100000,
+                },
+            ],
+        ),
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_apply_accepts_eleven_slots_per_day(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    """A 90-minute chain 09:00..01:30 fits: 11 items x 7 days = 77 <= 84."""
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    chain = [
+        ("09:00", "10:30"),
+        ("10:30", "12:00"),
+        ("12:00", "13:30"),
+        ("13:30", "15:00"),
+        ("15:00", "16:30"),
+        ("16:30", "18:00"),
+        ("18:00", "19:30"),
+        ("19:30", "21:00"),
+        ("21:00", "22:30"),
+        ("22:30", "00:00"),
+        ("00:00", "01:30"),
+    ]
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=_payload(
+            effective,
+            items=[
+                {"day_of_week": day, "start_time": start, "end_time": end, "base_price": 600000}
+                for day in range(7)
+                for start, end in chain
+            ],
+        ),
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert response.status_code == 200, response.text
+
+
+async def test_night_and_wrap_items_not_adjacent_in_string_order_still_reject(
+    client: AsyncClient, session: AsyncSession, manager_token: dict
+) -> None:
+    """23:30->01:00 overlaps 00:30->02:00 though string order never pairs them."""
+    vendor_id = await _vendor(client, session, manager_token)
+    effective = now_iran().date() + timedelta(days=14)
+    day = _persian_weekday(effective)
+    response = await client.post(
+        f"/api/v1/vendors/{vendor_id}/slots/apply-weekly-schedule",
+        json=_payload(
+            effective,
+            items=[
+                {
+                    "day_of_week": day,
+                    "start_time": "00:30",
+                    "end_time": "02:00",
+                    "base_price": 100000,
+                },
+                {
+                    "day_of_week": day,
+                    "start_time": "12:00",
+                    "end_time": "13:00",
+                    "base_price": 100000,
+                },
+                {
+                    "day_of_week": day,
+                    "start_time": "23:30",
+                    "end_time": "01:00",
+                    "base_price": 100000,
+                },
+            ],
+        ),
+        headers={"Authorization": f"Bearer {manager_token['access_token']}"},
+    )
+    assert response.status_code == 422

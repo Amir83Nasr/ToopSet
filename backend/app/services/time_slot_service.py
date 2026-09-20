@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_optional
 from app.core.database import get_db
+from app.core.schedule import SLOT_DAY_CUTOFF, item_window, slot_operational_day
 from app.core.timezone import iran_to_utc, now_iran, now_utc, utc_to_iran
 from app.models.booking import BookingSource, BookingStatus
 from app.models.time_slot import SlotStatus
@@ -414,16 +415,10 @@ class TimeSlotService:
                 continue
 
             for template in data.templates:
-                start_dt = datetime.combine(
-                    current, datetime.strptime(template.start_time, "%H:%M").time()
-                )
-                end_dt = datetime.combine(
-                    current, datetime.strptime(template.end_time, "%H:%M").time()
-                )
-
-                if start_dt >= end_dt:
-                    skipped += 1
-                    continue
+                # Materialise with wrap-around semantics: night items (start
+                # before 03:00) belong to the previous row day's night, and
+                # end <= start crosses midnight into the next day.
+                start_dt, end_dt = item_window(current, template.start_time, template.end_time)
 
                 # Convert Iran-local slot times to UTC for storage
                 start_dt_utc = iran_to_utc(start_dt)
@@ -500,11 +495,11 @@ class TimeSlotService:
 
         # Existing installations do not have a saved template yet. Bootstrap the
         # editor from the nearest complete future week, never from a partial week.
+        # The week covers operational days, so it starts at 03:00 and includes
+        # the last day's night tail in the early hours of the next calendar day.
         week_start = _next_complete_week_start(now_iran().date())
-        range_start = iran_to_utc(datetime.combine(week_start, datetime.min.time()))
-        range_end = iran_to_utc(
-            datetime.combine(week_start + timedelta(days=7), datetime.min.time())
-        )
+        range_start = iran_to_utc(datetime.combine(week_start, SLOT_DAY_CUTOFF))
+        range_end = iran_to_utc(datetime.combine(week_start + timedelta(days=7), SLOT_DAY_CUTOFF))
         slots = await self.weekly_schedule_repo.list_slots_in_range(
             vendor_id, range_start, range_end
         )
@@ -516,7 +511,9 @@ class TimeSlotService:
             ball_price=vendor.ball_price,
             items=[
                 WeeklyScheduleItem(
-                    day_of_week=_WEEKDAY_MAP.index(utc_to_iran(slot.start_time).weekday()),
+                    day_of_week=_WEEKDAY_MAP.index(
+                        slot_operational_day(utc_to_iran(slot.start_time)).weekday()
+                    ),
                     start_time=utc_to_iran(slot.start_time).strftime("%H:%M"),
                     end_time=utc_to_iran(slot.end_time).strftime("%H:%M"),
                     base_price=slot.base_price,
@@ -538,8 +535,13 @@ class TimeSlotService:
         await self.repo.lock_vendor_schedule(vendor_id)
 
         effective_until = _add_months(data.effective_from, data.duration_months)
-        range_start = iran_to_utc(datetime.combine(data.effective_from, datetime.min.time()))
-        range_end = iran_to_utc(datetime.combine(effective_until, datetime.min.time()))
+        # The window governs operational days [effective_from, effective_until):
+        # each such day covers [day 03:00, next day 03:00) Iran time, so the
+        # pre-window night tail (early hours of effective_from, owned by the
+        # day before) stays untouched while the last row day's night items are
+        # included.
+        range_start = iran_to_utc(datetime.combine(data.effective_from, SLOT_DAY_CUTOFF))
+        range_end = iran_to_utc(datetime.combine(effective_until, SLOT_DAY_CUTOFF))
         existing = await self.repo.list_range_for_update(vendor_id, range_start, range_end)
 
         # Recalculate after locking the affected slots. If a user completed a
@@ -565,12 +567,9 @@ class TimeSlotService:
             for item in data.items:
                 if item.day_of_week != persian_day:
                     continue
-                start = iran_to_utc(
-                    datetime.combine(current, datetime.strptime(item.start_time, "%H:%M").time())
-                )
-                end = iran_to_utc(
-                    datetime.combine(current, datetime.strptime(item.end_time, "%H:%M").time())
-                )
+                start_local, end_local = item_window(current, item.start_time, item.end_time)
+                start = iran_to_utc(start_local)
+                end = iran_to_utc(end_local)
                 desired[(start, end)] = {
                     "vendor_id": vendor_id,
                     "start_time": start,
@@ -601,12 +600,13 @@ class TimeSlotService:
             booking = booking_by_slot.get(slot.id)
             is_protected = bool(slot.is_reserved or booking)
             local_start = utc_to_iran(slot.start_time)
+            operational_day = slot_operational_day(local_start)
 
             if is_protected:
                 if target is None:
                     conflict = WeeklyScheduleConflict(
                         slot_id=slot.id,
-                        date=local_start.date(),
+                        date=operational_day,
                         start_time=slot.start_time,
                         end_time=slot.end_time,
                         booking_id=booking.id if booking else None,
@@ -634,7 +634,7 @@ class TimeSlotService:
                         preserved_conflicts.append(
                             WeeklyScheduleConflict(
                                 slot_id=slot.id,
-                                date=local_start.date(),
+                                date=operational_day,
                                 start_time=slot.start_time,
                                 end_time=slot.end_time,
                                 booking_id=booking.id if booking else None,

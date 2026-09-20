@@ -538,3 +538,84 @@ class TestDisabledSlotPublicVisibility:
         )
         assert booking_resp.status_code == 409
         assert "بسته" in booking_resp.text
+
+    async def test_date_filter_groups_early_morning_under_previous_day(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        """Slots starting between 00:00 and 03:00 belong to the previous day's program."""
+        from datetime import time
+
+        from app.core.timezone import now_iran
+
+        vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        day = now_iran().date() + timedelta(days=5)
+
+        def local(day_offset: int, hour: int, minute: int) -> str:
+            # The API expects naive Iran-local datetimes
+            moment = datetime.combine(
+                day + timedelta(days=day_offset), time(hour=hour, minute=minute)
+            )
+            return moment.strftime("%Y-%m-%dT%H:%M:%S")
+
+        # 23:00 -> 00:30(+1) crosses midnight; 00:30 -> 02:00 is early morning
+        # of the next calendar day; 03:00 -> 04:30 is a regular next-day slot.
+        for start, end in [
+            (local(0, 23, 0), local(1, 0, 30)),
+            (local(1, 0, 30), local(1, 2, 0)),
+            (local(1, 3, 0), local(1, 4, 30)),
+        ]:
+            response = await client.post(
+                f"/api/v1/vendors/{vendor_id}/slots",
+                json={
+                    "vendor_id": vendor_id,
+                    "start_time": start,
+                    "end_time": end,
+                    "base_price": 100000,
+                },
+                headers=headers,
+            )
+            assert response.status_code == 201, response.text
+
+        first_day = await client.get(
+            f"/api/v1/vendors/{vendor_id}/slots?date={day.isoformat()}", headers=headers
+        )
+        assert first_day.status_code == 200
+        slots = first_day.json()["slots"]
+        # Iran 23:00 and 00:30(+1) are UTC 19:30 and 21:00 — both belong to `day`
+        assert sorted(slot["start_time"][11:16] for slot in slots) == ["19:30", "21:00"]
+
+        next_day = await client.get(
+            f"/api/v1/vendors/{vendor_id}/slots?date={(day + timedelta(days=1)).isoformat()}",
+            headers=headers,
+        )
+        assert next_day.status_code == 200
+        slots = next_day.json()["slots"]
+        assert [slot["start_time"][11:16] for slot in slots] == ["23:30"]
+
+    async def test_generate_creates_cross_midnight_slot(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        """Templates may wrap past midnight (end <= start means next day)."""
+        vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        day = (datetime.now() + timedelta(days=6)).date().isoformat()
+        resp = await client.post(
+            f"/api/v1/vendors/{vendor_id}/slots/generate",
+            json={
+                "date_from": day,
+                "date_to": day,
+                "days_of_week": [0, 1, 2, 3, 4, 5, 6],
+                "templates": [{"start_time": "22:30", "end_time": "00:00", "base_price": 200000}],
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 201, resp.text
+        data = resp.json()
+        assert data["created"] == 1
+        slot = data["slots"][0]
+        # Iran 22:30 -> 00:00(+1) is UTC 19:00 -> 20:30 on the same calendar day
+        assert slot["start_time"].startswith(day)
+        assert slot["start_time"][11:16] == "19:00"
+        assert slot["end_time"].startswith(day)
+        assert slot["end_time"][11:16] == "20:30"

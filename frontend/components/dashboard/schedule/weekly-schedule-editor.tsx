@@ -33,7 +33,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PERSIAN_DAY_NAMES } from "./utils"
+import {
+  PERSIAN_DAY_NAMES,
+  isAfterMidnightItem,
+  nightSortRank,
+  slotOffsetMinutes,
+  slotRangesOverlap,
+} from "./utils"
 
 interface WeeklyItem {
   id: string
@@ -120,6 +126,7 @@ function templateItems(response: WeeklyTemplateResponse): WeeklyItem[] {
     .sort(
       (a, b) =>
         a.day_of_week - b.day_of_week ||
+        nightSortRank(a.start_time) - nightSortRank(b.start_time) ||
         a.start_time.localeCompare(b.start_time)
     )
 }
@@ -141,7 +148,9 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 function sortWeeklyItems(items: WeeklyItem[]): WeeklyItem[] {
   return [...items].sort(
     (a, b) =>
-      a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time)
+      a.day_of_week - b.day_of_week ||
+      nightSortRank(a.start_time) - nightSortRank(b.start_time) ||
+      a.start_time.localeCompare(b.start_time)
   )
 }
 
@@ -218,7 +227,11 @@ export function WeeklyScheduleEditor({
     () =>
       items
         .filter((item) => item.day_of_week === selectedDay)
-        .sort((a, b) => a.start_time.localeCompare(b.start_time)),
+        .sort(
+          (a, b) =>
+            nightSortRank(a.start_time) - nightSortRank(b.start_time) ||
+            a.start_time.localeCompare(b.start_time)
+        ),
     [items, selectedDay]
   )
 
@@ -270,8 +283,9 @@ export function WeeklyScheduleEditor({
       toast.error("ساعت شروع و پایان را با فرمت صحیح وارد کنید")
       return
     }
-    if (draftStart >= draftEnd) {
-      toast.error("ساعت شروع باید قبل از ساعت پایان باشد")
+    // ساعت پایان می‌تواند بعد از نیمه‌شب روز بعد باشد (مثل 22:30 تا 00:00)
+    if (draftStart === draftEnd) {
+      toast.error("ساعت شروع و پایان سانس یکسان است")
       return
     }
     if (!Number(draftPrice)) {
@@ -281,8 +295,7 @@ export function WeeklyScheduleEditor({
     const overlaps = items.some(
       (item) =>
         item.day_of_week === selectedDay &&
-        draftStart < item.end_time &&
-        draftEnd > item.start_time
+        slotRangesOverlap(draftStart, draftEnd, item.start_time, item.end_time)
     )
     if (overlaps) {
       toast.error(
@@ -330,19 +343,29 @@ export function WeeklyScheduleEditor({
       return false
     }
     for (let day = 0; day < 7; day++) {
+      // Sort by offset from 03:00 (true start order across night items and
+      // midnight wraps) so the adjacent-pair overlap sweep is sound.
       const dayItemsList = items
         .filter((item) => item.day_of_week === day)
-        .sort((a, b) => a.start_time.localeCompare(b.start_time))
+        .sort(
+          (a, b) =>
+            slotOffsetMinutes(a.start_time) - slotOffsetMinutes(b.start_time)
+        )
       for (let index = 0; index < dayItemsList.length; index++) {
-        if (dayItemsList[index].start_time >= dayItemsList[index].end_time) {
+        if (dayItemsList[index].start_time === dayItemsList[index].end_time) {
           toast.error(
-            `زمان شروع سانس ${PERSIAN_DAY_NAMES[day]} باید قبل از پایان باشد`
+            `زمان شروع و پایان سانس ${PERSIAN_DAY_NAMES[day]} یکسان است`
           )
           return false
         }
         if (
           index > 0 &&
-          dayItemsList[index].start_time < dayItemsList[index - 1].end_time
+          slotRangesOverlap(
+            dayItemsList[index - 1].start_time,
+            dayItemsList[index - 1].end_time,
+            dayItemsList[index].start_time,
+            dayItemsList[index].end_time
+          )
         ) {
           toast.error(`سانس‌های ${PERSIAN_DAY_NAMES[day]} هم‌پوشانی دارند`)
           return false
@@ -523,6 +546,11 @@ export function WeeklyScheduleEditor({
                         updateItem(item.id, "end_time", value)
                       }
                     />
+                    {isAfterMidnightItem(item.start_time, item.end_time) && (
+                      <span className="block text-[10px] text-muted-foreground">
+                        بامداد روز بعد
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">قیمت</Label>
