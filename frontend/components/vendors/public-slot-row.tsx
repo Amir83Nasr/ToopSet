@@ -17,26 +17,25 @@ import {
   type TimeSlot,
 } from "@/components/vendors/vendor-shared"
 
-// Frozen timestamp for slot expiry checks — computed once at module load so the
-// React Compiler does not flag a mutable ref or an impure render-time call.
-const NOW = Date.now()
-
 export const SlotRow = memo(function SlotRow({
   slot,
   selectedSlot,
   onSelect,
   payingBookingId = null,
+  now,
 }: {
   slot: TimeSlot
   selectedSlot: TimeSlot | null
   onSelect: (slot: TimeSlot) => void
   /** Booking id currently being sent to the gateway — disables the row while paying. */
   payingBookingId?: number | null
+  /** Page-level clock (refreshed every 30s) so rows flip to «گذشته» live. */
+  now: number
 }) {
   if (isSlotInactive(slot)) return null
 
   const isSelected = selectedSlot?.id === slot.id
-  const isPast = new Date(slot.start_time).getTime() <= NOW
+  const isPast = new Date(slot.start_time).getTime() <= now
   const isReserving = slot.status === "reserving"
   // Own pending_payment booking on this slot → row stays clickable to resume payment
   const isMinePending =

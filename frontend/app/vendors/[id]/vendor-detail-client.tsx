@@ -236,6 +236,12 @@ export default function PublicVendorDetailPage({
 
   const [vendor, setVendor] = useState<VendorData | null>(initialVendor ?? null)
   const [slots, setSlots] = useState<TimeSlot[]>([])
+  // 30s-refreshed clock so slot rows flip to «گذشته» while the page stays open
+  const [clock, setClock] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const [loading, setLoading] = useState(!initialVendor)
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -860,6 +866,7 @@ export default function PublicVendorDetailPage({
                             selectedSlot={selectedSlot}
                             onSelect={handleSlotSelect}
                             payingBookingId={payingBookingId}
+                            now={clock}
                           />
                         ))}
                       </div>

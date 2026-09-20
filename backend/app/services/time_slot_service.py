@@ -91,8 +91,11 @@ class TimeSlotService:
             )
 
     def _public_slot_window(self) -> tuple[datetime, datetime]:
-        start = now_utc()
-        return start, start + timedelta(days=PUBLIC_SLOT_VISIBILITY_DAYS)
+        # Start at the current operational day's 03:00 so earlier-today slots
+        # stay visible; the frontend renders them as past/unclickable. Slots
+        # from previous operational days remain hidden.
+        start = iran_to_utc(datetime.combine(slot_operational_day(now_iran()), SLOT_DAY_CUTOFF))
+        return start, now_utc() + timedelta(days=PUBLIC_SLOT_VISIBILITY_DAYS)
 
     async def _weekly_schedule_minimum_date(self, vendor_id: int) -> tuple[date, date | None]:
         today = now_iran().date()

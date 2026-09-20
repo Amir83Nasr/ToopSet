@@ -22,13 +22,21 @@ const openSlot: TimeSlot = {
   version: 1,
 }
 
+// Fixed page clock — before every openSlot start so rows render as bookable.
+const NOW = Date.parse("2099-08-01T12:00:00Z")
+
 describe("public vendor slot row", () => {
   it("uses the same centered desktop grid as the slot header", async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
       <TooltipProvider>
-        <SlotRow slot={openSlot} selectedSlot={null} onSelect={onSelect} />
+        <SlotRow
+          slot={openSlot}
+          selectedSlot={null}
+          onSelect={onSelect}
+          now={NOW}
+        />
       </TooltipProvider>
     )
 
@@ -50,6 +58,7 @@ describe("public vendor slot row", () => {
           slot={{ ...openSlot, is_reserved: false, status: "closed" }}
           selectedSlot={null}
           onSelect={onSelect}
+          now={NOW}
         />
       </TooltipProvider>
     )
@@ -64,6 +73,7 @@ describe("public vendor slot row", () => {
           slot={{ ...openSlot, is_reserved: true, status: "reserved" }}
           selectedSlot={null}
           onSelect={vi.fn()}
+          now={NOW}
         />
       </TooltipProvider>
     )
@@ -79,6 +89,7 @@ describe("public vendor slot row", () => {
           slot={{ ...openSlot, is_reserved: true, status: "reserving" }}
           selectedSlot={null}
           onSelect={vi.fn()}
+          now={NOW}
         />
       </TooltipProvider>
     )
@@ -103,7 +114,12 @@ describe("public vendor slot row", () => {
     }
     render(
       <TooltipProvider>
-        <SlotRow slot={ownSlot} selectedSlot={null} onSelect={onSelect} />
+        <SlotRow
+          slot={ownSlot}
+          selectedSlot={null}
+          onSelect={onSelect}
+          now={NOW}
+        />
       </TooltipProvider>
     )
 
@@ -131,11 +147,38 @@ describe("public vendor slot row", () => {
           selectedSlot={null}
           onSelect={vi.fn()}
           payingBookingId={77}
+          now={NOW}
         />
       </TooltipProvider>
     )
 
     expect(screen.getByRole("button")).toBeDisabled()
     expect(screen.getByText("در حال انتقال…")).toBeInTheDocument()
+  })
+
+  it("renders a started slot as past and unclickable", async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    const pastSlot: TimeSlot = {
+      ...openSlot,
+      start_time: "2099-08-01T06:30:00Z",
+      end_time: "2099-08-01T08:00:00Z",
+    }
+    render(
+      <TooltipProvider>
+        <SlotRow
+          slot={pastSlot}
+          selectedSlot={null}
+          onSelect={onSelect}
+          now={NOW}
+        />
+      </TooltipProvider>
+    )
+
+    const button = screen.getByRole("button")
+    expect(button).toBeDisabled()
+    expect(screen.getByText("گذشته")).toBeInTheDocument()
+    await user.click(button)
+    expect(onSelect).not.toHaveBeenCalled()
   })
 })

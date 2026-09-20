@@ -190,6 +190,89 @@ class TestListSlotsAfterCreate:
         assert manager_resp.json()["total"] == 1
 
 
+class TestPublicPastSlotVisibility:
+    """The public window starts at the current operational day's 03:00 —
+    earlier-today slots stay visible (rendered «گذشته» by the frontend),
+    previous operational days stay hidden."""
+
+    @staticmethod
+    async def _insert_slot(session: AsyncSession, vendor_id: int, start: datetime) -> int:
+        result = await session.execute(
+            text(
+                """INSERT INTO time_slots (vendor_id, start_time, end_time, base_price, is_reserved, version)
+                   VALUES (:vendor_id, :start, :end, 100.00, false, 1)
+                   RETURNING id"""
+            ),
+            {"vendor_id": vendor_id, "start": start, "end": start + timedelta(hours=1, minutes=30)},
+        )
+        slot_id = result.fetchone()[0]
+        await session.flush()
+        return slot_id
+
+    @staticmethod
+    def _operational_day_start_utc() -> datetime:
+        from app.core.schedule import SLOT_DAY_CUTOFF, slot_operational_day
+        from app.core.timezone import iran_to_utc, now_iran
+
+        return iran_to_utc(datetime.combine(slot_operational_day(now_iran()), SLOT_DAY_CUTOFF))
+
+    async def test_public_list_includes_earlier_today_slots(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        from app.core.schedule import slot_operational_day
+        from app.core.timezone import now_iran
+
+        vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+
+        # Halfway into the elapsed part of the current operational day — a
+        # started slot that always belongs to today's program, whatever the hour.
+        day_start = self._operational_day_start_utc()
+        start = day_start + (datetime.now(timezone.utc) - day_start) / 2
+        slot_id = await self._insert_slot(session, vendor_id, start)
+        day = slot_operational_day(now_iran()).isoformat()
+
+        public_resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots?date={day}")
+        assert public_resp.status_code == 200
+        assert [s["id"] for s in public_resp.json()["slots"]] == [slot_id]
+
+        # The detail endpoint (booking flow) also serves earlier-today slots.
+        detail_resp = await client.get(f"/api/v1/slots/{slot_id}")
+        assert detail_resp.status_code == 200
+        assert detail_resp.json()["id"] == slot_id
+
+        manager_resp = await client.get(
+            f"/api/v1/vendors/{vendor_id}/slots?date={day}", headers=headers
+        )
+        assert manager_resp.status_code == 200
+        assert manager_resp.json()["total"] == 1
+
+    async def test_public_list_hides_previous_operational_day_slots(
+        self, client: AsyncClient, manager_token: dict, session: AsyncSession
+    ) -> None:
+        from app.core.schedule import slot_operational_day
+        from app.core.timezone import utc_to_iran
+
+        vendor_id = await _create_vendor(client, manager_token, session)
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+
+        # Two hours before today's 03:00 cutoff — the previous operational day's night tail.
+        start = self._operational_day_start_utc() - timedelta(hours=2)
+        slot_id = await self._insert_slot(session, vendor_id, start)
+        day = slot_operational_day(utc_to_iran(start)).isoformat()
+
+        public_resp = await client.get(f"/api/v1/vendors/{vendor_id}/slots?date={day}")
+        assert public_resp.status_code == 200
+        assert public_resp.json()["slots"] == []
+
+        manager_resp = await client.get(
+            f"/api/v1/vendors/{vendor_id}/slots?date={day}", headers=headers
+        )
+        assert manager_resp.status_code == 200
+        assert manager_resp.json()["total"] == 1
+        assert manager_resp.json()["slots"][0]["id"] == slot_id
+
+
 class TestGetSlot:
     """GET /slots/{slot_id} — public slot detail."""
 
