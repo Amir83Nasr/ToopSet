@@ -1,11 +1,47 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Phone, Mail, MessageCircle } from "lucide-react"
+import { getApiBase } from "@/lib/api"
 import { toPersianDigits } from "@/lib/utils"
 
-const supportPhone = "09306853363"
-const supportEmail = "amirhossein.nasrollahi.main@gmail.com"
-const messengerId = "Amir83Nasr"
+// مقادیر پیش‌فرض تا وقتی ادمین هنوز تنظیماتی ذخیره نکرده
+const DEFAULT_SUPPORT_PHONE = "09306853363"
+const DEFAULT_SUPPORT_EMAIL = "amirhossein.nasrollahi.main@gmail.com"
+const DEFAULT_MESSENGER_ID = "Amir83Nasr"
+
+const API_BASE = getApiBase()
+
+interface ContactInfo {
+  support_phone?: string
+  support_email?: string
+  messenger_id?: string
+}
 
 export function FooterContact() {
+  const [contact, setContact] = useState<ContactInfo | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchContact = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/settings/public/contact`)
+        if (res.ok && !cancelled) setContact(await res.json())
+      } catch {
+        // swallow — fallback defaults remain
+      }
+    }
+    const timer = setTimeout(() => fetchContact(), 0)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [])
+
+  const supportPhone = contact?.support_phone || DEFAULT_SUPPORT_PHONE
+  const supportEmail = contact?.support_email || DEFAULT_SUPPORT_EMAIL
+  const messengerId = contact?.messenger_id || DEFAULT_MESSENGER_ID
+
   return (
     <ul className="space-y-3">
       <li>
