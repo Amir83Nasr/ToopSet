@@ -377,7 +377,17 @@ async def refresh_vendor_digest(
         if text == row.text:
             continue
 
-        await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
+        try:
+            await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
+        except EitaaGatewayError:
+            # One dead row (e.g. the channel message was deleted by hand) must
+            # not block the refresh of the newer rows that follow it.
+            logger.exception(
+                "Eitaa digest edit failed vendor_id=%s message_id=%s — skipping row",
+                vendor_id,
+                row.message_id,
+            )
+            continue
         await repo.set_text(row, text)
         logger.info("Eitaa digest refreshed vendor_id=%s message_id=%s", vendor_id, row.message_id)
         edited = True
