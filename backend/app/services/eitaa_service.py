@@ -5,8 +5,7 @@ open slots for the next ``EITAA_DIGEST_DAYS`` days and posts one message per
 vendor to the Eitaa channel configured via ``EITAA_BOT_TOKEN`` / ``EITAA_CHANNEL_ID``.
 Posted messages are recorded in ``eitaa_digest_messages`` so that when a
 booking is paid, :func:`sync_digest_after_payment` can immediately edit the
-affected vendor's message and strike the booked slot through with a
-«رزرو شد» label (HTML ``parse_mode``).
+affected vendor's message and mark the booked slot «❌ … (رزرو شد)».
 
 Messages travel through the Uniom gateway (``EITAA_API_BASE_URL``), which is
 Telegram Bot API compatible: ``POST {base}/bot{token}/sendMessage`` and
@@ -19,7 +18,6 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from html import escape
 from typing import Any
 
 import httpx
@@ -47,17 +45,23 @@ EITAA_DIGEST_DAYS = 5
 # Pause between consecutive channel posts so the gateway never throttles us.
 SEND_INTERVAL_SECONDS = 0.5
 
-_HEADER = "📣 برنامه سانس ها ⚽️"
-_RESERVATION_NOTE = "🔰 جهت رزرو سانس داخل سایت توپست میتوانید رزرو بکنید"
-_SEPARATOR_LINE = "ـ" * 40
+_HEADER = "📣 برنامه سانس‌ها"
+_RESERVATION_NOTE = "🌐 جهت رزرو آنلاین سانس‌ها روی سایت توپست کلیک کنید."
 
-# Persian label shown under the header for the vendor's sport types.
+# Persian label + emoji for the vendor's sport types (header line).
 _SPORT_LABELS: dict[str, str] = {
-    SportType.FOOTBALL.value: "🥅 زمین چمن",
-    SportType.FUTSAL.value: "🥅 سالن فوتسال",
-    SportType.VOLLEYBALL.value: "🏐 سالن والیبال",
-    SportType.BASKETBALL.value: "🏀 سالن بسکتبال",
-    SportType.HANDBALL.value: "🤾 سالن هندبال",
+    SportType.FOOTBALL.value: "زمین چمن",
+    SportType.FUTSAL.value: "سالن فوتسال",
+    SportType.VOLLEYBALL.value: "سالن والیبال",
+    SportType.BASKETBALL.value: "سالن بسکتبال",
+    SportType.HANDBALL.value: "سالن هندبال",
+}
+_SPORT_EMOJIS: dict[str, str] = {
+    SportType.FOOTBALL.value: "⚽️",
+    SportType.FUTSAL.value: "⚽️",
+    SportType.VOLLEYBALL.value: "🏐",
+    SportType.BASKETBALL.value: "🏀",
+    SportType.HANDBALL.value: "🤾",
 }
 
 
@@ -115,15 +119,13 @@ class EitaaChannelClient:
 
     async def send_message(self, *, chat_id: str, text: str) -> EitaaSendResult:
         """Post a new text message to the channel."""
-        return await self._post(
-            "sendMessage", {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
-        )
+        return await self._post("sendMessage", {"chat_id": chat_id, "text": text})
 
     async def edit_message(self, *, chat_id: str, message_id: int, text: str) -> EitaaSendResult:
         """Replace the text of a previously posted message."""
         return await self._post(
             "editMessageText",
-            {"chat_id": chat_id, "message_id": message_id, "text": text, "parse_mode": "HTML"},
+            {"chat_id": chat_id, "message_id": message_id, "text": text},
         )
 
 
@@ -169,21 +171,22 @@ def _format_day_line(local_date: date) -> str:
     return to_persian_digits(f"{PERSIAN_WEEKDAYS[jdate.weekday()]} {date_text}")
 
 
-def _sport_line(vendor: Vendor) -> str | None:
-    labels = [
-        _SPORT_LABELS[sport]
-        for sport in (getattr(s, "value", s) for s in (vendor.sport_types or []))
-        if sport in _SPORT_LABELS
-    ]
-    return " و ".join(dict.fromkeys(labels)) or None
+def _header_line(vendor: Vendor) -> str:
+    """«⚽️🏐 برنامه سانس‌های سالن فوتسال و والیبال» — emojis + sports, one line."""
+    known = [getattr(s, "value", s) for s in (vendor.sport_types or [])]
+    labels = list(dict.fromkeys(_SPORT_LABELS[s] for s in known if s in _SPORT_LABELS))
+    if not labels:
+        return _HEADER
+    emojis = list(dict.fromkeys(_SPORT_EMOJIS[s] for s in known if s in _SPORT_EMOJIS))
+    return f"{''.join(emojis)} برنامه سانس‌های {' و '.join(labels)}"
 
 
 def _slot_line(slot: TimeSlot) -> str:
-    """One schedule line — reserved slots stay listed, struck through."""
+    """One schedule line — reserved slots stay listed with a «رزرو شد» label."""
     clock = f"{_format_clock(utc_to_iran(slot.start_time))} تا {_format_clock(utc_to_iran(slot.end_time))}"
     if slot.is_reserved:
-        return f"🔸<s>{clock}</s> رزرو شد"
-    return f"🔸{clock}"
+        return f"❌ {clock} (رزرو شد)"
+    return f"⏰ {clock}"
 
 
 def render_empty_slots_message(
@@ -195,15 +198,11 @@ def render_empty_slots_message(
 ) -> str:
     """Render the channel message for one vendor's slots across the given Iran-local days.
 
-    The message is HTML (``parse_mode`` on the gateway calls): reserved slots
-    are struck through with a «رزرو شد» label instead of being dropped, so the
-    channel always shows the full program. Vendor-provided text is escaped.
+    Reserved slots stay listed as «❌ time (رزرو شد)» instead of being dropped,
+    so the channel always shows the full program. Plain text — no parse_mode.
     """
-    lines: list[str] = [_HEADER]
-    sport = _sport_line(vendor)
-    if sport:
-        lines.append(sport)
-    lines.append(escape(vendor.name))
+    lines: list[str] = [_header_line(vendor)]
+    lines.append(f"🏟 {vendor.name}")
 
     for day in days:
         day_slots = sorted(
@@ -213,7 +212,7 @@ def render_empty_slots_message(
         if not day_slots:
             continue
         lines.append("")
-        lines.append(_format_day_line(day))
+        lines.append(f"📅 {_format_day_line(day)}")
         lines.extend(_slot_line(slot) for slot in day_slots)
 
     lines.append("")
@@ -221,8 +220,7 @@ def render_empty_slots_message(
     if vendor_url:
         lines.append(vendor_url)
     lines.append("")
-    lines.append(_SEPARATOR_LINE)
-    lines.append(f"آدرس: {escape(vendor.address)}")
+    lines.append(f"📍 آدرس: {vendor.address}")
     return "\n".join(lines)
 
 
