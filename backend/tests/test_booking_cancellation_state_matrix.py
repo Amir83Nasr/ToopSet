@@ -8,7 +8,7 @@ variants (manual bookings, pending-payment bookings, release vs block).
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -655,6 +655,72 @@ async def test_manager_cancel_manual_booking_releases_slot_without_refund(
         )
         == 0
     )
+
+
+async def test_manager_recurring_booking_matches_midnight_wrap_slot(
+    client, session: AsyncSession, manager_token: dict
+) -> None:
+    """22:30 -> 00:00 wraps past midnight: the recurring pass materialises the
+    end on the next day (same as the weekly template) and books the slot."""
+    headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+    vendor = await client.post(
+        "/api/v1/vendors",
+        json={
+            "name": f"wrap vendor {uuid4().hex[:6]}",
+            "sport_types": ["futsal"],
+            "address": "تهران",
+            "latitude": 35.7,
+            "longitude": 51.4,
+            "capacity": 10,
+        },
+        headers=headers,
+    )
+    assert vendor.status_code == 201, vendor.text
+    vendor_id = vendor.json()["id"]
+    await session.execute(
+        text("UPDATE vendors SET is_active = true WHERE id = :id"), {"id": vendor_id}
+    )
+
+    iran = timezone(timedelta(hours=3, minutes=30))
+    target = (datetime.now(timezone.utc) + timedelta(days=7)).date()
+    start = datetime.combine(target, time(22, 30), tzinfo=iran)
+    end = datetime.combine(target + timedelta(days=1), time(0, 0), tzinfo=iran)
+    slot_id = await session.scalar(
+        text(
+            """
+            INSERT INTO time_slots (vendor_id, start_time, end_time, base_price, is_reserved, version)
+            VALUES (:vendor_id, :start, :end, 100000, false, 1)
+            RETURNING id
+            """
+        ),
+        {"vendor_id": vendor_id, "start": start, "end": end},
+    )
+    await session.flush()
+
+    # Frontend weekday convention: 0=Saturday ... 6=Friday.
+    persian_idx = (target.weekday() + 2) % 7
+    recurring = await client.post(
+        "/api/v1/manager/bookings/recurring",
+        json={
+            "vendor_id": vendor_id,
+            "full_name": "ایمان",
+            "phone_number": "09123334477",
+            "date_from": target.isoformat(),
+            "date_to": target.isoformat(),
+            "days_of_week": [persian_idx],
+            "start_time": "22:30",
+            "end_time": "00:00",
+            "allow_partial": True,
+        },
+        headers=headers,
+    )
+    assert recurring.status_code == 201, recurring.text
+    body = recurring.json()
+    assert body["created"] == 1
+    assert body["failed"] == 0
+    assert len(body["booking_ids"]) == 1
+    assert body["conflicts"] == []
+    assert await _slot_row(session, slot_id) == {"status": "reserved", "is_reserved": True}
 
 
 async def test_manager_cancel_without_release_blocks_slot(

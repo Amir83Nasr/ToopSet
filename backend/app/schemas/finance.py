@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.schedule import item_span_minutes
 from app.models.refund import RefundStatus, RefundType
 from app.models.settlement import SettlementRequestStatus
 
@@ -129,8 +130,8 @@ class ManagerRecurringBookingCreate(BaseModel):
     def validate_range(self) -> "ManagerRecurringBookingCreate":
         if self.date_to < self.date_from:
             raise ValueError("date_to must not be before date_from")
-        if self.start_time >= self.end_time:
-            raise ValueError("start_time must be before end_time")
+        if item_span_minutes(self.start_time, self.end_time) <= 0:
+            raise ValueError("start_time and end_time must differ")
         return self
 
 

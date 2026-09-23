@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.phone import normalize_phone
+from app.core.schedule import item_window
 from app.core.timezone import iran_to_utc, now_utc
 from app.models.booking import Booking, BookingSource, BookingStatus, SettlementStatus
 from app.models.notification import NotificationDelivery
@@ -235,8 +236,10 @@ class FinanceService:
                 current += timedelta(days=1)
                 continue
 
-            start_dt = datetime.combine(current, datetime.strptime(start_time, "%H:%M").time())
-            end_dt = datetime.combine(current, datetime.strptime(end_time, "%H:%M").time())
+            # Same wrap semantics as the weekly template: end <= start means
+            # the slot ends on the next day, and starts 00:00-03:00 belong to
+            # the previous operational day.
+            start_dt, end_dt = item_window(current, start_time, end_time)
             start_utc = iran_to_utc(start_dt)
             end_utc = iran_to_utc(end_dt)
             result = await self.db.execute(
