@@ -237,23 +237,36 @@ async def _update_vendor_min_prices_nightly():
 async def _post_eitaa_empty_slots_daily():
     """Background task: post today's & tomorrow's empty slots to the Eitaa channel.
 
-    Sleeps until 07:00 Asia/Tehran each day — deliberately no run at startup,
-    so dev restarts never spam the channel. One attempt per day: a failed
-    post is logged and retried the next morning (re-sending would duplicate
-    already-published vendor messages).
+    Posts at 07:00 Asia/Tehran each day. When the app (re)starts after this
+    morning's window has already passed — a deploy, crash or failed attempt —
+    it catches up immediately instead of losing the day, provided nothing was
+    posted yet: per-vendor idempotence in ``publish_daily_empty_slots`` keeps
+    restarts from duplicating channel messages. A failed run retries after
+    10 minutes rather than waiting for tomorrow.
     """
-    from app.services.eitaa_service import publish_daily_empty_slots, seconds_until_next_daily_post
+    from datetime import time as dtime
+
+    from app.core.timezone import now_iran
+    from app.services.eitaa_service import (
+        EITAA_DAILY_POST_HOUR,
+        digest_posted_today,
+        publish_daily_empty_slots,
+        seconds_until_next_daily_post,
+    )
 
     while True:
         try:
-            await asyncio.sleep(seconds_until_next_daily_post())
             async with async_session_factory() as db:
-                sent = await publish_daily_empty_slots(db)
-                logger.info("Eitaa daily empty-slots job completed messages_sent=%s", sent)
+                window_passed = now_iran().time() >= dtime(EITAA_DAILY_POST_HOUR)
+                if window_passed and not await digest_posted_today(db):
+                    sent = await publish_daily_empty_slots(db)
+                    logger.info("Eitaa daily empty-slots job completed messages_sent=%s", sent)
+            await asyncio.sleep(seconds_until_next_daily_post())
         except asyncio.CancelledError:
             break
         except Exception:
             logger.exception("_post_eitaa_empty_slots_daily failed")
+            await asyncio.sleep(600)
 
 
 @asynccontextmanager

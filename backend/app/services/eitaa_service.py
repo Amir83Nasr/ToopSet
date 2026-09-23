@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 import httpx
@@ -253,13 +253,25 @@ async def collect_daily_empty_slot_messages(
     return messages
 
 
+async def digest_posted_today(db: AsyncSession, *, now: datetime | None = None) -> bool:
+    """Whether any vendor's digest was already posted for today (Iran-local)."""
+    current = now or now_utc()
+    today = utc_to_iran(current).date()
+    return bool(await EitaaDigestRepo(db).list_by_date(today))
+
+
 async def publish_daily_empty_slots(
     db: AsyncSession,
     *,
     now: datetime | None = None,
     client: EitaaChannelClient | None = None,
 ) -> int:
-    """Post the daily digest — one message per vendor — and record it for later edits."""
+    """Post the daily digest — one message per vendor — and record it for later edits.
+
+    Vendors that already have a digest row for today are skipped, so a catch-up
+    run after a partially failed attempt (or an app restart) never duplicates
+    channel messages.
+    """
     messages = await collect_daily_empty_slot_messages(db, now=now)
     if not messages:
         logger.info("Eitaa daily digest skipped — no vendor has open slots for today/tomorrow")
@@ -271,6 +283,9 @@ async def publish_daily_empty_slots(
     repo = EitaaDigestRepo(db)
     sent = 0
     for vendor, text in messages:
+        if await repo.get_by_vendor_and_date(vendor.id, digest_date) is not None:
+            logger.info("Eitaa daily digest already posted vendor_id=%s — skipped", vendor.id)
+            continue
         result = await sender.send_message(chat_id=chat_id, text=text)
         sent += 1
         logger.info(
@@ -302,44 +317,55 @@ async def refresh_vendor_digest(
     now: datetime | None = None,
     client: EitaaChannelClient | None = None,
 ) -> bool:
-    """Edit one vendor's posted digest message so it matches the live slot state.
+    """Edit this vendor's posted digest messages so they match the live slot state.
 
-    Returns True when the channel message was edited. Messages whose text is
-    unchanged (no new booking in the digest window) are left alone — no API call.
+    Refreshes today's message and yesterday's — yesterday's "today" section
+    still lists bookable slots, so a booking must drop from both. Today's row
+    re-renders from *now* (already-started slots drop out); yesterday's keeps
+    its morning snapshot (anchored at its own 07:00 post time) so only booked
+    slots disappear from it. Messages whose text is unchanged are left alone —
+    no API call. Returns True when any channel message was edited.
     """
     current = now or now_utc()
     today = utc_to_iran(current).date()
     repo = EitaaDigestRepo(db)
-    row = await repo.get_by_vendor_and_date(vendor_id, today)
-    if row is None:
-        return False  # no digest posted for this vendor today — nothing to edit
-
-    days = [today, today + timedelta(days=1)]
-    # include the night tail: 00:00-03:00 of day+2 belongs to tomorrow's
-    # operational day, so the digest's "tomorrow" section stays complete
-    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
-    _, vendor_slots = (await _open_slots_by_vendor(db, current, window_end)).get(
-        vendor_id, (None, [])
-    )
     vendor_result = await db.execute(select(Vendor).where(Vendor.id == vendor_id))
     vendor = vendor_result.scalar_one_or_none()
     if vendor is None:
         return False  # vendor deleted — its digest rows are cascaded away; defensive only
 
-    text = render_empty_slots_message(
-        vendor,
-        list(vendor_slots),
-        days=days,
-        vendor_url=vendor_page_url(vendor_id),
-    )
-    if text == row.text:
-        return False
-
     sender = client if client is not None else get_eitaa_client()
-    await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
-    await repo.set_text(row, text)
-    logger.info("Eitaa digest refreshed vendor_id=%s message_id=%s", vendor_id, row.message_id)
-    return True
+    edited = False
+    for digest_date in (today - timedelta(days=1), today):
+        row = await repo.get_by_vendor_and_date(vendor_id, digest_date)
+        if row is None:
+            continue
+        days = [digest_date, digest_date + timedelta(days=1)]
+        # include the night tail: 00:00-03:00 of day+2 belongs to the row's
+        # second day's operational tail, so the digest sections stay complete
+        window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
+        window_start = (
+            current
+            if digest_date == today
+            else iran_to_utc(datetime.combine(digest_date, time(EITAA_DAILY_POST_HOUR)))
+        )
+        _, vendor_slots = (await _open_slots_by_vendor(db, window_start, window_end)).get(
+            vendor_id, (None, [])
+        )
+        text = render_empty_slots_message(
+            vendor,
+            list(vendor_slots),
+            days=days,
+            vendor_url=vendor_page_url(vendor_id),
+        )
+        if text == row.text:
+            continue
+
+        await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
+        await repo.set_text(row, text)
+        logger.info("Eitaa digest refreshed vendor_id=%s message_id=%s", vendor_id, row.message_id)
+        edited = True
+    return edited
 
 
 async def sync_digest_after_payment(
