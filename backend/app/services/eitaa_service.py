@@ -1,8 +1,8 @@
 """Eitaa channel integration — daily empty-slots digest.
 
 Every morning at 07:00 Iran time the backend collects each active vendor's
-open slots for today and tomorrow and posts one message per vendor to the
-Eitaa channel configured via ``EITAA_BOT_TOKEN`` / ``EITAA_CHANNEL_ID``.
+open slots for the next ``EITAA_DIGEST_DAYS`` days and posts one message per
+vendor to the Eitaa channel configured via ``EITAA_BOT_TOKEN`` / ``EITAA_CHANNEL_ID``.
 Posted messages are recorded in ``eitaa_digest_messages`` so that when a
 booking is paid, :func:`sync_digest_after_payment` can immediately edit the
 affected vendor's message and drop the booked slot from it.
@@ -38,6 +38,9 @@ logger = logging.getLogger(__name__)
 
 # Iran-local hour when the daily digest is posted (07:00 Asia/Tehran).
 EITAA_DAILY_POST_HOUR = 7
+
+# How many operational days (starting today) each digest message covers.
+EITAA_DIGEST_DAYS = 5
 
 # Pause between consecutive channel posts so the gateway never throttles us.
 SEND_INTERVAL_SECONDS = 0.5
@@ -226,12 +229,12 @@ async def _open_slots_by_vendor(
 async def collect_daily_empty_slot_messages(
     db: AsyncSession, *, now: datetime | None = None
 ) -> list[tuple[Vendor, str]]:
-    """Group each active vendor's open slots for today & tomorrow into channel messages."""
+    """Group each active vendor's open slots for the next days into channel messages."""
     current = now or now_utc()
     today = utc_to_iran(current).date()
-    days = [today, today + timedelta(days=1)]
-    # include the night tail: 00:00-03:00 of day+2 belongs to tomorrow's
-    # operational day, so the digest's "tomorrow" section stays complete
+    days = [today + timedelta(days=offset) for offset in range(EITAA_DIGEST_DAYS)]
+    # include the night tail: 00:00-03:00 of day+EITAA_DIGEST_DAYS belongs to
+    # the last day's operational day, so the digest's final section stays complete
     window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
 
     slots_by_vendor = await _open_slots_by_vendor(db, current, window_end)
@@ -319,12 +322,12 @@ async def refresh_vendor_digest(
 ) -> bool:
     """Edit this vendor's posted digest messages so they match the live slot state.
 
-    Refreshes today's message and yesterday's — yesterday's "today" section
-    still lists bookable slots, so a booking must drop from both. Today's row
-    re-renders from *now* (already-started slots drop out); yesterday's keeps
-    its morning snapshot (anchored at its own 07:00 post time) so only booked
-    slots disappear from it. Messages whose text is unchanged are left alone —
-    no API call. Returns True when any channel message was edited.
+    Each message spans ``EITAA_DIGEST_DAYS`` days, so the last that many rows
+    still list bookable slots and a booking must drop from all of them. Today's
+    row re-renders from *now* (already-started slots drop out); older rows keep
+    their morning snapshot (anchored at their own 07:00 post time) so only
+    booked slots disappear from them. Messages whose text is unchanged are left
+    alone — no API call. Returns True when any channel message was edited.
     """
     current = now or now_utc()
     today = utc_to_iran(current).date()
@@ -336,17 +339,18 @@ async def refresh_vendor_digest(
 
     sender = client if client is not None else get_eitaa_client()
     edited = False
-    for digest_date in (today - timedelta(days=1), today):
+    for age in range(EITAA_DIGEST_DAYS):
+        digest_date = today - timedelta(days=age)
         row = await repo.get_by_vendor_and_date(vendor_id, digest_date)
         if row is None:
             continue
-        days = [digest_date, digest_date + timedelta(days=1)]
-        # include the night tail: 00:00-03:00 of day+2 belongs to the row's
-        # second day's operational tail, so the digest sections stay complete
+        days = [digest_date + timedelta(days=offset) for offset in range(EITAA_DIGEST_DAYS)]
+        # include the night tail: 00:00-03:00 past the last day belongs to its
+        # operational tail, so the digest sections stay complete
         window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
         window_start = (
             current
-            if digest_date == today
+            if age == 0
             else iran_to_utc(datetime.combine(digest_date, time(EITAA_DAILY_POST_HOUR)))
         )
         _, vendor_slots = (await _open_slots_by_vendor(db, window_start, window_end)).get(

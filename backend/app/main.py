@@ -235,7 +235,7 @@ async def _update_vendor_min_prices_nightly():
 
 
 async def _post_eitaa_empty_slots_daily():
-    """Background task: post today's & tomorrow's empty slots to the Eitaa channel.
+    """Background task: post the next days' empty slots to the Eitaa channel.
 
     Posts at 07:00 Asia/Tehran each day. When the app (re)starts after this
     morning's window has already passed — a deploy, crash or failed attempt —

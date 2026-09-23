@@ -232,6 +232,8 @@ async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
             _slot(active.id, _iran(today, 5, 30)),  # today, already passed → out
             _slot(active.id, _iran(tomorrow, 5, 30)),  # tomorrow → in
             _slot(active.id, _iran(tomorrow, 7, 0), reserved=True),  # reserved → out
+            _slot(active.id, _iran(today + timedelta(days=3), 21, 0)),  # day +3 → in
+            _slot(active.id, _iran(today + timedelta(days=5), 21, 0)),  # beyond span → out
             _slot(inactive.id, _iran(tomorrow, 8, 0)),  # inactive vendor → out
         ]
     )
@@ -251,10 +253,14 @@ async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
     text = sent[0]
     assert "🔸۱۸:۳۰ تا ۲۰:۰۰" in text
     assert "🔸۵:۳۰ تا ۷:۰۰" in text
+    assert "🔸۲۱:۰۰ تا ۲۲:۳۰" in text  # day +3 inside the 5-day span
     assert "🔸۷:۰۰" not in text  # reserved slot excluded
     assert "سالن تعطیل" not in text  # inactive vendor excluded
     assert f"/vendors/{active.id}" in text  # links back to the site
     assert text.count("📣 برنامه سانس ها ⚽️") == 1
+    # The day+5 slot shares the day+3 clock ("۲۱:۰۰ تا ۲۲:۳۰") but must not
+    # appear: only today..day+4 are covered.
+    assert text.count("🔸۲۱:۰۰ تا ۲۲:۳۰") == 1
 
 
 async def test_publish_skips_channel_call_when_no_open_slots(session: AsyncSession) -> None:
@@ -470,11 +476,11 @@ async def test_refresh_vendor_digest_ignores_other_days_and_missing_rows(
     session.add(vendor)
     await session.flush()
 
-    two_days_ago = now_iran().date() - _td(days=2)
+    six_days_ago = now_iran().date() - _td(days=6)
     session.add(
         EitaaDigestMessage(
             vendor_id=vendor.id,
-            digest_date=two_days_ago,
+            digest_date=six_days_ago,
             chat_id="@toopset",
             message_id=99,
             text="old",
@@ -488,7 +494,7 @@ async def test_refresh_vendor_digest_ignores_other_days_and_missing_rows(
         ) -> EitaaSendResult:  # pragma: no cover
             raise AssertionError("must not edit other days' or missing digests")
 
-    # A row older than yesterday is outside the refresh window → untouched.
+    # A row older than the digest span is outside the refresh window → untouched.
     assert (
         await refresh_vendor_digest(session, vendor.id, now=now_iran(), client=ExplodingEditor())
         is False
