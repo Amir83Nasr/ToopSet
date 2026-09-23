@@ -5,7 +5,8 @@ open slots for the next ``EITAA_DIGEST_DAYS`` days and posts one message per
 vendor to the Eitaa channel configured via ``EITAA_BOT_TOKEN`` / ``EITAA_CHANNEL_ID``.
 Posted messages are recorded in ``eitaa_digest_messages`` so that when a
 booking is paid, :func:`sync_digest_after_payment` can immediately edit the
-affected vendor's message and drop the booked slot from it.
+affected vendor's message and strike the booked slot through with a
+«رزرو شد» label (HTML ``parse_mode``).
 
 Messages travel through the Uniom gateway (``EITAA_API_BASE_URL``), which is
 Telegram Bot API compatible: ``POST {base}/bot{token}/sendMessage`` and
@@ -18,6 +19,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from html import escape
 from typing import Any
 
 import httpx
@@ -113,13 +115,15 @@ class EitaaChannelClient:
 
     async def send_message(self, *, chat_id: str, text: str) -> EitaaSendResult:
         """Post a new text message to the channel."""
-        return await self._post("sendMessage", {"chat_id": chat_id, "text": text})
+        return await self._post(
+            "sendMessage", {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        )
 
     async def edit_message(self, *, chat_id: str, message_id: int, text: str) -> EitaaSendResult:
         """Replace the text of a previously posted message."""
         return await self._post(
             "editMessageText",
-            {"chat_id": chat_id, "message_id": message_id, "text": text},
+            {"chat_id": chat_id, "message_id": message_id, "text": text, "parse_mode": "HTML"},
         )
 
 
@@ -174,6 +178,14 @@ def _sport_line(vendor: Vendor) -> str | None:
     return " و ".join(dict.fromkeys(labels)) or None
 
 
+def _slot_line(slot: TimeSlot) -> str:
+    """One schedule line — reserved slots stay listed, struck through."""
+    clock = f"{_format_clock(utc_to_iran(slot.start_time))} تا {_format_clock(utc_to_iran(slot.end_time))}"
+    if slot.is_reserved:
+        return f"🔸<s>{clock}</s> رزرو شد"
+    return f"🔸{clock}"
+
+
 def render_empty_slots_message(
     vendor: Vendor,
     slots: list[TimeSlot],
@@ -181,12 +193,17 @@ def render_empty_slots_message(
     days: list[date],
     vendor_url: str = "",
 ) -> str:
-    """Render the channel message for one vendor's open slots across the given Iran-local days."""
+    """Render the channel message for one vendor's slots across the given Iran-local days.
+
+    The message is HTML (``parse_mode`` on the gateway calls): reserved slots
+    are struck through with a «رزرو شد» label instead of being dropped, so the
+    channel always shows the full program. Vendor-provided text is escaped.
+    """
     lines: list[str] = [_HEADER]
     sport = _sport_line(vendor)
     if sport:
         lines.append(sport)
-    lines.append(vendor.name)
+    lines.append(escape(vendor.name))
 
     for day in days:
         day_slots = sorted(
@@ -197,10 +214,7 @@ def render_empty_slots_message(
             continue
         lines.append("")
         lines.append(_format_day_line(day))
-        for slot in day_slots:
-            start = _format_clock(utc_to_iran(slot.start_time))
-            end = _format_clock(utc_to_iran(slot.end_time))
-            lines.append(f"🔸{start} تا {end}")
+        lines.extend(_slot_line(slot) for slot in day_slots)
 
     lines.append("")
     lines.append(_RESERVATION_NOTE)
@@ -208,16 +222,16 @@ def render_empty_slots_message(
         lines.append(vendor_url)
     lines.append("")
     lines.append(_SEPARATOR_LINE)
-    lines.append(f"آدرس: {vendor.address}")
+    lines.append(f"آدرس: {escape(vendor.address)}")
     return "\n".join(lines)
 
 
-async def _open_slots_by_vendor(
+async def _slots_by_vendor(
     db: AsyncSession, start_from: datetime, start_until: datetime
 ) -> dict[int, tuple[Vendor, list[TimeSlot]]]:
-    """Open slots in the window, grouped per vendor (vendor preloaded)."""
+    """Slots (open and reserved) in the window, grouped per vendor (vendor preloaded)."""
     repo = TimeSlotRepo(db)
-    slots = await repo.list_open_between(start_from=start_from, start_until=start_until)
+    slots = await repo.list_between(start_from=start_from, start_until=start_until)
 
     slots_by_vendor: dict[int, tuple[Vendor, list[TimeSlot]]] = {}
     for slot in slots:
@@ -237,7 +251,7 @@ async def collect_daily_empty_slot_messages(
     # the last day's operational day, so the digest's final section stays complete
     window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
 
-    slots_by_vendor = await _open_slots_by_vendor(db, current, window_end)
+    slots_by_vendor = await _slots_by_vendor(db, current, window_end)
 
     messages: list[tuple[Vendor, str]] = []
     for vendor_id in sorted(slots_by_vendor):
@@ -353,7 +367,7 @@ async def refresh_vendor_digest(
             if age == 0
             else iran_to_utc(datetime.combine(digest_date, time(EITAA_DAILY_POST_HOUR)))
         )
-        _, vendor_slots = (await _open_slots_by_vendor(db, window_start, window_end)).get(
+        _, vendor_slots = (await _slots_by_vendor(db, window_start, window_end)).get(
             vendor_id, (None, [])
         )
         text = render_empty_slots_message(

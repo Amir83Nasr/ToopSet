@@ -144,7 +144,11 @@ async def test_client_posts_telegram_compatible_payload() -> None:
     assert str(captured.url) == "https://api.uniom.ir/bottok-123/sendMessage"
     import json
 
-    assert json.loads(captured.read()) == {"chat_id": "@toopset", "text": "سلام کانال"}
+    assert json.loads(captured.read()) == {
+        "chat_id": "@toopset",
+        "text": "سلام کانال",
+        "parse_mode": "HTML",
+    }
     assert result.message_id == 4242
     assert result.raw_response["ok"] is True
 
@@ -231,7 +235,7 @@ async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
             _slot(active.id, _iran(today, 18, 30)),  # today, still future at 07:00 → in
             _slot(active.id, _iran(today, 5, 30)),  # today, already passed → out
             _slot(active.id, _iran(tomorrow, 5, 30)),  # tomorrow → in
-            _slot(active.id, _iran(tomorrow, 7, 0), reserved=True),  # reserved → out
+            _slot(active.id, _iran(tomorrow, 7, 0), reserved=True),  # reserved → struck
             _slot(active.id, _iran(today + timedelta(days=3), 21, 0)),  # day +3 → in
             _slot(active.id, _iran(today + timedelta(days=5), 21, 0)),  # beyond span → out
             _slot(inactive.id, _iran(tomorrow, 8, 0)),  # inactive vendor → out
@@ -254,7 +258,7 @@ async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
     assert "🔸۱۸:۳۰ تا ۲۰:۰۰" in text
     assert "🔸۵:۳۰ تا ۷:۰۰" in text
     assert "🔸۲۱:۰۰ تا ۲۲:۳۰" in text  # day +3 inside the 5-day span
-    assert "🔸۷:۰۰" not in text  # reserved slot excluded
+    assert "<s>۷:۰۰ تا ۸:۳۰</s> رزرو شد" in text  # reserved slot struck, not dropped
     assert "سالن تعطیل" not in text  # inactive vendor excluded
     assert f"/vendors/{active.id}" in text  # links back to the site
     assert text.count("📣 برنامه سانس ها ⚽️") == 1
@@ -312,6 +316,7 @@ async def test_client_edits_previously_sent_message() -> None:
         "chat_id": "@toopset",
         "message_id": 55,
         "text": "متن جدید",
+        "parse_mode": "HTML",
     }
     assert result.message_id == 55
 
@@ -435,7 +440,7 @@ async def test_refresh_vendor_digest_edits_message_when_a_slot_gets_booked(
     message_id, new_text = edits[0]
     assert message_id == 3131
     assert "🔸۹:۰۰" in new_text
-    assert "🔸۱۱:۰۰" not in new_text  # booked slot dropped from the channel message
+    assert "<s>۱۱:۰۰ تا ۱۲:۳۰</s> رزرو شد" in new_text  # booked slot struck, not dropped
 
     row = (
         await session.execute(
@@ -577,7 +582,7 @@ async def test_refresh_vendor_digest_also_updates_yesterdays_message(
     message_id, new_text = edits[0]
     assert message_id == 404
     assert "🔸۲۱:۰۰" in new_text  # yesterday's played slot keeps its morning snapshot
-    assert "🔸۲۲:۳۰" not in new_text  # today's booked slot dropped
+    assert "<s>۲۲:۳۰ تا ۰۰:۰۰</s> رزرو شد" in new_text  # today's booking struck in place
 
     row = (
         await session.execute(

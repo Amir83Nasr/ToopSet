@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.schedule import SLOT_DAY_CUTOFF
 from app.core.timezone import iran_to_utc, now_utc
-from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.time_slot import TimeSlot
 from app.models.vendor import Vendor
 
 
@@ -118,17 +118,17 @@ class TimeSlotRepo:
         )
         return list(result.scalars().all())
 
-    async def list_open_between(
-        self, start_from: datetime, start_until: datetime
-    ) -> list[TimeSlot]:
-        """Open, unreserved slots in [start_from, start_until) across active vendors."""
+    async def list_between(self, start_from: datetime, start_until: datetime) -> list[TimeSlot]:
+        """All slots (open or reserved) in [start_from, start_until) across active vendors.
+
+        Reserved slots are included so the channel digest can strike them
+        through with a "رزرو شد" label instead of dropping them silently.
+        """
         result = await self.db.execute(
             select(TimeSlot)
             .join(TimeSlot.vendor)
             .where(
                 Vendor.is_active == True,
-                TimeSlot.is_reserved == False,
-                TimeSlot.status == SlotStatus.OPEN,
                 TimeSlot.start_time >= start_from,
                 TimeSlot.start_time < start_until,
             )
