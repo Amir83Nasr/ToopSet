@@ -25,6 +25,7 @@ from app.repositories.booking_repo import BookingRepo
 from app.repositories.notification_repo import NotificationRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
 from app.repositories.user_repo import UserRepository
+from app.services.eitaa_service import sync_digest_after_payment
 from app.services.notification_service import (
     NotificationService,
     invalidate_notification_list_cache,
@@ -157,6 +158,7 @@ class FinanceService:
         full_name: str,
         phone_number: str,
         source: BookingSource = BookingSource.MANAGER_MANUAL,
+        sync_digest: bool = True,
     ) -> Booking:
         slot = await self._get_slot_for_manager(slot_id)
         vendor = slot.vendor
@@ -193,6 +195,9 @@ class FinanceService:
             start_time=slot.start_time,
             end_time=slot.end_time,
         )
+        if sync_digest:
+            # Drop the just-booked slot from the vendor's Eitaa digest (best-effort).
+            await sync_digest_after_payment(self.db, slot.vendor_id)
         return booking
 
     async def create_recurring_manager_bookings(
@@ -271,8 +276,13 @@ class FinanceService:
                 full_name=full_name,
                 phone_number=phone_number,
                 source=BookingSource.MANAGER_MANUAL,
+                sync_digest=False,  # the channel edit runs once after the whole batch
             )
             booking_ids.append(booking.id)
+
+        if booking_ids:
+            # One digest refresh covers the whole batch (best-effort).
+            await sync_digest_after_payment(self.db, vendor_id)
 
         return {
             "created": len(booking_ids),
@@ -395,6 +405,8 @@ class FinanceService:
         )
         self.db.add(cancellation)
         await self.db.flush()
+        # Freeing (or blocking) the slot changes the digest too — re-sync it (best-effort).
+        await sync_digest_after_payment(self.db, slot.vendor_id)
         return cancellation
 
     async def settlement_summary(
