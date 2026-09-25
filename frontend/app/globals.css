@@ -643,6 +643,59 @@ html body[data-scroll-locked] {
   animation: shimmer 4s ease-in-out infinite;
 }
 
+/* ── Hero CTA attention effects ── */
+/* Pulsing primary halo: expands outward and fades, drawing the eye */
+@keyframes cta-glow {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent),
+      0 8px 20px -4px color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+  70% {
+    box-shadow:
+      0 0 0 16px color-mix(in oklab, var(--primary) 0%, transparent),
+      0 8px 20px -4px color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent),
+      0 8px 20px -4px color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+}
+.animate-cta-glow {
+  animation: cta-glow 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Light sweep: a diagonal highlight passing across the button */
+.cta-shine {
+  position: relative;
+  overflow: hidden;
+}
+.cta-shine::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transform: translateX(-150%) skewX(-15deg);
+  animation: cta-shine 3.2s ease-in-out infinite;
+}
+@keyframes cta-shine {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+  }
+  55%,
+  100% {
+    transform: translateX(300%) skewX(-15deg);
+  }
+}
+
 /* ── GPU layer promotion for smooth scrolling container ── */
 .gpu-layer {
   transform: translateZ(0);
