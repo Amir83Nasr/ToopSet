@@ -14,14 +14,14 @@ describe("HeroSection", () => {
 
   it("renders the venue search action", () => {
     render(<HeroSection />)
-    expect(screen.getByText("مشاهده مجموعه‌های ورزشی")).toBeInTheDocument()
+    expect(screen.getByText("همین حالا رزرو کن")).toBeInTheDocument()
     expect(screen.queryByText("ثبت مجموعه جدید")).not.toBeInTheDocument()
   })
 
-  it("links to /vendors on 'مشاهده مجموعه‌های ورزشی'", () => {
+  it("links to /vendors on 'همین حالا رزرو کن'", () => {
     render(<HeroSection />)
     expect(
-      screen.getByRole("link", { name: /مشاهده مجموعه‌های ورزشی/ })
+      screen.getByRole("link", { name: /همین حالا رزرو کن/ })
     ).toHaveAttribute("href", "/vendors")
   })
 })

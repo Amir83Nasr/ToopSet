@@ -13,21 +13,21 @@ export function HeroSection() {
         style={{ backgroundImage: "url('/output.webp')" }}
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-36">
-        <div className="animate-fade-in mx-auto flex max-w-2xl flex-col items-center gap-7 text-center">
-          <h1 className="rounded-3xl border border-foreground/10 bg-background/35 px-6 py-5 text-3xl leading-tight font-bold text-foreground shadow-lg backdrop-blur-lg sm:px-10 sm:text-4xl sm:leading-snug lg:text-5xl lg:leading-normal">
+      <div className="mx-auto flex max-w-7xl flex-col px-4 pt-4 pb-4 md:pt-8 md:pb-4 lg:pt-12 lg:pb-8">
+        <div className="animate-fade-in mt-16 flex flex-col items-end gap-7 text-right sm:items-center sm:text-center md:mt-16 lg:mt-20">
+          <h1 className="me-6 max-w-2xl text-xl leading-tight font-bold text-white sm:me-0 sm:text-2xl sm:leading-snug lg:text-3xl lg:leading-normal">
             سامانه رزرو آنلاین
             <br />
-            <span className="font-bold text-primary">مجموعه‌های ورزشی</span>
+            <span className="font-bold text-white">مجموعه‌های ورزشی</span>
           </h1>
 
           <Button
             size="lg"
             asChild
-            className="cta-shine animate-cta-glow mt-8 h-12 w-full rounded-xl px-10 text-lg font-bold sm:mt-0 sm:w-auto"
+            className="cta-shine animate-cta-glow -mt-2 h-10 w-1/3 translate-x-3 rounded-xl px-2 text-xs font-bold whitespace-nowrap"
           >
             <Link href="/vendors" prefetch>
-              مشاهده مجموعه‌های ورزشی
+              همین حالا رزرو کن
             </Link>
           </Button>
         </div>

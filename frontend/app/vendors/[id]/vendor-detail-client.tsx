@@ -633,19 +633,32 @@ export default function PublicVendorDetailPage({
                   )}
                 </div>
               </div>
-              {canManage && (
+              <div className="flex shrink-0 gap-2">
                 <Button
-                  variant="outline"
                   size="sm"
-                  asChild
                   className="shrink-0"
+                  onClick={() =>
+                    document
+                      .getElementById("weekly-schedule")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
                 >
-                  <Link href={`/dashboard/vendors/${vendorId}`}>
-                    <LayoutDashboard className="ms-1.5 size-3.5" />
-                    مدیریت
-                  </Link>
+                  مشاهده سانس‌ها
                 </Button>
-              )}
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="shrink-0"
+                  >
+                    <Link href={`/dashboard/vendors/${vendorId}`}>
+                      <LayoutDashboard className="ms-1.5 size-3.5" />
+                      مدیریت
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Info grid */}
@@ -740,7 +753,7 @@ export default function PublicVendorDetailPage({
                ═══════════════════════════════════ */}
           <div className="grid gap-12 lg:grid-cols-3">
             {/* ====== Left: Schedule ====== */}
-            <div className="lg:col-span-2">
+            <div id="weekly-schedule" className="scroll-mt-24 lg:col-span-2">
               <div className="rounded-xl border bg-card">
                 {/* ── Week nav ── */}
                 <div className="flex flex-col gap-3 border-b px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
