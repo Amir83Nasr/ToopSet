@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { getApiBase } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
 import { SITE_URL } from "@/lib/site"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
@@ -40,7 +39,7 @@ async function getInitialVendors(): Promise<{
 }
 
 export default async function VendorsServerPage() {
-  const { vendors, total } = await getInitialVendors()
+  const { vendors } = await getInitialVendors()
 
   const itemListJsonLd =
     vendors.length > 0
@@ -68,18 +67,6 @@ export default async function VendorsServerPage() {
       <main id="main-content" className="relative flex-1 pt-16">
         <section className="relative overflow-hidden px-4 py-6 md:py-8">
           <div className="relative z-10 mx-auto max-w-7xl px-4">
-            <div className="mb-6 text-center">
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                رزرو آنلاین <span className="text-primary">سالن فوتسال</span> و
-                مجموعه ورزشی در قم
-              </h1>
-              <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">
-                {total > 0
-                  ? `${toPersianDigits(total)} مجموعه ورزشی فعال در قم — مقایسه کنید و آنلاین رزرو کنید`
-                  : "مجموعه ورزشی مورد نظر خود را پیدا کنید"}
-              </p>
-            </div>
-
             {/* ── Interactive search/filter/map (client, with pagination) ── */}
             <div className="mt-8">
               <VendorsExplorer />

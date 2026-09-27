@@ -1,131 +1,95 @@
-import Link from "next/link"
-import { Search, Star, ListChecks, ShieldCheck, Camera } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card"
+  Search01Icon,
+  Camera01Icon,
+  StarIcon,
+  Shield01Icon,
+  CreditCardAcceptIcon,
+  Clock01Icon,
+} from "@hugeicons/core-free-icons"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
 const features = [
   {
-    icon: Search,
+    icon: Search01Icon,
     title: "جستجوی هوشمند",
     description: "مقایسه قیمت، موقعیت و امکانات مجموعه‌ها در یک نگاه",
   },
   {
-    icon: Camera,
+    icon: Camera01Icon,
     title: "گالری تصاویر واقعی",
     description:
       "تصاویر واقعی از سالن، رختکن و سرویس بهداشتی توسط مدیران بارگذاری می‌شود",
   },
   {
-    icon: Star,
+    icon: StarIcon,
     title: "نمره و نظر کاربران",
     description:
       "کاربران پس از هر بازی می‌توانند تجربه خود را با نمره و نظر ثبت کنند",
   },
   {
-    icon: ListChecks,
-    title: "چک‌لیست امکانات",
-    description:
-      "مشاهده کامل امکانات هر سالن: کفپوش استاندارد، پارکینگ، تهویه و آبسردکن",
-  },
-  {
-    icon: ShieldCheck,
+    icon: Shield01Icon,
     title: "قفل هوشمند سانس",
     description:
       "اولین درخواست رزرو برنده است — سانس به محض رزرو برای دیگران قفل می‌شود",
   },
+  {
+    icon: CreditCardAcceptIcon,
+    title: "پرداخت آنلاین امن",
+    description: "پرداخت از طریق درگاه بانکی، صدور فوری کد رزرو و ابطال آنلاین",
+  },
+  {
+    icon: Clock01Icon,
+    title: "رزرو ۲۴ ساعته",
+    description: "بدون نیاز به تماس تلفنی و حضور در مجموعه",
+  },
 ] as const
-
-// ── Icons ────────────────────────────────────────────────────────────────────
-
-function CardIcon({
-  icon: Icon,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-}) {
-  return (
-    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-      <Icon className="size-5" />
-    </div>
-  )
-}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function AboutSection() {
   return (
-    <section id="about-section" className="overflow-x-hidden">
-      <div className="mx-auto max-w-7xl px-4">
-        {/* ═══ Features ═══ */}
-        <div className="py-12 md:py-16">
-          <div className="animate-fade-in mb-10 text-center md:mb-12">
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+    <section id="about-section" className="py-14 md:py-20">
+      <div className="mx-auto max-w-[1120px] px-4 md:px-6">
+        {/* Section head */}
+        <ScrollReveal>
+          <div className="mx-auto mb-10 max-w-2xl text-center md:mb-12">
+            <span className="inline-block rounded-[8px] border border-primary/18 bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+              قابلیت‌ها
+            </span>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground md:text-4xl">
               چرا توپ‌سِت؟
             </h2>
-            <p className="mt-2 text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
               امکاناتی که توپ‌سِت را از روش سنتی جدا می‌کند
             </p>
           </div>
+        </ScrollReveal>
 
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, i) => {
-              const Icon = feature.icon
-              return (
-                <Card
-                  key={feature.title}
-                  className="group animate-fade-in h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm"
-                  style={{ animationDelay: `${i * 80}ms` }}
-                >
-                  <CardHeader>
-                    <div className="mb-2 flex items-center gap-3">
-                      <CardIcon icon={Icon} />
-                      <CardTitle className="font-semibold">
-                        {feature.title}
-                      </CardTitle>
-                    </div>
-                    <CardDescription>{feature.description}</CardDescription>
-                  </CardHeader>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ═══ CTA ═══ */}
-        <div className="pb-16 md:pb-20">
-          <div className="animate-fade-in mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-              آماده شروع هستی؟
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              دیگر وقت خود را با تماس‌های تلفنی تلف نکن. در چند کلیک سانس مورد
-              نظرت را پیدا کن و رزرو کن.
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="h-10 px-6 text-base font-semibold"
-              >
-                <Link href="/login">ثبت‌نام رایگان</Link>
-              </Button>
-              <Button
-                variant="outline"
-                asChild
-                size="lg"
-                className="h-10 px-6 text-base font-semibold"
-              >
-                <Link href="/vendors">مشاهده مجموعه‌ها</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* Feature cards (basalam .feat) */}
+        <ScrollReveal
+          stagger={0.07}
+          className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>div]:h-full"
+        >
+          {features.map(({ icon: Icon, title, description }) => (
+            <article
+              key={title}
+              className="group h-full rounded-2xl border bg-card p-6 shadow-sm transition-colors hover:border-border/60"
+            >
+              <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-primary/18 bg-primary/6 text-primary transition-colors group-hover:bg-primary/10">
+                <HugeiconsIcon icon={Icon} strokeWidth={1.75} />
+              </div>
+              <h3 className="text-[15px] font-semibold text-foreground">
+                {title}
+              </h3>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+                {description}
+              </p>
+            </article>
+          ))}
+        </ScrollReveal>
       </div>
     </section>
   )

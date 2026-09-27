@@ -156,9 +156,9 @@
 }
 
 .dark {
-  --background: oklch(0.13 0 0);
+  --background: oklch(0.14 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.17 0 0);
+  --card: oklch(0.16 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.17 0 0);
   --popover-foreground: oklch(0.985 0 0);
@@ -210,34 +210,18 @@
   --sidebar-ring: oklch(0.7 0.08 240);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: none;
-    mix-blend-mode: normal;
-  }
-  ::view-transition-new(root) {
-    animation: 300ms ease-out both theme-spread;
-    mix-blend-mode: normal;
-  }
-  @keyframes theme-spread {
-    from {
-      clip-path: circle(0% at var(--theme-x, 100%) var(--theme-y, 0%));
-    }
-    to {
-      clip-path: circle(150% at var(--theme-x, 100%) var(--theme-y, 0%));
-    }
-  }
-}
-
 @layer base {
+  .theme-switch,
+  .theme-switch *,
+  .theme-switch *::before,
+  .theme-switch *::after {
+    transition: none !important;
+  }
   * {
     @apply border-border outline-ring/50;
   }
   body {
     color: var(--color-foreground);
-    transition:
-      background-color 0.3s ease,
-      color 0.3s ease;
   }
   /* Noise texture lives on #toopset-root so it scrolls with content and
      stays out of the fixed header's backdrop-filter sampling chain.
@@ -393,10 +377,11 @@ body:has([data-offline-shell]) [data-bottom-nav-spacer] {
 /* gradient text */
 
 .text-gradient-primary {
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-2)));
+  background: linear-gradient(135deg, var(--primary), var(--chart-2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  color: transparent;
 }
 
 /* hide leaflet attribution */
@@ -475,11 +460,11 @@ body:has([data-offline-shell]) [data-bottom-nav-spacer] {
 }
 
 :root {
-  --grid-line: rgba(0, 0, 0, 0.06);
+  --grid-line: rgba(0, 0, 0, 0.04);
 }
 
 .dark {
-  --grid-line: rgba(255, 255, 255, 0.05);
+  --grid-line: rgba(255, 255, 255, 0.03);
 }
 
 /* ── Grid background ── */
@@ -487,11 +472,11 @@ body:has([data-offline-shell]) [data-bottom-nav-spacer] {
    content scrolls. A `position: fixed` overlay is used instead of
    `background-attachment: fixed`, which is buggy on iOS Safari and forces
    repaint. .bg-grid-pattern is also used outside #toopset-root (e.g.
-   dashboard sidebar). */
+   dashboard sidebar). Only gridlines paint here — the page background stays
+   transparent so the grid never tints the body. */
 
 .bg-grid-pattern,
 [data-slot="sidebar-inset"] {
-  background-color: var(--color-background);
   background-image:
     linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);

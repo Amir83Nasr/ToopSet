@@ -149,7 +149,7 @@ export default function RootLayout({
         <SkipNav />
         <ThemeProvider>
           <div id="toopset-root" className="relative">
-            {/* Fixed grid overlay — stays put while content scrolls */}
+            {/* Full-page fixed square pattern — stays put while content scrolls */}
             <div
               aria-hidden="true"
               className="bg-grid-pattern pointer-events-none fixed inset-0 -z-10"

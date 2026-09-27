@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { flushSync } from "react-dom"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 import { pwaConfig } from "@/config/pwa"
 
@@ -11,13 +10,14 @@ function toggleThemeWithTransition(
   theme: string,
   setTheme: (t: string) => void
 ) {
-  if (typeof document !== "undefined" && document.startViewTransition) {
-    document.startViewTransition(() => {
-      flushSync(() => setTheme(theme))
+  const root = document.documentElement
+  root.classList.add("theme-switch")
+  setTheme(theme)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.classList.remove("theme-switch")
     })
-  } else {
-    setTheme(theme)
-  }
+  })
 }
 
 function isTypingTarget(target: EventTarget | null) {
@@ -31,20 +31,6 @@ function isTypingTarget(target: EventTarget | null) {
     target.tagName === "TEXTAREA" ||
     target.tagName === "SELECT"
   )
-}
-
-// ── Click tracker for view-transition origin ────────────────────────────────
-
-function ThemeClickTracker() {
-  React.useEffect(() => {
-    function recordClick(e: MouseEvent) {
-      document.documentElement.style.setProperty("--theme-x", `${e.clientX}px`)
-      document.documentElement.style.setProperty("--theme-y", `${e.clientY}px`)
-    }
-    window.addEventListener("click", recordClick)
-    return () => window.removeEventListener("click", recordClick)
-  }, [])
-  return null
 }
 
 // ── Keyboard shortcut (D key) ──────────────────────────────────────────────
@@ -128,7 +114,6 @@ function ThemeProvider({
       enableSystem
       {...props}
     >
-      <ThemeClickTracker />
       <ThemeHotkey />
       <ThemeColorSync />
       {children}

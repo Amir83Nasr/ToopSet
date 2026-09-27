@@ -16,13 +16,6 @@ import { toEnglishDigits, toLocalDateStr, toPersianDigits } from "@/lib/utils"
 import { toast } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -388,41 +381,53 @@ export function VendorScheduleTab({
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
+      <div className="rounded-xl border bg-card">
+        <div className="flex flex-col gap-3.5 border-b p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <CardTitle
+              <h2
                 role="heading"
                 aria-level={2}
-                className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
+                className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-base font-semibold sm:text-lg"
               >
                 <CalendarDays className="size-5 shrink-0 text-primary" />
-                برنامه هفتگی
+                <span>برنامه هفتگی</span>
                 {weekSlotCount !== null && weekSlotCount > 0 && (
                   <Badge variant="secondary">
                     {toPersianDigits(weekSlotCount)} سانس
                   </Badge>
                 )}
-              </CardTitle>
+              </h2>
               {(templateLoading ||
                 templateError ||
                 template?.source === "saved_version") && (
-                <CardDescription>
+                <p className="mt-1 text-xs text-muted-foreground">
                   {templateLoading
                     ? "در حال دریافت برنامه هفتگی…"
                     : templateError
                       ? "دریافت برنامه هفتگی با خطا مواجه شد."
                       : "نسخه فعال برنامه هفتگی"}
-                </CardDescription>
+                </p>
               )}
             </div>
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onThisWeek()
+                  setSelectedDate(todayKey)
+                }}
+                disabled={effectiveDate === todayKey}
+              >
+                <CalendarDays className="size-4" />
+                <span>مشاهده امروز</span>
+              </Button>
               <Button variant="outline" size="sm" onClick={refreshAll}>
                 <RefreshCw
                   className={`size-4 ${templateLoading ? "animate-spin" : ""}`}
                 />
-                بروزرسانی
+                <span>بروزرسانی</span>
               </Button>
               {canManage && (
                 <Button
@@ -431,41 +436,12 @@ export function VendorScheduleTab({
                   onClick={() => setEditorOpen(true)}
                 >
                   <Pencil className="size-4 shrink-0 sm:me-1.5" />
-                  ویرایش برنامه هفتگی
+                  <span>ویرایش برنامه هفتگی</span>
                 </Button>
               )}
             </div>
           </div>
-        </CardHeader>
-        {templateError && (
-          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              دریافت برنامه هفتگی با خطا مواجه شد.
-            </p>
-            <Button variant="outline" size="sm" onClick={loadTemplate}>
-              تلاش دوباره
-            </Button>
-          </CardContent>
-        )}
-      </Card>
 
-      <div className="rounded-xl border bg-card">
-        <div className="flex flex-col gap-3 border-b px-4 py-3.5 sm:px-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold sm:text-base">جدول سانس‌ها</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                onThisWeek()
-                setSelectedDate(todayKey)
-              }}
-              disabled={effectiveDate === todayKey}
-            >
-              <CalendarDays />
-              <span>مشاهده امروز</span>
-            </Button>
-          </div>
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             <Button
               variant="outline"
@@ -494,6 +470,17 @@ export function VendorScheduleTab({
               <ChevronLeft />
             </Button>
           </div>
+
+          {templateError && (
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-center sm:flex-row sm:justify-between sm:text-start">
+              <p className="text-xs font-medium text-destructive">
+                دریافت برنامه هفتگی با خطا مواجه شد.
+              </p>
+              <Button variant="outline" size="sm" onClick={loadTemplate}>
+                تلاش دوباره
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex border-b">

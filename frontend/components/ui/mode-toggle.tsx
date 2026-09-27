@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import { flushSync } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
 import {
@@ -27,23 +26,14 @@ function toggleThemeWithTransition(
   theme: string,
   setTheme: (t: string) => void
 ) {
-  // Skip the View Transition when a dialog/sheet is open: react-remove-scroll
-  // has aria-hidden the page, and capturing a snapshot of it while the focused
-  // trigger sits inside the hidden subtree throws an a11y focus warning.
-  const modalOpen =
-    typeof document !== "undefined" &&
-    document.querySelector('[role="dialog"], [role="alertdialog"]') !== null
-  if (
-    typeof document !== "undefined" &&
-    document.startViewTransition &&
-    !modalOpen
-  ) {
-    document.startViewTransition(() => {
-      flushSync(() => setTheme(theme))
+  const root = document.documentElement
+  root.classList.add("theme-switch")
+  setTheme(theme)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.classList.remove("theme-switch")
     })
-  } else {
-    setTheme(theme)
-  }
+  })
 }
 
 export function ModeToggle() {

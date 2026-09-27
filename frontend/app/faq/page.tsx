@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { SITE_URL } from "@/lib/site"
+import { faqs } from "@/lib/faq-data"
 
 export const metadata: Metadata = {
   title: "سوالات پرتکرار رزرو مجموعه ورزشی در قم",
@@ -25,44 +26,6 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
 }
-
-const faqs = [
-  {
-    q: "چطور مجموعه ورزشی در قم رزرو کنم؟",
-    a: "در صفحه جستجوی مجموعه‌ها، مجموعه مورد نظر را پیدا کنید، روز و ساعت خالی را انتخاب کنید و آنلاین پرداخت کنید. کد رزرو بلافاصله صادر می‌شود و نیازی به تماس تلفنی با مدیر مجموعه نیست.",
-  },
-  {
-    q: "قیمت اجاره سالن و زمین ورزشی در قم چقدر است؟",
-    a: "قیمت هر سانس (معمولاً ۹۰ دقیقه) بسته به رشته، محله، کیفیت زمین و ساعت بازی متفاوت است؛ سانس‌های شب و آخر هفته گران‌ترند. قیمت به‌روز هر مجموعه در صفحه خودش در توپ‌سِت مشخص است.",
-  },
-  {
-    q: "آیا می‌توانم سانس رزروشده را لغو کنم؟",
-    a: "بله. هر مجموعه قوانین لغو خودش را دارد که در صفحه رزرو نمایش داده می‌شود؛ لغو زودهنگام معمولاً شامل بازگشت کامل یا جزئی وجه است و مبلغ طبق همان قوانین به حساب شما برمی‌گردد.",
-  },
-  {
-    q: "سانس خالی امروز را از کجا پیدا کنم؟",
-    a: "در صفحه جستجوی مجموعه‌ها، روز جاری را انتخاب کنید تا فقط مجموعه‌هایی که امروز جای خالی دارند نمایش داده شوند.",
-  },
-  {
-    q: "پرداخت چطور انجام می‌شود؟",
-    a: "پرداخت کاملاً آنلاین از طریق درگاه بانکی انجام می‌شود. بعد از پرداخت موفق، کد رزرو صادر می‌شود؛ آن را نگه دارید و سر سانس به مجموعه نشان دهید.",
-  },
-  {
-    q: "اگر مجموعه سانس را لغو کند چه می‌شود؟",
-    a: "اگر به هر دلیلی (مثل شرایط جوی یا مشکل مجموعه) سانس برگزار نشود، وجه طبق قوانین مجموعه به‌صورت کامل برمی‌گردد.",
-  },
-  {
-    q: "رزرو ثابت هفتگی برای تیم‌ها ممکن است؟",
-    a: "بله. اگر تیم منظمی دارید، می‌توانید هر هفته همان روز و ساعت را رزرو کنید تا ساعت دلخواه‌تان قفل شود؛ سانس‌های آخر هفته زود پر می‌شوند پس جلوتر رزرو کنید.",
-  },
-]
-
-const sportLinks = [
-  { href: "/futsal-qom", label: "رزرو سالن فوتسال در قم" },
-  { href: "/football-qom", label: "رزرو زمین چمن مصنوعی در قم" },
-  { href: "/volleyball-qom", label: "رزرو سالن والیبال در قم" },
-  { href: "/basketball-qom", label: "رزرو سالن بسکتبال در قم" },
-]
 
 export default function FaqPage() {
   const faqJsonLd = {
@@ -108,24 +71,6 @@ export default function FaqPage() {
               </AccordionItem>
             ))}
           </Accordion>
-
-          <section className="mt-12">
-            <h2 className="text-xl font-bold tracking-tight md:text-2xl">
-              رزرو بر اساس رشته
-            </h2>
-            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-              {sportLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="block rounded-xl border bg-card p-4 font-semibold transition-shadow hover:shadow-md"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
 
           <div className="mt-10 flex flex-wrap gap-3">
             <Button asChild>

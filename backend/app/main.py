@@ -349,12 +349,15 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
+_is_prod = settings.app_environment.lower() == "production"
 app = FastAPI(
     lifespan=lifespan,
     title="ToopSet API",
     description="Online sports venue booking platform — user management, vendors, bookings, and payments",
     version=__version__,
-    docs_url="/docs",
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
+    openapi_url=None if _is_prod else "/openapi.json",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "none"},
     contact={"name": "Amirhossein Nasrollahi", "email": "amirhossein.nasrollahi.main@gmail.com"},
     servers=[
@@ -445,7 +448,16 @@ app.include_router(admin_router, prefix="/api/v1")
 
 @app.get("/", include_in_schema=False)
 async def root():
+    if settings.app_environment.lower() == "production":
+        return {"status": "ok"}
     return RedirectResponse(url="/docs")
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots():
+    from fastapi.responses import PlainTextResponse
+
+    return PlainTextResponse("User-agent: *\nDisallow: /\n")
 
 
 @app.get("/health", summary="Health check")

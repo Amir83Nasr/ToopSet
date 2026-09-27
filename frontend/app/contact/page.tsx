@@ -10,22 +10,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { SiteHeader } from "@/components/public/site-header"
 import { SiteFooter } from "@/components/public/site-footer"
-import {
-  Send,
-  CheckCircle2,
-  Loader2,
-  Phone,
-  Mail,
-  MessageCircle,
-  Clock,
-} from "lucide-react"
+import { Send, CheckCircle2, Loader2, Phone, Mail, Clock } from "lucide-react"
 
 const API_BASE = getApiBase()
 
 interface ContactInfo {
   support_phone?: string
   support_email?: string
-  messenger_id?: string
 }
 export default function ContactPage() {
   const [contact, setContact] = useState<ContactInfo | null>(null)
@@ -55,14 +46,6 @@ export default function ContactPage() {
       : null,
     contact?.support_email
       ? { icon: Mail, label: "ایمیل", value: contact.support_email }
-      : null,
-    contact?.messenger_id
-      ? {
-          icon: MessageCircle,
-          label: "پیام‌رسان",
-          value: contact.messenger_id,
-          href: `https://ble.ir/${contact.messenger_id}`,
-        }
       : null,
     { icon: Clock, label: "ساعت کاری", value: "همه‌روزه ۸ صبح تا ۱۲ شب" },
   ].filter(Boolean) as {
