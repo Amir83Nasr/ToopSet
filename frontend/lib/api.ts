@@ -362,6 +362,42 @@ export async function uploadFile(file: File): Promise<UploadResult> {
   return res.json()
 }
 
+export async function uploadFiles(files: File[]): Promise<UploadResult[]> {
+  const token = getCookie("access_token")
+  const formData = new FormData()
+  for (const file of files) {
+    formData.append("files", file)
+  }
+
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const url = `${API_BASE}/api/v1/uploads/vendor-images`
+
+  let res: Response
+  try {
+    res = await fetch(url, { method: "POST", headers, body: formData })
+  } catch (err) {
+    console.error("Fetch failed:", err)
+    throw new ApiError(
+      0,
+      `خطا در اتصال به سرور: ${err instanceof Error ? err.message : "نامشخص"}`
+    )
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: "Upload failed" }))
+    throw new ApiError(
+      res.status,
+      translateMessage(body.detail || "Upload failed")
+    )
+  }
+
+  return res.json()
+}
+
 export async function uploadAvatar(file: File): Promise<string> {
   const formData = new FormData()
   formData.append("file", file)

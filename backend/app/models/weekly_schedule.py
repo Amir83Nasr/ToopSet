@@ -55,7 +55,9 @@ class WeeklyScheduleVersionItem(Base):
     __tablename__ = "weekly_schedule_version_items"
     __table_args__ = (
         CheckConstraint("day_of_week BETWEEN 0 AND 6", name="ck_weekly_item_day"),
-        CheckConstraint("start_time < end_time", name="ck_weekly_item_time_order"),
+        # start/end ordering is validated in the app layer with wrap-around
+        # semantics: end <= start means the slot crosses midnight into the
+        # next day (e.g. 22:30 -> 00:00), so no DB-level start < end check.
         UniqueConstraint(
             "version_id",
             "day_of_week",

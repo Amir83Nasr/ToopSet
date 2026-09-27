@@ -124,7 +124,11 @@ function PaymentPageContent() {
             ? `/api/v1/bookings/replacement-holds/${bookingId}`
             : `/api/v1/bookings/${bookingId}`
         const res = await api<BookingDetail>(path)
-        if (res.status !== "pending_payment" && res.status !== "pending") {
+        // A live replacement hold is "active"; only an unpaid booking is
+        // "pending_payment". Anything else is no longer payable — leave.
+        const payableStatus =
+          checkoutType === "replacement_hold" ? "active" : "pending_payment"
+        if (res.status !== payableStatus) {
           router.push("/dashboard/bookings")
           return
         }

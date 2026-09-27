@@ -6,8 +6,9 @@ from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
+from app.core.schedule import SLOT_DAY_CUTOFF
 from app.core.timezone import iran_to_utc, now_utc
-from app.models.time_slot import SlotStatus, TimeSlot
+from app.models.time_slot import TimeSlot
 from app.models.vendor import Vendor
 
 
@@ -51,9 +52,14 @@ class TimeSlotRepo:
             count_q = count_q.where(TimeSlot.start_time <= start_until)
 
         if date:
+            # A date maps to its operational day — the 24h window starting at
+            # 03:00 Iran time. Slots starting between 00:00 and 03:00 belong to
+            # the previous day's program (they are its night tail).
             local_day = datetime.strptime(date, "%Y-%m-%d")
-            start_dt = iran_to_utc(local_day)
-            end_dt = iran_to_utc(local_day + timedelta(days=1))
+            start_dt = iran_to_utc(datetime.combine(local_day.date(), SLOT_DAY_CUTOFF))
+            end_dt = iran_to_utc(
+                datetime.combine(local_day.date() + timedelta(days=1), SLOT_DAY_CUTOFF)
+            )
             base = base.where(TimeSlot.start_time >= start_dt).where(TimeSlot.start_time < end_dt)
             count_q = count_q.where(TimeSlot.start_time >= start_dt).where(
                 TimeSlot.start_time < end_dt
@@ -112,17 +118,17 @@ class TimeSlotRepo:
         )
         return list(result.scalars().all())
 
-    async def list_open_between(
-        self, start_from: datetime, start_until: datetime
-    ) -> list[TimeSlot]:
-        """Open, unreserved slots in [start_from, start_until) across active vendors."""
+    async def list_between(self, start_from: datetime, start_until: datetime) -> list[TimeSlot]:
+        """All slots (open or reserved) in [start_from, start_until) across active vendors.
+
+        Reserved slots are included so the channel digest can strike them
+        through with a "رزرو شد" label instead of dropping them silently.
+        """
         result = await self.db.execute(
             select(TimeSlot)
             .join(TimeSlot.vendor)
             .where(
                 Vendor.is_active == True,
-                TimeSlot.is_reserved == False,
-                TimeSlot.status == SlotStatus.OPEN,
                 TimeSlot.start_time >= start_from,
                 TimeSlot.start_time < start_until,
             )

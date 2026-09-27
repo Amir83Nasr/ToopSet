@@ -236,6 +236,12 @@ export default function PublicVendorDetailPage({
 
   const [vendor, setVendor] = useState<VendorData | null>(initialVendor ?? null)
   const [slots, setSlots] = useState<TimeSlot[]>([])
+  // 30s-refreshed clock so slot rows flip to «گذشته» while the page stays open
+  const [clock, setClock] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const [loading, setLoading] = useState(!initialVendor)
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -361,23 +367,28 @@ export default function PublicVendorDetailPage({
     [slots]
   )
 
-  // ── Fetch vendor + reviews (client fallback when no SSR data) ──
+  // ── Fetch vendor + reviews ──
+  // SSR data (Next.js data cache, revalidate: 300) paints instantly; the
+  // background refetch then replaces it so contact edits (manager name/phone)
+  // show up without waiting out the SSR cache window.
 
   useEffect(() => {
-    if (initialVendor) return
     let cancelled = false
     async function init() {
       try {
         const [vendorRes, revRes] = await Promise.all([
           api<VendorData>(`/api/v1/vendors/${vendorId}`),
-          api<{ reviews: Review[]; total: number }>(
+          api<{ reviews: Review[]; total: number } | null>(
             `/api/v1/vendors/${vendorId}/reviews?limit=5`
-          ).catch(() => ({ reviews: [], total: 0 })),
+          ).catch(() => null),
         ])
         if (cancelled) return
         setVendor(vendorRes)
-        setReviews(revRes.reviews || [])
-        setReviewsTotal(revRes.total || 0)
+        // A failed reviews refresh must not wipe what SSR already rendered
+        if (revRes) {
+          setReviews(revRes.reviews || [])
+          setReviewsTotal(revRes.total || 0)
+        }
       } catch (err) {
         if (cancelled) return
         if (err instanceof ApiError && err.status === 404) {
@@ -455,18 +466,27 @@ export default function PublicVendorDetailPage({
     }
     setBookingBusy(true)
     try {
-      const res = await api<{ id: number }>("/api/v1/bookings", {
-        method: "POST",
-        body: JSON.stringify({
-          slot_id: slot.id,
-          version: slot.version,
-          with_ball: withBall ?? false,
-        }),
-      })
+      const res = await api<{ id: number; checkout_type?: string }>(
+        "/api/v1/bookings",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            slot_id: slot.id,
+            version: slot.version,
+            with_ball: withBall ?? false,
+          }),
+        }
+      )
+      // A pending-cancellation slot returns a replacement hold whose id only
+      // resolves via the hold pay endpoint, not the booking pay endpoint.
+      const payPath =
+        res.checkout_type === "replacement_hold"
+          ? `/api/v1/bookings/replacement-holds/${res.id}/pay`
+          : `/api/v1/bookings/${res.id}/pay`
       const payRes = await api<{
         payment_gateway?: string
         start_url?: string
-      }>(`/api/v1/bookings/${res.id}/pay`, { method: "POST" })
+      }>(payPath, { method: "POST" })
       if (payRes?.payment_gateway === "zibal" && payRes.start_url) {
         window.location.assign(payRes.start_url)
         return
@@ -613,19 +633,32 @@ export default function PublicVendorDetailPage({
                   )}
                 </div>
               </div>
-              {canManage && (
+              <div className="flex shrink-0 gap-2">
                 <Button
-                  variant="outline"
                   size="sm"
-                  asChild
                   className="shrink-0"
+                  onClick={() =>
+                    document
+                      .getElementById("weekly-schedule")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
                 >
-                  <Link href={`/dashboard/vendors/${vendorId}`}>
-                    <LayoutDashboard className="ms-1.5 size-3.5" />
-                    مدیریت
-                  </Link>
+                  مشاهده سانس‌ها
                 </Button>
-              )}
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="shrink-0"
+                  >
+                    <Link href={`/dashboard/vendors/${vendorId}`}>
+                      <LayoutDashboard className="ms-1.5 size-3.5" />
+                      مدیریت
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Info grid */}
@@ -720,7 +753,7 @@ export default function PublicVendorDetailPage({
                ═══════════════════════════════════ */}
           <div className="grid gap-12 lg:grid-cols-3">
             {/* ====== Left: Schedule ====== */}
-            <div className="lg:col-span-2">
+            <div id="weekly-schedule" className="scroll-mt-24 lg:col-span-2">
               <div className="rounded-xl border bg-card">
                 {/* ── Week nav ── */}
                 <div className="flex flex-col gap-3 border-b px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -798,9 +831,20 @@ export default function PublicVendorDetailPage({
 
                 {/* ── Slots ── */}
                 {slotsLoading ? (
-                  <div className="space-y-px p-4">
+                  <div className="divide-y divide-border">
                     {[1, 2, 3, 4].map((i) => (
-                      <Skeleton key={i} className="h-14 w-full" />
+                      <div
+                        key={i}
+                        className="grid grid-cols-2 items-center gap-x-3 gap-y-3 px-4 py-3.5 sm:grid-cols-[6rem_minmax(11rem,1fr)_8.75rem_7rem] sm:gap-0 sm:text-center"
+                      >
+                        <Skeleton className="order-1 h-4 w-16 sm:order-none sm:mx-auto" />
+                        <div className="order-3 flex items-center gap-3 sm:order-none sm:justify-center">
+                          <Skeleton className="size-8 shrink-0 rounded-lg" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                        <Skeleton className="order-4 h-4 w-20 justify-self-end sm:order-none sm:mx-auto sm:justify-self-center" />
+                        <Skeleton className="order-2 h-6 w-16 rounded-full justify-self-end sm:order-none sm:mx-auto sm:justify-self-center" />
+                      </div>
                     ))}
                   </div>
                 ) : visibleSlots.length === 0 ? (
@@ -846,6 +890,7 @@ export default function PublicVendorDetailPage({
                             selectedSlot={selectedSlot}
                             onSelect={handleSlotSelect}
                             payingBookingId={payingBookingId}
+                            now={clock}
                           />
                         ))}
                       </div>

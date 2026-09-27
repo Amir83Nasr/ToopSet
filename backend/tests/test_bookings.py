@@ -93,6 +93,31 @@ class TestCreateBooking:
         assert data["slot_id"] == slot_id
         assert data["user_id"] == user_token["user"]["id"]
 
+    async def test_create_booking_rejected_for_started_slot(
+        self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
+    ):
+        """A slot whose start has passed is not bookable, even though the public
+        list now surfaces earlier-today slots for display."""
+        mgr_headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        vendor_resp = await client.post("/api/v1/vendors", json=COURT_PAYLOAD, headers=mgr_headers)
+        vendor_id = vendor_resp.json()["id"]
+
+        slot_id = await _create_slot(client, session, vendor_id, offset_hours=-2)
+        # Fetch the version with manager headers — the public detail endpoint
+        # hides slots outside the public window, which depends on wall-clock.
+        detail = await client.get(f"/api/v1/slots/{slot_id}", headers=mgr_headers)
+        assert detail.status_code == 200
+        version = detail.json()["version"]
+
+        user_headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        resp = await client.post(
+            "/api/v1/bookings",
+            json={"slot_id": slot_id, "version": version},
+            headers=user_headers,
+        )
+        assert resp.status_code == 409
+        assert "قابل رزرو نیست" in resp.text
+
     async def test_create_booking_commits_transaction(
         self, client: AsyncClient, session: AsyncSession, manager_token: dict, user_token: dict
     ):

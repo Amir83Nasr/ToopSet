@@ -129,4 +129,58 @@ describe("WeeklyScheduleEditor", () => {
     expect(confirmedBody).not.toHaveProperty("ball_available")
     expect(confirmedBody).not.toHaveProperty("ball_price")
   })
+
+  it("sorts night items last and marks after-midnight slots", async () => {
+    mockApi.mockResolvedValue({
+      source: "saved_version",
+      version_id: 1,
+      minimum_effective_date: toLocalDateStr(new Date()),
+      last_online_booking_date: null,
+      ball_available: false,
+      ball_price: 0,
+      // night tail first in payload order — the editor must still render it last
+      items: [
+        {
+          day_of_week: 0,
+          start_time: "00:00",
+          end_time: "01:30",
+          base_price: 600000,
+          gender: "male",
+        },
+        {
+          day_of_week: 0,
+          start_time: "21:00",
+          end_time: "22:30",
+          base_price: 600000,
+          gender: "male",
+        },
+        {
+          day_of_week: 0,
+          start_time: "22:30",
+          end_time: "00:00",
+          base_price: 600000,
+          gender: "male",
+        },
+      ],
+    })
+
+    render(
+      <WeeklyScheduleEditor
+        vendorId={7}
+        open
+        onOpenChange={vi.fn()}
+        onApplied={vi.fn()}
+      />
+    )
+
+    const starts = await screen.findAllByLabelText("ساعت شروع سانس شنبه")
+    expect(starts).toHaveLength(3)
+    expect(starts.map((node) => node.textContent)).toEqual([
+      "۲۱:۰۰",
+      "۲۲:۳۰",
+      "۰۰:۰۰",
+    ])
+    // Both the wrapped evening slot and the night tail carry the hint
+    expect(await screen.findAllByText("بامداد روز بعد")).toHaveLength(2)
+  })
 })

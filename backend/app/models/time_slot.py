@@ -80,8 +80,12 @@ class TimeSlot(Base):
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
 
     vendor: Mapped["Vendor"] = relationship(back_populates="time_slots")
+    # passive_deletes: the slot_id FK is NOT NULL with ON DELETE CASCADE at the DB
+    # level — without this flag the ORM nulls bookings.slot_id on slot deletion and
+    # crashes with a NotNullViolation (e.g. replacing a weekly schedule that retires
+    # a slot holding cancelled booking history).
     bookings: Mapped[list["Booking"]] = relationship(
-        back_populates="slot", order_by="Booking.created_at.desc()"
+        back_populates="slot", order_by="Booking.created_at.desc()", passive_deletes=True
     )
 
     @property

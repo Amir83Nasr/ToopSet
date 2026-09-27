@@ -1,4 +1,4 @@
-"""Manually post the Eitaa empty-slots digest for today & tomorrow.
+"""Manually post the Eitaa empty-slots digest for the next days.
 
 Runs exactly the same code path as the 07:00 Iran-time background job —
 useful for verifying EITAA_* credentials without waiting for the schedule:

@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.schedule import item_offset_minutes, item_span_minutes, items_overlap
 from app.models.time_slot import SlotGender, SlotStatus
 
 
@@ -87,8 +88,9 @@ class TimeSlotTemplate(BaseModel):
 
     @model_validator(mode="after")
     def validate_time_order(self) -> "TimeSlotTemplate":
-        if self.start_time >= self.end_time:
-            raise ValueError("start_time must be before end_time")
+        # end <= start means the slot crosses midnight into the next day
+        if item_span_minutes(self.start_time, self.end_time) == 0:
+            raise ValueError("start_time and end_time must not be equal")
         return self
 
 
@@ -117,9 +119,11 @@ class TimeSlotGenerate(BaseModel):
     def validate_template_overlap(self) -> "TimeSlotGenerate":
         if self.date_to > self.date_from + timedelta(days=186):
             raise ValueError("Slot generation range cannot exceed 186 days")
-        ordered = sorted(self.templates, key=lambda item: item.start_time)
+        ordered = sorted(self.templates, key=lambda item: item_offset_minutes(item.start_time))
         for previous, current in zip(ordered, ordered[1:], strict=False):
-            if current.start_time < previous.end_time:
+            if items_overlap(
+                previous.start_time, previous.end_time, current.start_time, current.end_time
+            ):
                 raise ValueError("Time slot templates must not overlap")
         return self
 
@@ -149,15 +153,17 @@ class WeeklyScheduleItem(BaseModel):
 
     @model_validator(mode="after")
     def validate_order(self) -> "WeeklyScheduleItem":
-        if self.start_time >= self.end_time:
-            raise ValueError("start_time must be before end_time")
+        # end <= start means the slot crosses midnight into the next day
+        if item_span_minutes(self.start_time, self.end_time) == 0:
+            raise ValueError("start_time and end_time must not be equal")
         return self
 
 
 class WeeklyScheduleApply(BaseModel):
     effective_from: date
     duration_months: Literal[1, 3, 6, 12]
-    items: list[WeeklyScheduleItem] = Field(default_factory=list, max_length=70)
+    # 12 slots/day x 7 days — 90-minute sans chains like 09:00..01:30 need 11
+    items: list[WeeklyScheduleItem] = Field(default_factory=list, max_length=84)
     confirm_manager_booking_deletions: bool = False
 
     @model_validator(mode="after")
@@ -166,9 +172,13 @@ class WeeklyScheduleApply(BaseModel):
         for item in self.items:
             by_day.setdefault(item.day_of_week, []).append(item)
         for day_items in by_day.values():
-            ordered = sorted(day_items, key=lambda item: item.start_time)
+            # sort by offset from 03:00 (true start order across night items
+            # and midnight wraps) so the adjacent-pair sweep is sound
+            ordered = sorted(day_items, key=lambda item: item_offset_minutes(item.start_time))
             for previous, current in zip(ordered, ordered[1:], strict=False):
-                if current.start_time < previous.end_time:
+                if items_overlap(
+                    previous.start_time, previous.end_time, current.start_time, current.end_time
+                ):
                     raise ValueError("Weekly schedule items must not overlap")
         return self
 

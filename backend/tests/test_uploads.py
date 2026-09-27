@@ -125,6 +125,121 @@ class TestUploadVendorImage:
         assert accepted.json()["main_image"] == accepted.json()["images"][0]
 
 
+class TestUploadVendorImagesBatch:
+    """POST /api/v1/uploads/vendor-images — several images in one request."""
+
+    async def test_upload_multiple_images_in_single_request(
+        self, client: AsyncClient, manager_token: dict, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        from app.core import upload as upload_module
+
+        monkeypatch.setattr(upload_module, "BASE_UPLOAD_DIR", tmp_path / "uploads")
+        monkeypatch.setattr(upload_module.settings, "parspack_endpoint_url", "")
+        monkeypatch.setattr(upload_module.settings, "parspack_access_key", "")
+        monkeypatch.setattr(upload_module.settings, "parspack_bucket_name", "")
+
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        resp = await client.post(
+            "/api/v1/uploads/vendor-images",
+            files=[
+                ("files", ("court1.png", b"\x89PNG-valid-test-1", "image/png")),
+                ("files", ("court2.png", b"\x89PNG-valid-test-2", "image/png")),
+                ("files", ("court3.jpg", b"\xff\xd8\xff-valid-test-3", "image/jpeg")),
+            ],
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        results = resp.json()
+        assert len(results) == 3
+        temp_ids = [r["temp_id"] for r in results]
+        assert len(set(temp_ids)) == 3
+        for r in results:
+            assert "/uploads/vendors/" in r["url"]
+        stored = list((tmp_path / "uploads" / "vendors").iterdir())
+        assert len(stored) == 3
+
+    async def test_batch_unauthenticated(self, client: AsyncClient) -> None:
+        resp = await client.post(
+            "/api/v1/uploads/vendor-images",
+            files=[("files", ("test.jpg", b"\xff\xd8\xff-valid", "image/jpeg"))],
+        )
+        assert resp.status_code == 401
+
+    async def test_batch_as_regular_user_forbidden(
+        self, client: AsyncClient, user_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        resp = await client.post(
+            "/api/v1/uploads/vendor-images",
+            files=[("files", ("test.jpg", b"\xff\xd8\xff-valid", "image/jpeg"))],
+            headers=headers,
+        )
+        assert resp.status_code == 403
+
+    async def test_batch_with_invalid_file_rejects_atomically(
+        self, client: AsyncClient, manager_token: dict, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        """A bad file in the batch must 400 before anything is written."""
+        from app.core import upload as upload_module
+
+        upload_root = tmp_path / "uploads"
+        monkeypatch.setattr(upload_module, "BASE_UPLOAD_DIR", upload_root)
+        monkeypatch.setattr(upload_module.settings, "parspack_endpoint_url", "")
+        monkeypatch.setattr(upload_module.settings, "parspack_access_key", "")
+        monkeypatch.setattr(upload_module.settings, "parspack_bucket_name", "")
+
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        resp = await client.post(
+            "/api/v1/uploads/vendor-images",
+            files=[
+                ("files", ("good.png", b"\x89PNG-valid-test", "image/png")),
+                ("files", ("bad.txt", b"not an image", "text/plain")),
+            ],
+            headers=headers,
+        )
+        assert resp.status_code == 400
+        assert "نوع فایل" in resp.json()["detail"]
+        vendors_dir = upload_root / "vendors"
+        assert not vendors_dir.exists() or not any(vendors_dir.iterdir())
+
+    async def test_batch_over_limit_rejected(
+        self, client: AsyncClient, manager_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+        resp = await client.post(
+            "/api/v1/uploads/vendor-images",
+            files=[
+                ("files", (f"court{i}.jpg", b"\xff\xd8\xff-valid", "image/jpeg")) for i in range(11)
+            ],
+            headers=headers,
+        )
+        assert resp.status_code == 400
+        assert "حداکثر" in resp.json()["detail"]
+
+
+async def test_create_vendor_without_images(client: AsyncClient, manager_token: dict) -> None:
+    """Images are optional: a vendor can be registered with no photos."""
+    headers = {"Authorization": f"Bearer {manager_token['access_token']}"}
+    resp = await client.post(
+        "/api/v1/vendors",
+        json={
+            "name": "مجموعه بدون تصویر",
+            "sport_types": ["futsal"],
+            "address": "قم",
+            "latitude": 34.64,
+            "longitude": 50.87,
+            "capacity": 10,
+            "images": [],
+            "temp_ids": [],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert not body["images"]
+    assert body["main_image"] is None
+
+
 async def test_delete_upload_rejects_directory_traversal(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:

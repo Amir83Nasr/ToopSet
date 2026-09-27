@@ -520,9 +520,26 @@ export function VendorScheduleTab({
         </div>
 
         {dayLoading ? (
-          <div className="space-y-2 p-4">
+          <div className="divide-y divide-border">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              <div
+                key={i}
+                className="grid grid-cols-2 items-center gap-x-3 gap-y-2.5 px-4 py-3 sm:grid-cols-[11rem_12rem_1fr_auto] sm:gap-x-6 sm:px-5 sm:py-3.5"
+              >
+                <div className="col-start-1 row-start-1 flex items-center gap-2.5">
+                  <Skeleton className="size-8 shrink-0 rounded-lg" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                <Skeleton className="col-start-1 row-start-2 h-4 w-20 sm:col-auto sm:row-auto" />
+                <div className="col-start-2 row-start-1 flex items-center justify-end gap-1.5 sm:col-auto sm:row-auto sm:justify-start">
+                  <Skeleton className="h-6 w-14 rounded-md" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <div className="col-span-2 flex items-center gap-1.5 pt-1 sm:col-auto sm:row-auto sm:pt-0">
+                  <Skeleton className="h-7 w-20 rounded-md" />
+                  <Skeleton className="h-7 w-24 rounded-md" />
+                </div>
+              </div>
             ))}
           </div>
         ) : daySlots.length === 0 ? (

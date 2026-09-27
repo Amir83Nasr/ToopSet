@@ -1110,14 +1110,16 @@ class BookingService:
                     "failure_code": None,
                 },
             )
+            # Log inside the transaction: after this commit the request returns
+            # and the session closes, so a later log_action would roll back.
+            await log_action(
+                self.booking_repo.db,
+                self.current_user.id,
+                "payment_started",
+                f"شروع پرداخت زیبال | رزرو {booking_id} — trackId {result.track_id}",
+            )
             await self.db.commit()
 
-        await log_action(
-            self.booking_repo.db,
-            self.current_user.id,
-            "payment_started",
-            f"شروع پرداخت زیبال | رزرو {booking_id} — trackId {result.track_id}",
-        )
         return self._zibal_start_response(
             booking_id=booking.id,
             payment_id=payment_id,
@@ -2535,13 +2537,16 @@ class BookingService:
                         "failure_code": None,
                     },
                 )
+                # Log inside the transaction: after this commit the request
+                # returns and the session closes, so a later log_action would
+                # silently roll back.
+                await log_action(
+                    self.db,
+                    self.current_user.id,
+                    "replacement_payment_started",
+                    f"شروع پرداخت زیبال برای هولد {hold_id} — trackId {zibal_result.track_id}",
+                )
                 await self.db.commit()
-            await log_action(
-                self.db,
-                self.current_user.id,
-                "replacement_payment_started",
-                f"شروع پرداخت زیبال برای هولد {hold_id} — trackId {zibal_result.track_id}",
-            )
             return PaymentStartResponse(
                 checkout_type="replacement_hold",
                 payment_gateway="zibal",

@@ -19,25 +19,22 @@ from app.services.upload_temp_service import store_temp_upload
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
+MAX_BATCH_FILES = 10
 
-@router.post("/court-image", summary="Upload vendor image", include_in_schema=False)
-@router.post("/vendor-image", summary="Upload vendor image")
-@limiter.limit("10/minute")
-async def upload_vendor_image(
-    request: Request,
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_manager),
-) -> dict:
+
+async def _persist_vendor_image(request: Request, file: UploadFile, user_id: int) -> dict:
+    """Validate, store and register a temp upload for one vendor image."""
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="حجم فایل بیش از حد مجاز است")
 
-    ext = (file.filename or "image.jpg").rsplit(".", 1)[-1].lower()
+    original_filename = file.filename or "image.jpg"
+    ext = original_filename.rsplit(".", 1)[-1].lower()
     if f".{ext}" not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"نوع فایل .{ext} مجاز نیست")
 
     try:
-        image_url = await save_upload_async(content, file.filename or "image.jpg", subdir="vendors")
+        image_url = await save_upload_async(content, original_filename, subdir="vendors")
     except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     response_url = image_url
@@ -49,10 +46,74 @@ async def upload_vendor_image(
     await store_temp_upload(
         r,
         temp_id=temp_id,
-        user_id=current_user.id,
+        user_id=user_id,
         path=image_url,
     )
     return {"temp_id": temp_id, "url": response_url}
+
+
+@router.post("/court-image", summary="Upload vendor image", include_in_schema=False)
+@router.post("/vendor-image", summary="Upload vendor image")
+@limiter.limit("10/minute")
+async def upload_vendor_image(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_manager),
+) -> dict:
+    return await _persist_vendor_image(request, file, current_user.id)
+
+
+@router.post(
+    "/vendor-images",
+    summary="Upload multiple vendor images in a single request",
+)
+@limiter.limit("10/minute")
+async def upload_vendor_images(
+    request: Request,
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(get_current_manager),
+) -> list[dict]:
+    """Upload 1–10 vendor images at once. All files are validated before any
+    is persisted, so an invalid file rejects the whole batch."""
+    if len(files) > MAX_BATCH_FILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"حداکثر {MAX_BATCH_FILES} تصویر در هر درخواست مجاز است",
+        )
+
+    # Read and validate everything up front so a bad file fails atomically
+    # before any file is written to disk/S3.
+    payloads: list[tuple[str, bytes]] = []
+    for file in files:
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="حجم فایل بیش از حد مجاز است")
+        original_filename = file.filename or "image.jpg"
+        ext = original_filename.rsplit(".", 1)[-1].lower()
+        if f".{ext}" not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"نوع فایل .{ext} مجاز نیست")
+        payloads.append((original_filename, content))
+
+    r = await get_redis()
+    results: list[dict] = []
+    for original_filename, content in payloads:
+        try:
+            image_url = await save_upload_async(content, original_filename, subdir="vendors")
+        except (ValueError, RuntimeError) as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        response_url = image_url
+        if image_url.startswith("/"):
+            base = str(request.base_url).rstrip("/")
+            response_url = f"{base}{image_url}"
+        temp_id = uuid.uuid4().hex
+        await store_temp_upload(
+            r,
+            temp_id=temp_id,
+            user_id=current_user.id,
+            path=image_url,
+        )
+        results.append({"temp_id": temp_id, "url": response_url})
+    return results
 
 
 # ── Direct S3 upload — vendor image ──────────────────────────────────────────

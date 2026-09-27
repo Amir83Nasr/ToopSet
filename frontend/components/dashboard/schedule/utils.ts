@@ -69,3 +69,56 @@ export function getThisWeekRange(): DateRange {
   friday.setDate(saturday.getDate() + 6)
   return { from: saturday, to: friday }
 }
+
+// ── Weekly schedule item semantics (mirrors backend app/core/schedule.py) ──
+// A slot belongs to the day whose night it opens: items starting before 03:00
+// are the tail of the same row day's night, and end <= start means the slot
+// crosses midnight into the next day.
+
+export const SLOT_DAY_CUTOFF_MINUTES = 3 * 60
+const DAY_MINUTES = 24 * 60
+
+export function timeToMinutes(value: string): number {
+  return Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5))
+}
+
+/** Items with a night start (before 03:00) sort last on their day row. */
+export function nightSortRank(startTime: string): number {
+  return timeToMinutes(startTime) < SLOT_DAY_CUTOFF_MINUTES ? 1 : 0
+}
+
+/** Slot duration in minutes; end <= start wraps past midnight. */
+export function slotSpanMinutes(start: string, end: string): number {
+  return (timeToMinutes(end) - timeToMinutes(start) + DAY_MINUTES) % DAY_MINUTES
+}
+
+/** Minutes after 03:00 — true start order across night items and wraps. */
+export function slotOffsetMinutes(start: string): number {
+  return (
+    (timeToMinutes(start) - SLOT_DAY_CUTOFF_MINUTES + DAY_MINUTES) % DAY_MINUTES
+  )
+}
+
+/** Whether two items on the same day row overlap on the 03:00-anchored timeline. */
+export function slotRangesOverlap(
+  startA: string,
+  endA: string,
+  startB: string,
+  endB: string
+): boolean {
+  const offsetA =
+    (timeToMinutes(startA) - SLOT_DAY_CUTOFF_MINUTES + DAY_MINUTES) %
+    DAY_MINUTES
+  const offsetB =
+    (timeToMinutes(startB) - SLOT_DAY_CUTOFF_MINUTES + DAY_MINUTES) %
+    DAY_MINUTES
+  return (
+    offsetA < offsetB + slotSpanMinutes(startB, endB) &&
+    offsetB < offsetA + slotSpanMinutes(startA, endA)
+  )
+}
+
+/** True when the item happens after midnight of its row day. */
+export function isAfterMidnightItem(start: string, end: string): boolean {
+  return timeToMinutes(start) < SLOT_DAY_CUTOFF_MINUTES || end <= start
+}

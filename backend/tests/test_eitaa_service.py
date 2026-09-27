@@ -83,23 +83,21 @@ async def test_render_message_groups_days_with_persian_digits() -> None:
 
     assert text == "\n".join(
         [
-            "📣 برنامه سانس ها ⚽️",
-            "🥅 زمین چمن",
-            "بوستان شهید زین الدین",
+            "⚽️ برنامه سانس‌های زمین چمن",
+            "🏟 بوستان شهید زین الدین",
             "",
-            _jalali_day_line(today),
-            "🔸۱۸:۳۰ تا ۲۰:۰۰",
-            "🔸۲۳:۰۰ تا ۰۰:۳۰",
+            f"📅 {_jalali_day_line(today)}",
+            "⏰ ۱۸:۳۰ تا ۲۰:۰۰",
+            "⏰ ۲۳:۰۰ تا ۰۰:۳۰",
             "",
-            _jalali_day_line(tomorrow),
-            "🔸۵:۳۰ تا ۷:۰۰",
-            "🔸۷:۰۰ تا ۸:۳۰",
+            f"📅 {_jalali_day_line(tomorrow)}",
+            "⏰ ۵:۳۰ تا ۷:۰۰",
+            "⏰ ۷:۰۰ تا ۸:۳۰",
             "",
-            "🔰 جهت رزرو سانس داخل سایت توپست میتوانید رزرو بکنید",
+            "🌐 جهت رزرو آنلاین سانس‌ها روی سایت توپست کلیک کنید.",
             "https://toopset.ir/vendors/7",
             "",
-            "ـ" * 40,
-            "آدرس: بنیاد، فلکه جوان، خیابان ذوالفقار، بوستان طبقاتی شهید زین‌الدین",
+            "📍 آدرس: بنیاد، فلکه جوان، خیابان ذوالفقار، بوستان طبقاتی شهید زین‌الدین",
         ]
     )
 
@@ -115,10 +113,10 @@ async def test_render_message_skips_days_without_slots_and_unknown_sports() -> N
 
     assert _jalali_day_line(today) not in text
     assert _jalali_day_line(tomorrow) in text
-    assert "🔸۲۲:۰۰ تا ۲۳:۳۰" in text
-    # No sport label line and no vendor URL line.
+    assert "⏰ ۲۲:۰۰ تا ۲۳:۳۰" in text
+    # No sport label in the header and no vendor URL line.
     assert "زمین چمن" not in text
-    assert text.splitlines()[1] == "سالن تختی"
+    assert text.splitlines()[1] == "🏟 سالن تختی"
     assert "/vendors/" not in text
 
 
@@ -231,7 +229,9 @@ async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
             _slot(active.id, _iran(today, 18, 30)),  # today, still future at 07:00 → in
             _slot(active.id, _iran(today, 5, 30)),  # today, already passed → out
             _slot(active.id, _iran(tomorrow, 5, 30)),  # tomorrow → in
-            _slot(active.id, _iran(tomorrow, 7, 0), reserved=True),  # reserved → out
+            _slot(active.id, _iran(tomorrow, 7, 0), reserved=True),  # reserved → struck
+            _slot(active.id, _iran(today + timedelta(days=3), 21, 0)),  # day +3 → in
+            _slot(active.id, _iran(today + timedelta(days=5), 21, 0)),  # beyond span → out
             _slot(inactive.id, _iran(tomorrow, 8, 0)),  # inactive vendor → out
         ]
     )
@@ -249,12 +249,16 @@ async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
     assert count == 1
     assert len(sent) == 1
     text = sent[0]
-    assert "🔸۱۸:۳۰ تا ۲۰:۰۰" in text
-    assert "🔸۵:۳۰ تا ۷:۰۰" in text
-    assert "🔸۷:۰۰" not in text  # reserved slot excluded
+    assert "⏰ ۱۸:۳۰ تا ۲۰:۰۰" in text
+    assert "⏰ ۵:۳۰ تا ۷:۰۰" in text
+    assert "⏰ ۲۱:۰۰ تا ۲۲:۳۰" in text  # day +3 inside the 5-day span
+    assert "❌ ۷:۰۰ تا ۸:۳۰ (رزرو شد)" in text  # reserved slot marked, not dropped
     assert "سالن تعطیل" not in text  # inactive vendor excluded
     assert f"/vendors/{active.id}" in text  # links back to the site
-    assert text.count("📣 برنامه سانس ها ⚽️") == 1
+    assert text.count("برنامه سانس‌های") == 1
+    # The day+5 slot shares the day+3 clock ("۲۱:۰۰ تا ۲۲:۳۰") but must not
+    # appear: only today..day+4 are covered.
+    assert text.count("⏰ ۲۱:۰۰ تا ۲۲:۳۰") == 1
 
 
 async def test_publish_skips_channel_call_when_no_open_slots(session: AsyncSession) -> None:
@@ -354,7 +358,7 @@ async def test_publish_persists_posted_messages_for_later_edits(
     assert row.digest_date == today
     assert row.message_id == 777
     assert row.chat_id == settings.eitaa_channel_id
-    assert "🔸۹:۰۰ تا ۱۰:۳۰" in row.text
+    assert "⏰ ۹:۰۰ تا ۱۰:۳۰" in row.text
 
 
 async def test_refresh_vendor_digest_edits_message_when_a_slot_gets_booked(
@@ -428,8 +432,8 @@ async def test_refresh_vendor_digest_edits_message_when_a_slot_gets_booked(
     assert len(edits) == 1
     message_id, new_text = edits[0]
     assert message_id == 3131
-    assert "🔸۹:۰۰" in new_text
-    assert "🔸۱۱:۰۰" not in new_text  # booked slot dropped from the channel message
+    assert "⏰ ۹:۰۰" in new_text
+    assert "❌ ۱۱:۰۰ تا ۱۲:۳۰ (رزرو شد)" in new_text  # booked slot marked, not dropped
 
     row = (
         await session.execute(
@@ -470,11 +474,11 @@ async def test_refresh_vendor_digest_ignores_other_days_and_missing_rows(
     session.add(vendor)
     await session.flush()
 
-    yesterday = now_iran().date() - _td(days=1)
+    six_days_ago = now_iran().date() - _td(days=6)
     session.add(
         EitaaDigestMessage(
             vendor_id=vendor.id,
-            digest_date=yesterday,
+            digest_date=six_days_ago,
             chat_id="@toopset",
             message_id=99,
             text="old",
@@ -488,13 +492,140 @@ async def test_refresh_vendor_digest_ignores_other_days_and_missing_rows(
         ) -> EitaaSendResult:  # pragma: no cover
             raise AssertionError("must not edit other days' or missing digests")
 
-    # Yesterday's row for this vendor → no today-message → nothing to edit.
+    # A row older than the digest span is outside the refresh window → untouched.
     assert (
         await refresh_vendor_digest(session, vendor.id, now=now_iran(), client=ExplodingEditor())
         is False
     )
     # A vendor with no digest row at all → nothing to edit.
     assert await refresh_vendor_digest(session, vendor.id + 1000, client=ExplodingEditor()) is False
+
+
+async def test_refresh_vendor_digest_also_updates_yesterdays_message(
+    session: AsyncSession,
+) -> None:
+    """Yesterday's digest lists today's slots too — a today booking must drop
+    from it as well, without touching yesterday's already-played section."""
+    from sqlalchemy import select as sa_select
+
+    from app.models.eitaa_digest import EitaaDigestMessage
+    from app.repositories.eitaa_digest_repo import EitaaDigestRepo
+
+    manager = User(
+        full_name="مدیر تست", phone="09900000013", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+
+    today = now_iran().date()
+    yesterday = today - timedelta(days=1)
+    now = datetime.combine(today, time(17, 0), tzinfo=IRAN_TZ)  # booking mid-afternoon
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن دوشب",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+    )
+    session.add(vendor)
+    await session.flush()
+    played_yesterday = _slot(vendor.id, _iran(yesterday, 21, 0))  # already played, stays listed
+    booked_today = _slot(vendor.id, _iran(today, 22, 30))  # will be booked after posting
+    session.add_all([played_yesterday, booked_today])
+    await session.flush()
+
+    # Simulate yesterday 07:00's post: yesterday's night slot + today's evening slot.
+    posted_text = render_empty_slots_message(
+        vendor,
+        [played_yesterday, booked_today],
+        days=[yesterday, today],
+        vendor_url=vendor_page_url(vendor.id),
+    )
+    repo = EitaaDigestRepo(session)
+    await repo.upsert(
+        vendor_id=vendor.id,
+        digest_date=yesterday,
+        chat_id="@toopset",
+        message_id=404,
+        text=posted_text,
+    )
+    await session.flush()
+
+    # Today's 22:30 slot gets booked → must drop from yesterday's message.
+    booked_today.is_reserved = True
+    booked_today.status = SlotStatus.RESERVED
+    await session.flush()
+
+    edits: list[tuple[int, str]] = []
+
+    class FakeEditor:
+        async def edit_message(
+            self, *, chat_id: str, message_id: int, text: str
+        ) -> EitaaSendResult:
+            edits.append((message_id, text))
+            return EitaaSendResult(message_id=message_id, raw_response={})
+
+    edited = await refresh_vendor_digest(
+        session, vendor.id, now=iran_to_utc(now), client=FakeEditor()
+    )
+    assert edited is True
+    assert len(edits) == 1
+    message_id, new_text = edits[0]
+    assert message_id == 404
+    assert "⏰ ۲۱:۰۰" in new_text  # yesterday's played slot keeps its morning snapshot
+    assert "❌ ۲۲:۳۰ تا ۰۰:۰۰ (رزرو شد)" in new_text  # today's booking marked in place
+
+    row = (
+        await session.execute(
+            sa_select(EitaaDigestMessage).where(EitaaDigestMessage.vendor_id == vendor.id)
+        )
+    ).scalar_one()
+    assert row.text == new_text
+
+
+async def test_publish_skips_vendors_already_posted_today(session: AsyncSession) -> None:
+    """A catch-up run after a restart must never duplicate a vendor's message."""
+    from app.repositories.eitaa_digest_repo import EitaaDigestRepo
+
+    manager = User(
+        full_name="مدیر تست", phone="09900000014", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+    today = now_iran().date()
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن تکراری",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+    )
+    session.add(vendor)
+    await session.flush()
+    slot = _slot(vendor.id, _iran(today + timedelta(days=1), 9, 0))
+    session.add(slot)
+    await session.flush()
+    await EitaaDigestRepo(session).upsert(
+        vendor_id=vendor.id,
+        digest_date=today,
+        chat_id="@toopset",
+        message_id=555,
+        text="قبلاً ارسال شده",
+    )
+    await session.flush()
+
+    class ExplodingSender:
+        async def send_message(
+            self, *, chat_id: str, text: str
+        ) -> EitaaSendResult:  # pragma: no cover
+            raise AssertionError("already-posted vendors must not be re-sent")
+
+    sent = await publish_daily_empty_slots(session, now=now_iran(), client=ExplodingSender())
+    assert sent == 0
 
 
 async def test_sync_digest_after_payment_is_noop_without_configuration(

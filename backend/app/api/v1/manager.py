@@ -207,6 +207,9 @@ async def create_manual_booking(
         source=BookingSource(data.source),
     )
     await service.db.commit()
+    # The freshly created booking has no slot/vendor loaded; lazy access in an
+    # async route raises MissingGreenlet after the booking is already committed.
+    booking = await BookingRepo(db).get_by_id(booking.id) or booking
     return _booking_detail_response(booking)
 
 

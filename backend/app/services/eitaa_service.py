@@ -1,11 +1,11 @@
 """Eitaa channel integration — daily empty-slots digest.
 
 Every morning at 07:00 Iran time the backend collects each active vendor's
-open slots for today and tomorrow and posts one message per vendor to the
-Eitaa channel configured via ``EITAA_BOT_TOKEN`` / ``EITAA_CHANNEL_ID``.
+open slots for the next ``EITAA_DIGEST_DAYS`` days and posts one message per
+vendor to the Eitaa channel configured via ``EITAA_BOT_TOKEN`` / ``EITAA_CHANNEL_ID``.
 Posted messages are recorded in ``eitaa_digest_messages`` so that when a
 booking is paid, :func:`sync_digest_after_payment` can immediately edit the
-affected vendor's message and drop the booked slot from it.
+affected vendor's message and mark the booked slot «❌ … (رزرو شد)».
 
 Messages travel through the Uniom gateway (``EITAA_API_BASE_URL``), which is
 Telegram Bot API compatible: ``POST {base}/bot{token}/sendMessage`` and
@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.schedule import SLOT_DAY_CUTOFF, slot_operational_day
 from app.core.timezone import iran_to_utc, now_iran, now_utc, utc_to_iran
 from app.models.time_slot import TimeSlot
 from app.models.vendor import SportType, Vendor
@@ -38,20 +39,29 @@ logger = logging.getLogger(__name__)
 # Iran-local hour when the daily digest is posted (07:00 Asia/Tehran).
 EITAA_DAILY_POST_HOUR = 7
 
+# How many operational days (starting today) each digest message covers.
+EITAA_DIGEST_DAYS = 5
+
 # Pause between consecutive channel posts so the gateway never throttles us.
 SEND_INTERVAL_SECONDS = 0.5
 
-_HEADER = "📣 برنامه سانس ها ⚽️"
-_RESERVATION_NOTE = "🔰 جهت رزرو سانس داخل سایت توپست میتوانید رزرو بکنید"
-_SEPARATOR_LINE = "ـ" * 40
+_HEADER = "📣 برنامه سانس‌ها"
+_RESERVATION_NOTE = "🌐 جهت رزرو آنلاین سانس‌ها روی سایت توپست کلیک کنید."
 
-# Persian label shown under the header for the vendor's sport types.
+# Persian label + emoji for the vendor's sport types (header line).
 _SPORT_LABELS: dict[str, str] = {
-    SportType.FOOTBALL.value: "🥅 زمین چمن",
-    SportType.FUTSAL.value: "🥅 سالن فوتسال",
-    SportType.VOLLEYBALL.value: "🏐 سالن والیبال",
-    SportType.BASKETBALL.value: "🏀 سالن بسکتبال",
-    SportType.HANDBALL.value: "🤾 سالن هندبال",
+    SportType.FOOTBALL.value: "زمین چمن",
+    SportType.FUTSAL.value: "سالن فوتسال",
+    SportType.VOLLEYBALL.value: "سالن والیبال",
+    SportType.BASKETBALL.value: "سالن بسکتبال",
+    SportType.HANDBALL.value: "سالن هندبال",
+}
+_SPORT_EMOJIS: dict[str, str] = {
+    SportType.FOOTBALL.value: "⚽️",
+    SportType.FUTSAL.value: "⚽️",
+    SportType.VOLLEYBALL.value: "🏐",
+    SportType.BASKETBALL.value: "🏀",
+    SportType.HANDBALL.value: "🤾",
 }
 
 
@@ -161,13 +171,22 @@ def _format_day_line(local_date: date) -> str:
     return to_persian_digits(f"{PERSIAN_WEEKDAYS[jdate.weekday()]} {date_text}")
 
 
-def _sport_line(vendor: Vendor) -> str | None:
-    labels = [
-        _SPORT_LABELS[sport]
-        for sport in (getattr(s, "value", s) for s in (vendor.sport_types or []))
-        if sport in _SPORT_LABELS
-    ]
-    return " و ".join(dict.fromkeys(labels)) or None
+def _header_line(vendor: Vendor) -> str:
+    """«⚽️🏐 برنامه سانس‌های سالن فوتسال و والیبال» — emojis + sports, one line."""
+    known = [getattr(s, "value", s) for s in (vendor.sport_types or [])]
+    labels = list(dict.fromkeys(_SPORT_LABELS[s] for s in known if s in _SPORT_LABELS))
+    if not labels:
+        return _HEADER
+    emojis = list(dict.fromkeys(_SPORT_EMOJIS[s] for s in known if s in _SPORT_EMOJIS))
+    return f"{''.join(emojis)} برنامه سانس‌های {' و '.join(labels)}"
+
+
+def _slot_line(slot: TimeSlot) -> str:
+    """One schedule line — reserved slots stay listed with a «رزرو شد» label."""
+    clock = f"{_format_clock(utc_to_iran(slot.start_time))} تا {_format_clock(utc_to_iran(slot.end_time))}"
+    if slot.is_reserved:
+        return f"❌ {clock} (رزرو شد)"
+    return f"⏰ {clock}"
 
 
 def render_empty_slots_message(
@@ -177,43 +196,40 @@ def render_empty_slots_message(
     days: list[date],
     vendor_url: str = "",
 ) -> str:
-    """Render the channel message for one vendor's open slots across the given Iran-local days."""
-    lines: list[str] = [_HEADER]
-    sport = _sport_line(vendor)
-    if sport:
-        lines.append(sport)
-    lines.append(vendor.name)
+    """Render the channel message for one vendor's slots across the given Iran-local days.
+
+    Reserved slots stay listed as «❌ time (رزرو شد)» instead of being dropped,
+    so the channel always shows the full program. Plain text — no parse_mode.
+    """
+    lines: list[str] = [_header_line(vendor)]
+    lines.append(f"🏟 {vendor.name}")
 
     for day in days:
         day_slots = sorted(
-            (slot for slot in slots if utc_to_iran(slot.start_time).date() == day),
+            (slot for slot in slots if slot_operational_day(utc_to_iran(slot.start_time)) == day),
             key=lambda slot: slot.start_time,
         )
         if not day_slots:
             continue
         lines.append("")
-        lines.append(_format_day_line(day))
-        for slot in day_slots:
-            start = _format_clock(utc_to_iran(slot.start_time))
-            end = _format_clock(utc_to_iran(slot.end_time))
-            lines.append(f"🔸{start} تا {end}")
+        lines.append(f"📅 {_format_day_line(day)}")
+        lines.extend(_slot_line(slot) for slot in day_slots)
 
     lines.append("")
     lines.append(_RESERVATION_NOTE)
     if vendor_url:
         lines.append(vendor_url)
     lines.append("")
-    lines.append(_SEPARATOR_LINE)
-    lines.append(f"آدرس: {vendor.address}")
+    lines.append(f"📍 آدرس: {vendor.address}")
     return "\n".join(lines)
 
 
-async def _open_slots_by_vendor(
+async def _slots_by_vendor(
     db: AsyncSession, start_from: datetime, start_until: datetime
 ) -> dict[int, tuple[Vendor, list[TimeSlot]]]:
-    """Open slots in the window, grouped per vendor (vendor preloaded)."""
+    """Slots (open and reserved) in the window, grouped per vendor (vendor preloaded)."""
     repo = TimeSlotRepo(db)
-    slots = await repo.list_open_between(start_from=start_from, start_until=start_until)
+    slots = await repo.list_between(start_from=start_from, start_until=start_until)
 
     slots_by_vendor: dict[int, tuple[Vendor, list[TimeSlot]]] = {}
     for slot in slots:
@@ -225,13 +241,15 @@ async def _open_slots_by_vendor(
 async def collect_daily_empty_slot_messages(
     db: AsyncSession, *, now: datetime | None = None
 ) -> list[tuple[Vendor, str]]:
-    """Group each active vendor's open slots for today & tomorrow into channel messages."""
+    """Group each active vendor's open slots for the next days into channel messages."""
     current = now or now_utc()
     today = utc_to_iran(current).date()
-    days = [today, today + timedelta(days=1)]
-    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), time.min))
+    days = [today + timedelta(days=offset) for offset in range(EITAA_DIGEST_DAYS)]
+    # include the night tail: 00:00-03:00 of day+EITAA_DIGEST_DAYS belongs to
+    # the last day's operational day, so the digest's final section stays complete
+    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
 
-    slots_by_vendor = await _open_slots_by_vendor(db, current, window_end)
+    slots_by_vendor = await _slots_by_vendor(db, current, window_end)
 
     messages: list[tuple[Vendor, str]] = []
     for vendor_id in sorted(slots_by_vendor):
@@ -250,13 +268,25 @@ async def collect_daily_empty_slot_messages(
     return messages
 
 
+async def digest_posted_today(db: AsyncSession, *, now: datetime | None = None) -> bool:
+    """Whether any vendor's digest was already posted for today (Iran-local)."""
+    current = now or now_utc()
+    today = utc_to_iran(current).date()
+    return bool(await EitaaDigestRepo(db).list_by_date(today))
+
+
 async def publish_daily_empty_slots(
     db: AsyncSession,
     *,
     now: datetime | None = None,
     client: EitaaChannelClient | None = None,
 ) -> int:
-    """Post the daily digest — one message per vendor — and record it for later edits."""
+    """Post the daily digest — one message per vendor — and record it for later edits.
+
+    Vendors that already have a digest row for today are skipped, so a catch-up
+    run after a partially failed attempt (or an app restart) never duplicates
+    channel messages.
+    """
     messages = await collect_daily_empty_slot_messages(db, now=now)
     if not messages:
         logger.info("Eitaa daily digest skipped — no vendor has open slots for today/tomorrow")
@@ -268,6 +298,9 @@ async def publish_daily_empty_slots(
     repo = EitaaDigestRepo(db)
     sent = 0
     for vendor, text in messages:
+        if await repo.get_by_vendor_and_date(vendor.id, digest_date) is not None:
+            logger.info("Eitaa daily digest already posted vendor_id=%s — skipped", vendor.id)
+            continue
         result = await sender.send_message(chat_id=chat_id, text=text)
         sent += 1
         logger.info(
@@ -299,42 +332,66 @@ async def refresh_vendor_digest(
     now: datetime | None = None,
     client: EitaaChannelClient | None = None,
 ) -> bool:
-    """Edit one vendor's posted digest message so it matches the live slot state.
+    """Edit this vendor's posted digest messages so they match the live slot state.
 
-    Returns True when the channel message was edited. Messages whose text is
-    unchanged (no new booking in the digest window) are left alone — no API call.
+    Each message spans ``EITAA_DIGEST_DAYS`` days, so the last that many rows
+    still list bookable slots and a booking must drop from all of them. Today's
+    row re-renders from *now* (already-started slots drop out); older rows keep
+    their morning snapshot (anchored at their own 07:00 post time) so only
+    booked slots disappear from them. Messages whose text is unchanged are left
+    alone — no API call. Returns True when any channel message was edited.
     """
     current = now or now_utc()
     today = utc_to_iran(current).date()
     repo = EitaaDigestRepo(db)
-    row = await repo.get_by_vendor_and_date(vendor_id, today)
-    if row is None:
-        return False  # no digest posted for this vendor today — nothing to edit
-
-    days = [today, today + timedelta(days=1)]
-    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), time.min))
-    _, vendor_slots = (await _open_slots_by_vendor(db, current, window_end)).get(
-        vendor_id, (None, [])
-    )
     vendor_result = await db.execute(select(Vendor).where(Vendor.id == vendor_id))
     vendor = vendor_result.scalar_one_or_none()
     if vendor is None:
         return False  # vendor deleted — its digest rows are cascaded away; defensive only
 
-    text = render_empty_slots_message(
-        vendor,
-        list(vendor_slots),
-        days=days,
-        vendor_url=vendor_page_url(vendor_id),
-    )
-    if text == row.text:
-        return False
-
     sender = client if client is not None else get_eitaa_client()
-    await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
-    await repo.set_text(row, text)
-    logger.info("Eitaa digest refreshed vendor_id=%s message_id=%s", vendor_id, row.message_id)
-    return True
+    edited = False
+    for age in range(EITAA_DIGEST_DAYS):
+        digest_date = today - timedelta(days=age)
+        row = await repo.get_by_vendor_and_date(vendor_id, digest_date)
+        if row is None:
+            continue
+        days = [digest_date + timedelta(days=offset) for offset in range(EITAA_DIGEST_DAYS)]
+        # include the night tail: 00:00-03:00 past the last day belongs to its
+        # operational tail, so the digest sections stay complete
+        window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
+        window_start = (
+            current
+            if age == 0
+            else iran_to_utc(datetime.combine(digest_date, time(EITAA_DAILY_POST_HOUR)))
+        )
+        _, vendor_slots = (await _slots_by_vendor(db, window_start, window_end)).get(
+            vendor_id, (None, [])
+        )
+        text = render_empty_slots_message(
+            vendor,
+            list(vendor_slots),
+            days=days,
+            vendor_url=vendor_page_url(vendor_id),
+        )
+        if text == row.text:
+            continue
+
+        try:
+            await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
+        except EitaaGatewayError:
+            # One dead row (e.g. the channel message was deleted by hand) must
+            # not block the refresh of the newer rows that follow it.
+            logger.exception(
+                "Eitaa digest edit failed vendor_id=%s message_id=%s — skipping row",
+                vendor_id,
+                row.message_id,
+            )
+            continue
+        await repo.set_text(row, text)
+        logger.info("Eitaa digest refreshed vendor_id=%s message_id=%s", vendor_id, row.message_id)
+        edited = True
+    return edited
 
 
 async def sync_digest_after_payment(
