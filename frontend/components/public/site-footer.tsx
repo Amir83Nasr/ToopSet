@@ -121,31 +121,33 @@ export function SiteFooter() {
         hideOnMobile && "max-md:hidden"
       )}
     >
-      <div className="px-safe relative mx-auto max-w-[1120px] px-4">
+      <div className="px-safe relative mx-auto max-w-7xl px-4">
         {/* ── MOBILE ── */}
         <div className="space-y-6 py-8 lg:hidden">
           <div>
             <BrandBlock />
           </div>
 
-          {groups.map(({ title, links }) => (
-            <div key={title}>
-              <div className="mb-3 text-sm font-semibold">{title}</div>
-              <ul className="space-y-2.5">
-                {links.map((link) => (
-                  <li key={`${link.href}-${link.label}`}>
-                    <Link href={link.href} className={linkCls}>
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 gap-6">
+            {groups.map(({ title, links }) => (
+              <div key={title}>
+                <div className="mb-3 text-sm font-semibold">{title}</div>
+                <ul className="space-y-2.5">
+                  {links.map((link) => (
+                    <li key={`${link.href}-${link.label}`}>
+                      <Link href={link.href} className={linkCls}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
 
-          <div>
-            <div className="mb-3 text-sm font-semibold">شبکه‌های اجتماعی</div>
-            <SocialLinks />
+            <div>
+              <div className="mb-3 text-sm font-semibold">شبکه‌های اجتماعی</div>
+              <SocialLinks />
+            </div>
           </div>
         </div>
 
@@ -173,7 +175,7 @@ export function SiteFooter() {
 
       {/* ── COPYRIGHT BAR ── */}
       <div className="pb-safe hidden bg-muted/60 lg:block">
-        <p className="mx-auto max-w-[1120px] px-4 py-3 text-center text-[11px] leading-5 text-muted-foreground">
+        <p className="mx-auto max-w-7xl px-4 py-3 text-center text-[11px] leading-5 text-muted-foreground">
           همه حقوق برای «توپ‌سِت» است. © {toPersianDigits("1405")}
         </p>
       </div>

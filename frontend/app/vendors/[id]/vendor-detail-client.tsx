@@ -195,29 +195,13 @@ const GalleryImage = memo(function GalleryImage({
 
 // ── Share location via Web Share API with fallback ──
 
-async function shareLocation(
-  name: string,
-  address: string,
+function shareLocation(
+  _name: string,
+  _address: string,
   lat: number,
   lng: number
 ) {
-  // Neshan short link — resolves to the location in the Neshan app/web map
-  const shareUrl = buildNeshanShareUrl(lat, lng)
-
-  if (typeof navigator !== "undefined" && navigator.share) {
-    try {
-      await navigator.share({
-        title: name,
-        text: `${name}\n${address}`,
-        url: shareUrl,
-      })
-      return
-    } catch {
-      // User dismissed or error — fall through to URL open
-    }
-  }
-
-  window.open(shareUrl, "_blank", "noopener,noreferrer")
+  window.open(buildNeshanShareUrl(lat, lng), "_blank", "noopener,noreferrer")
 }
 
 export default function PublicVendorDetailPage({
@@ -843,7 +827,7 @@ export default function PublicVendorDetailPage({
                           <Skeleton className="h-4 w-32" />
                         </div>
                         <Skeleton className="order-4 h-4 w-20 justify-self-end sm:order-none sm:mx-auto sm:justify-self-center" />
-                        <Skeleton className="order-2 h-6 w-16 rounded-full justify-self-end sm:order-none sm:mx-auto sm:justify-self-center" />
+                        <Skeleton className="order-2 h-6 w-16 justify-self-end rounded-full sm:order-none sm:mx-auto sm:justify-self-center" />
                       </div>
                     ))}
                   </div>
