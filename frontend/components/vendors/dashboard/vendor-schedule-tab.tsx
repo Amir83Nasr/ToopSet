@@ -520,9 +520,9 @@ export function VendorScheduleTab({
         </div>
 
         {dayLoading ? (
-          <div className="space-y-px p-4">
+          <div className="space-y-2 p-4">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-14 w-full" />
+              <Skeleton key={i} className="h-14 w-full rounded-xl" />
             ))}
           </div>
         ) : daySlots.length === 0 ? (
