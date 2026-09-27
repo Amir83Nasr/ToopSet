@@ -18,6 +18,7 @@ from app.models.slot_cancellation import SlotCancellation
 from app.models.time_slot import TimeSlot
 from app.models.user import User
 from app.models.vendor import Vendor
+from app.models.vendor_channel import VendorChannel
 from app.models.vendor_image import VendorImage
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
@@ -27,6 +28,7 @@ __all__ = [
     "User",
     "BankCard",
     "Vendor",
+    "VendorChannel",
     "VendorImage",
     "TimeSlot",
     "Booking",

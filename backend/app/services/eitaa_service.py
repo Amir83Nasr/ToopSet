@@ -32,6 +32,7 @@ from app.models.time_slot import TimeSlot
 from app.models.vendor import SportType, Vendor
 from app.repositories.eitaa_digest_repo import EitaaDigestRepo
 from app.repositories.time_slot_repo import TimeSlotRepo
+from app.repositories.vendor_channel_repo import VendorChannelRepo
 from app.services.notification_service import PERSIAN_WEEKDAYS, to_persian_digits
 
 logger = logging.getLogger(__name__)
@@ -268,6 +269,19 @@ async def collect_daily_empty_slot_messages(
     return messages
 
 
+async def vendor_target_chats(db: AsyncSession, vendor: Vendor) -> list[str]:
+    """Channel addresses a vendor's digest goes to, in posting order.
+
+    The vendor's own active channels win; when it has none configured the
+    global ``EITAA_CHANNEL_ID`` fallback keeps the pre-multi-channel behaviour.
+    """
+    channels = await VendorChannelRepo(db).list_by_vendor(vendor.id)
+    chats = [row.chat_id for row in channels if row.is_active]
+    if not chats and settings.eitaa_channel_id:
+        return [settings.eitaa_channel_id]
+    return chats
+
+
 async def digest_posted_today(db: AsyncSession, *, now: datetime | None = None) -> bool:
     """Whether any vendor's digest was already posted for today (Iran-local)."""
     current = now or now_utc()
@@ -281,11 +295,12 @@ async def publish_daily_empty_slots(
     now: datetime | None = None,
     client: EitaaChannelClient | None = None,
 ) -> int:
-    """Post the daily digest — one message per vendor — and record it for later edits.
+    """Post the daily digest — one message per vendor per channel — and record it for edits.
 
-    Vendors that already have a digest row for today are skipped, so a catch-up
-    run after a partially failed attempt (or an app restart) never duplicates
-    channel messages.
+    Vendors whose messaging is disabled (``eitaa_enabled=False``) and vendors
+    that already have a digest row for every target channel are skipped, so a
+    catch-up run after a partially failed attempt (or an app restart) never
+    duplicates channel messages.
     """
     messages = await collect_daily_empty_slot_messages(db, now=now)
     if not messages:
@@ -293,33 +308,50 @@ async def publish_daily_empty_slots(
         return 0
 
     sender = client if client is not None else get_eitaa_client()
-    chat_id = settings.eitaa_channel_id
     digest_date = utc_to_iran(now or now_utc()).date()
     repo = EitaaDigestRepo(db)
     sent = 0
     for vendor, text in messages:
-        if await repo.get_by_vendor_and_date(vendor.id, digest_date) is not None:
-            logger.info("Eitaa daily digest already posted vendor_id=%s — skipped", vendor.id)
+        if not vendor.eitaa_enabled:
+            logger.info("Eitaa daily digest disabled vendor_id=%s — skipped", vendor.id)
             continue
-        result = await sender.send_message(chat_id=chat_id, text=text)
-        sent += 1
-        logger.info(
-            "Eitaa daily digest posted vendor_id=%s message_id=%s", vendor.id, result.message_id
-        )
-        if result.message_id is None:
-            logger.warning(
-                "Eitaa gateway returned no message_id for vendor_id=%s — digest not editable",
+        chats = await vendor_target_chats(db, vendor)
+        if not chats:
+            logger.info(
+                "Eitaa daily digest has no target channel vendor_id=%s — skipped", vendor.id
+            )
+            continue
+        posted_rows = await repo.list_by_vendor_and_date(vendor.id, digest_date)
+        posted_chats = {row.chat_id for row in posted_rows}
+        for chat_id in chats:
+            if chat_id in posted_chats:
+                logger.info(
+                    "Eitaa daily digest already posted vendor_id=%s chat_id=%s — skipped",
+                    vendor.id,
+                    chat_id,
+                )
+                continue
+            result = await sender.send_message(chat_id=chat_id, text=text)
+            sent += 1
+            logger.info(
+                "Eitaa daily digest posted vendor_id=%s chat_id=%s message_id=%s",
                 vendor.id,
+                chat_id,
+                result.message_id,
             )
-        else:
-            await repo.upsert(
-                vendor_id=vendor.id,
-                digest_date=digest_date,
-                chat_id=chat_id,
-                message_id=int(result.message_id),
-                text=text,
-            )
-        if sent < len(messages):
+            if result.message_id is None:
+                logger.warning(
+                    "Eitaa gateway returned no message_id for vendor_id=%s — digest not editable",
+                    vendor.id,
+                )
+            else:
+                await repo.upsert(
+                    vendor_id=vendor.id,
+                    digest_date=digest_date,
+                    chat_id=chat_id,
+                    message_id=int(result.message_id),
+                    text=text,
+                )
             await asyncio.sleep(SEND_INTERVAL_SECONDS)
     await db.commit()
     return sent
@@ -348,13 +380,15 @@ async def refresh_vendor_digest(
     vendor = vendor_result.scalar_one_or_none()
     if vendor is None:
         return False  # vendor deleted — its digest rows are cascaded away; defensive only
+    if not vendor.eitaa_enabled:
+        return False  # messaging disabled for this vendor — leave channel messages as-is
 
     sender = client if client is not None else get_eitaa_client()
     edited = False
     for age in range(EITAA_DIGEST_DAYS):
         digest_date = today - timedelta(days=age)
-        row = await repo.get_by_vendor_and_date(vendor_id, digest_date)
-        if row is None:
+        rows = await repo.list_by_vendor_and_date(vendor_id, digest_date)
+        if not rows:
             continue
         days = [digest_date + timedelta(days=offset) for offset in range(EITAA_DIGEST_DAYS)]
         # include the night tail: 00:00-03:00 past the last day belongs to its
@@ -374,23 +408,29 @@ async def refresh_vendor_digest(
             days=days,
             vendor_url=vendor_page_url(vendor_id),
         )
-        if text == row.text:
-            continue
+        for row in rows:
+            if text == row.text:
+                continue
 
-        try:
-            await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
-        except EitaaGatewayError:
-            # One dead row (e.g. the channel message was deleted by hand) must
-            # not block the refresh of the newer rows that follow it.
-            logger.exception(
-                "Eitaa digest edit failed vendor_id=%s message_id=%s — skipping row",
+            try:
+                await sender.edit_message(chat_id=row.chat_id, message_id=row.message_id, text=text)
+            except EitaaGatewayError:
+                # One dead row (e.g. the channel message was deleted by hand) must
+                # not block the refresh of the newer rows that follow it.
+                logger.exception(
+                    "Eitaa digest edit failed vendor_id=%s message_id=%s — skipping row",
+                    vendor_id,
+                    row.message_id,
+                )
+                continue
+            await repo.set_text(row, text)
+            logger.info(
+                "Eitaa digest refreshed vendor_id=%s chat_id=%s message_id=%s",
                 vendor_id,
+                row.chat_id,
                 row.message_id,
             )
-            continue
-        await repo.set_text(row, text)
-        logger.info("Eitaa digest refreshed vendor_id=%s message_id=%s", vendor_id, row.message_id)
-        edited = True
+            edited = True
     return edited
 
 
@@ -406,10 +446,47 @@ async def sync_digest_after_payment(
     a completed payment. The trailing commit persists both the updated digest
     row and any pending finalization writes of the caller's transaction.
     """
-    if not settings.eitaa_configured:
+    if not settings.eitaa_bot_configured:
         return
     try:
         await refresh_vendor_digest(db, vendor_id, client=client)
         await db.commit()
     except Exception:
         logger.exception("Eitaa digest sync after payment failed (vendor_id=%s)", vendor_id)
+
+
+async def render_vendor_digest_now(
+    db: AsyncSession, vendor: Vendor, *, now: datetime | None = None
+) -> str:
+    """The vendor's digest message rendered from the live slot state right now."""
+    current = now or now_utc()
+    today = utc_to_iran(current).date()
+    days = [today + timedelta(days=offset) for offset in range(EITAA_DIGEST_DAYS)]
+    # include the night tail: 00:00-03:00 of day+EITAA_DIGEST_DAYS belongs to
+    # the last day's operational day, so the digest's final section stays complete
+    window_end = iran_to_utc(datetime.combine(days[-1] + timedelta(days=1), SLOT_DAY_CUTOFF))
+
+    _, vendor_slots = (await _slots_by_vendor(db, current, window_end)).get(vendor.id, (None, []))
+    return render_empty_slots_message(
+        vendor,
+        list(vendor_slots),
+        days=days,
+        vendor_url=vendor_page_url(vendor.id),
+    )
+
+
+async def send_vendor_test_message(
+    db: AsyncSession,
+    vendor: Vendor,
+    *,
+    chat_id: str,
+    client: EitaaChannelClient | None = None,
+) -> EitaaSendResult:
+    """Post the vendor's current digest message to ``chat_id`` as a one-off test.
+
+    The message is not recorded in ``eitaa_digest_messages`` — a test post is
+    never edited later, so it must not interfere with the daily digest rows.
+    """
+    sender = client if client is not None else get_eitaa_client()
+    text = await render_vendor_digest_now(db, vendor)
+    return await sender.send_message(chat_id=chat_id, text=text)

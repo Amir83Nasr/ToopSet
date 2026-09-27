@@ -348,7 +348,7 @@ async def lifespan(app: FastAPI):
     replacement_task = asyncio.create_task(_expire_replacement_work_periodically())
     min_price_task = asyncio.create_task(_update_vendor_min_prices_nightly())
     eitaa_task: asyncio.Task | None = None
-    if settings.eitaa_configured:
+    if settings.eitaa_bot_configured:
         eitaa_task = asyncio.create_task(_post_eitaa_empty_slots_daily())
     yield
     metrics_task.cancel()

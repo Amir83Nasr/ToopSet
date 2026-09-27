@@ -16,6 +16,7 @@ from app.core.timezone import IRAN_TZ, iran_to_utc, now_iran
 from app.models.time_slot import SlotStatus, TimeSlot
 from app.models.user import User, UserRole
 from app.models.vendor import Vendor
+from app.models.vendor_channel import VendorChannel
 from app.services.eitaa_service import (
     EITAA_DAILY_POST_HOUR,
     EitaaChannelClient,
@@ -25,12 +26,20 @@ from app.services.eitaa_service import (
     refresh_vendor_digest,
     render_empty_slots_message,
     seconds_until_next_daily_post,
+    send_vendor_test_message,
     sync_digest_after_payment,
     vendor_page_url,
 )
 from app.services.notification_service import PERSIAN_WEEKDAYS, to_persian_digits
 
 pytestmark = [pytest.mark.asyncio]
+
+
+@pytest.fixture
+def global_channel(monkeypatch) -> str:
+    """Expose the shared fallback channel for tests of the global-channel path."""
+    monkeypatch.setattr(settings, "eitaa_channel_id", "@toopset")
+    return "@toopset"
 
 
 def _iran(day, hour: int, minute: int = 0) -> datetime:
@@ -189,7 +198,7 @@ async def test_seconds_until_next_daily_post_targets_seven_am_iran() -> None:
 
 
 async def test_publish_posts_one_message_per_vendor_with_only_open_future_slots(
-    session: AsyncSession,
+    session: AsyncSession, global_channel: str
 ) -> None:
     manager = User(
         full_name="مدیر تست", phone="09900000009", password_hash="x", role=UserRole.MANAGER
@@ -279,6 +288,9 @@ async def test_eitaa_configured_requires_both_credentials() -> None:
     assert settings.eitaa_configured is False
     try:
         settings.eitaa_bot_token = SecretStr("token")
+        # A bot token alone is enough for per-vendor channel messaging…
+        assert settings.eitaa_bot_configured is True
+        # …but the global fallback channel still needs to be set for it.
         assert settings.eitaa_configured is False
         settings.eitaa_channel_id = "@chan"
         assert settings.eitaa_configured is True
@@ -315,7 +327,7 @@ async def test_client_edits_previously_sent_message() -> None:
 
 
 async def test_publish_persists_posted_messages_for_later_edits(
-    session: AsyncSession,
+    session: AsyncSession, global_channel: str
 ) -> None:
     from sqlalchemy import select as sa_select
 
@@ -585,7 +597,9 @@ async def test_refresh_vendor_digest_also_updates_yesterdays_message(
     assert row.text == new_text
 
 
-async def test_publish_skips_vendors_already_posted_today(session: AsyncSession) -> None:
+async def test_publish_skips_vendors_already_posted_today(
+    session: AsyncSession, global_channel: str
+) -> None:
     """A catch-up run after a restart must never duplicate a vendor's message."""
     from app.repositories.eitaa_digest_repo import EitaaDigestRepo
 
@@ -643,3 +657,275 @@ async def test_sync_digest_after_payment_is_noop_without_configuration(
             raise AssertionError("no edit may happen when Eitaa is not configured")
 
     await sync_digest_after_payment(session, 1, client=ExplodingEditor())
+
+
+# ── Per-vendor channels + enable switch ──────────────────────────────────────
+
+
+async def test_publish_posts_one_message_per_vendor_channel(
+    session: AsyncSession,
+) -> None:
+    """A vendor with two active channels gets the digest in each of them;
+    a disabled channel is left out; the global fallback is not used."""
+    manager = User(
+        full_name="مدیر تست", phone="09900000020", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+
+    today = now_iran().date()
+    tomorrow = today + timedelta(days=1)
+    now = datetime.combine(today, time(EITAA_DAILY_POST_HOUR, 0), tzinfo=IRAN_TZ)
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن چندکاناله",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+    )
+    session.add(vendor)
+    await session.flush()
+    session.add_all(
+        [
+            VendorChannel(vendor_id=vendor.id, chat_id="@chan-a", is_active=True),
+            VendorChannel(vendor_id=vendor.id, chat_id="@chan-b", is_active=True),
+            VendorChannel(vendor_id=vendor.id, chat_id="@chan-off", is_active=False),
+        ]
+    )
+    session.add(_slot(vendor.id, _iran(tomorrow, 9, 0)))
+    await session.flush()
+
+    sent: list[str] = []
+
+    class FakeSender:
+        async def send_message(self, *, chat_id: str, text: str) -> EitaaSendResult:
+            sent.append(chat_id)
+            return EitaaSendResult(message_id=len(sent), raw_response={})
+
+    count = await publish_daily_empty_slots(session, now=iran_to_utc(now), client=FakeSender())
+
+    assert count == 2
+    assert sent == ["@chan-a", "@chan-b"]
+
+    from sqlalchemy import select as sa_select
+
+    from app.models.eitaa_digest import EitaaDigestMessage
+
+    rows = await session.execute(
+        sa_select(EitaaDigestMessage).where(EitaaDigestMessage.vendor_id == vendor.id)
+    )
+    chat_ids = {row.chat_id for row in rows.scalars().all()}
+    assert chat_ids == {"@chan-a", "@chan-b"}
+
+
+async def test_publish_skips_vendors_with_messaging_disabled(
+    session: AsyncSession, global_channel: str
+) -> None:
+    manager = User(
+        full_name="مدیر تست", phone="09900000021", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+
+    today = now_iran().date()
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن ساکت",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+        eitaa_enabled=False,
+    )
+    session.add(vendor)
+    await session.flush()
+    session.add(_slot(vendor.id, _iran(today + timedelta(days=1), 9, 0)))
+    await session.flush()
+
+    class ExplodingSender:
+        async def send_message(
+            self, *, chat_id: str, text: str
+        ) -> EitaaSendResult:  # pragma: no cover
+            raise AssertionError("disabled vendors must receive no digest")
+
+    sent = await publish_daily_empty_slots(session, now=now_iran(), client=ExplodingSender())
+    assert sent == 0
+
+
+async def test_refresh_skips_vendors_with_messaging_disabled(
+    session: AsyncSession,
+) -> None:
+    from sqlalchemy import select as sa_select
+
+    from app.models.eitaa_digest import EitaaDigestMessage
+    from app.repositories.eitaa_digest_repo import EitaaDigestRepo
+
+    manager = User(
+        full_name="مدیر تست", phone="09900000022", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+
+    today = now_iran().date()
+    tomorrow = today + timedelta(days=1)
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن ساکت ادیت",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+        eitaa_enabled=False,
+    )
+    session.add(vendor)
+    await session.flush()
+    slot = _slot(vendor.id, _iran(tomorrow, 9, 0))
+    session.add(slot)
+    await session.flush()
+    await EitaaDigestRepo(session).upsert(
+        vendor_id=vendor.id,
+        digest_date=today,
+        chat_id="@chan",
+        message_id=61,
+        text="متن قدیمی",
+    )
+    await session.flush()
+    slot.is_reserved = True
+    slot.status = SlotStatus.RESERVED
+    await session.flush()
+
+    class ExplodingEditor:
+        async def edit_message(
+            self, *, chat_id: str, message_id: int, text: str
+        ) -> EitaaSendResult:  # pragma: no cover
+            raise AssertionError("disabled vendors must not have messages edited")
+
+    assert (
+        await refresh_vendor_digest(session, vendor.id, now=now_iran(), client=ExplodingEditor())
+        is False
+    )
+    row = (
+        await session.execute(
+            sa_select(EitaaDigestMessage).where(EitaaDigestMessage.vendor_id == vendor.id)
+        )
+    ).scalar_one()
+    assert row.text == "متن قدیمی"
+
+
+async def test_refresh_edits_every_channel_of_a_digest_day(session: AsyncSession) -> None:
+    from app.repositories.eitaa_digest_repo import EitaaDigestRepo
+
+    manager = User(
+        full_name="مدیر تست", phone="09900000023", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+
+    today = now_iran().date()
+    tomorrow = today + timedelta(days=1)
+    now = datetime.combine(today, time(20, 0), tzinfo=IRAN_TZ)
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن دوقلو",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+    )
+    session.add(vendor)
+    await session.flush()
+    morning_slot = _slot(vendor.id, _iran(tomorrow, 9, 0))
+    booked_slot = _slot(vendor.id, _iran(tomorrow, 11, 0))
+    session.add_all([morning_slot, booked_slot])
+    await session.flush()
+
+    posted_text = render_empty_slots_message(
+        vendor,
+        [morning_slot, booked_slot],
+        days=[today, tomorrow],
+        vendor_url=vendor_page_url(vendor.id),
+    )
+    repo = EitaaDigestRepo(session)
+    for chat, message_id in (("@chan-a", 101), ("@chan-b", 202)):
+        await repo.upsert(
+            vendor_id=vendor.id,
+            digest_date=today,
+            chat_id=chat,
+            message_id=message_id,
+            text=posted_text,
+        )
+    await session.flush()
+
+    booked_slot.is_reserved = True
+    booked_slot.status = SlotStatus.RESERVED
+    await session.flush()
+
+    edits: list[tuple[str, int, str]] = []
+
+    class FakeEditor:
+        async def edit_message(
+            self, *, chat_id: str, message_id: int, text: str
+        ) -> EitaaSendResult:
+            edits.append((chat_id, message_id, text))
+            return EitaaSendResult(message_id=message_id, raw_response={})
+
+    edited = await refresh_vendor_digest(
+        session, vendor.id, now=iran_to_utc(now), client=FakeEditor()
+    )
+    assert edited is True
+    assert [(chat, mid) for chat, mid, _ in edits] == [("@chan-a", 101), ("@chan-b", 202)]
+    assert all("❌ ۱۱:۰۰ تا ۱۲:۳۰ (رزرو شد)" in text for _, _, text in edits)
+
+
+async def test_send_vendor_test_message_posts_without_recording_digest_rows(
+    session: AsyncSession,
+) -> None:
+    from sqlalchemy import select as sa_select
+
+    from app.models.eitaa_digest import EitaaDigestMessage
+
+    manager = User(
+        full_name="مدیر تست", phone="09900000024", password_hash="x", role=UserRole.MANAGER
+    )
+    session.add(manager)
+    await session.flush()
+
+    today = now_iran().date()
+    vendor = Vendor(
+        manager_id=manager.id,
+        name="سالن تست",
+        address="قم",
+        latitude=34.6,
+        longitude=50.8,
+        capacity=10,
+        sport_types=["futsal"],
+    )
+    session.add(vendor)
+    await session.flush()
+    session.add(_slot(vendor.id, _iran(today + timedelta(days=1), 19, 0)))
+    await session.flush()
+
+    sent: list[tuple[str, str]] = []
+
+    class FakeSender:
+        async def send_message(self, *, chat_id: str, text: str) -> EitaaSendResult:
+            sent.append((chat_id, text))
+            return EitaaSendResult(message_id=999, raw_response={})
+
+    result = await send_vendor_test_message(
+        session, vendor, chat_id="@test-chan", client=FakeSender()
+    )
+
+    assert result.message_id == 999
+    assert len(sent) == 1
+    chat_id, text = sent[0]
+    assert chat_id == "@test-chan"
+    assert vendor.name in text
+    assert "⏰" in text
+    rows = (await session.execute(sa_select(EitaaDigestMessage))).scalars().all()
+    assert rows == []  # a test post must never become an editable digest row

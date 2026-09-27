@@ -12,16 +12,19 @@ class EitaaDigestRepo:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def get_by_vendor_and_date(
+    async def list_by_vendor_and_date(
         self, vendor_id: int, digest_date: date
-    ) -> EitaaDigestMessage | None:
+    ) -> list[EitaaDigestMessage]:
+        """All digest messages posted for the vendor on the digest day — one per channel."""
         result = await self.db.execute(
-            select(EitaaDigestMessage).where(
+            select(EitaaDigestMessage)
+            .where(
                 EitaaDigestMessage.vendor_id == vendor_id,
                 EitaaDigestMessage.digest_date == digest_date,
             )
+            .order_by(EitaaDigestMessage.id)
         )
-        return result.scalar_one_or_none()
+        return list(result.scalars().all())
 
     async def list_by_date(self, digest_date: date) -> list[EitaaDigestMessage]:
         """All digest messages posted for the given Iran-local day."""
@@ -41,8 +44,15 @@ class EitaaDigestRepo:
         message_id: int,
         text: str,
     ) -> EitaaDigestMessage:
-        """Record (or supersede) the message posted for a vendor on a digest day."""
-        row = await self.get_by_vendor_and_date(vendor_id, digest_date)
+        """Record (or supersede) the message posted for a vendor+channel on a digest day."""
+        row = next(
+            (
+                row
+                for row in await self.list_by_vendor_and_date(vendor_id, digest_date)
+                if row.chat_id == chat_id
+            ),
+            None,
+        )
         if row is None:
             row = EitaaDigestMessage(
                 vendor_id=vendor_id,
