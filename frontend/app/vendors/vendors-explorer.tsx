@@ -190,14 +190,10 @@ export function VendorsExplorer() {
 
   return (
     <>
-      <div
-        className={`rounded-xl border bg-card p-3 md:p-4 ${
-          hasActiveFilters ? "" : ""
-        }`}
-      >
+      <div className="rounded-xl border bg-card p-4">
         {/* Row 1: Search + Sort + Near Me + Map Toggle */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="min-w-0 flex-1 max-sm:basis-full">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+          <div className="col-span-2 min-w-0 sm:flex-1">
             <div className="relative">
               <Search className="absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -212,28 +208,26 @@ export function VendorsExplorer() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Select
-              value={sortBy}
-              onValueChange={(v) => {
-                setSortBy(v)
-                setPage(0)
-              }}
-            >
-              <SelectTrigger className="w-32 sm:w-35">
-                <SelectValue placeholder="مرتب‌سازی" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>مرتب‌سازی</SelectLabel>
-                  <SelectItem value="default">پیش‌فرض</SelectItem>
-                  <SelectItem value="price_asc">قیمت: کم به زیاد</SelectItem>
-                  <SelectItem value="price_desc">قیمت: زیاد به کم</SelectItem>
-                  <SelectItem value="rating">امتیاز</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            value={sortBy}
+            onValueChange={(v) => {
+              setSortBy(v)
+              setPage(0)
+            }}
+          >
+            <SelectTrigger className="w-full min-w-0 sm:w-35">
+              <SelectValue placeholder="مرتب‌سازی" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>مرتب‌سازی</SelectLabel>
+                <SelectItem value="default">پیش‌فرض</SelectItem>
+                <SelectItem value="price_asc">قیمت: کم به زیاد</SelectItem>
+                <SelectItem value="price_desc">قیمت: زیاد به کم</SelectItem>
+                <SelectItem value="rating">امتیاز</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
 
           <Button
             type="button"
@@ -243,20 +237,22 @@ export function VendorsExplorer() {
               setAvailableToday((current) => !current)
               setPage(0)
             }}
-            className="gap-1.5 max-sm:px-2"
+            className="w-full min-w-0 gap-1.5 px-2"
           >
             <CalendarCheck className="size-4" />
-            <span>سانس خالی امروز</span>
+            <span className="truncate">سانس خالی امروز</span>
           </Button>
 
           <Button
             variant={showMap ? "default" : "outline"}
             size="sm"
-            className="gap-1.5 max-sm:px-2"
+            className="col-span-2 w-full gap-1.5 px-2 sm:col-span-1 sm:w-auto"
             onClick={() => setShowMap((prev) => !prev)}
           >
             <Map className="size-4" />
-            <span>{showMap ? "بستن نقشه" : "نمایش نقشه"}</span>
+            <span className="truncate">
+              {showMap ? "بستن نقشه" : "نمایش نقشه"}
+            </span>
           </Button>
         </div>
 
@@ -294,19 +290,19 @@ export function VendorsExplorer() {
 
         {/* Filter chips */}
         {hasActiveFilters && (
-          <div className="mt-2 flex items-center gap-1.5 border-t pt-2 max-sm:max-w-full max-sm:flex-nowrap max-sm:gap-1 max-sm:overflow-x-auto max-sm:pb-1">
+          <div className="mt-3 flex scrollbar-none items-center gap-2 overflow-x-auto border-t pt-3">
             {/* Clear all — always first */}
             <Button
               variant="destructive"
               size="sm"
               onClick={clearFilters}
-              className="max-sm:shrink-0"
+              className="shrink-0"
             >
               <X />
               پاک کردن همه فیلتر‌ها
             </Button>
             {searchText && (
-              <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
+              <span className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-xs">
                 <Search className="size-3" />
                 {searchText}
                 <Button
@@ -322,7 +318,7 @@ export function VendorsExplorer() {
             )}
 
             {availableToday && (
-              <span className="inline-flex h-10 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-sm max-sm:shrink-0 md:h-8 md:text-xs">
+              <span className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border bg-muted/50 ps-3.5 pe-1.5 text-xs">
                 <CalendarCheck className="size-3" />
                 سانس خالی امروز
                 <Button
@@ -342,9 +338,9 @@ export function VendorsExplorer() {
       </div>
 
       {/* Vendor Cards Grid */}
-      <div className="mt-8">
+      <div className="mt-6 md:mt-8">
         {vendorsLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <VendorCardSkeleton key={i} />
             ))}
@@ -372,7 +368,7 @@ export function VendorsExplorer() {
               stagger={0.04}
               animation="fade-in-up"
               threshold={0}
-              className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+              className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3"
             >
               {featuredVendors.map((vendor, i) => (
                 <div key={vendor.id}>

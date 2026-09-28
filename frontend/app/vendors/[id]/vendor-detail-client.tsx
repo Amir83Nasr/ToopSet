@@ -135,7 +135,7 @@ function LoadingSkeleton() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main id="main-content" className="relative flex-1 pt-16">
-        <div className="mx-auto max-w-7xl px-4 pt-8 pb-8">
+        <div className="mx-auto max-w-7xl px-4 py-6 md:py-8">
           <Skeleton className="h-20 w-full" />
           <Skeleton className="mt-8 h-8 w-40" />
           <Skeleton className="mt-6 h-64 w-full" />
@@ -584,12 +584,12 @@ export default function PublicVendorDetailPage({
     <div className="flex min-h-svh flex-col">
       <SiteHeader />
       <main id="main-content" className="relative flex-1 pt-16">
-        <div className="mx-auto max-w-7xl px-4 pt-10 pb-8">
+        <div className="mx-auto max-w-7xl px-4 py-6 md:py-8">
           {/* ═══════════════════════════════════
                Vendor Hero Card
                ═══════════════════════════════════ */}
-          <div className="mb-10 overflow-hidden rounded-xl border bg-card">
-            <div className="flex items-start justify-between gap-4 p-5 md:p-6">
+          <div className="mb-6 overflow-hidden rounded-xl border bg-card md:mb-10">
+            <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between md:p-6">
               <div className="min-w-0 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {vendor.sport_types.map((st) => (
@@ -646,7 +646,7 @@ export default function PublicVendorDetailPage({
             </div>
 
             {/* Info grid */}
-            <div className="border-t bg-muted/30 px-5 py-4 md:px-6">
+            <div className="border-t bg-muted/30 px-4 py-4 md:px-6">
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <div className="flex items-start gap-3 max-sm:flex-col">
@@ -735,9 +735,12 @@ export default function PublicVendorDetailPage({
           {/* ═══════════════════════════════════
                Schedule + Sidebar Grid
                ═══════════════════════════════════ */}
-          <div className="grid gap-12 lg:grid-cols-3">
+          <div className="grid gap-6 md:gap-12 lg:grid-cols-3">
             {/* ====== Left: Schedule ====== */}
-            <div id="weekly-schedule" className="scroll-mt-24 lg:col-span-2">
+            <div
+              id="weekly-schedule"
+              className="min-w-0 scroll-mt-24 lg:col-span-2"
+            >
               <div className="rounded-xl border bg-card">
                 {/* ── Week nav ── */}
                 <div className="flex flex-col gap-3 border-b px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -755,7 +758,7 @@ export default function PublicVendorDetailPage({
                       <ChevronRight className="size-3.5" />
                       <span>هفته قبل</span>
                     </Button>
-                    <span className="min-w-28 text-center text-xs font-semibold text-foreground sm:px-2">
+                    <span className="min-w-0 flex-1 text-center text-xs font-semibold text-foreground sm:px-2">
                       {weekRange}
                     </span>
                     <Button
@@ -786,7 +789,7 @@ export default function PublicVendorDetailPage({
                           setSelectedDate(day.date)
                           setSelectedSlot(null)
                         }}
-                        className={`flex flex-1 flex-col items-center gap-0.5 py-3 text-center transition-colors ${
+                        className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-0.5 py-3 text-center transition-colors ${
                           isOutsideWindow
                             ? "cursor-not-allowed border-b-2 border-transparent text-muted-foreground/35"
                             : isActive
@@ -885,9 +888,9 @@ export default function PublicVendorDetailPage({
             </div>
 
             {/* ====== Right: Sidebar ====== */}
-            <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+            <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
               {/* ── Images ── */}
-              <div className="rounded-xl border bg-card p-5">
+              <div className="rounded-xl border bg-card p-4 md:p-5">
                 <h3 className="mb-4 flex items-center gap-1.5 text-sm font-semibold">
                   <ImagePlus className="size-4 shrink-0 text-primary" />
                   گالری تصاویر
@@ -930,7 +933,7 @@ export default function PublicVendorDetailPage({
               </div>
 
               {/* ── Amenities ── */}
-              <div className="rounded-xl border bg-card p-5">
+              <div className="rounded-xl border bg-card p-4 md:p-5">
                 <h3 className="mb-4 flex items-center gap-1.5 text-sm font-semibold">
                   <Award className="size-4 shrink-0 text-primary" />
                   امکانات مجموعه
@@ -957,7 +960,7 @@ export default function PublicVendorDetailPage({
               </div>
 
               {/* ── Reviews ── */}
-              <div className="rounded-xl border bg-card p-5">
+              <div className="rounded-xl border bg-card p-4 md:p-5">
                 <h3 className="mb-4 flex items-center gap-1.5 text-sm font-semibold">
                   <MessageSquareText className="size-4 shrink-0 text-primary" />
                   نظرات کاربران

@@ -84,7 +84,7 @@ function PaginationPrevious({
         data-icon="inline-start"
         className="rtl:rotate-180"
       />
-      <span className="hidden sm:block">{text}</span>
+      <span>{text}</span>
     </PaginationLink>
   )
 }
@@ -101,7 +101,7 @@ function PaginationNext({
       className={cn("pe-1.5!", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
+      <span>{text}</span>
       <HugeiconsIcon
         icon={ArrowRight01Icon}
         strokeWidth={2}

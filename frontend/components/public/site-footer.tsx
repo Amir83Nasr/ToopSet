@@ -158,7 +158,7 @@ export function SiteFooter() {
           </div>
 
           <div className="flex-1">
-            <LinkGroup title="توپ‌سِت" links={aboutLinks} />
+            <LinkGroup title="صفحات" links={aboutLinks} />
           </div>
           <div className="flex-1">
             <LinkGroup title="رزرو و پشتیبانی" links={bookingLinks} />

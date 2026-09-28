@@ -235,7 +235,8 @@
   }
   html {
     @apply font-sans;
-    overflow-y: auto;
+    /* ponytail: overflow-y:scroll همیشه جا رزرو می‌کند؛ سقف پشتیبانی scrollbar-gutter در سافاری قدیمی است */
+    overflow-y: scroll;
     scrollbar-gutter: stable;
   }
   ::-webkit-scrollbar {

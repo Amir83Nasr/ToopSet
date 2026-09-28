@@ -71,7 +71,7 @@ export const SlotRow = memo(function SlotRow({
       <div className="order-1 text-xs font-medium text-muted-foreground sm:order-none sm:text-center">
         {slotDay}
       </div>
-      <div className="order-3 flex items-center gap-3 sm:order-none sm:justify-center">
+      <div className="order-3 flex min-w-0 items-center gap-3 sm:order-none sm:justify-center">
         <div
           className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
             isPast

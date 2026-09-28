@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Home, Search, Calendar, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Spinner } from "@/components/ui/spinner"
@@ -126,6 +127,11 @@ function BottomNavTab({
  * The Account tab always routes to /account — that page handles both
  * logged-in and guest states, so the tab href never depends on auth state.
  *
+ * Hides while an editable field is focused (mobile keyboard open) via
+ * focusin/focusout — visualViewport math can't detect the keyboard here
+ * because app/layout.tsx sets interactiveWidget=resizes-content, which
+ * shrinks window.innerHeight together with the visual viewport.
+ *
  * Positioning: `fixed bottom-0` + `pb-safe` (viewport-fit=cover is set in
  * app/layout.tsx). Do NOT add paint/offset extensions below the fold
  * (e.g. an ::after box past the viewport edge) — overflow past the
@@ -135,16 +141,44 @@ function BottomNavTab({
  */
 export function BottomNav() {
   const pathname = usePathname()
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const isEditable = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.tagName === "SELECT" ||
+        el.isContentEditable)
+    // ponytail: focus-based only, no visualViewport fallback. Add it when a keyboard opens without editable focus.
+    const onFocusIn = (e: FocusEvent) => {
+      if (isEditable(e.target)) setKeyboardOpen(true)
+    }
+    const onFocusOut = (e: FocusEvent) => {
+      if (isEditable(e.relatedTarget)) return
+      setKeyboardOpen(false)
+    }
+    document.addEventListener("focusin", onFocusIn)
+    document.addEventListener("focusout", onFocusOut)
+    return () => {
+      document.removeEventListener("focusin", onFocusIn)
+      document.removeEventListener("focusout", onFocusOut)
+    }
+  }, [])
 
   return (
     <nav
       aria-label="منوی پایین"
       data-bottom-nav
+      data-keyboard-hidden={keyboardOpen || undefined}
       className={cn(
         // Layout
         "fixed inset-x-0 bottom-0 z-40",
         // Only visible on mobile
         "flex md:hidden",
+        // Hide while mobile keyboard open — keeps nav off keyboard
+        keyboardOpen && "invisible translate-y-full",
+        "transition-transform duration-200",
         // Background, border and safe-area
         "pb-safe border-t bg-background/95 backdrop-blur-xl",
         // Composited layer (reuses .gpu-layer from globals.css): keeps the

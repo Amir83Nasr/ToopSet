@@ -66,11 +66,9 @@ export default async function VendorsServerPage() {
       )}
       <main id="main-content" className="relative flex-1 pt-16">
         <section className="relative overflow-hidden px-4 py-6 md:py-8">
-          <div className="relative z-10 mx-auto max-w-7xl px-4">
+          <div className="relative z-10 mx-auto max-w-7xl">
             {/* ── Interactive search/filter/map (client, with pagination) ── */}
-            <div className="mt-8">
-              <VendorsExplorer />
-            </div>
+            <VendorsExplorer />
           </div>
         </section>
       </main>

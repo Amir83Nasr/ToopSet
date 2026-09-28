@@ -4,8 +4,6 @@ import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Search01Icon,
-  Calendar01Icon,
-  ArrowLeft01Icon,
   CheckmarkCircle01Icon,
   SecurityLockIcon,
   Camera01Icon,
@@ -39,7 +37,7 @@ export function HeroSection() {
           </div>
 
           {/* Headline */}
-          <h1 className="mx-auto mb-5 max-w-[25ch] text-[clamp(30px,5vw,52px)] leading-[1.4] font-semibold tracking-tight text-balance text-foreground sm:max-w-none sm:whitespace-nowrap">
+          <h1 className="mx-auto mb-5 max-w-[25ch] text-[clamp(30px,5vw,52px)] leading-[1.4] font-bold tracking-tight text-balance text-foreground sm:max-w-none sm:whitespace-nowrap">
             پلتفرم هوشمند رزرو مجموعه‌های ورزشی
           </h1>
 
@@ -61,11 +59,7 @@ export function HeroSection() {
 
           {/* Edge-to-edge CTA row */}
           <div className="flex flex-col items-center justify-center gap-3 pt-1 sm:flex-row sm:flex-wrap sm:gap-4">
-            <Button
-              size="lg"
-              asChild
-              className="h-10 w-full rounded-lg px-6 text-base font-semibold shadow-sm sm:w-auto"
-            >
+            <Button size="lg" asChild className="w-full px-10 sm:w-auto">
               <Link href="/vendors" prefetch>
                 <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
                 جستجوی مجموعه‌های ورزشی
@@ -75,12 +69,9 @@ export function HeroSection() {
               size="lg"
               variant="outline"
               asChild
-              className="h-10 w-full rounded-lg px-6 text-base font-semibold sm:w-auto"
+              className="w-full px-10 sm:w-auto"
             >
-              <Link href="/login">
-                <HugeiconsIcon icon={Calendar01Icon} strokeWidth={2} />
-                ثبت‌نام رایگان
-              </Link>
+              <Link href="/login">ثبت‌نام رایگان</Link>
             </Button>
           </div>
 

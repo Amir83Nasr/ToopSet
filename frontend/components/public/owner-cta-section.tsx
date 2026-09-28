@@ -54,11 +54,7 @@ export function OwnerCtaSection() {
       <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
     </Button>
   ) : (
-    <Button
-      size="lg"
-      asChild
-      className="h-10 rounded-lg px-6 text-base font-semibold"
-    >
+    <Button size="lg" asChild className="px-10">
       <Link href="/login">
         ثبت مجموعه ورزشی
         <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />

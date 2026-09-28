@@ -62,7 +62,9 @@ bin/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+.ruff-cache/
 .pytest_cache/
+.pytest/
 # Downloaded API reference docs (Zibal OpenAPI etc.)
 backend/api-*.json
 
