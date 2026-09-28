@@ -13,7 +13,11 @@ class EitaaDigestMessage(Base):
 
     __tablename__ = "eitaa_digest_messages"
     __table_args__ = (
-        UniqueConstraint("vendor_id", "digest_date", name="uq_eitaa_digest_vendor_date"),
+        # One digest message per vendor, day and channel — a vendor may post to
+        # several channels, each getting its own editable message.
+        UniqueConstraint(
+            "vendor_id", "digest_date", "chat_id", name="uq_eitaa_digest_vendor_date_chat"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -14,6 +14,7 @@ import {
   Undo2,
   ClipboardCheck,
   Star,
+  Radio,
 } from "lucide-react"
 
 export interface NavItem {
@@ -137,6 +138,11 @@ export const navGroups: NavGroup[] = [
         icon: CreditCard,
       },
       { title: "پیام‌ها", url: "/dashboard/contact", icon: MessageSquare },
+      {
+        title: "پیام‌رسان سانس‌ها",
+        url: "/dashboard/admin/messaging",
+        icon: Radio,
+      },
       { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
     ],
   },

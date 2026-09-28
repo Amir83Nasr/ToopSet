@@ -391,3 +391,140 @@ class TestAdminAuth:
         headers = {"Authorization": f"Bearer {user_token['access_token']}"}
         resp = await client.get("/api/v1/admin/pending-vendors", headers=headers)
         assert resp.status_code == 403
+
+
+class TestAdminVendorMessaging:
+    """Eitaa slot-digest channel management (admin-only)."""
+
+    async def _make_vendor(self, session, admin_token: dict, name: str) -> Vendor:
+        vendor = Vendor(
+            manager_id=admin_token["user"]["id"],
+            name=name,
+            sport_types=["futsal"],
+            address="Qom",
+            capacity=10,
+            latitude=34.64,
+            longitude=50.88,
+        )
+        session.add(vendor)
+        await session.flush()
+        return vendor
+
+    async def test_list_messaging_vendors(
+        self, client: AsyncClient, admin_token: dict, session
+    ) -> None:
+        await self._make_vendor(session, admin_token, "سالن پیام‌رسان")
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        resp = await client.get("/api/v1/admin/messaging/vendors", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] >= 1
+        entry = next(v for v in data["vendors"] if v["name"] == "سالن پیام‌رسان")
+        assert entry["eitaa_enabled"] is True
+        assert entry["channels"] == []
+
+    async def test_messaging_endpoints_require_admin(
+        self, client: AsyncClient, user_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {user_token['access_token']}"}
+        assert (
+            await client.get("/api/v1/admin/messaging/vendors", headers=headers)
+        ).status_code == 403
+        assert (
+            await client.put(
+                "/api/v1/admin/messaging/vendors/1/channels",
+                headers=headers,
+                json={"channels": []},
+            )
+        ).status_code == 403
+        assert (
+            await client.patch(
+                "/api/v1/admin/messaging/vendors/1/enabled",
+                headers=headers,
+                json={"enabled": False},
+            )
+        ).status_code == 403
+        assert (
+            await client.post(
+                "/api/v1/admin/messaging/vendors/1/test-send",
+                headers=headers,
+                json={"chat_id": "@x"},
+            )
+        ).status_code == 403
+
+    async def test_replace_channels_and_toggle_enabled(
+        self, client: AsyncClient, admin_token: dict, session
+    ) -> None:
+        vendor = await self._make_vendor(session, admin_token, "سالن کانالدار")
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+
+        resp = await client.put(
+            f"/api/v1/admin/messaging/vendors/{vendor.id}/channels",
+            headers=headers,
+            json={"channels": [{"chat_id": "@chan-a"}, {"chat_id": "@chan-b", "is_active": False}]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert [(c["chat_id"], c["is_active"]) for c in data["channels"]] == [
+            ("@chan-a", True),
+            ("@chan-b", False),
+        ]
+
+        # Replace again: one kept, one removed, one new — ids stay stable per chat.
+        resp = await client.put(
+            f"/api/v1/admin/messaging/vendors/{vendor.id}/channels",
+            headers=headers,
+            json={"channels": [{"chat_id": "@chan-a"}, {"chat_id": "@chan-c"}]},
+        )
+        assert resp.status_code == 200
+        chats = {c["chat_id"]: c["id"] for c in resp.json()["channels"]}
+        assert set(chats) == {"@chan-a", "@chan-c"}
+
+        resp = await client.patch(
+            f"/api/v1/admin/messaging/vendors/{vendor.id}/enabled",
+            headers=headers,
+            json={"enabled": False},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["eitaa_enabled"] is False
+
+        resp = await client.get("/api/v1/admin/messaging/vendors", headers=headers)
+        entry = next(v for v in resp.json()["vendors"] if v["id"] == vendor.id)
+        assert entry["eitaa_enabled"] is False
+        assert {c["chat_id"] for c in entry["channels"]} == {"@chan-a", "@chan-c"}
+
+    async def test_replace_channels_rejects_duplicates(
+        self, client: AsyncClient, admin_token: dict, session
+    ) -> None:
+        vendor = await self._make_vendor(session, admin_token, "سالن تکراری")
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        resp = await client.put(
+            f"/api/v1/admin/messaging/vendors/{vendor.id}/channels",
+            headers=headers,
+            json={"channels": [{"chat_id": "@dup"}, {"chat_id": "@dup"}]},
+        )
+        assert resp.status_code == 422
+
+    async def test_channels_for_missing_vendor_404(
+        self, client: AsyncClient, admin_token: dict
+    ) -> None:
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        resp = await client.put(
+            "/api/v1/admin/messaging/vendors/999999/channels",
+            headers=headers,
+            json={"channels": []},
+        )
+        assert resp.status_code == 404
+
+    async def test_test_send_requires_bot_token(
+        self, client: AsyncClient, admin_token: dict, session
+    ) -> None:
+        vendor = await self._make_vendor(session, admin_token, "سالن تست ارسال")
+        headers = {"Authorization": f"Bearer {admin_token['access_token']}"}
+        # conftest keeps the Eitaa bot token empty → 409, no outbound call.
+        resp = await client.post(
+            f"/api/v1/admin/messaging/vendors/{vendor.id}/test-send",
+            headers=headers,
+            json={"chat_id": "@test-chan"},
+        )
+        assert resp.status_code == 409

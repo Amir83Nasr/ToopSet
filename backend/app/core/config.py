@@ -80,8 +80,9 @@ class Settings(BaseSettings):
     sms_template_id: int = 0
     sms_booking_template_id: int = 625366
 
-    # Eitaa channel — daily empty-slots digest posted to the channel at 07:00 Iran time.
-    # Enabled only when both the bot token and the channel id are set.
+    # Eitaa channel — daily empty-slots digest posted at 07:00 Iran time.
+    # The bot token enables the integration; vendors post to their own
+    # ``vendor_channels`` (see admin panel) with this as the shared fallback.
     eitaa_api_base_url: str = "https://api.uniom.ir"
     eitaa_bot_token: SecretStr = SecretStr("")
     eitaa_channel_id: str = ""
@@ -116,9 +117,14 @@ class Settings(BaseSettings):
         )
 
     @property
+    def eitaa_bot_configured(self) -> bool:
+        """True when the Eitaa bot token is present (enables all channel messaging)."""
+        return bool(self.eitaa_bot_token.get_secret_value())
+
+    @property
     def eitaa_configured(self) -> bool:
-        """True when both Eitaa credentials are present (enables the daily channel digest)."""
-        return bool(self.eitaa_bot_token.get_secret_value() and self.eitaa_channel_id)
+        """True when both Eitaa credentials are present (bot token + fallback channel)."""
+        return self.eitaa_bot_configured and bool(self.eitaa_channel_id)
 
     @property
     def frontend_base_url(self) -> str:
@@ -337,11 +343,10 @@ def validate_env(settings: Settings | None = None) -> None:
             )
 
     # ── EITAA channel (optional) ────────────────────────────────────────
-    if bool(settings.eitaa_bot_token.get_secret_value()) != bool(settings.eitaa_channel_id):
-        errors.append(
-            "EITAA_BOT_TOKEN and EITAA_CHANNEL_ID must be set together "
-            "for the daily Eitaa empty-slots digest."
-        )
+    # The channel id is optional now that vendors carry their own channel list;
+    # a channel id without a bot token, however, can never deliver messages.
+    if settings.eitaa_channel_id and not settings.eitaa_bot_token.get_secret_value():
+        errors.append("EITAA_CHANNEL_ID requires EITAA_BOT_TOKEN to be set as well.")
 
     if is_production:
         if settings.cors_origins == "*":

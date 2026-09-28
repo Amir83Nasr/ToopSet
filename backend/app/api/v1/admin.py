@@ -1467,3 +1467,196 @@ async def admin_revoke_user_sessions(
     count = await service.admin_revoke_user_sessions(db, _admin, user_id)
     await db.commit()
     return {"revoked_sessions": count}
+
+
+# ── Eitaa slot-digest channel management ─────────────────────────────
+
+
+class VendorChannelItem(BaseModel):
+    chat_id: str
+    is_active: bool = True
+
+
+class VendorChannelsUpdateRequest(BaseModel):
+    channels: list[VendorChannelItem]
+
+
+class VendorMessagingStatusRequest(BaseModel):
+    enabled: bool
+
+
+@router.get("/messaging/vendors", summary="List vendors with their Eitaa digest channels")
+async def list_vendor_messaging(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    search: str = Query("", max_length=128),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Paginated vendors with their messaging switch and digest channel list."""
+    from sqlalchemy import func, or_
+    from sqlalchemy.orm import selectinload
+
+    base_q = select(Vendor)
+    count_q = select(func.count(Vendor.id))
+    if search.strip():
+        pattern = f"%{search.strip()}%"
+        cond = or_(Vendor.name.ilike(pattern), Vendor.address.ilike(pattern))
+        base_q = base_q.where(cond)
+        count_q = count_q.where(cond)
+
+    total = (await db.execute(count_q)).scalar_one()
+    vendors = (
+        (
+            await db.execute(
+                base_q.options(selectinload(Vendor.channels))
+                .order_by(Vendor.id)
+                .offset(skip)
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    return {
+        "vendors": [
+            {
+                "id": vendor.id,
+                "name": vendor.name,
+                "sport_types": vendor.sport_types or [],
+                "is_active": vendor.is_active,
+                "eitaa_enabled": vendor.eitaa_enabled,
+                "channels": [
+                    {"id": channel.id, "chat_id": channel.chat_id, "is_active": channel.is_active}
+                    for channel in vendor.channels
+                ],
+            }
+            for vendor in vendors
+        ],
+        "total": total,
+    }
+
+
+@router.put(
+    "/messaging/vendors/{vendor_id}/channels",
+    summary="Replace a vendor's Eitaa digest channels",
+)
+async def update_vendor_channels(
+    vendor_id: int,
+    payload: VendorChannelsUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    """Replace the vendor's channel list; chat ids must be unique and non-empty."""
+    from app.repositories.vendor_channel_repo import VendorChannelRepo
+
+    vendor = await db.get(Vendor, vendor_id)
+    if vendor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+
+    seen: set[str] = set()
+    for item in payload.channels:
+        chat_id = item.chat_id.strip()
+        if not chat_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="آدرس کانال نمی‌تواند خالی باشد",
+            )
+        if chat_id in seen:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"آدرس کانال تکراری است: {chat_id}",
+            )
+        seen.add(chat_id)
+
+    channels = await VendorChannelRepo(db).replace_vendor_channels(
+        vendor, [{"chat_id": i.chat_id.strip(), "is_active": i.is_active} for i in payload.channels]
+    )
+    await log_action(
+        db,
+        _admin.id,
+        "vendor_channels_updated",
+        f"به‌روزرسانی کانال‌های پیام‌رسان | مجموعه (id={vendor_id}) کانال‌ها="
+        + ", ".join(row.chat_id for row in channels),
+    )
+    await db.commit()
+    return {
+        "vendor_id": vendor_id,
+        "eitaa_enabled": vendor.eitaa_enabled,
+        "channels": [
+            {"id": row.id, "chat_id": row.chat_id, "is_active": row.is_active} for row in channels
+        ],
+    }
+
+
+@router.patch(
+    "/messaging/vendors/{vendor_id}/enabled",
+    summary="Enable/disable a vendor's Eitaa slot digest",
+)
+async def update_vendor_messaging_status(
+    vendor_id: int,
+    payload: VendorMessagingStatusRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    """Turn the vendor's slot digest on/off — off stops both daily posts and edits."""
+    vendor = await db.get(Vendor, vendor_id)
+    if vendor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+
+    vendor.eitaa_enabled = payload.enabled
+    await log_action(
+        db,
+        _admin.id,
+        "vendor_messaging_toggled",
+        f"تغییر وضعیت پیام‌رسان مجموعه | مجموعه (id={vendor_id}) فعال={payload.enabled}",
+    )
+    await db.commit()
+    return {"vendor_id": vendor_id, "eitaa_enabled": vendor.eitaa_enabled}
+
+
+@router.post(
+    "/messaging/vendors/{vendor_id}/test-send",
+    summary="Send the vendor's current digest to a test channel",
+)
+async def test_send_vendor_digest(
+    vendor_id: int,
+    payload: VendorChannelItem,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    """One-off: post the vendor's current digest to the given channel for verification."""
+    from app.services.eitaa_service import send_vendor_test_message
+
+    if not settings.eitaa_bot_configured:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="توکن ربات ایتا تنظیم نشده است",
+        )
+    chat_id = payload.chat_id.strip()
+    if not chat_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="آدرس کانال تستی نمی‌تواند خالی باشد",
+        )
+
+    vendor = await db.get(Vendor, vendor_id)
+    if vendor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مجموعه یافت نشد")
+
+    try:
+        result = await send_vendor_test_message(db, vendor, chat_id=chat_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="ارسال پیام تستی به کانال ناموفق بود",
+        ) from exc
+    await log_action(
+        db,
+        _admin.id,
+        "vendor_messaging_test_sent",
+        f"ارسال پیام تستی | مجموعه (id={vendor_id}) کانال={chat_id}",
+    )
+    await db.commit()
+    return {"vendor_id": vendor_id, "chat_id": chat_id, "message_id": result.message_id}
