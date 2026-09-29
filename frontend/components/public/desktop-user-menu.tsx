@@ -2,20 +2,8 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { ChevronDown, LayoutDashboard, LogOut } from "lucide-react"
-import {
-  Building2,
-  CreditCard,
-  Users,
-  Settings,
-  Bell,
-  BarChart3,
-  History,
-  MessageSquare,
-  UserCircle,
-  Calendar,
-  ClipboardCheck,
-} from "lucide-react"
+import { ChevronDown, LogOut } from "lucide-react"
+import { Building2 } from "lucide-react"
 import type { User } from "@/types/auth"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,8 +17,9 @@ import {
 import { LogoutDialog } from "@/components/public/logout-dialog"
 import { RegisterComplexDialog } from "@/components/public/register-complex-dialog"
 import { buildAvatarUrl } from "@/lib/api"
+import { navGroups } from "@/lib/navigation"
 import { getInitials, toPersianDigits } from "@/lib/utils"
-import { useState } from "react"
+import { useState, Fragment } from "react"
 
 interface DesktopUserMenuProps {
   user: User | null
@@ -125,151 +114,26 @@ export function DesktopUserMenu({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <MenuLinkItem
-              href={
-                user.role === "admin"
-                  ? "/dashboard/admin"
-                  : user.role === "manager"
-                    ? "/dashboard/manager"
-                    : "/dashboard/user"
-              }
-            >
-              <LayoutDashboard className="me-2 size-4" />
-              داشبورد
-            </MenuLinkItem>
 
-            {/* ── Admin panel items ── */}
-            {user.role === "admin" && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>داشبورد</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/reports">
-                  <BarChart3 className="me-2 size-4" />
-                  گزارشات
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/admin/settings">
-                  <Settings className="me-2 size-4" />
-                  تنظیمات
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/admin/logs">
-                  <History className="me-2 size-4" />
-                  لاگ‌ها
-                </MenuLinkItem>
+            {/* ── Role-filtered groups — same source of truth as the sidebar ── */}
+            {navGroups
+              .filter((g) => g.roles.includes(user.role) && g.items.length > 0)
+              .map((group) => (
+                <Fragment key={group.label + user.role}>
+                  <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                  {group.items.map((item) => (
+                    <MenuLinkItem key={item.url} href={item.url}>
+                      <item.icon className="me-2 size-4" />
+                      {item.title}
+                    </MenuLinkItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                </Fragment>
+              ))}
 
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>شخصی</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/settings">
-                  <UserCircle className="me-2 size-4" />
-                  پروفایل
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/bookings">
-                  <Calendar className="me-2 size-4" />
-                  رزروهای من
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/payments">
-                  <CreditCard className="me-2 size-4" />
-                  پرداخت‌ها
-                </MenuLinkItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>مدیریت</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/vendors">
-                  <Building2 className="me-2 size-4" />
-                  مجموعه‌ها
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/admin/bookings">
-                  <Calendar className="me-2 size-4" />
-                  رزروها
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/users">
-                  <Users className="me-2 size-4" />
-                  کاربران
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/admin/manager-requests">
-                  <ClipboardCheck className="me-2 size-4" />
-                  درخواست‌های مدیریت مجموعه
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/admin/payments">
-                  <CreditCard className="me-2 size-4" />
-                  پرداخت‌ها
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/contact">
-                  <MessageSquare className="me-2 size-4" />
-                  پیام‌ها
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/notifications">
-                  <Bell className="me-2 size-4" />
-                  اعلان‌ها
-                </MenuLinkItem>
-              </>
-            )}
-
-            {/* ── Manager panel items ── */}
-            {user.role === "manager" && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>مدیریت مجموعه</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/vendors">
-                  <Building2 className="me-2 size-4" />
-                  مجموعه‌ها
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/manager/schedule">
-                  <Calendar className="me-2 size-4" />
-                  زمان‌بندی
-                </MenuLinkItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>شخصی</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/settings">
-                  <UserCircle className="me-2 size-4" />
-                  پروفایل
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/bookings">
-                  <Calendar className="me-2 size-4" />
-                  رزروهای من
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/payments">
-                  <CreditCard className="me-2 size-4" />
-                  پرداخت‌ها
-                </MenuLinkItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>سیستم</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/notifications">
-                  <Bell className="me-2 size-4" />
-                  اعلان‌ها
-                </MenuLinkItem>
-              </>
-            )}
-
-            {/* ── User panel items ── */}
+            {/* ── Manager access request — regular users only ── */}
             {user.role === "user" && (
               <>
-                <DropdownMenuSeparator />
-                <MenuLinkItem href="/dashboard/settings">
-                  <UserCircle className="me-2 size-4" />
-                  پروفایل
-                </MenuLinkItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>رزروها</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/bookings">
-                  <Calendar className="me-2 size-4" />
-                  رزروهای من
-                </MenuLinkItem>
-                <MenuLinkItem href="/dashboard/payments">
-                  <CreditCard className="me-2 size-4" />
-                  پرداخت‌ها
-                </MenuLinkItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>سیستم</DropdownMenuLabel>
-                <MenuLinkItem href="/dashboard/notifications">
-                  <Bell className="me-2 size-4" />
-                  اعلان‌ها
-                </MenuLinkItem>
-
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => setRegisterComplexDialogOpen(true)}
                   className="cursor-pointer text-blue-600 focus:bg-blue-50 focus:text-blue-700 dark:text-blue-400 dark:focus:bg-blue-950/40 dark:focus:text-blue-300"
@@ -277,10 +141,10 @@ export function DesktopUserMenu({
                   <Building2 className="me-2 size-4" />
                   ثبت مجموعه ورزشی
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
               </>
             )}
 
-            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => setLogoutDialogOpen(true)}
               className="cursor-pointer"

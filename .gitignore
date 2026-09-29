@@ -87,10 +87,11 @@ next-env.d.ts
 frontend/public/sw.js
 frontend/public/sw.js.map
 frontend/public/swe-worker-*.js
+# MapLibre workers copied from node_modules by scripts/copy-maplibre-workers.mjs
+frontend/public/maplibre/
 
 # ── AI ─────────────────────────────────────────────────────
 *-workspace/
-.claude/
 
 # ── Docs ───────────────────────────────────────────────────
 docs/diagrams/

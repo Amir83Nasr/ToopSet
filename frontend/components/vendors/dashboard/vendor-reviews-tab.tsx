@@ -142,15 +142,9 @@ export function VendorReviewsTab({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          {toPersianDigits(total)} نظر برای این مجموعه ثبت شده است.
-        </p>
-        <Button variant="outline" size="sm" onClick={fetchReviews}>
-          <RefreshCw className="me-1 size-4" />
-          به‌روزرسانی
-        </Button>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {toPersianDigits(total)} نظر برای این مجموعه ثبت شده است.
+      </p>
 
       {reviews.map((review) => (
         <div key={review.id} className="rounded-xl border bg-card p-4">

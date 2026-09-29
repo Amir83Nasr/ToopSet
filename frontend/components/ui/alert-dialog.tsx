@@ -12,6 +12,7 @@ function AlertDialog({
   defaultOpen = false,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
+  // Same html-lock rationale as Dialog above.
   const isOpen = open ?? defaultOpen
   useScrollLock(isOpen)
 

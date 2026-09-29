@@ -60,18 +60,7 @@ export default function MyReviewsPage() {
             نظراتی که پس از سانس‌های گذشته‌تان ثبت کرده‌اید
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <MobileBackButton />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchReviews}
-            disabled={loading}
-          >
-            <RefreshCw className="me-1 size-4" />
-            به‌روزرسانی
-          </Button>
-        </div>
+        <MobileBackButton />
       </div>
 
       {loading ? (

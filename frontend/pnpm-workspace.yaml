@@ -3,3 +3,5 @@ allowBuilds:
   lefthook: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@amir83nasr/map@1.1.0'

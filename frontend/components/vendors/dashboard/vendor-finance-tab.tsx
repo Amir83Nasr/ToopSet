@@ -41,7 +41,6 @@ import {
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog"
 import {
-  RefreshCw,
   Loader2,
   Wallet,
   Receipt,
@@ -80,7 +79,6 @@ interface VendorFinanceTabProps {
   financeLoading: boolean
   settlementRequesting: boolean
   settlements: VendorSettlement[]
-  onRefresh: () => void
   onRequestSettlement: () => void
 }
 
@@ -91,7 +89,6 @@ export function VendorFinanceTab({
   financeLoading,
   settlementRequesting,
   settlements,
-  onRefresh,
   onRequestSettlement,
 }: VendorFinanceTabProps) {
   const [selectedSettlement, setSelectedSettlement] =
@@ -130,15 +127,6 @@ export function VendorFinanceTab({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={financeLoading || bookingsLoading}
-          >
-            <RefreshCw className="me-1.5 size-4" />
-            بروزرسانی
-          </Button>
           <Button
             size="sm"
             onClick={onRequestSettlement}

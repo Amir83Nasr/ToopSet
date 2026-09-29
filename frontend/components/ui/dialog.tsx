@@ -14,6 +14,9 @@ function Dialog({
   defaultOpen = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  // html is the scroll container here, not body: Radix RemoveScroll only
+  // locks body, so lock html too (overflow-only, no padding — gutter is
+  // stable so nothing shifts) to block scrollbar-drag/keyboard chaining.
   const isOpen = open ?? defaultOpen
   useScrollLock(isOpen)
 

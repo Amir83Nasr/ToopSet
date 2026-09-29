@@ -255,6 +255,14 @@
   }
 }
 
+/* ── Map search fullscreen: hide chrome ── */
+
+body:has([data-map-search-open]) header,
+body:has([data-map-search-open]) [data-bottom-nav],
+body:has([data-map-search-open]) [data-bottom-nav-spacer] {
+  display: none;
+}
+
 /* ── Mobile touch target minimum ── */
 
 /* Native <button>/[role=button] already inflate to 44px via the rules below.
@@ -267,14 +275,18 @@
    The .h-10/.h-11/.min-h-11/.size-10/.size-11 exclusions skip elements that are
    already ≥40px so we never shrink an intentionally larger control. */
 @media (max-width: 767px) {
-  button:not([data-slot="checkbox"]):not(.size-11):not(.h-11):not(
-      .min-h-11
-    ):not(.size-10):not(.h-10),
+  button:not([data-slot="checkbox"]):not([data-slot="switch"]):not(
+      .size-11
+    ):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10):not(.qp-venue):not(
+      .map-x-btn
+    ):not(.qp-ov-close):not(.qp-clear):not(.qp-x),
   a[data-slot="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(
       .size-10
     ):not(.h-10),
   [role="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(
       .h-10
+    ):not(.qp-venue):not(.map-x-btn):not(.qp-ov-close):not(.qp-clear):not(
+      .qp-x
     ) {
     min-height: 44px;
   }
@@ -286,18 +298,33 @@
   }
 }
 
+/* The rule above must not stretch the Switch to 44px (breaks its design);
+   instead expand its hit area invisibly to keep the tap target ≥44px. */
+[data-slot="switch"] {
+  position: relative;
+}
+[data-slot="switch"]::after {
+  content: "";
+  position: absolute;
+  inset: -13px -8px;
+}
+
 /* Tablets (768–1023px) are touch devices too, but the max-width rule above
    stops at 767px. Cover the gap for coarse pointers so tap targets stay ≥44px
    on tablets without forcing larger controls on desktop (fine) pointers. */
 @media (min-width: 768px) and (max-width: 1023px) and (pointer: coarse) {
-  button:not([data-slot="checkbox"]):not(.size-11):not(.h-11):not(
-      .min-h-11
-    ):not(.size-10):not(.h-10),
+  button:not([data-slot="checkbox"]):not([data-slot="switch"]):not(
+      .size-11
+    ):not(.h-11):not(.min-h-11):not(.size-10):not(.h-10):not(.qp-venue):not(
+      .map-x-btn
+    ):not(.qp-ov-close):not(.qp-clear):not(.qp-x),
   a[data-slot="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(
       .size-10
     ):not(.h-10),
   [role="button"]:not(.size-11):not(.h-11):not(.min-h-11):not(.size-10):not(
       .h-10
+    ):not(.qp-venue):not(.map-x-btn):not(.qp-ov-close):not(.qp-clear):not(
+      .qp-x
     ) {
     min-height: 44px;
   }
@@ -335,6 +362,14 @@
 .px-safe {
   padding-left: max(env(safe-area-inset-left), 1rem);
   padding-right: max(env(safe-area-inset-right), 1rem);
+}
+
+/* ── Map search fullscreen ── */
+/* Hide site chrome while the map search dialog is open (portal'd to body). */
+body:has([data-map-search-open]) [data-bottom-nav],
+body:has([data-map-search-open]) [data-bottom-nav-spacer],
+body:has([data-map-search-open]) > #toopset-root > header {
+  display: none;
 }
 
 /* ── Offline shell (app/offline) ── */
@@ -492,7 +527,16 @@ body {
   background-color: var(--color-background);
 }
 
-/* Scroll-lock shift fix. Our scroll container is html, but react-remove-scroll-bar (used
+/* Scroll-lock shift fix (CDP-verified on the real page): `overflow-y: scroll`
+   on html only forces the track visible — it does NOT reserve the gutter, so
+   locking html with overflow:hidden drops it (gap 6 -> 0) and shifts content.
+   useScrollLock therefore re-reserves the gap with padding on the scrollbar
+   side (inline-start in RTL, inline-end in LTR). Radix RemoveScroll still
+   locks body and writes its own margin/padding compensation; neutralize all
+   physical + logical variants below so only the html compensation applies.
+   (RTL computes its gap into margin-left via getComputedStyle, and logical
+   margin-inline-start maps to the same physical side.)
+   Legacy note: react-remove-scroll-bar (used
    by Radix Dialog/Sheet) targets body: it sets overflow:hidden + a margin-right: <gap>px
    compensation. With scrollbar-gutter: stable on html the gutter is permanently reserved,
    so that compensation is wrong here — and worse, toggling overflow on html itself (old
@@ -502,7 +546,12 @@ body {
    preventDefault, so body's own overflow:hidden is harmless — body is not the scroll
    container and its overflow doesn't touch html's gutter. */
 html body[data-scroll-locked] {
-  margin-inline: 0 !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  margin-inline-start: 0 !important;
+  margin-inline-end: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
 }
 
 /* ── Leaflet popup theming ── */
@@ -534,6 +583,26 @@ html body[data-scroll-locked] {
 .leaflet-popup.theme-popup .leaflet-popup-close-button {
   top: 8px;
   right: 12px;
+}
+
+/* ── @amir83nasr/map theming ── */
+/* No theme prop — brand tokens mapped onto the package CSS vars. */
+.qp {
+  --qp-brand: var(--primary);
+  --qp-brand-dark: color-mix(in oklab, var(--primary) 78%, black);
+  --qp-bg: var(--background);
+  --qp-card: var(--card);
+  --qp-ink: var(--foreground);
+  --qp-muted: var(--muted-foreground);
+  --qp-line: var(--border);
+  --qp-radius: var(--radius-xl);
+  --qp-font: "IranYekanX", sans-serif;
+}
+
+/* ── @amir83nasr/map: hide numeric coords from users ── */
+/* Address stays visible; lat/lng flow silently into the form. */
+.qp .qp-coords {
+  display: none;
 }
 
 /* ── Remove Card ring when it wraps a Table ── */

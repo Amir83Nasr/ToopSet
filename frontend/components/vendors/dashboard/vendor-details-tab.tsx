@@ -15,11 +15,14 @@ import { toPersianDigits } from "@/lib/utils"
 import { AmenityCheckboxes } from "@/components/vendors/amenity-checkboxes"
 import { ImageUpload } from "@/components/vendors/image-upload"
 import dynamic from "next/dynamic"
+import { useState } from "react"
+import { MapPin } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-const LocationPicker = dynamic(
+const LocationPickerDialog = dynamic(
   () =>
-    import("@/components/vendors/location-picker").then((m) => ({
-      default: m.LocationPicker,
+    import("@/components/vendors/location-picker-dialog").then((m) => ({
+      default: m.LocationPickerDialog,
     })),
   { ssr: false }
 )
@@ -65,6 +68,9 @@ export function VendorDetailsTab({
     formState: { errors },
   } = form
   const ballAvailable = form.watch("ball_available") === true
+  const [mapOpen, setMapOpen] = useState(false)
+  const hasCoords = latitudeWatch != null && longitudeWatch != null
+  const addressValue = form.watch("address")
 
   function toggleSportType(value: string) {
     const next = watchSportTypes.includes(value)
@@ -318,10 +324,28 @@ export function VendorDetailsTab({
             )}
           </div>
           <div className="space-y-2">
-            <LocationPicker
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMapOpen(true)}
+              className="w-full gap-2"
+            >
+              <MapPin className="size-4" />
+              انتخاب موقعیت روی نقشه
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {hasCoords && addressValue
+                ? "موقعیت ثبت شده: " + addressValue
+                : hasCoords
+                  ? "موقعیت روی نقشه ثبت شده است."
+                  : "هنوز موقعیتی ثبت نشده است."}
+            </p>
+            <LocationPickerDialog
+              open={mapOpen}
+              onOpenChange={setMapOpen}
               latitude={latitudeWatch ?? null}
               longitude={longitudeWatch ?? null}
-              onLocationChange={(lat, lng, address) => {
+              onConfirm={(lat, lng, address) => {
                 setValue("latitude", lat, {
                   shouldValidate: true,
                   shouldDirty: true,
@@ -337,9 +361,6 @@ export function VendorDetailsTab({
                   })
               }}
             />
-            <p className="text-xs text-muted-foreground">
-              برای تغییر، روی نقشه کلیک کنید یا نشانگر را بکشید.
-            </p>
             {(errors.latitude?.message || errors.longitude?.message) && (
               <p className="text-xs text-destructive">
                 {String(errors.latitude?.message || errors.longitude?.message)}

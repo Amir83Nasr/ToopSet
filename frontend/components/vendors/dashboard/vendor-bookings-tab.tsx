@@ -35,13 +35,7 @@ import {
   ResponsiveDialogDescription,
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog"
-import {
-  ChevronRight,
-  ChevronLeft,
-  RefreshCw,
-  Loader2,
-  CalendarDays,
-} from "lucide-react"
+import { ChevronRight, ChevronLeft, Loader2, CalendarDays } from "lucide-react"
 
 interface VendorBookingsTabProps {
   vendorId: number
@@ -221,14 +215,6 @@ export function VendorBookingsTab({
         <div className="text-center text-sm font-medium sm:text-start">
           {weekLabel}
         </div>
-        <Button
-          className="w-full sm:w-auto"
-          variant="outline"
-          onClick={onRefresh}
-        >
-          <RefreshCw className="me-1.5 size-4" />
-          بروزرسانی
-        </Button>
       </div>
 
       {/* Booking calendar */}

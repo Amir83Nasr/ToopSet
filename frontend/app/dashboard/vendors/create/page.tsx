@@ -232,7 +232,8 @@ export default function CreateVendorPage() {
             <div className="space-y-1.5">
               <Label>موقعیت روی نقشه</Label>
               <p className="text-xs text-muted-foreground">
-                روی نقشه کلیک کنید یا نشانگر را بکشید
+                آدرس را جستجو کنید یا نقطه را روی نقشه جابه‌جا کنید، بعد «تایید
+                موقعیت» را بزنید
               </p>
               <LocationPicker
                 latitude={latitudeWatch ?? null}

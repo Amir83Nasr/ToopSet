@@ -368,7 +368,6 @@ export default function DashboardVendorEditPage() {
                 financeLoading={financeLoading}
                 settlementRequesting={settlementRequesting}
                 settlements={settlements}
-                onRefresh={fetchFinance}
                 onRequestSettlement={handleRequestSettlement}
               />
             </TabsContent>

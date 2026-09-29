@@ -26,6 +26,7 @@ const NOTIFICATION_TYPES: Record<string, NotificationTypeMeta> = {
   // ── رزروها ──
   booking_confirmed: { label: "تایید رزرو", color: "success", group: "رزروها" },
   booking_cancelled: { label: "لغو رزرو", color: "error", group: "رزروها" },
+  booking_expired: { label: "انقضای رزرو", color: "neutral", group: "رزروها" },
   booking_pending_replacement: {
     label: "در انتظار جایگزین",
     color: "info",

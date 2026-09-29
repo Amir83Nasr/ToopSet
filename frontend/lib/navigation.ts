@@ -8,13 +8,13 @@ import {
   BarChart3,
   History,
   MessageSquare,
+  MessageSquareText,
   UserCircle,
   LayoutDashboard,
   Calendar,
   Undo2,
   ClipboardCheck,
   Star,
-  Radio,
 } from "lucide-react"
 
 export interface NavItem {
@@ -141,7 +141,7 @@ export const navGroups: NavGroup[] = [
       {
         title: "پیام‌رسان سانس‌ها",
         url: "/dashboard/admin/messaging",
-        icon: Radio,
+        icon: MessageSquareText,
       },
       { title: "اعلان‌ها", url: "/dashboard/notifications", icon: Bell },
     ],
@@ -151,7 +151,14 @@ export const navGroups: NavGroup[] = [
   {
     label: "مدیریت مجموعه",
     roles: ["manager"],
-    items: [{ title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 }],
+    items: [
+      { title: "مجموعه‌ها", url: "/dashboard/vendors", icon: Building2 },
+      {
+        title: "زمان‌بندی",
+        url: "/dashboard/manager/schedule",
+        icon: Calendar,
+      },
+    ],
   },
 
   // ── Personal (manager) ──

@@ -11,7 +11,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Card, CardContent } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -32,8 +31,9 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { TablePagination } from "@/components/ui/pagination"
+import { EitaaIcon } from "@/components/ui/messenger-icons"
+import { sportLabels } from "@/components/vendors/vendor-shared"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/lib/toast"
 import {
@@ -48,7 +48,7 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Radio,
+  MessageSquareText,
 } from "lucide-react"
 
 interface VendorChannel {
@@ -69,14 +69,6 @@ interface MessagingVendor {
 interface ChannelDraft {
   chat_id: string
   is_active: boolean
-}
-
-const SPORT_LABELS: Record<string, string> = {
-  volleyball: "والیبال",
-  basketball: "بسکتبال",
-  futsal: "فوتسال",
-  handball: "هندبال",
-  football: "فوتبال",
 }
 
 export default function AdminMessagingPage() {
@@ -244,7 +236,7 @@ export default function AdminMessagingPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">
+          <h1 className="text-2xl font-bold tracking-tight">
             پیام‌رسان سانس‌ها
           </h1>
           <p className="text-muted-foreground">
@@ -263,180 +255,335 @@ export default function AdminMessagingPage() {
       </DataTableToolbar>
 
       {loading ? (
-        <div className="min-h-0 flex-1 space-y-3">
-          <Skeleton className="h-5 w-32" />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
+        <div className="space-y-6">
+          {/* Mobile/Tablet Card Skeleton */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:hidden">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3 border-b bg-muted/30 pb-3">
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3.5 w-24" />
+                    </div>
+                    <Skeleton className="h-5 w-10 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table Skeleton */}
+          <div className="hidden lg:block">
+            <Table className="min-w-225 table-fixed">
+              <colgroup>
+                <col className="w-56" />
+                <col className="w-44" />
+                <col className="w-32" />
+                <col className="w-72" />
+                <col className="w-44" />
+              </colgroup>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>نام مجموعه</TableHead>
+                  <TableHead>ورزش‌ها</TableHead>
+                  <TableHead className="text-center">پیام‌رسان</TableHead>
+                  <TableHead>کانال‌ها</TableHead>
+                  <TableHead className="text-center">عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <TableCell key={j} className={j > 0 ? "text-center" : ""}>
+                        <Skeleton
+                          className={j > 0 ? "mx-auto h-4 w-20" : "h-4 w-20"}
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : vendors.length === 0 ? (
-        <Card className="min-h-0 flex-1">
-          <CardContent className="flex h-full flex-col items-center justify-center py-16">
-            <Radio className="mb-4 size-12 text-muted-foreground" />
-            <p className="text-lg text-muted-foreground">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 rounded-full bg-muted p-4">
+              <EitaaIcon className="size-8 text-muted-foreground" />
+            </div>
+            <p className="font-medium">
               {debouncedSearch
                 ? "مجموعه‌ای یافت نشد"
                 : "هیچ مجموعه‌ای ثبت نشده است"}
             </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {debouncedSearch
+                ? "عبارت دیگری را جستجو کنید"
+                : "پس از ثبت مجموعه، کانال‌های پیام‌رسان آن اینجا مدیریت می‌شوند."}
+            </p>
           </CardContent>
         </Card>
       ) : (
-        <ScrollReveal>
-          <div className="flex min-h-0 flex-1 flex-col gap-6">
-            <div className="flex min-h-0 flex-1 flex-col">
-              <div className="max-h-full min-h-0 overflow-auto rounded-xl border bg-card">
-                <Table
-                  className="min-w-225 table-fixed"
-                  tableWrapperClassName="overflow-visible rounded-none border-0"
-                >
-                  <colgroup>
-                    <col className="w-56" />
-                    <col className="w-44" />
-                    <col className="w-32" />
-                    <col className="w-72" />
-                    <col className="w-44" />
-                  </colgroup>
-                  <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow>
-                      <TableHead>نام مجموعه</TableHead>
-                      <TableHead>ورزش‌ها</TableHead>
-                      <TableHead className="text-center">پیام‌رسان</TableHead>
-                      <TableHead>کانال‌ها</TableHead>
-                      <TableHead className="text-center">عملیات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {vendors.map((vendor) => (
-                      <TableRow key={vendor.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="size-4 shrink-0 text-muted-foreground" />
-                            <span className="truncate">{vendor.name}</span>
-                          </div>
-                          {!vendor.is_active && (
-                            <Badge variant="outline" className="mt-1 text-xs">
-                              مجموعه غیرفعال
+        <div className="space-y-6">
+          {/* Mobile & Tablet: Cards layout */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:hidden">
+            {vendors.map((vendor) => (
+              <div
+                key={vendor.id}
+                className="flex flex-col justify-between overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:shadow-md"
+              >
+                <div>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 border-b bg-muted/30 p-4">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 shrink-0 text-primary" />
+                        <h3
+                          className="truncate text-base font-semibold text-foreground"
+                          title={vendor.name}
+                        >
+                          {vendor.name}
+                        </h3>
+                      </div>
+                      {!vendor.is_active && (
+                        <Badge variant="outline" className="text-xs">
+                          مجموعه غیرفعال
+                        </Badge>
+                      )}
+                    </div>
+                    <Switch
+                      checked={vendor.eitaa_enabled}
+                      disabled={toggleLoading === vendor.id}
+                      onCheckedChange={() => handleToggleEnabled(vendor)}
+                      aria-label="وضعیت پیام‌رسان"
+                    />
+                  </div>
+
+                  {/* Body */}
+                  <div className="space-y-3.5 p-4 text-sm">
+                    <div className="flex flex-wrap gap-1">
+                      {vendor.sport_types.map((sport) => (
+                        <Badge
+                          key={sport}
+                          variant="secondary"
+                          className="bg-primary/10 text-primary"
+                        >
+                          {sportLabels[sport] ?? sport}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-2.5 text-xs">
+                      {vendor.channels.length === 0 ? (
+                        <span className="text-muted-foreground">
+                          بدون کانال اختصاصی
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {vendor.channels.slice(0, 2).map((channel) => (
+                            <Badge
+                              key={channel.id}
+                              variant={
+                                channel.is_active ? "default" : "outline"
+                              }
+                              className="max-w-40 truncate font-normal"
+                            >
+                              {channel.chat_id}
+                            </Badge>
+                          ))}
+                          {vendor.channels.length > 2 && (
+                            <Badge variant="secondary">
+                              +{toPersianDigits(vendor.channels.length - 2)}
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {vendor.sport_types.map((sport) => (
-                              <Badge
-                                key={sport}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {SPORT_LABELS[sport] ?? sport}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Switch
-                                  checked={vendor.eitaa_enabled}
-                                  disabled={toggleLoading === vendor.id}
-                                  onCheckedChange={() =>
-                                    handleToggleEnabled(vendor)
-                                  }
-                                />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                {vendor.eitaa_enabled
-                                  ? "ارسال پیام و بروزرسانی سانس‌ها فعال است"
-                                  : "ارسال پیام و بروزرسانی سانس‌ها غیرفعال است"}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>
-                          {vendor.channels.length === 0 ? (
-                            <span className="text-sm text-muted-foreground">
-                              بدون کانال اختصاصی
-                            </span>
-                          ) : (
-                            <div className="flex flex-wrap items-center gap-1">
-                              {vendor.channels.slice(0, 2).map((channel) => (
-                                <Badge
-                                  key={channel.id}
-                                  variant={
-                                    channel.is_active ? "default" : "outline"
-                                  }
-                                  className="max-w-40 truncate text-xs font-normal"
-                                >
-                                  {channel.chat_id}
-                                </Badge>
-                              ))}
-                              {vendor.channels.length > 2 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{toPersianDigits(vendor.channels.length - 2)}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                          <span className="mt-1 block text-xs text-muted-foreground">
-                            {toPersianDigits(activeChannelCount(vendor))} کانال
-                            فعال
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openChannelsDialog(vendor)}
-                                >
-                                  <Radio className="me-1 size-4" />
-                                  کانال‌ها
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>مدیریت کانال‌های این مجموعه</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setTestVendor(vendor)
-                                    setTestChatId("")
-                                  }}
-                                >
-                                  <SendHorizonalIcon className="me-1 size-4" />
-                                  ارسال تستی
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  ارسال پیام تستی سانس‌ها به یک کانال دلخواه
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        </div>
+                      )}
+                      <div className="mt-1.5 text-muted-foreground">
+                        {toPersianDigits(activeChannelCount(vendor))} کانال فعال
+                      </div>
+                    </div>
 
-              <TablePagination
-                page={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-              />
-            </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openChannelsDialog(vendor)}
+                      >
+                        <MessageSquareText className="me-1 size-4" />
+                        کانال‌ها
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setTestVendor(vendor)
+                          setTestChatId("")
+                        }}
+                      >
+                        <SendHorizonalIcon className="me-1 size-4" />
+                        ارسال تستی
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </ScrollReveal>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block">
+            <Table className="min-w-225 table-fixed">
+              <colgroup>
+                <col className="w-56" />
+                <col className="w-44" />
+                <col className="w-32" />
+                <col className="w-72" />
+                <col className="w-44" />
+              </colgroup>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>نام مجموعه</TableHead>
+                  <TableHead>ورزش‌ها</TableHead>
+                  <TableHead className="text-center">پیام‌رسان</TableHead>
+                  <TableHead>کانال‌ها</TableHead>
+                  <TableHead className="text-center">عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vendors.map((vendor) => (
+                  <TableRow key={vendor.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{vendor.name}</span>
+                      </div>
+                      {!vendor.is_active && (
+                        <Badge variant="outline" className="mt-1 text-xs">
+                          مجموعه غیرفعال
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {vendor.sport_types.map((sport) => (
+                          <Badge
+                            key={sport}
+                            variant="secondary"
+                            className="bg-primary/10 text-primary"
+                          >
+                            {sportLabels[sport] ?? sport}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Switch
+                              checked={vendor.eitaa_enabled}
+                              disabled={toggleLoading === vendor.id}
+                              onCheckedChange={() =>
+                                handleToggleEnabled(vendor)
+                              }
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {vendor.eitaa_enabled
+                              ? "ارسال پیام و بروزرسانی سانس‌ها فعال است"
+                              : "ارسال پیام و بروزرسانی سانس‌ها غیرفعال است"}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      {vendor.channels.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">
+                          بدون کانال اختصاصی
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {vendor.channels.slice(0, 2).map((channel) => (
+                            <Badge
+                              key={channel.id}
+                              variant={
+                                channel.is_active ? "default" : "outline"
+                              }
+                              className="max-w-40 truncate font-normal"
+                            >
+                              {channel.chat_id}
+                            </Badge>
+                          ))}
+                          {vendor.channels.length > 2 && (
+                            <Badge variant="secondary">
+                              +{toPersianDigits(vendor.channels.length - 2)}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {toPersianDigits(activeChannelCount(vendor))} کانال فعال
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openChannelsDialog(vendor)}
+                            >
+                              <MessageSquareText className="me-1 size-4" />
+                              کانال‌ها
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>مدیریت کانال‌های این مجموعه</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setTestVendor(vendor)
+                                setTestChatId("")
+                              }}
+                            >
+                              <SendHorizonalIcon className="me-1 size-4" />
+                              ارسال تستی
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>ارسال پیام تستی سانس‌ها به یک کانال دلخواه</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
       {/* ── Channels management dialog ── */}
@@ -445,8 +592,8 @@ export default function AdminMessagingPage() {
         onOpenChange={(open) => !open && setChannelsVendor(null)}
       >
         <ResponsiveDialogContent className="sm:max-w-lg">
-          <ResponsiveDialogHeader className="p-3">
-            <ResponsiveDialogTitle className="text-lg font-bold">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               کانال‌های پیام‌رسان — {channelsVendor?.name}
             </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -456,15 +603,54 @@ export default function AdminMessagingPage() {
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
-          <div className="max-h-80 space-y-3 overflow-y-auto px-3">
+          <div className="max-h-80 space-y-3 overflow-y-auto">
             {channelDrafts.length === 0 && (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                هنوز کانالی اضافه نشده است
-              </p>
+              <div className="rounded-lg border border-dashed py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  هنوز کانالی اضافه نشده است
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  در صورت خالی بودن، پیام‌ها به کانال پیش‌فرض سامانه می‌روند
+                </p>
+              </div>
             )}
             {channelDrafts.map((draft, index) => (
-              <div key={index} className="flex items-center gap-2">
+              <div
+                key={index}
+                className="flex flex-col gap-2 rounded-lg border bg-card p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                    {toPersianDigits(index + 1)}
+                  </span>
+                  <span className="flex-1" />
+                  <span className="text-xs text-muted-foreground">فعال</span>
+                  <Switch
+                    checked={draft.is_active}
+                    onCheckedChange={(checked) =>
+                      setChannelDrafts((prev) =>
+                        prev.map((d, i) =>
+                          i === index ? { ...d, is_active: checked } : d
+                        )
+                      )
+                    }
+                    aria-label={`کانال ${toPersianDigits(index + 1)} فعال`}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() =>
+                      setChannelDrafts((prev) =>
+                        prev.filter((_, i) => i !== index)
+                      )
+                    }
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                    <span className="sr-only">حذف کانال</span>
+                  </Button>
+                </div>
                 <Input
+                  id={`channel-${index}`}
                   dir="ltr"
                   value={draft.chat_id}
                   onChange={(e) =>
@@ -475,41 +661,8 @@ export default function AdminMessagingPage() {
                     )
                   }
                   placeholder="@channel یا شناسه کانال"
-                  className="flex-1"
+                  className="bg-background"
                 />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="flex items-center gap-1 text-sm">
-                      <Checkbox
-                        checked={draft.is_active}
-                        onCheckedChange={(checked) =>
-                          setChannelDrafts((prev) =>
-                            prev.map((d, i) =>
-                              i === index
-                                ? { ...d, is_active: checked === true }
-                                : d
-                            )
-                          )
-                        }
-                      />
-                      فعال
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>کانال‌های غیرفعال پیامی دریافت نمی‌کنند</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() =>
-                    setChannelDrafts((prev) =>
-                      prev.filter((_, i) => i !== index)
-                    )
-                  }
-                >
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
               </div>
             ))}
 
@@ -529,7 +682,7 @@ export default function AdminMessagingPage() {
             </Button>
           </div>
 
-          <ResponsiveDialogFooter className="p-3">
+          <ResponsiveDialogFooter>
             <Button
               variant="outline"
               onClick={() => setChannelsVendor(null)}
@@ -551,8 +704,8 @@ export default function AdminMessagingPage() {
         onOpenChange={(open) => !open && setTestVendor(null)}
       >
         <ResponsiveDialogContent className="sm:max-w-md">
-          <ResponsiveDialogHeader className="p-3">
-            <ResponsiveDialogTitle className="text-lg font-bold">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               ارسال تستی — {testVendor?.name}
             </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -566,7 +719,7 @@ export default function AdminMessagingPage() {
               e.preventDefault()
               handleTestSend()
             }}
-            className="space-y-4 px-3"
+            className="space-y-4"
           >
             <div className="space-y-2">
               <Label htmlFor="test-chat-id">آدرس کانال تستی</Label>

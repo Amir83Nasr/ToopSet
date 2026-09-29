@@ -132,6 +132,8 @@ function publicPrecacheEntries() {
     for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
       if (skip(entry.name)) continue
       if (entry.isDirectory()) {
+        // MapLibre workers are runtime-loaded by @amir83nasr/map — never precache them.
+        if (entry.name === "maplibre") continue
         walk(new URL(`${entry.name}/`, dirUrl), `${prefix}${entry.name}/`)
       } else if (entry.isFile()) {
         const fileUrl = new URL(entry.name, dirUrl)

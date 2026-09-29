@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
-import { toPersianDigits } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,23 +18,8 @@ import { TablePagination } from "@/components/ui/pagination"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { VendorCardSkeleton } from "@/components/vendors/vendor-card-skeleton"
 import { VendorCard } from "@/components/vendors/vendor-card"
-import dynamic from "next/dynamic"
-
-const VendorsMap = dynamic(
-  () => import("@/components/map/vendors-map").then((m) => m.VendorsMap),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="flex items-center justify-center rounded-xl border bg-muted"
-        style={{ height: "450px" }}
-      >
-        <p className="text-sm text-muted-foreground">در حال بارگذاری نقشه...</p>
-      </div>
-    ),
-  }
-)
-import { Building2, Search, X, Map, CalendarCheck } from "lucide-react"
+import { Building2, Search, X, MapPin, CalendarCheck } from "lucide-react"
+import { MapSearchDialog } from "@/components/vendors/map-search-dialog"
 
 export interface Vendor {
   id: number
@@ -62,9 +46,6 @@ export function VendorsExplorer() {
   const [page, setPage] = useState(0)
   const limit = 12
 
-  // Full filtered set for map markers (not paginated)
-  const [mapVendors, setMapVendors] = useState<Vendor[]>([])
-  const [mapLoading, setMapLoading] = useState(false)
   const initialized = useRef(false)
 
   // Filters from URL
@@ -80,8 +61,8 @@ export function VendorsExplorer() {
     searchParams.get("available_today") === "1"
   )
 
-  // Map panel visibility toggle — hidden by default
-  const [showMap, setShowMap] = useState(false)
+  // Fullscreen venue map — tap a pin to open the vendor page
+  const [mapSearchOpen, setMapSearchOpen] = useState(false)
 
   // Sync URL -> state on mount
   useEffect(() => {
@@ -107,20 +88,6 @@ export function VendorsExplorer() {
     if (sortBy === "distance") params.set("sort", "distance")
     return params.toString()
   }, [page, limit, debouncedSearch, availableToday, sortBy])
-
-  // Same filters but no pagination — fetches all filtered vendors for the map
-  const mapApiParams = useMemo(() => {
-    const params = new URLSearchParams()
-    params.set("limit", "100")
-    params.set("is_active", "true")
-    if (debouncedSearch) params.set("search", debouncedSearch)
-    if (availableToday) params.set("available_today", "true")
-    if (sortBy === "price_asc") params.set("sort", "price_asc")
-    if (sortBy === "price_desc") params.set("sort", "price_desc")
-    if (sortBy === "rating") params.set("sort", "rating")
-    if (sortBy === "distance") params.set("sort", "distance")
-    return params.toString()
-  }, [debouncedSearch, availableToday, sortBy])
 
   // Sync filters to URL
   useEffect(() => {
@@ -153,29 +120,6 @@ export function VendorsExplorer() {
     return () => clearTimeout(timer)
   }, [fetchVendors])
 
-  // Fetch full filtered vendors list for the map
-  const fetchMapVendors = useCallback(async () => {
-    setMapLoading(true)
-    try {
-      const res = await api<{ vendors: Vendor[]; total: number }>(
-        `/api/v1/vendors?${mapApiParams}`
-      )
-      setMapVendors(res.vendors || [])
-    } catch {
-      setMapVendors((current) =>
-        current.length === 0 ? featuredVendors : current
-      )
-    } finally {
-      setMapLoading(false)
-    }
-  }, [mapApiParams, featuredVendors])
-
-  useEffect(() => {
-    if (!showMap) return
-    const timer = setTimeout(() => fetchMapVendors(), 0)
-    return () => clearTimeout(timer)
-  }, [showMap, fetchMapVendors])
-
   function clearFilters() {
     setSearchText("")
     setAvailableToday(false)
@@ -186,12 +130,11 @@ export function VendorsExplorer() {
   const hasActiveFilters = searchText || availableToday || sortBy !== "default"
 
   const totalPages = Math.ceil(total / limit)
-  const vendorsForMap = mapVendors.length > 0 ? mapVendors : featuredVendors
 
   return (
     <>
       <div className="rounded-xl border bg-card p-4">
-        {/* Row 1: Search + Sort + Near Me + Map Toggle */}
+        {/* Row 1: Search + Sort + Today + Search-from-map */}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <div className="col-span-2 min-w-0 sm:flex-1">
             <div className="relative">
@@ -244,49 +187,22 @@ export function VendorsExplorer() {
           </Button>
 
           <Button
-            variant={showMap ? "default" : "outline"}
+            type="button"
+            variant="outline"
             size="sm"
             className="col-span-2 w-full gap-1.5 px-2 sm:col-span-1 sm:w-auto"
-            onClick={() => setShowMap((prev) => !prev)}
+            onClick={() => setMapSearchOpen(true)}
           >
-            <Map className="size-4" />
-            <span className="truncate">
-              {showMap ? "بستن نقشه" : "نمایش نقشه"}
-            </span>
+            <MapPin className="size-4" />
+            <span className="truncate">جستجو از روی نقشه</span>
           </Button>
         </div>
 
-        {/* ── Interactive Inline Map Panel ── */}
-        {showMap && (
-          <div className="mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Map className="size-4 text-primary" />
-                <span>
-                  نقشه مجموعه‌های ورزشی ({toPersianDigits(vendorsForMap.length)}{" "}
-                  مجموعه)
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMap(false)}
-                className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3.5" />
-                بستن نقشه
-              </Button>
-            </div>
-            <div className="h-[380px] sm:h-[480px]">
-              <VendorsMap
-                vendors={vendorsForMap}
-                loading={mapLoading}
-                height="100%"
-                userLocation={null}
-              />
-            </div>
-          </div>
-        )}
+        <MapSearchDialog
+          open={mapSearchOpen}
+          onOpenChange={setMapSearchOpen}
+          vendors={featuredVendors}
+        />
 
         {/* Filter chips */}
         {hasActiveFilters && (

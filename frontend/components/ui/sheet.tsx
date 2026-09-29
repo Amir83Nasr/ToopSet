@@ -14,6 +14,7 @@ function Sheet({
   defaultOpen = false,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Root>) {
+  // Same html-lock rationale as Dialog above (Sheet is Radix Dialog based).
   const isOpen = open ?? defaultOpen
   useScrollLock(isOpen)
 

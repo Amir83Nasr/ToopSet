@@ -44,7 +44,6 @@ import {
   Loader2,
   Pencil,
   Power,
-  RefreshCw,
   UserPlus,
   XCircle,
 } from "lucide-react"
@@ -422,12 +421,6 @@ export function VendorScheduleTab({
               >
                 <CalendarDays className="size-4" />
                 <span>مشاهده امروز</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={refreshAll}>
-                <RefreshCw
-                  className={`size-4 ${templateLoading ? "animate-spin" : ""}`}
-                />
-                <span>بروزرسانی</span>
               </Button>
               {canManage && (
                 <Button
