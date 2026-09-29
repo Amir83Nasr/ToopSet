@@ -1,6 +1,8 @@
 // Copies MapLibre worker bundles into public/ so @amir83nasr/map can
 // load them at runtime via setupQomPickWorker("/maplibre/...").
 // Runs on postinstall / predev / prebuild — see package.json.
+// Missing sources are not fatal: warn and skip so a fresh install
+// (Docker deps stage, CI) never fails when maplibre-gl isn't linked yet.
 // ponytail: if maplibre-gl moves the workers, resolve the package dir
 // with createRequire(import.meta.url).resolve("maplibre-gl/package.json").
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"

@@ -3,6 +3,9 @@ FROM node:24-slim AS deps
 WORKDIR /app
 ENV COREPACK_ENABLE_STRICT=0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# postinstall runs scripts/copy-maplibre-workers.mjs — it must exist
+# before `pnpm install`, otherwise the deps stage fails with ENOENT.
+COPY scripts/copy-maplibre-workers.mjs ./scripts/copy-maplibre-workers.mjs
 RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile
 

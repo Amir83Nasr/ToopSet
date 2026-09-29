@@ -17,7 +17,9 @@ describe("BookingBallOption", () => {
       />
     )
 
-    expect(screen.getByRole("status")).toHaveTextContent("مجموعه بدون توپ است")
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "این مجموعه توپ ارائه نمی‌دهد"
+    )
     expect(
       screen.getByText(/در صورت نیاز، توپ همراه داشته باشید/)
     ).toBeInTheDocument()
@@ -38,9 +40,7 @@ describe("BookingBallOption", () => {
     )
 
     expect(screen.getByRole("radio", { name: "اجاره توپ" })).not.toBeChecked()
-    expect(
-      screen.getByRole("radio", { name: "خیر، خودم توپ دارم" })
-    ).not.toBeChecked()
+    expect(screen.getByRole("radio", { name: "توپ دارم" })).not.toBeChecked()
   })
 
   it("shows the configured price and lets the user pick ball rental", async () => {
@@ -56,7 +56,7 @@ describe("BookingBallOption", () => {
       />
     )
 
-    expect(screen.getByText("(۷۵٬۰۰۰ تومان)")).toBeInTheDocument()
+    expect(screen.getByText("۷۵٬۰۰۰ تومان")).toBeInTheDocument()
 
     await user.click(screen.getByRole("radio", { name: "اجاره توپ" }))
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(true)
@@ -77,7 +77,7 @@ describe("BookingBallOption", () => {
 
     expect(screen.getByRole("radio", { name: "اجاره توپ" })).toBeChecked()
 
-    await user.click(screen.getByRole("radio", { name: "خیر، خودم توپ دارم" }))
+    await user.click(screen.getByRole("radio", { name: "توپ دارم" }))
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(false)
   })
 })
